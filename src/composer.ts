@@ -317,7 +317,7 @@ function planSections(
       bass: true,
       pad: true,
       riff: true,
-      hook: rng.chance(0.3),
+      hook: rng.chance(0.3 * tf),
       arp: rng.chance(0.5),
     });
     add("turnaround", "Turnaround", p.turnaround.length > 2 ? 4 : 2, p.turnaround, {
@@ -345,6 +345,8 @@ function planSections(
       guitar,
     });
   };
+  // The melodic bass (Peter Hook's part) never plays under a verse: in the TF MIDI it's in the
+  // intro, the bridge solo, the instrumentals and the outro only, and DS has none.
   const tfInstrumental = (label: string, bars: number) =>
     add("interlude", label, bars, p.chorus, {
       drums: "full",
@@ -353,25 +355,25 @@ function planSections(
       guitar,
       pad: true,
       riff: true,
-      hook: true,
+      hook: rng.chance(0.2 + 0.5 * tf),
     });
 
   // Both songs open with drums + bass, then an instrumental over the chorus chords.
   add("intro", "Intro", 4, p.chorus, {
     drums: rng.chance(0.6 * tf) ? "groove" : rng.chance(0.5 + 0.3 * tf) ? "kick" : "full",
     bass: true,
-    hook: rng.chance(0.2 + 0.5 * tf),
+    hook: rng.chance(0.5 * tf),
   });
   add("intro", "Intro · riff", rng.pick([8, 8, 12]), p.chorus, {
     drums: "full",
     bass: true,
     pad: true,
     riff: true,
-    hook: rng.chance(0.3 + 0.4 * tf),
+    hook: rng.chance(0.1 + 0.6 * tf),
     arp: rng.chance(0.3 * style),
   });
   const verseBars = rng.chance(0.8) ? 16 : 8;
-  verse("Verse 1", verseBars, { hook: rng.chance(0.3 * tf) });
+  verse("Verse 1", verseBars);
   chorus("Chorus");
   seq = useSeq;
   if (rng.chance(style)) dsBlock();
@@ -379,7 +381,7 @@ function planSections(
     tfInstrumental("Instrumental", 8);
     tfTurn();
   }
-  verse("Verse 2", verseBars === 16 && rng.chance(0.5) ? 16 : 8, { hook: rng.chance(0.5) });
+  verse("Verse 2", verseBars === 16 && rng.chance(0.5) ? 16 : 8);
   chorus("Chorus", { arp: true });
   if (rng.chance(style)) {
     dsBlock();
@@ -400,7 +402,7 @@ function planSections(
   }
   if (rng.chance(0.2 + 0.6 * tf)) {
     tfTurn();
-    verse("Verse 3", rng.chance(0.5) ? 16 : 8, { hook: true });
+    verse("Verse 3", rng.chance(0.5) ? 16 : 8);
   }
   chorus("Chorus");
   chorus("Chorus · double", { leadDouble: true, arp: true });

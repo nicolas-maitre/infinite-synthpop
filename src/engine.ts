@@ -66,6 +66,7 @@ export class Engine {
   /** Must be called from a user gesture (browsers block audio until then). */
   async start(): Promise<void> {
     if (this.playing) return;
+    if (!this.instruments) useListeningContext();
     await Tone.start();
     if (!this.instruments) {
       this.instruments = await Instruments.create();
@@ -193,6 +194,16 @@ export class Engine {
     atAudioTime(time, () => this.events.onBar?.(ev, song));
     this.bar++;
   };
+}
+
+/**
+ * Tone's default context is tuned for live playing: ~6 ms audio buffers and a 100 ms look-ahead.
+ * With every instrument running, that left 27–60 ms between scheduling a bar and its first notes,
+ * so any main-thread or audio-thread hiccup broke the music up. This is a listening app, and
+ * controls act on the next bar anyway: larger buffers and a 300 ms look-ahead cost nothing here.
+ */
+function useListeningContext(): void {
+  Tone.setContext(new Tone.Context({ latencyHint: "playback", lookAhead: 0.3 }));
 }
 
 /** Schedules every event of one bar starting at `time` (seconds on the audio clock). */
