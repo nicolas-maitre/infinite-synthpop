@@ -433,6 +433,10 @@ async function togglePlay(): Promise<void> {
     });
     applyMixer();
     renderKitStatus();
+  } catch (error) {
+    // Not left on "Loading…": the button works again, and the console says why it failed.
+    ui.play.textContent = "▶ Play";
+    console.error("Couldn't start playback", error);
   } finally {
     ui.play.disabled = false;
     ui.play.classList.remove("loading");

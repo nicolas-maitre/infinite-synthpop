@@ -11,6 +11,9 @@ importers:
       '@breezystack/lamejs':
         specifier: 1.2.7
         version: 1.2.7
+      standardized-audio-context:
+        specifier: 25.3.77
+        version: 25.3.77
       tone:
         specifier: 15.1.22
         version: 15.1.22

@@ -4,6 +4,7 @@
  * beyond the clock's look-ahead). When a song ends, composes the next one from a seed derived from
  * the last.
  */
+import { AudioContext as StandardAudioContext } from "standardized-audio-context";
 import * as Tone from "tone";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents } from "./arranger";
 import type { SampleReport } from "./drums";
@@ -373,19 +374,24 @@ export class Engine {
  * With every instrument running, that left 27–60 ms between scheduling a bar and its first notes,
  * so any main-thread or audio-thread hiccup broke the music up. This is a listening app, and
  * controls act on the next bar anyway: larger buffers and a 300 ms look-ahead cost nothing here.
- * Lite mode (phones) also runs the graph at a lower sample rate (quality.ts).
+ * Lite mode (phones) also runs the graph at a lower sample rate (quality.ts). That context comes
+ * from standardized-audio-context, as Tone's own does: Tone checks nodes and params against that
+ * library's types, which a browser's own AudioContext fails in Firefox ("param must be an
+ * AudioParam").
  */
 function useListeningContext(): void {
   const latencyHint = "playback";
-  let context: AudioContext | undefined;
+  let context: StandardAudioContext | undefined;
   if (LITE) {
     try {
-      context = new AudioContext({ latencyHint, sampleRate: LITE_SAMPLE_RATE });
+      context = new StandardAudioContext({ latencyHint, sampleRate: LITE_SAMPLE_RATE });
     } catch {
       // A browser that refuses the rate gets its default.
     }
   }
-  Tone.setContext(new Tone.Context({ latencyHint, lookAhead: 0.3, ...(context && { context }) }));
+  // Tone types its option as the browser's AudioContext, though it wraps this library's own.
+  const raw = context as unknown as AudioContext | undefined;
+  Tone.setContext(new Tone.Context({ latencyHint, lookAhead: 0.3, ...(raw && { context: raw }) }));
 }
 
 /** The mixer tracks that play anywhere in the song. */
