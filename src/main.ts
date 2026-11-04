@@ -153,17 +153,22 @@ function setCreator(on: boolean): void {
     engine.playCustom({ seed: song.seed, spec: songToSpec(song) }, true);
   }
   creator.setActive(on);
+  roll.setCreatorMode(on);
   creatorToggle.setAttribute("aria-pressed", String(on));
   document.body.classList.toggle("creating", on);
   renderSong(engine.song);
 }
 
-const creator = mountCreator(ui.progression, el("section-editor"), {
+const creator = mountCreator(ui.progression, el("section-editor"), el("roll-controls"), {
   song: () => engine.song,
   creation: () => engine.creation,
   play: (c, keepPosition) => engine.playCustom(c, keepPosition),
   edit: (spec) => engine.editCustom(spec),
   select: selectSection,
+  seek: (bar) => {
+    engine.jumpTo(bar);
+    if (!engine.playing) renderBar(engine.song, bar);
+  },
   saved: savedCreation,
   copyLink: () =>
     navigator.clipboard
@@ -178,6 +183,7 @@ const creator = mountCreator(ui.progression, el("section-editor"), {
   setLeadEditor: (editor) => roll.setEditor(editor),
 });
 creatorToggle.addEventListener("click", () => setCreator(!creator.active));
+roll.onLayout = (lanes, labelWidth) => creator.layoutLanes(lanes, labelWidth);
 
 // Recording a melody: the section loops with its own lead silenced, you play over it, and the
 // take becomes its melody when you stop.

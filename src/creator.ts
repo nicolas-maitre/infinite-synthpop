@@ -21,13 +21,12 @@ import {
   CHORD_CHOICES,
   DRUM_MODES,
   KITS,
-  SECTION_INSTRUMENTS,
   SECTION_KINDS,
   type Creation,
   type SectionSpec,
   type SongSpec,
 } from "./spec";
-import type { LeadEditor } from "./pianoroll";
+import type { LaneId, LaneLayout, LeadEditor } from "./pianoroll";
 import { chord, chordName, keyName, scaleForChord } from "./theory";
 
 export interface CreatorHost {
@@ -38,6 +37,8 @@ export interface CreatorHost {
   edit(spec: SongSpec): void;
   /** Shows a section: jumps there (and loops it when looping is on). */
   select(sectionIndex: number): void;
+  /** Jumps to a bar of the song. */
+  seek(bar: number): void;
   saved(): Creation | null;
   /** Copies the song's link; resolves false if the clipboard isn't available. */
   copyLink(): Promise<boolean>;
@@ -52,6 +53,8 @@ export interface CreatorHost {
 
 export interface Creator {
   readonly active: boolean;
+  /** The roll's lanes moved: puts each instrument's controls beside its lane. */
+  layoutLanes(lanes: LaneLayout[], labelWidth: number): void;
   setActive(on: boolean): void;
   /** After the timeline is built: makes its sections draggable and adds the + button. */
   decorateTimeline(timeline: HTMLElement): void;
@@ -59,16 +62,6 @@ export interface Creator {
   show(index: number, currentBar: number): void;
 }
 
-const INSTRUMENT_LABELS: Record<(typeof SECTION_INSTRUMENTS)[number], string> = {
-  bass: "Seq bass",
-  seq: "Sequence",
-  guitar: "Guitar",
-  hook: "Melodic bass",
-  pad: "Pad",
-  riff: "Riff",
-  arp: "Arp",
-  stabs: "Stabs",
-};
 const DRUM_LABELS: Record<string, string> = {
   off: "No drums",
   kick: "Kick only",
@@ -77,6 +70,39 @@ const DRUM_LABELS: Record<string, string> = {
   big: "Big (chorus)",
   groove: "Intro groove",
 };
+/** The instruments a section can play, in lane order, and their names. */
+const LANE_ORDER: readonly LaneId[] = [
+  "drums",
+  "bass",
+  "seq",
+  "guitar",
+  "hook",
+  "pad",
+  "riff",
+  "lead",
+  "arp",
+  "stabs",
+];
+const LANE_LABELS: Record<LaneId, string> = {
+  drums: "Drums",
+  bass: "Seq bass",
+  seq: "Sequence",
+  guitar: "Guitar",
+  hook: "Melodic bass",
+  pad: "Pad",
+  riff: "Riff",
+  lead: "Lead",
+  arp: "Arp",
+  stabs: "Stabs",
+};
+
+/** Whether a section's layers play an instrument. */
+function plays(L: Partial<Layers>, id: LaneId): boolean {
+  if (id === "drums") return !!L.drums && L.drums !== "off";
+  if (id === "lead") return !!L.lead;
+  return !!L[id];
+}
+
 const ADD_KINDS: readonly SectionKind[] = [
   "verse",
   "chorus",
@@ -91,8 +117,13 @@ const ADD_KINDS: readonly SectionKind[] = [
 export function mountCreator(
   chords: HTMLOListElement,
   panel: HTMLElement,
+  lanesBox: HTMLElement,
   host: CreatorHost,
 ): Creator {
+  /** Each instrument's controls, by lane, and where the roll last drew the lanes. */
+  const laneEls = new Map<LaneId, HTMLElement>();
+  let layout: { lanes: LaneLayout[]; labelWidth: number } = { lanes: [], labelWidth: 0 };
+  let importSlot = el("div");
   let active = false;
   /** What's on screen, so repeated bar updates don't rebuild (and close) open pickers. */
   let shownSong: Song | null = null;
@@ -169,6 +200,13 @@ export function mountCreator(
       remove.setAttribute("aria-label", `Remove bar ${b + 1}`);
       remove.disabled = single;
       head.append(grip, remove);
+      // Clicking the bar's header jumps to it (its first time through the section).
+      head.title = "Click to play from this bar; drag the grip to move it";
+      head.addEventListener("click", (e) => {
+        if (e.target === remove) return;
+        const start = host.song().sections[index]?.startBar;
+        if (start !== undefined) host.seek(start + b);
+      });
 
       li.addEventListener("dragstart", (e) => {
         dragFrom = b;
@@ -246,7 +284,6 @@ export function mountCreator(
     const section = s.sections[index];
     panel.hidden = !section;
     if (!section) return;
-    const L = section.layers;
 
     const name = input("text", section.label, (v) =>
       update((n) => (at(n, index).label = v.trim() || "Section")),
@@ -305,25 +342,224 @@ export function mountCreator(
       del,
     );
 
-    const drums = select(
-      DRUM_MODES.map((m) => [m, DRUM_LABELS[m] ?? m]),
-      L.drums ?? "off",
-      (v) => update((n) => (at(n, index).layers.drums = DRUM_MODES.find((m) => m === v))),
-    );
+    importSlot = el("div", "melody-import-slot");
+    panel.replaceChildren(addList(s, index), head, importSlot, songSettings(s));
+    renderLanes(s, index);
+  }
+
+  /** "+ Guitar", "+ Lead", …: the instruments this section doesn't play yet. */
+  function addList(s: SongSpec, index: number): HTMLElement {
+    const section = s.sections[index];
+    const box = el("div", "instrument-add");
+    if (!section) return box;
+    const L = section.layers;
+    const missing = LANE_ORDER.filter((id) => !plays(L, id));
+    if (!missing.length) return box;
+    const label = el("span", "note");
+    label.textContent = "Add:";
+    box.append(label);
+    for (const id of missing) {
+      const b = button(`+ ${LANE_LABELS[id]}`, () =>
+        update((n) => {
+          const t = at(n, index);
+          if (id === "drums") t.layers.drums = t.kind === "chorus" ? "big" : "full";
+          else if (id === "lead") t.layers.lead = t.kind === "chorus" ? "chorus" : "verse";
+          else setLayer(t.layers, id, true);
+        }),
+      );
+      b.classList.add("instrument-add-btn");
+      box.append(b);
+    }
+    return box;
+  }
+
+  // ── Each instrument's controls, beside its lane in the piano roll ────────────────────────────
+
+  function renderLanes(s: SongSpec, index: number): void {
+    const section = s.sections[index];
+    laneEls.clear();
+    lanesBox.replaceChildren();
+    if (!section) return;
+    for (const id of LANE_ORDER) {
+      if (!plays(section.layers, id)) continue;
+      const box = el("div", "lane-controls");
+      box.dataset.lane = id;
+      const head = el("div", "lane-head");
+      const name = el("span", "lane-name");
+      name.textContent = id === "lead" ? "Lead ✎" : LANE_LABELS[id];
+      const remove = button("×", () =>
+        update((n) => {
+          const t = at(n, index);
+          if (id === "drums") t.layers.drums = "off";
+          else if (id === "lead") {
+            t.layers.lead = null;
+            delete t.melody;
+          } else setLayer(t.layers, id, false);
+        }),
+      );
+      remove.className = "lane-remove";
+      remove.title = `Remove ${LANE_LABELS[id]} from this section`;
+      remove.setAttribute("aria-label", `Remove ${LANE_LABELS[id]}`);
+      head.append(name, remove);
+      const params = laneParams(s, index, id);
+      // A one-line lane (the bass) keeps its switch beside its name.
+      box.append(head);
+      if (id === "bass") head.insertBefore(row("lane-row", ...params), remove);
+      else box.append(...params);
+      laneEls.set(id, box);
+      lanesBox.append(box);
+    }
+    placeLanes();
+  }
+
+  /** The parameters an instrument has in a section. */
+  function laneParams(s: SongSpec, index: number, id: LaneId): HTMLElement[] {
+    const section = s.sections[index];
+    if (!section) return [];
+    const L = section.layers;
     const layer = (label: string, key: keyof Layers, on: boolean) =>
       toggle(label, on, (value) => update((n) => setLayer(at(n, index).layers, key, value)));
-    const instruments = row(
-      "section-editor-instruments",
-      labelled("Drums", drums),
-      ...SECTION_INSTRUMENTS.map((i) => layer(INSTRUMENT_LABELS[i], i, !!L[i])),
-      layer("Double lead", "leadDouble", !!L.leadDouble),
-      layer("Staccato bass", "bassShort", !!L.bassShort),
-      toggle("Fill at end", section.fill ?? defaultFill(s, index), (on) =>
-        update((n) => (at(n, index).fill = on)),
-      ),
-    );
+    if (id === "drums") {
+      const pattern = select(
+        DRUM_MODES.filter((m) => m !== "off").map((m) => [m, DRUM_LABELS[m] ?? m]),
+        L.drums ?? "full",
+        (v) => update((n) => (at(n, index).layers.drums = DRUM_MODES.find((m) => m === v))),
+      );
+      pattern.setAttribute("aria-label", "Drum pattern");
+      return [
+        row(
+          "lane-row",
+          pattern,
+          toggle("Fill", section.fill ?? defaultFill(s, index), (on) =>
+            update((n) => (at(n, index).fill = on)),
+          ),
+        ),
+      ];
+    }
+    if (id === "bass") return [layer("Staccato", "bassShort", !!L.bassShort)];
+    if (id === "lead") return leadParams(s, index);
+    return [];
+  }
 
-    panel.replaceChildren(head, instruments, melodyRow(s, index), songSettings(s));
+  /** The lead: which melody, double, and the tools that make one (the roll edits it). */
+  function leadParams(s: SongSpec, index: number): HTMLElement[] {
+    const section = s.sections[index];
+    if (!section) return [];
+    const L = section.layers;
+    const custom = section.melody ? s.melodies?.[section.melody] : undefined;
+    const melody = select(
+      [
+        ["verse", "Generated: verse"],
+        ["chorus", "Generated: chorus"],
+        ...Object.entries(s.melodies ?? {}).map(([id, m]): [string, string] => [
+          `custom:${id}`,
+          `✎ ${m.name}`,
+        ]),
+      ],
+      custom ? `custom:${section.melody}` : (L.lead ?? "verse"),
+      (v) =>
+        update((n) => {
+          const t = at(n, index);
+          if (v.startsWith("custom:")) {
+            t.melody = v.slice(7);
+            t.layers.lead ??= t.kind === "chorus" ? "chorus" : "verse";
+          } else {
+            delete t.melody;
+            t.layers.lead = v === "chorus" ? "chorus" : ("verse" as MelodyKind);
+          }
+        }),
+    );
+    melody.setAttribute("aria-label", "Lead melody");
+    const rows: HTMLElement[] = [
+      row(
+        "lane-row",
+        melody,
+        toggle("Double", !!L.leadDouble, (on) =>
+          update((n) => (at(n, index).layers.leadDouble = on)),
+        ),
+      ),
+    ];
+    if (custom && section.melody) {
+      const id = section.melody;
+      const name = input("text", custom.name, (v) =>
+        update((n) => {
+          const m = n.melodies?.[id];
+          if (m) m.name = v.trim() || m.name;
+        }),
+      );
+      name.className = "melody-name";
+      name.setAttribute("aria-label", "Melody name");
+      const length = input("number", String(custom.bars), (v) =>
+        update((n) => {
+          const m = n.melodies?.[id];
+          if (m) m.bars = Math.min(32, Math.max(1, Math.round(Number(v)) || m.bars));
+        }),
+      );
+      length.min = "1";
+      length.max = "32";
+      length.title = "Melody length in bars (it repeats over the section)";
+      rows.push(row("lane-row", name, labelled("bars", length)));
+    }
+    const range = select(
+      [
+        ["low", "Low"],
+        ["mid", "Mid"],
+        ["high", "High"],
+      ],
+      melodyPrefs.range,
+      (v) => (melodyPrefs.range = v === "low" || v === "high" ? v : "mid"),
+    );
+    range.title = "Register of a new melody";
+    const density = select(
+      [
+        ["sparse", "Sparse"],
+        ["normal", "Normal"],
+        ["busy", "Busy"],
+      ],
+      melodyPrefs.density,
+      (v) => (melodyPrefs.density = v === "sparse" || v === "busy" ? v : "normal"),
+    );
+    density.title = "Notes per bar of a new melody";
+    const write = button("New", () =>
+      update((n) => {
+        const m = writeMelody(
+          host.song(),
+          index,
+          melodyPrefs.range,
+          melodyPrefs.density,
+          Math.floor(Math.random() * 1e6),
+          nextMelodyName(n),
+        );
+        if (m) assignMelody(n, host.song(), index, m);
+      }),
+    );
+    write.title = "Write a new melody over this section's chords";
+    const record = button(host.recording() ? "■ Stop" : "● Rec", () => {
+      void host.toggleRecording(index).then((on) => {
+        record.textContent = on ? "■ Stop" : "● Rec";
+        record.classList.toggle("recording", on);
+      });
+    });
+    record.classList.toggle("recording", host.recording());
+    record.title =
+      "Record: play the melody in while the section loops (keys A W S E D F T G Y H U J K, Z / X octave, or a MIDI keyboard)";
+    const importBtn = button("MIDI…", () => void showImport(index, importSlot));
+    importBtn.title = "Import a track and bars from a MIDI file as this melody";
+    rows.push(row("lane-row", range, density, write), row("lane-row", record, importBtn));
+    return rows;
+  }
+
+  /** Puts each instrument's controls beside its lane (the roll reports where they are). */
+  function placeLanes(): void {
+    lanesBox.hidden = !active || laneEls.size === 0;
+    lanesBox.style.width = `${layout.labelWidth}px`;
+    for (const lane of layout.lanes) {
+      const box = laneEls.get(lane.id);
+      if (!box) continue;
+      box.style.top = `${lane.top}px`;
+      box.style.height = `${lane.height}px`;
+      box.style.setProperty("--lane-color", lane.color);
+    }
   }
 
   // ── The section's melody: pick, write, record, import (and edit in the piano roll) ─────────
@@ -351,121 +587,6 @@ export function mountCreator(
           assignMelody(n, song, index, fromBars(bars, t.key ?? n.key, name));
         }),
     };
-  }
-
-  function melodyRow(s: SongSpec, index: number): HTMLElement {
-    const section = s.sections[index];
-    const box = el("div", "melody-editor");
-    if (!section) return box;
-    const L = section.layers;
-    const custom = section.melody ? s.melodies?.[section.melody] : undefined;
-    const value = !L.lead ? "" : custom ? `custom:${section.melody}` : L.lead;
-    const lead = select(
-      [
-        ["", "No lead"],
-        ["verse", "Generated: verse melody"],
-        ["chorus", "Generated: chorus melody"],
-        ...Object.entries(s.melodies ?? {}).map(([id, m]): [string, string] => [
-          `custom:${id}`,
-          `✎ ${m.name}`,
-        ]),
-      ],
-      value,
-      (v) =>
-        update((n) => {
-          const t = at(n, index);
-          if (v.startsWith("custom:")) {
-            t.melody = v.slice(7);
-            t.layers.lead ??= t.kind === "chorus" ? "chorus" : "verse";
-          } else {
-            delete t.melody;
-            t.layers.lead = v === "verse" || v === "chorus" ? (v as MelodyKind) : null;
-          }
-        }),
-    );
-    lead.setAttribute("aria-label", "Lead melody");
-    const children: HTMLElement[] = [labelled("Lead", lead)];
-
-    if (custom && section.melody) {
-      const id = section.melody;
-      const name = input("text", custom.name, (v) =>
-        update((n) => {
-          const m = n.melodies?.[id];
-          if (m) m.name = v.trim() || m.name;
-        }),
-      );
-      name.className = "melody-name";
-      name.setAttribute("aria-label", "Melody name");
-      const length = input("number", String(custom.bars), (v) =>
-        update((n) => {
-          const m = n.melodies?.[id];
-          if (m) m.bars = Math.min(32, Math.max(1, Math.round(Number(v)) || m.bars));
-        }),
-      );
-      length.min = "1";
-      length.max = "32";
-      length.title = "Melody length in bars (it repeats over the section)";
-      children.push(name, labelled("bars", length));
-    }
-
-    // While recording, the section's lead is silenced: keep the tools (and the stop button).
-    if (L.lead || host.recording()) {
-      const range = select(
-        [
-          ["low", "Low"],
-          ["mid", "Mid"],
-          ["high", "High"],
-        ],
-        melodyPrefs.range,
-        (v) => (melodyPrefs.range = v === "low" || v === "high" ? v : "mid"),
-      );
-      range.title = "Register of the new melody";
-      const density = select(
-        [
-          ["sparse", "Sparse"],
-          ["normal", "Normal"],
-          ["busy", "Busy"],
-        ],
-        melodyPrefs.density,
-        (v) => (melodyPrefs.density = v === "sparse" || v === "busy" ? v : "normal"),
-      );
-      density.title = "How many notes per bar";
-      const write = button("New melody", () =>
-        update((n) => {
-          const m = writeMelody(
-            host.song(),
-            index,
-            melodyPrefs.range,
-            melodyPrefs.density,
-            Math.floor(Math.random() * 1e6),
-            nextMelodyName(n),
-          );
-          if (m) assignMelody(n, host.song(), index, m);
-        }),
-      );
-      write.title = "Write a new melody over this section's chords";
-
-      const record = button(host.recording() ? "■ Stop recording" : "● Record", () => {
-        void host.toggleRecording(index).then((on) => {
-          record.textContent = on ? "■ Stop recording" : "● Record";
-          record.classList.toggle("recording", on);
-        });
-      });
-      record.classList.toggle("recording", host.recording());
-      record.title =
-        "Play the melody in while the section loops: computer keys A W S E D F T G Y H U J K (Z / X: octave), or a MIDI keyboard";
-
-      const importBtn = button("Import MIDI…", () => void showImport(index, box));
-      importBtn.title = "Take a track and bars from a MIDI file as this section's melody";
-
-      const hint = el("span", "note");
-      hint.textContent = host.recording()
-        ? "Recording — play now (A W S E D F T G Y H U J K, Z / X octave, or MIDI)."
-        : "Edit notes in the piano roll's Lead lane.";
-      children.push(labelled("New", range, density), write, record, importBtn, hint);
-    }
-    box.append(...children);
-    return box;
   }
 
   async function showImport(index: number, box: HTMLElement): Promise<void> {
@@ -527,8 +648,7 @@ export function mountCreator(
       go,
       cancel,
     );
-    box.querySelector(".melody-import")?.remove();
-    box.append(form);
+    box.replaceChildren(form);
   }
 
   function songSettings(s: SongSpec): HTMLElement {
@@ -684,6 +804,9 @@ export function mountCreator(
       shownIndex = -1;
       if (!on) {
         host.setLeadEditor(null);
+        laneEls.clear();
+        lanesBox.replaceChildren();
+        lanesBox.hidden = true;
         panel.hidden = true;
         panel.replaceChildren();
         chords.classList.remove("editing");
@@ -691,6 +814,10 @@ export function mountCreator(
     },
     decorateTimeline,
     show,
+    layoutLanes(lanes, labelWidth) {
+      layout = { lanes, labelWidth };
+      placeLanes();
+    },
   };
 }
 

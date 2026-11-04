@@ -20,23 +20,37 @@ export interface LeadEditor {
   commit(bars: Note[][]): void;
 }
 
+/** A lane's instrument: the section layer that turns it on. */
+export type LaneId =
+  "drums" | "bass" | "seq" | "guitar" | "hook" | "pad" | "riff" | "lead" | "arp" | "stabs";
+
 interface Lane {
+  id: Exclude<LaneId, "drums">;
   label: string;
   color: string;
   tracks: readonly MelodicTrack[];
 }
 
-const LANES: readonly Lane[] = [
-  { label: "Seq bass", color: "#ff3d8b", tracks: ["bass"] },
-  { label: "Sequence", color: "#39d0ff", tracks: ["seq"] },
-  { label: "Guitar", color: "#ffcf3d", tracks: ["guitar"] },
-  { label: "Melodic bass", color: "#ff8a3d", tracks: ["hook"] },
-  { label: "Pad", color: "#8f7dff", tracks: ["pad"] },
-  { label: "Riff", color: "#3dffb0", tracks: ["riff"] },
-  { label: "Lead", color: "#f4f2ff", tracks: ["lead", "leadOct"] },
-  { label: "Arp", color: "#3d9bff", tracks: ["arp"] },
-  { label: "Stabs", color: "#ff6bd5", tracks: ["stab"] },
+export const LANES: readonly Lane[] = [
+  { id: "bass", label: "Seq bass", color: "#ff3d8b", tracks: ["bass"] },
+  { id: "seq", label: "Sequence", color: "#39d0ff", tracks: ["seq"] },
+  { id: "guitar", label: "Guitar", color: "#ffcf3d", tracks: ["guitar"] },
+  { id: "hook", label: "Melodic bass", color: "#ff8a3d", tracks: ["hook"] },
+  { id: "pad", label: "Pad", color: "#8f7dff", tracks: ["pad"] },
+  { id: "riff", label: "Riff", color: "#3dffb0", tracks: ["riff"] },
+  { id: "lead", label: "Lead", color: "#f4f2ff", tracks: ["lead", "leadOct"] },
+  { id: "arp", label: "Arp", color: "#3d9bff", tracks: ["arp"] },
+  { id: "stabs", label: "Stabs", color: "#ff6bd5", tracks: ["stab"] },
 ];
+
+/** Where a lane sits in the roll (CSS pixels), for controls placed beside it. */
+export interface LaneLayout {
+  id: LaneId;
+  label: string;
+  color: string;
+  top: number;
+  height: number;
+}
 
 const DRUM_ROWS: readonly { label: string; voices: readonly DrumVoice[] }[] = [
   { label: "cym", voices: ["crash", "tamb", "cabasa", "rim"] },
@@ -47,6 +61,8 @@ const DRUM_ROWS: readonly { label: string; voices: readonly DrumVoice[] }[] = [
 ];
 
 const LABEL_W = 92;
+/** Creator mode: room beside each lane for its controls. */
+const CREATOR_LABEL_W = 220;
 const HEADER_H = 22;
 const LANE_H = 30;
 const DRUM_H = 55;
@@ -79,6 +95,11 @@ export class PianoRoll {
   private suppressClick = false;
   /** Whether the current drag changed anything (a click on a note alone doesn't). */
   private dirty = false;
+  /** Creator mode: lanes follow the section's instruments, labels make room for controls. */
+  private creator = false;
+  private labelW = LABEL_W;
+  /** Called with the lanes' positions whenever the layout changes. */
+  onLayout: ((lanes: LaneLayout[], labelWidth: number) => void) | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -102,8 +123,8 @@ export class PianoRoll {
         return;
       }
       if (!this.section) return;
-      const x = this.local(e).x - LABEL_W;
-      const width = canvas.clientWidth - LABEL_W;
+      const x = this.local(e).x - this.labelW;
+      const width = canvas.clientWidth - this.labelW;
       if (x < 0 || width <= 0) return;
       const bar = Math.floor((x / width) * this.section.bars);
       onSeek(this.section.startBar + Math.min(this.section.bars - 1, Math.max(0, bar)));
@@ -129,6 +150,14 @@ export class PianoRoll {
     this.playing = playing;
   }
 
+  /** Creator mode: one lane per instrument the section plays (even before it has notes), with
+   * the label column left to the controls drawn over it. */
+  setCreatorMode(on: boolean): void {
+    this.creator = on;
+    this.labelW = on ? CREATOR_LABEL_W : LABEL_W;
+    this.arrange();
+  }
+
   /** Turns the Lead lane into a note editor (null: back to display only). */
   setEditor(editor: LeadEditor | null): void {
     this.editor = editor;
@@ -144,12 +173,18 @@ export class PianoRoll {
     for (let b = section.startBar; b < section.startBar + section.bars; b++) {
       this.bars.push(arrangeBar(song, b));
     }
-    this.hasDrums = this.bars.some((ev) => ev.drums.length > 0);
-    this.lanes = LANES.filter(
-      (lane) =>
-        (this.editor && lane.label === "Lead") ||
-        this.bars.some((ev) => lane.tracks.some((t) => ev.notes[t].length > 0)),
-    );
+    const L = section.layers;
+    if (this.creator) {
+      this.hasDrums = L.drums !== "off";
+      this.lanes = LANES.filter((lane) => (lane.id === "lead" ? !!L.lead : !!L[lane.id]));
+    } else {
+      this.hasDrums = this.bars.some((ev) => ev.drums.length > 0);
+      this.lanes = LANES.filter(
+        (lane) =>
+          (this.editor && lane.label === "Lead") ||
+          this.bars.some((ev) => lane.tracks.some((t) => ev.notes[t].length > 0)),
+      );
+    }
     this.resize();
   }
 
@@ -158,15 +193,27 @@ export class PianoRoll {
     const height = HEADER_H + (this.hasDrums ? DRUM_H : 0) + lanes + 2;
     // The editable Lead lane's top, from the layout (hit-testing can't wait for a frame).
     this.leadTop = -1;
+    const layout: LaneLayout[] = [];
+    if (this.hasDrums) {
+      layout.push({ id: "drums", label: "Drums", color: "#c9c6e4", top: HEADER_H, height: DRUM_H });
+    }
     let y = HEADER_H + (this.hasDrums ? DRUM_H : 0);
     for (const lane of this.lanes) {
       if (this.editor && lane.label === "Lead") this.leadTop = y;
+      layout.push({
+        id: lane.id,
+        label: lane.label,
+        color: lane.color,
+        top: y,
+        height: this.laneHeight(lane),
+      });
       y += this.laneHeight(lane);
     }
     this.canvas.style.height = `${height}px`;
     const dpr = window.devicePixelRatio || 1;
     this.canvas.width = Math.round(this.canvas.clientWidth * dpr);
     this.canvas.height = Math.round(height * dpr);
+    this.onLayout?.(layout, this.labelW);
   }
 
   private draw(): void {
@@ -177,9 +224,9 @@ export class PianoRoll {
     const h = this.canvas.height / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const gridW = w - LABEL_W;
+    const gridW = w - this.labelW;
     const stepW = gridW / (section.bars * 16);
-    const xAt = (bar: number, step: number) => LABEL_W + (bar * 16 + step) * stepW;
+    const xAt = (bar: number, step: number) => this.labelW + (bar * 16 + step) * stepW;
     ctx.font = "11px Avenir Next, Helvetica Neue, Helvetica, Arial, sans-serif";
     ctx.textBaseline = "middle";
 
@@ -202,7 +249,8 @@ export class PianoRoll {
     let y = HEADER_H;
     const label = (text: string, color: string, laneH: number) => {
       ctx.fillStyle = color;
-      ctx.fillText(text, 8, y + laneH / 2);
+      // In creator mode the lane's controls (HTML over the canvas) carry its name.
+      if (!this.creator) ctx.fillText(text, 8, y + laneH / 2);
       ctx.fillStyle = "#2a2a4a";
       ctx.fillRect(0, y, w, 1);
     };
@@ -283,8 +331,8 @@ export class PianoRoll {
 
   private geometry(): RollGeometry | null {
     if (!this.section) return null;
-    const stepW = (this.canvas.clientWidth - LABEL_W) / (this.section.bars * 16);
-    return { stepW, xAt: (bar, step) => LABEL_W + (bar * 16 + step) * stepW };
+    const stepW = (this.canvas.clientWidth - this.labelW) / (this.section.bars * 16);
+    return { stepW, xAt: (bar, step) => this.labelW + (bar * 16 + step) * stepW };
   }
 
   private inLead(y: number): boolean {
@@ -323,7 +371,10 @@ export class PianoRoll {
     const g = this.geometry();
     const section = this.section;
     if (!g || !section) return null;
-    const at = Math.max(0, Math.min(section.bars * 16 - 1, Math.floor((x - LABEL_W) / g.stepW)));
+    const at = Math.max(
+      0,
+      Math.min(section.bars * 16 - 1, Math.floor((x - this.labelW) / g.stepW)),
+    );
     return { bar: Math.floor(at / 16), step: at % 16 };
   }
 
@@ -368,7 +419,7 @@ export class PianoRoll {
             kind: "move",
             bar: hit.bar,
             index: hit.index,
-            grabStep: (x - LABEL_W) / g.stepW - this.absStep(hit.bar, note.step, x),
+            grabStep: (x - this.labelW) / g.stepW - this.absStep(hit.bar, note.step, x),
             startX: x,
             startY: y,
           };
@@ -388,7 +439,7 @@ export class PianoRoll {
   private absStep(melodyBar: number, step: number, x: number): number {
     const g = this.geometry();
     if (!g) return 0;
-    const sectionBar = Math.floor((x - LABEL_W) / g.stepW / 16);
+    const sectionBar = Math.floor((x - this.labelW) / g.stepW / 16);
     const repeat = Math.floor(sectionBar / Math.max(1, this.edit.length));
     return (repeat * this.edit.length + melodyBar) * 16 + step;
   }
@@ -408,7 +459,7 @@ export class PianoRoll {
     const note = notes?.[drag.index];
     if (!notes || !note) return;
     if (drag.kind === "resize") {
-      const end = (x - LABEL_W) / g.stepW;
+      const end = (x - this.labelW) / g.stepW;
       const start = this.absStep(drag.bar, note.step, x);
       const dur = Math.max(1, Math.min(32, Math.round(end - start)));
       if (dur !== note.dur) this.dirty = true;
@@ -417,7 +468,7 @@ export class PianoRoll {
     }
     // Move: in time (whole 16ths, possibly into another bar of the melody) and pitch.
     const length = this.edit.length * 16;
-    const at = Math.round((x - LABEL_W) / g.stepW - drag.grabStep);
+    const at = Math.round((x - this.labelW) / g.stepW - drag.grabStep);
     const wrapped = ((at % length) + length) % length;
     const bar = Math.floor(wrapped / 16);
     const midi = this.pitchAt(y, e.shiftKey);
@@ -469,10 +520,10 @@ export class PianoRoll {
       const y = top + (editor.range[1] - p) * rowH;
       const inScale = editor.scale.includes(((p % 12) + 12) % 12);
       ctx.fillStyle = inScale ? "#ffffff0b" : "#00000030";
-      ctx.fillRect(LABEL_W, y, w - LABEL_W, rowH - 0.5);
+      ctx.fillRect(this.labelW, y, w - this.labelW, rowH - 0.5);
       if (p % 12 === 0) {
         ctx.fillStyle = "#6a678a";
-        ctx.fillText(`C${p / 12 - 1}`, LABEL_W - 26, y + rowH / 2);
+        ctx.fillText(`C${p / 12 - 1}`, this.labelW + 3, y + rowH / 2);
       }
     }
     // Repeats of the melody beyond its first pass are drawn fainter.

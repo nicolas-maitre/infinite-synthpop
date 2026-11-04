@@ -42,10 +42,13 @@ Press **Play**. Without the samples, the app falls back to synthesized drums, so
 - **✎ Creator:** edit the playing song in place:
   - Click a timeline block to select a section, drag blocks to reorder, and use **+** at the end
     to add one.
-  - The chords display turns into one picker per bar, with an optional second chord for the
-    bar's second half, and +/− to change the pattern length.
-  - Under the piano roll you set the selected section's name, type, length and key, its drums and
-    instruments, the lead melody, and a fill at its end.
+  - The chords display turns into one card per bar, with an optional second chord for the bar's
+    second half. Drag a card's grip to move the bar, × removes it, + adds one, and clicking its
+    header jumps to that bar.
+  - Each instrument's settings sit beside its lane in the piano roll, and × removes it from the
+    section. Drums have a pattern and a fill, the bass a staccato switch, and the lead its melody,
+    a double and the melody tools. Under the roll, **+** buttons add the instruments the section
+    doesn't play yet, followed by the section's name, type, length and key.
   - **Melody:** each section's lead plays the generated verse or chorus melody, or one of your
     own (✎). Your own melodies come from four places, and editing one changes it in every
     section that shares it:

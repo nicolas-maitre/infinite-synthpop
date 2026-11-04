@@ -131,11 +131,14 @@
         ></div>
 
         <p class="section-detail" id="section-detail"></p>
-        <canvas
-          id="roll"
-          class="roll"
-          aria-label="Piano roll of the current section: one lane per instrument (click to jump to a bar)"
-        ></canvas>
+        <div class="roll-wrap">
+          <canvas
+            id="roll"
+            class="roll"
+            aria-label="Piano roll of the current section: one lane per instrument (click to jump to a bar)"
+          ></canvas>
+          <div class="roll-controls" id="roll-controls" hidden></div>
+        </div>
         <div class="section-editor" id="section-editor" hidden aria-label="Selected section"></div>
       </section>
 
