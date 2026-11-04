@@ -19,6 +19,9 @@ export interface SampleReport {
   missing: DrumVoice[];
 }
 
+/** Set at build time: whether public/samples had any samples (vite.config.ts). */
+declare const __LOCAL_SAMPLES__: boolean;
+
 const REMOTE = `https://raw.githubusercontent.com/${SOURCES.repo}/${SOURCES.commit}/${SOURCES.root}`;
 
 /** Where GitHub serves a kit's voice, or null if it has none. */
@@ -77,7 +80,7 @@ export class DrumKit {
           DRUM_VOICES.map(async (voice) => {
             const local = `${import.meta.env.BASE_URL}samples/${kit}/${voice}.wav`;
             const remote = remoteUrl(kit, voice);
-            const here = await load(local);
+            const here = __LOCAL_SAMPLES__ ? await load(local) : null;
             const buffer = here ?? (remote ? await load(remote) : null);
             if (buffer) {
               map.set(voice, buffer);

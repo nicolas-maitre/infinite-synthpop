@@ -1,3 +1,4 @@
+import { existsSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Plugin } from "vite";
@@ -32,10 +33,17 @@ function saveRenders(): Plugin {
   };
 }
 
+/** Whether `pnpm fetch-samples` has run: if not, the app goes straight to GitHub for them. */
+function hasLocalSamples(): boolean {
+  const dir = "public/samples";
+  return existsSync(dir) && readdirSync(dir).some((kit) => !kit.startsWith("."));
+}
+
 export default defineConfig({
   // GitHub Pages serves the site from /infinite-synthpop/ (set by .github/workflows/pages.yml).
   base: process.env.BASE_PATH ?? "/",
   plugins: [saveRenders()],
+  define: { __LOCAL_SAMPLES__: JSON.stringify(hasLocalSamples()) },
   build: { target: "es2022" },
   test: { include: ["src/**/*.test.ts"] },
 });
