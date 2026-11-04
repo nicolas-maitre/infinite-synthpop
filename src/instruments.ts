@@ -443,6 +443,13 @@ export class Instruments {
     this.bassSaw.filterEnvelope.baseFrequency = 2500 - 2200 * style;
   }
 
+  /** Plays a note on the lead synth right now (recording: hear what you play). null releases. */
+  monitor(midi: number | null, velocity = 0.85): void {
+    const now = Tone.now();
+    if (midi === null) this.lead.triggerRelease(now);
+    else this.lead.triggerAttack(midiToFreq(midi), now, velocity);
+  }
+
   /** Lets held pad and lead notes ring out when the transport stops. */
   releaseAll(): void {
     const now = Tone.now();

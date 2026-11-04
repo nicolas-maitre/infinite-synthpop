@@ -6,10 +6,13 @@ import { Engine, type EngineSettings } from "./engine";
 import { DEFAULT_VOLUMES, TRACK_LABELS, TRACKS, type Track } from "./instruments";
 import { matchTracks, mergeBars, parseMidi, toDrumBars, type MidiFile } from "./midi";
 import { mountCreator } from "./creator";
+import { assignMelody, nextMelodyName } from "./melodies";
+import { Recorder } from "./recorder";
 import { download, exportAudio, fileName, songToMidi } from "./export";
 import { PianoRoll } from "./pianoroll";
+import { mountWizard } from "./wizard";
 import { REFERENCES, type ReferenceId } from "./references";
-import { decodeCreation, encodeCreation, songToSpec, type Creation } from "./spec";
+import { decodeCreation, encodeCreation, songToSpec, type Creation, type SongSpec } from "./spec";
 import { randomSeed } from "./rng";
 import { chord, chordName, keyName, noteName } from "./theory";
 import { startVisualizer } from "./visualizer";
@@ -169,8 +172,94 @@ const creator = mountCreator(ui.progression, el("section-editor"), {
           () => false,
         )
       : Promise.resolve(false),
+  toggleRecording,
+  recording: () => !!recorder?.active || recordingFrom !== null,
+  midiFile: (pick) => (pick ? pickMidiFile() : Promise.resolve(midi ?? pickedMidi)),
+  setLeadEditor: (editor) => roll.setEditor(editor),
 });
 creatorToggle.addEventListener("click", () => setCreator(!creator.active));
+
+// Recording a melody: the section loops with its own lead silenced, you play over it, and the
+// take becomes its melody when you stop.
+let recorder: Recorder | null = null;
+let recordingFrom: { spec: SongSpec; song: Song; index: number } | null = null;
+
+async function toggleRecording(index: number): Promise<boolean> {
+  const creation = engine.creation;
+  if (recorder?.active || recordingFrom) {
+    finishRecording();
+    return false;
+  }
+  const song = engine.song;
+  const section = song.sections[index];
+  if (!creation || !section) return false;
+  recordingFrom = { spec: structuredClone(creation.spec), song, index };
+  const silent = structuredClone(creation.spec);
+  const target = silent.sections[index];
+  if (target) target.layers.lead = null;
+  engine.editCustom(silent);
+  shownSection = index;
+  setLooping(true);
+  if (!engine.playing) await togglePlay();
+  recorder ??= new Recorder(engine);
+  await recorder.start({
+    startBar: section.startBar,
+    bars: section.bars,
+    tonic: section.key.tonic,
+  });
+  return true;
+}
+
+function finishRecording(): void {
+  const from = recordingFrom;
+  recordingFrom = null;
+  if (!from) return;
+  const melody = recorder?.stop(nextMelodyName(from.spec)) ?? null;
+  const spec = from.spec; // the section's lead is back
+  if (melody) assignMelody(spec, from.song, from.index, melody);
+  engine.editCustom(spec);
+}
+
+let pickedMidi: MidiFile | null = null;
+function pickMidiFile(): Promise<MidiFile | null> {
+  return new Promise((resolve) => {
+    const picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = ".mid,.midi,audio/midi";
+    picker.addEventListener("change", () => {
+      const file = picker.files?.[0];
+      if (!file) return resolve(null);
+      file.arrayBuffer().then(
+        (buffer) => resolve((pickedMidi = parseMidi(buffer))),
+        () => resolve(null),
+      );
+    });
+    picker.click();
+  });
+}
+
+// Creator mode: the title is edited in place (Enter or leaving the field renames the song).
+function renameSong(): void {
+  const creation = engine.creation;
+  const title = (ui.title.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 60);
+  if (!creation || !creator.active) return;
+  if (!title) {
+    ui.title.textContent = creation.spec.title;
+    return;
+  }
+  if (title !== creation.spec.title)
+    engine.editCustom({ ...structuredClone(creation.spec), title });
+}
+ui.title.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    ui.title.blur();
+  } else if (e.key === "Escape") {
+    ui.title.textContent = engine.song.title;
+    ui.title.blur();
+  }
+});
+ui.title.addEventListener("blur", renameSong);
 loopToggle.addEventListener("click", () => setLooping(engine.loopSection === null));
 
 // ── Export ────────────────────────────────────────────────────────────────────────────────────
@@ -210,6 +299,13 @@ async function exportSong(format: string): Promise<void> {
 for (const b of exportButtons) {
   b.addEventListener("click", () => void exportSong(b.dataset.export ?? ""));
 }
+
+// ── New-song wizard ───────────────────────────────────────────────────────────────────────────
+
+const openWizard = mountWizard(el<HTMLDialogElement>("wizard"), (creation) => {
+  engine.playCustom(creation);
+});
+el("create-song").addEventListener("click", openWizard);
 
 const autoplayBox = el<HTMLInputElement>("autoplay");
 autoplayBox.checked = prefs.autoplay;
@@ -305,7 +401,12 @@ const BASS_LABELS: Record<BassStyle, string> = {
 };
 
 function renderSong(song: Song): void {
-  ui.title.textContent = song.title;
+  // While editing the title, don't overwrite what's being typed.
+  if (document.activeElement !== ui.title) ui.title.textContent = song.title;
+  const editable = creator.active && !!engine.creation;
+  ui.title.contentEditable = editable ? "plaintext-only" : "false";
+  ui.title.title = editable ? "Click to rename the song" : "";
+  ui.title.classList.toggle("editable", editable);
   const kit = engine.instruments?.drums.kit ?? song.kit;
   ui.meta.textContent = [
     keyName(song.key),
@@ -626,7 +727,7 @@ document.addEventListener("keydown", (e) => {
   const target = e.target as HTMLElement | null;
   if (
     target &&
-    ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName) &&
+    (["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName) || target.isContentEditable) &&
     target.getAttribute("type") !== "range"
   )
     return;
@@ -746,6 +847,6 @@ startVisualizer(ui.viz, () =>
 
 if (import.meta.env.DEV) {
   void Promise.all([import("tone"), import("./render")]).then(([Tone, { renderToDisk }]) =>
-    Object.assign(window, { engine, Tone, renderToDisk }),
+    Object.assign(window, { engine, Tone, renderToDisk, roll }),
   );
 }

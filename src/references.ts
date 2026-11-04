@@ -4,7 +4,7 @@
  * phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
  * the copyrighted compositions, while harmony, form and groove are what the generator studies.
  */
-import type { BassStyle, KitName, Layers, SectionKind } from "./composer";
+import type { BassStyle, CustomMelody, KitName, Layers, SectionKind } from "./composer";
 import type { Progression } from "./progressions";
 import type { Key } from "./theory";
 
@@ -20,6 +20,8 @@ export interface ReferenceSection {
   key?: Key;
   /** A drum fill in the last bar; defaults to one before a verse or chorus. */
   fill?: boolean;
+  /** A custom melody (the song's `melodies`) for the lead, instead of the generated one. */
+  melody?: string;
 }
 
 export interface ReferenceSong {
@@ -34,6 +36,8 @@ export interface ReferenceSong {
   verse: Progression;
   chorus: Progression;
   sections: ReferenceSection[];
+  /** Creator mode's own melodies, by id. */
+  melodies?: Record<string, CustomMelody>;
 }
 
 // From the MIDI transcription's sequence bass (the audio chord reading missed the second line).

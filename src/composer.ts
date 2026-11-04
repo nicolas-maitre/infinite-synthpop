@@ -57,6 +57,22 @@ export interface Section {
   fill: boolean;
   /** Fade out over the last 8 bars (both songs end on a fade). */
   fade: boolean;
+  /** A custom melody (the spec's `melodies`) the lead plays instead of the generated one. */
+  melody?: string;
+}
+
+/**
+ * A melody written, played in, edited or imported in creator mode. Pitches are semitones above
+ * the tonic of the key it was written in (MIDI note − `tonic`); in another key it moves by the
+ * nearest interval, so it follows key changes without jumping registers.
+ */
+export interface CustomMelody {
+  name: string;
+  /** Pitch class of the key the melody was written in. */
+  tonic: number;
+  /** Length in bars; the melody repeats over longer sections. */
+  bars: number;
+  notes: { bar: number; step: number; dur: number; pitch: number; vel: number }[];
 }
 
 /**
@@ -139,7 +155,16 @@ export interface ComposeOptions {
   reference?: ReferenceId | null;
   /** Lay the song out from this spec instead (creator mode); takes precedence over `reference`. */
   custom?: ReferenceSong | null;
+  // The new-song wizard's choices (each optional; unset means the generator decides).
+  /** Use these progressions instead of picking from the bank. */
+  progressions?: Partial<Record<ProgressionKind, Progression>>;
+  /** Short: one verse/chorus block less, 8-bar verses. Long: always a third verse and chorus. */
+  form?: SongForm;
+  ending?: "lift" | "fade";
+  bassStyle?: BassStyle;
 }
+
+export type SongForm = "short" | "standard" | "long";
 
 /** Both recordings measure 117.45 BPM. */
 export const BPM_RANGE = [115, 120] as const;
@@ -182,12 +207,11 @@ export function compose(opts: ComposeOptions): Song {
     ["dmx", 0.4 + style * 0.4],
   ]);
   const kit = ref?.kit ?? (!opts.kit || opts.kit === "auto" ? autoKit : opts.kit);
-  const bassStyle =
-    ref?.bassStyle ??
-    rngSetup.weighted<BassStyle>([
-      ["ds", 0.3 + style * 2],
-      ["tf", 0.3 + (1 - style) * 2],
-    ]);
+  const pickedBass = rngSetup.weighted<BassStyle>([
+    ["ds", 0.3 + style * 2],
+    ["tf", 0.3 + (1 - style) * 2],
+  ]);
+  const bassStyle = ref?.bassStyle ?? opts.bassStyle ?? pickedBass;
 
   const rngProg = root.fork("progressions");
   const prog = (kind: ProgressionKind) =>
@@ -200,6 +224,7 @@ export function compose(opts: ComposeOptions): Song {
     bridge: prog("bridge"),
     lift: prog("lift"),
   };
+  Object.assign(progressions, opts.progressions);
   if (ref) {
     progressions.verse = ref.verse;
     progressions.chorus = ref.chorus;
@@ -207,10 +232,11 @@ export function compose(opts: ComposeOptions): Song {
 
   const rngForm = root.fork("form");
   const liftKey: Key = { tonic: mod12(key.tonic + 5), mode: "major" };
-  const useLift = rngForm.chance(0.1 + 0.7 * (1 - style));
+  const liftChance = rngForm.chance(0.1 + 0.7 * (1 - style));
+  const useLift = opts.ending ? opts.ending === "lift" : liftChance;
   const sections = ref
     ? referenceSections(ref)
-    : planSections(rngForm, key, liftKey, useLift, progressions, style);
+    : planSections(rngForm, key, liftKey, useLift, progressions, style, opts.form ?? "standard");
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 
   const rngMotif = root.fork("motifs");
@@ -242,7 +268,7 @@ export function compose(opts: ComposeOptions): Song {
     arp: generateArp(rngMotif),
     sequence: generateSequence(root.fork("sequence")),
     melodies,
-    sectionMelodies: sectionMelodies(root, sections, key, progressions, melodies),
+    sectionMelodies: sectionMelodies(root, sections, key, progressions, melodies, ref?.melodies),
   };
 }
 
@@ -270,6 +296,7 @@ function planSections(
   useLift: boolean,
   p: Record<ProgressionKind, Progression>,
   style: number,
+  form: SongForm,
 ): Section[] {
   const plan: Omit<Section, "startBar" | "fill" | "fade">[] = [];
   const add = (
@@ -380,7 +407,7 @@ function planSections(
     hook: rng.chance(0.1 + 0.6 * tf),
     arp: rng.chance(0.3 * style),
   });
-  const verseBars = rng.chance(0.8) ? 16 : 8;
+  const verseBars = form === "short" ? 8 : rng.chance(0.8) ? 16 : 8;
   verse("Verse 1", verseBars);
   chorus("Chorus");
   seq = useSeq;
@@ -391,7 +418,9 @@ function planSections(
   }
   verse("Verse 2", verseBars === 16 && rng.chance(0.5) ? 16 : 8);
   chorus("Chorus", { arp: true });
-  if (rng.chance(style)) {
+  if (form === "short") {
+    // Straight on to the final choruses.
+  } else if (rng.chance(style)) {
     dsBlock();
   } else {
     // TF: a turnaround on VI, the i–IV vamp with the melodic-bass solo, an instrumental chorus.
@@ -408,13 +437,14 @@ function planSections(
     });
     tfInstrumental("Instrumental chorus", 8);
   }
-  if (rng.chance(0.2 + 0.6 * tf)) {
+  if (form === "long" || (form === "standard" && rng.chance(0.2 + 0.6 * tf))) {
     tfTurn();
     verse("Verse 3", rng.chance(0.5) ? 16 : 8);
   }
   chorus("Chorus");
   chorus("Chorus · double", { leadDouble: true, arp: true });
-  if (rng.chance(style * 0.6)) chorus("Chorus", { leadDouble: true });
+  if (form === "long" || (form === "standard" && rng.chance(style * 0.6)))
+    chorus("Chorus", { leadDouble: true });
   if (useLift) {
     // TF: the chorus's IV becomes the new tonic.
     add(
@@ -471,11 +501,14 @@ function sectionMelodies(
   key: Key,
   progressions: Record<ProgressionKind, Progression>,
   melodies: Record<MelodyKind, Melody>,
+  custom: Record<string, CustomMelody> = {},
 ): (Melody | null)[] {
   const written = new Map<string, Melody>();
   return sections.map((section) => {
     const kind = section.layers.lead;
     if (!kind) return null;
+    const own = section.melody ? custom[section.melody] : undefined;
+    if (own) return customMelody(own, section.key);
     const progression = JSON.stringify(section.progression);
     const sameKey = section.key.tonic === key.tonic && section.key.mode === key.mode;
     if (sameKey && progression === JSON.stringify(progressions[kind])) return melodies[kind];
@@ -492,6 +525,23 @@ function sectionMelodies(
     }
     return melody;
   });
+}
+
+/** A custom melody as bars of notes in `key`. */
+export function customMelody(melody: CustomMelody, key: Key): Melody {
+  const bars: Note[][] = Array.from({ length: Math.max(1, melody.bars) }, () => []);
+  // The nearest way from the melody's key to this one: −6 … +5 semitones.
+  const shift = mod12(key.tonic - melody.tonic + 6) - 6;
+  for (const n of melody.notes) {
+    bars[n.bar % bars.length]?.push({
+      step: n.step,
+      dur: n.dur,
+      midi: n.pitch + melody.tonic + shift,
+      vel: n.vel,
+    });
+  }
+  for (const bar of bars) bar.sort((a, b) => a.step - b.step);
+  return { bars };
 }
 
 /** An original's measured form, laid out like a generated one: fills into verses and choruses,
@@ -514,6 +564,7 @@ function referenceSections(ref: ReferenceSong): Section[] {
         layers.drums !== "off" &&
         (s.fill ?? (next.kind === "chorus" || next.kind === "verse")),
       fade: !next,
+      ...(s.melody ? { melody: s.melody } : {}),
     };
     startBar += s.bars;
     return section;

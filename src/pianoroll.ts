@@ -5,7 +5,20 @@
  * (generated parts, MIDI-imported parts and creator edits alike).
  */
 import { arrangeBar, type BarEvents, type DrumVoice, type MelodicTrack } from "./arranger";
-import type { Section, Song } from "./composer";
+import type { Note, Section, Song } from "./composer";
+
+/**
+ * Creator mode: the Lead lane becomes a note editor. `bars` is the melody (bar m plays in every
+ * section bar b with b % bars.length === m); edits come back through `commit` on release.
+ */
+export interface LeadEditor {
+  bars: Note[][];
+  /** Lowest and highest pitch rows. */
+  range: readonly [number, number];
+  /** Pitch classes notes snap to (hold Shift for any semitone). */
+  scale: readonly number[];
+  commit(bars: Note[][]): void;
+}
 
 interface Lane {
   label: string;
@@ -37,6 +50,13 @@ const LABEL_W = 92;
 const HEADER_H = 22;
 const LANE_H = 30;
 const DRUM_H = 55;
+const LEAD_EDIT_H = 170;
+/** Grab a note's right edge within this many pixels to change its length. */
+const EDGE_PX = 6;
+
+type Drag =
+  | { kind: "move"; bar: number; index: number; grabStep: number; startX: number; startY: number }
+  | { kind: "resize"; bar: number; index: number };
 
 export class PianoRoll {
   private readonly ctx: CanvasRenderingContext2D | null;
@@ -50,6 +70,15 @@ export class PianoRoll {
   private bar = 0;
   private barStarted = 0;
   private playing = false;
+  private editor: LeadEditor | null = null;
+  /** The editor's melody while it's being edited (committed on release). */
+  private edit: Note[][] = [];
+  private drag: Drag | null = null;
+  /** Where the editable Lead lane is drawn (for hit-testing). */
+  private leadTop = -1;
+  private suppressClick = false;
+  /** Whether the current drag changed anything (a click on a note alone doesn't). */
+  private dirty = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -57,9 +86,23 @@ export class PianoRoll {
   ) {
     this.ctx = canvas.getContext("2d");
     new ResizeObserver(() => this.resize()).observe(canvas);
+    canvas.addEventListener("pointerdown", (e) => this.pointerDown(e));
+    canvas.addEventListener("pointermove", (e) => this.pointerMove(e));
+    canvas.addEventListener("pointerup", () => this.pointerUp());
+    canvas.addEventListener("dblclick", (e) => this.remove(e));
+    canvas.addEventListener("contextmenu", (e) => {
+      if (this.inLead(this.local(e).y)) {
+        e.preventDefault();
+        this.remove(e);
+      }
+    });
     canvas.addEventListener("click", (e) => {
+      if (this.suppressClick || this.inLead(this.local(e).y)) {
+        this.suppressClick = false;
+        return;
+      }
       if (!this.section) return;
-      const x = e.offsetX - LABEL_W;
+      const x = this.local(e).x - LABEL_W;
       const width = canvas.clientWidth - LABEL_W;
       if (x < 0 || width <= 0) return;
       const bar = Math.floor((x / width) * this.section.bars);
@@ -86,6 +129,14 @@ export class PianoRoll {
     this.playing = playing;
   }
 
+  /** Turns the Lead lane into a note editor (null: back to display only). */
+  setEditor(editor: LeadEditor | null): void {
+    this.editor = editor;
+    this.edit = editor ? editor.bars.map((bar) => bar.map((n) => ({ ...n }))) : [];
+    this.drag = null;
+    this.arrange();
+  }
+
   private arrange(): void {
     const { song, section } = this;
     if (!song || !section) return;
@@ -94,15 +145,24 @@ export class PianoRoll {
       this.bars.push(arrangeBar(song, b));
     }
     this.hasDrums = this.bars.some((ev) => ev.drums.length > 0);
-    this.lanes = LANES.filter((lane) =>
-      this.bars.some((ev) => lane.tracks.some((t) => ev.notes[t].length > 0)),
+    this.lanes = LANES.filter(
+      (lane) =>
+        (this.editor && lane.label === "Lead") ||
+        this.bars.some((ev) => lane.tracks.some((t) => ev.notes[t].length > 0)),
     );
     this.resize();
   }
 
   private resize(): void {
-    const height =
-      HEADER_H + (this.hasDrums ? DRUM_H : 0) + this.lanes.length * LANE_H + 2 || HEADER_H;
+    const lanes = this.lanes.reduce((n, lane) => n + this.laneHeight(lane), 0);
+    const height = HEADER_H + (this.hasDrums ? DRUM_H : 0) + lanes + 2;
+    // The editable Lead lane's top, from the layout (hit-testing can't wait for a frame).
+    this.leadTop = -1;
+    let y = HEADER_H + (this.hasDrums ? DRUM_H : 0);
+    for (const lane of this.lanes) {
+      if (this.editor && lane.label === "Lead") this.leadTop = y;
+      y += this.laneHeight(lane);
+    }
     this.canvas.style.height = `${height}px`;
     const dpr = window.devicePixelRatio || 1;
     this.canvas.width = Math.round(this.canvas.clientWidth * dpr);
@@ -164,6 +224,12 @@ export class PianoRoll {
     }
 
     for (const lane of this.lanes) {
+      if (this.editor && lane.label === "Lead") {
+        label("Lead ✎", lane.color, LEAD_EDIT_H);
+        this.drawEditor(ctx, y, w, xAt, stepW);
+        y += LEAD_EDIT_H;
+        continue;
+      }
       label(lane.label, lane.color, LANE_H);
       let lo = Infinity;
       let hi = -Infinity;
@@ -199,6 +265,245 @@ export class PianoRoll {
     ctx.fillStyle = "#ff3d8b";
     ctx.fillRect(px - 1, 0, 2, h);
   }
+
+  /** Pointer position in the canvas's CSS pixels. */
+  private local(e: MouseEvent): { x: number; y: number } {
+    const r = this.canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  /** Where the editable Lead lane starts (CSS pixels from the top), or -1. */
+  get leadLaneTop(): number {
+    return this.leadTop;
+  }
+
+  private laneHeight(lane: Lane): number {
+    return this.editor && lane.label === "Lead" ? LEAD_EDIT_H : LANE_H;
+  }
+
+  private geometry(): RollGeometry | null {
+    if (!this.section) return null;
+    const stepW = (this.canvas.clientWidth - LABEL_W) / (this.section.bars * 16);
+    return { stepW, xAt: (bar, step) => LABEL_W + (bar * 16 + step) * stepW };
+  }
+
+  private inLead(y: number): boolean {
+    return (
+      !!this.editor && this.leadTop >= 0 && y >= this.leadTop && y < this.leadTop + LEAD_EDIT_H
+    );
+  }
+
+  private rowH(): number {
+    return this.editor ? LEAD_EDIT_H / laneRows(this.editor) : 1;
+  }
+
+  private rowY(midi: number): number {
+    const editor = this.editor;
+    if (!editor) return 0;
+    return this.leadTop + (editor.range[1] - midi) * this.rowH();
+  }
+
+  /** The pitch under `y`, snapped to the scale unless `free`. */
+  private pitchAt(y: number, free: boolean): number {
+    const editor = this.editor;
+    if (!editor) return 60;
+    const raw = editor.range[1] - Math.floor((y - this.leadTop) / this.rowH());
+    const pitch = Math.min(editor.range[1], Math.max(editor.range[0], raw));
+    if (free) return pitch;
+    for (let d = 0; d < 12; d++) {
+      for (const c of [pitch - d, pitch + d]) {
+        if (editor.scale.includes(((c % 12) + 12) % 12)) return c;
+      }
+    }
+    return pitch;
+  }
+
+  /** Section bar and 16th under `x`. */
+  private stepAt(x: number): { bar: number; step: number } | null {
+    const g = this.geometry();
+    const section = this.section;
+    if (!g || !section) return null;
+    const at = Math.max(0, Math.min(section.bars * 16 - 1, Math.floor((x - LABEL_W) / g.stepW)));
+    return { bar: Math.floor(at / 16), step: at % 16 };
+  }
+
+  /** The melody note under the pointer: its melody bar, index, and whether at its right edge. */
+  private hit(x: number, y: number): { bar: number; index: number; edge: boolean } | null {
+    const g = this.geometry();
+    const section = this.section;
+    if (!g || !section || !this.edit.length) return null;
+    const rowH = this.rowH();
+    for (let b = 0; b < section.bars; b++) {
+      const m = b % this.edit.length;
+      const notes = this.edit[m] ?? [];
+      for (let i = notes.length - 1; i >= 0; i--) {
+        const n = notes[i];
+        if (!n) continue;
+        const x0 = g.xAt(b, n.step);
+        const x1 = x0 + Math.max(3, n.dur * g.stepW);
+        const y0 = this.rowY(n.midi);
+        if (x >= x0 && x <= x1 + 2 && y >= y0 && y <= y0 + rowH) {
+          // The resize zone never takes more than a third of a short note.
+          return { bar: m, index: i, edge: x >= x1 - Math.min(EDGE_PX, (x1 - x0) / 3) };
+        }
+      }
+    }
+    return null;
+  }
+
+  private pointerDown(e: PointerEvent): void {
+    const { x, y } = this.local(e);
+    if (!this.editor || !this.inLead(y) || e.button !== 0) return;
+    const g = this.geometry();
+    if (!g) return;
+    this.canvas.setPointerCapture(e.pointerId);
+    this.dirty = false;
+    const hit = this.hit(x, y);
+    if (hit) {
+      const note = this.edit[hit.bar]?.[hit.index];
+      if (!note) return;
+      this.drag = hit.edge
+        ? { kind: "resize", bar: hit.bar, index: hit.index }
+        : {
+            kind: "move",
+            bar: hit.bar,
+            index: hit.index,
+            grabStep: (x - LABEL_W) / g.stepW - this.absStep(hit.bar, note.step, x),
+            startX: x,
+            startY: y,
+          };
+      return;
+    }
+    // Empty spot: a new 8th note there, then drag to set its length.
+    const at = this.stepAt(x);
+    if (!at || !this.edit.length) return;
+    const m = at.bar % this.edit.length;
+    const bar = this.edit[m] ?? (this.edit[m] = []);
+    bar.push({ step: at.step, dur: 2, midi: this.pitchAt(y, e.shiftKey), vel: 0.85 });
+    this.dirty = true;
+    this.drag = { kind: "resize", bar: m, index: bar.length - 1 };
+  }
+
+  /** The note's position in section 16ths, in the repeat under the pointer. */
+  private absStep(melodyBar: number, step: number, x: number): number {
+    const g = this.geometry();
+    if (!g) return 0;
+    const sectionBar = Math.floor((x - LABEL_W) / g.stepW / 16);
+    const repeat = Math.floor(sectionBar / Math.max(1, this.edit.length));
+    return (repeat * this.edit.length + melodyBar) * 16 + step;
+  }
+
+  private pointerMove(e: PointerEvent): void {
+    const { x, y } = this.local(e);
+    const drag = this.drag;
+    const g = this.geometry();
+    if (!drag || !g) {
+      if (this.editor && this.inLead(y)) {
+        const hit = this.hit(x, y);
+        this.canvas.style.cursor = hit ? (hit.edge ? "ew-resize" : "grab") : "crosshair";
+      } else this.canvas.style.cursor = "";
+      return;
+    }
+    const notes = this.edit[drag.bar];
+    const note = notes?.[drag.index];
+    if (!notes || !note) return;
+    if (drag.kind === "resize") {
+      const end = (x - LABEL_W) / g.stepW;
+      const start = this.absStep(drag.bar, note.step, x);
+      const dur = Math.max(1, Math.min(32, Math.round(end - start)));
+      if (dur !== note.dur) this.dirty = true;
+      note.dur = dur;
+      return;
+    }
+    // Move: in time (whole 16ths, possibly into another bar of the melody) and pitch.
+    const length = this.edit.length * 16;
+    const at = Math.round((x - LABEL_W) / g.stepW - drag.grabStep);
+    const wrapped = ((at % length) + length) % length;
+    const bar = Math.floor(wrapped / 16);
+    const midi = this.pitchAt(y, e.shiftKey);
+    if (note.step !== wrapped % 16 || note.midi !== midi || bar !== drag.bar) this.dirty = true;
+    note.step = wrapped % 16;
+    note.midi = midi;
+    if (bar !== drag.bar) {
+      notes.splice(drag.index, 1);
+      const target = this.edit[bar] ?? (this.edit[bar] = []);
+      target.push(note);
+      this.drag = { ...drag, bar, index: target.length - 1 };
+    }
+  }
+
+  private pointerUp(): void {
+    if (!this.drag || !this.editor) return;
+    this.drag = null;
+    this.suppressClick = true;
+    if (this.dirty) this.commit();
+  }
+
+  private remove(e: MouseEvent): void {
+    const { x, y } = this.local(e);
+    if (!this.editor || !this.inLead(y)) return;
+    const hit = this.hit(x, y);
+    if (!hit) return;
+    this.edit[hit.bar]?.splice(hit.index, 1);
+    this.commit();
+  }
+
+  private commit(): void {
+    for (const bar of this.edit) bar.sort((a, b) => a.step - b.step);
+    this.editor?.commit(this.edit.map((bar) => bar.map((n) => ({ ...n }))));
+  }
+
+  private drawEditor(
+    ctx: CanvasRenderingContext2D,
+    top: number,
+    w: number,
+    xAt: (bar: number, step: number) => number,
+    stepW: number,
+  ): void {
+    const editor = this.editor;
+    const section = this.section;
+    if (!editor || !section) return;
+    const rowH = this.rowH();
+    // Pitch rows: the scale's rows lighter, C rows marked.
+    for (let p = editor.range[0]; p <= editor.range[1]; p++) {
+      const y = top + (editor.range[1] - p) * rowH;
+      const inScale = editor.scale.includes(((p % 12) + 12) % 12);
+      ctx.fillStyle = inScale ? "#ffffff0b" : "#00000030";
+      ctx.fillRect(LABEL_W, y, w - LABEL_W, rowH - 0.5);
+      if (p % 12 === 0) {
+        ctx.fillStyle = "#6a678a";
+        ctx.fillText(`C${p / 12 - 1}`, LABEL_W - 26, y + rowH / 2);
+      }
+    }
+    // Repeats of the melody beyond its first pass are drawn fainter.
+    for (let b = 0; b < section.bars; b++) {
+      const m = b % Math.max(1, this.edit.length);
+      const first = b < this.edit.length;
+      for (const n of this.edit[m] ?? []) {
+        ctx.globalAlpha = (first ? 0.45 : 0.25) + (first ? 0.55 : 0.3) * Math.min(1, n.vel);
+        ctx.fillStyle = "#f4f2ff";
+        const x = xAt(b, n.step);
+        ctx.fillRect(
+          x,
+          top + (editor.range[1] - n.midi) * rowH + 0.5,
+          Math.max(3, n.dur * stepW - 1),
+          rowH - 1.5,
+        );
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── Lead editing ────────────────────────────────────────────────────────────────────────────
+
+export interface RollGeometry {
+  xAt: (bar: number, step: number) => number;
+  stepW: number;
+}
+
+function laneRows(editor: LeadEditor): number {
+  return editor.range[1] - editor.range[0] + 1;
 }
 
 function fit(ctx: CanvasRenderingContext2D, text: string, width: number): string {

@@ -6,6 +6,7 @@
  */
 import type {
   BassStyle,
+  CustomMelody,
   DrumMode,
   KitName,
   Layers,
@@ -67,6 +68,7 @@ export function songToSpec(song: Song): SongSpec {
     bassStyle: song.bassStyle,
     verse: song.progressions.verse,
     chorus: song.progressions.chorus,
+    ...(song.spec?.melodies ? { melodies: structuredClone(song.spec.melodies) } : {}),
     sections: song.sections.map((s) => ({
       kind: s.kind,
       label: s.label,
@@ -74,6 +76,7 @@ export function songToSpec(song: Song): SongSpec {
       progression: s.progression.map((bar) => [...bar]),
       layers: { ...s.layers },
       fill: s.fill,
+      ...(s.melody ? { melody: s.melody } : {}),
       ...(sameKey(s.key, song.key) ? {} : { key: { ...s.key } }),
     })),
   };
@@ -132,6 +135,8 @@ interface CompactSection {
   st?: 1;
   /** Drum fill at the end: 1 on, 0 off, absent = default. */
   f?: 0 | 1;
+  /** Custom melody id. */
+  ml?: string;
   key?: [number, Mode];
 }
 
@@ -147,6 +152,8 @@ interface CompactCreation {
   /** The song's own verse and chorus progressions (its main melodies are written over them). */
   pv?: string;
   pc?: string;
+  /** Custom melodies: name, key tonic, bars, notes as "bar,step,dur,pitch,vel;…". */
+  m?: Record<string, { n: string; k: number; b: number; t: string }>;
   s: CompactSection[];
 }
 
@@ -162,6 +169,23 @@ export function encodeCreation({ seed, spec }: Creation): string {
     bs: spec.bassStyle,
     pv: progressionText(spec.verse),
     pc: progressionText(spec.chorus),
+    ...(spec.melodies && Object.keys(spec.melodies).length
+      ? {
+          m: Object.fromEntries(
+            Object.entries(spec.melodies).map(([id, m]) => [
+              id,
+              {
+                n: m.name,
+                k: m.tonic,
+                b: m.bars,
+                t: m.notes
+                  .map((x) => [x.bar, x.step, x.dur, x.pitch, x.vel].map(round2).join(","))
+                  .join(";"),
+              },
+            ]),
+          ),
+        }
+      : {}),
     s: spec.sections.map((s) => {
       const L = s.layers;
       return {
@@ -175,6 +199,7 @@ export function encodeCreation({ seed, spec }: Creation): string {
         ...(L.leadDouble ? { x: 1 as const } : {}),
         ...(L.bassShort ? { st: 1 as const } : {}),
         ...(s.fill === undefined ? {} : { f: s.fill ? (1 as const) : (0 as const) }),
+        ...(s.melody ? { ml: s.melody } : {}),
         ...(s.key ? { key: [s.key.tonic, s.key.mode] as [number, Mode] } : {}),
       };
     }),
@@ -209,6 +234,7 @@ export function decodeCreation(encoded: string): Creation | null {
         progression: parseProgression(s.p),
         layers,
         ...(s.f === 0 || s.f === 1 ? { fill: s.f === 1 } : {}),
+        ...(typeof s.ml === "string" && c.m?.[s.ml] ? { melody: s.ml } : {}),
         ...(sectionKey ? { key: sectionKey } : {}),
       };
     });
@@ -224,12 +250,47 @@ export function decodeCreation(encoded: string): Creation | null {
         bassStyle: c.bs === "ds" ? "ds" : "tf",
         verse: c.pv ? parseProgression(c.pv) : (first("verse") ?? VERSE),
         chorus: c.pc ? parseProgression(c.pc) : (first("chorus") ?? CHORUS),
+        ...(c.m ? { melodies: parseMelodies(c.m, key.tonic) } : {}),
         sections,
       },
     };
   } catch {
     return null;
   }
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function parseMelodies(
+  m: Record<string, { n: string; k?: number; b: number; t: string }>,
+  songTonic: number,
+): Record<string, CustomMelody> {
+  const out: Record<string, CustomMelody> = {};
+  for (const [id, raw] of Object.entries(m).slice(0, 32)) {
+    const bars = clampInt(raw.b, 1, 32);
+    const notes = String(raw.t || "")
+      .split(";")
+      .filter(Boolean)
+      .slice(0, 2000)
+      .map((t) => t.split(",").map(Number))
+      .filter((v) => v.length === 5 && v.every(Number.isFinite))
+      .map(([bar = 0, step = 0, dur = 1, pitch = 60, vel = 0.8]) => ({
+        bar: clampInt(bar, 0, bars - 1),
+        step: Math.min(15.99, Math.max(0, step)),
+        dur: Math.min(64, Math.max(0.1, dur)),
+        pitch: clampInt(pitch, 0, 127),
+        vel: Math.min(1, Math.max(0.05, vel)),
+      }));
+    out[String(id).slice(0, 12)] = {
+      name: String(raw.n || id).slice(0, 40),
+      tonic: raw.k === undefined ? songTonic : clampInt(raw.k, 0, 11),
+      bars,
+      notes,
+    };
+  }
+  return out;
 }
 
 function progressionText(p: Progression): string {

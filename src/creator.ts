@@ -4,8 +4,18 @@
  * section's chords bar by bar; its other parameters and the song settings appear under the piano
  * roll. Every edit goes to the engine as a new spec (spec.ts) and plays from the next bar.
  */
-import type { Layers, MelodyKind, SectionKind, Song } from "./composer";
+import { LEAD_RANGES, type Layers, type MelodyKind, type SectionKind, type Song } from "./composer";
 import { KIT_LABELS } from "./drums";
+import {
+  assignMelody,
+  fromBars,
+  importMelody,
+  nextMelodyName,
+  writeMelody,
+  type MelodyDensity,
+  type MelodyRange,
+} from "./melodies";
+import { matchTracks, type MidiFile } from "./midi";
 import {
   blankSpec,
   CHORD_CHOICES,
@@ -17,7 +27,8 @@ import {
   type SectionSpec,
   type SongSpec,
 } from "./spec";
-import { chord, chordName, keyName } from "./theory";
+import type { LeadEditor } from "./pianoroll";
+import { chord, chordName, keyName, scaleForChord } from "./theory";
 
 export interface CreatorHost {
   song(): Song;
@@ -30,6 +41,13 @@ export interface CreatorHost {
   saved(): Creation | null;
   /** Copies the song's link; resolves false if the clipboard isn't available. */
   copyLink(): Promise<boolean>;
+  /** Starts or stops recording section `index`'s melody; resolves whether it's now recording. */
+  toggleRecording(index: number): Promise<boolean>;
+  recording(): boolean;
+  /** The loaded MIDI file, or a newly picked one (null if cancelled). */
+  midiFile(pick: boolean): Promise<MidiFile | null>;
+  /** Hands the piano roll a melody editor for the selected section (null: none). */
+  setLeadEditor(editor: LeadEditor | null): void;
 }
 
 export interface Creator {
@@ -80,6 +98,10 @@ export function mountCreator(
   let shownSong: Song | null = null;
   let shownIndex = -1;
   let chordCells: HTMLElement[] = [];
+  const melodyPrefs: { range: MelodyRange; density: MelodyDensity } = {
+    range: "mid",
+    density: "normal",
+  };
 
   const spec = () => host.creation()?.spec ?? null;
   /** Copies the spec, applies `change` to the copy, sends it to the engine. */
@@ -100,6 +122,7 @@ export function mountCreator(
       shownIndex = index;
       renderChords(s, index);
       renderPanel(s, index);
+      host.setLeadEditor(leadEditor(index));
     }
     const section = song.sections[index];
     if (section) {
@@ -119,8 +142,68 @@ export function mountCreator(
       ...(allowNone ? ([["", "+ half"]] as [string, string][]) : []),
       ...choices.map((n): [string, string] => [n, `${chordName(key, chord(n))} · ${n}`]),
     ];
+    const single = section.progression.length === 1;
+    let dragFrom = -1;
+    const clearMarks = () =>
+      chordCells.forEach((c) => c.classList.remove("drop-before", "drop-after", "dragging"));
+
     chordCells = section.progression.map((bar, b) => {
       const li = el("li", "chord-edit");
+
+      // Header: a grip to drag the bar elsewhere in the pattern, and × to remove it.
+      const head = el("div", "chord-head");
+      const grip = el("span", "chord-grip");
+      grip.textContent = `⠿ ${b + 1}`;
+      grip.title = "Drag to move this bar";
+      // Only the grip starts a drag, so the pickers stay clickable.
+      grip.addEventListener("pointerdown", () => (li.draggable = true));
+      grip.addEventListener("pointerup", () => (li.draggable = false));
+      const remove = button("×", () =>
+        update((n) => {
+          const t = at(n, index);
+          if (t.progression.length > 1) t.progression = t.progression.filter((_, j) => j !== b);
+        }),
+      );
+      remove.className = "chord-remove";
+      remove.title = "Remove this bar";
+      remove.setAttribute("aria-label", `Remove bar ${b + 1}`);
+      remove.disabled = single;
+      head.append(grip, remove);
+
+      li.addEventListener("dragstart", (e) => {
+        dragFrom = b;
+        li.classList.add("dragging");
+        e.dataTransfer?.setData("text/plain", String(b));
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+      });
+      li.addEventListener("dragend", () => {
+        li.draggable = false;
+        clearMarks();
+      });
+      li.addEventListener("dragover", (e) => {
+        if (dragFrom < 0) return;
+        e.preventDefault();
+        clearMarks();
+        li.classList.add(isAfter(e, li) ? "drop-after" : "drop-before");
+      });
+      li.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const from = dragFrom;
+        dragFrom = -1;
+        clearMarks();
+        if (from < 0) return;
+        let to = b + (isAfter(e, li) ? 1 : 0);
+        if (from < to) to--;
+        if (to === from) return;
+        update((n) => {
+          const t = at(n, index);
+          const bars = [...t.progression];
+          const [moved] = bars.splice(from, 1);
+          if (moved) bars.splice(to, 0, moved);
+          t.progression = bars;
+        });
+      });
+
       const first = select(options(false), bar[0] ?? "i", (v) =>
         update((n) => {
           const t = at(n, index);
@@ -138,7 +221,7 @@ export function mountCreator(
       );
       second.setAttribute("aria-label", `Bar ${b + 1}: second chord for the bar's second half`);
       second.title = "Split the bar: a second chord for its second half";
-      li.append(first, second);
+      li.append(head, first, second);
       return li;
     });
     const tools = el("li", "chord-tools");
@@ -150,15 +233,9 @@ export function mountCreator(
       }),
     );
     add.title = "Add a bar to the chord pattern";
-    const remove = button("−", () =>
-      update((n) => {
-        const t = at(n, index);
-        if (t.progression.length > 1) t.progression = t.progression.slice(0, -1);
-      }),
-    );
-    remove.title = "Remove the pattern's last bar";
-    remove.disabled = section.progression.length === 1;
-    tools.append(add, remove);
+    add.setAttribute("aria-label", "Add a bar");
+    add.disabled = section.progression.length >= 16;
+    tools.append(add);
     chords.classList.add("editing");
     chords.replaceChildren(...chordCells, tools);
   }
@@ -233,26 +310,12 @@ export function mountCreator(
       L.drums ?? "off",
       (v) => update((n) => (at(n, index).layers.drums = DRUM_MODES.find((m) => m === v))),
     );
-    const lead = select(
-      [
-        ["", "No lead"],
-        ["verse", "Verse melody"],
-        ["chorus", "Chorus melody"],
-      ],
-      L.lead ?? "",
-      (v) =>
-        update(
-          (n) =>
-            (at(n, index).layers.lead = v === "verse" || v === "chorus" ? (v as MelodyKind) : null),
-        ),
-    );
     const layer = (label: string, key: keyof Layers, on: boolean) =>
       toggle(label, on, (value) => update((n) => setLayer(at(n, index).layers, key, value)));
     const instruments = row(
       "section-editor-instruments",
       labelled("Drums", drums),
       ...SECTION_INSTRUMENTS.map((i) => layer(INSTRUMENT_LABELS[i], i, !!L[i])),
-      labelled("Lead", lead),
       layer("Double lead", "leadDouble", !!L.leadDouble),
       layer("Staccato bass", "bassShort", !!L.bassShort),
       toggle("Fill at end", section.fill ?? defaultFill(s, index), (on) =>
@@ -260,15 +323,218 @@ export function mountCreator(
       ),
     );
 
-    panel.replaceChildren(head, instruments, songSettings(s));
+    panel.replaceChildren(head, instruments, melodyRow(s, index), songSettings(s));
+  }
+
+  // ── The section's melody: pick, write, record, import (and edit in the piano roll) ─────────
+
+  /** The roll's Lead lane editor for section `index`: its melody, snapped to the key's scale. */
+  function leadEditor(index: number): LeadEditor | null {
+    const song = host.song();
+    const section = song.sections[index];
+    const melody = song.sectionMelodies[index];
+    const kind = section?.layers.lead;
+    if (!section || !melody || !kind) return null;
+    const pitches = melody.bars.flatMap((bar) => bar.map((n) => n.midi));
+    const [lo, hi] = LEAD_RANGES[kind];
+    return {
+      bars: melody.bars.map((bar) => bar.map((n) => ({ ...n }))),
+      range: [
+        Math.min(lo - 5, ...pitches.map((p) => p - 2)),
+        Math.max(hi + 5, ...pitches.map((p) => p + 2)),
+      ],
+      scale: scaleForChord(section.key, chord(section.key.mode === "major" ? "I" : "i")),
+      commit: (bars) =>
+        update((n) => {
+          const t = at(n, index);
+          const name = (t.melody && n.melodies?.[t.melody]?.name) || nextMelodyName(n);
+          assignMelody(n, song, index, fromBars(bars, t.key ?? n.key, name));
+        }),
+    };
+  }
+
+  function melodyRow(s: SongSpec, index: number): HTMLElement {
+    const section = s.sections[index];
+    const box = el("div", "melody-editor");
+    if (!section) return box;
+    const L = section.layers;
+    const custom = section.melody ? s.melodies?.[section.melody] : undefined;
+    const value = !L.lead ? "" : custom ? `custom:${section.melody}` : L.lead;
+    const lead = select(
+      [
+        ["", "No lead"],
+        ["verse", "Generated: verse melody"],
+        ["chorus", "Generated: chorus melody"],
+        ...Object.entries(s.melodies ?? {}).map(([id, m]): [string, string] => [
+          `custom:${id}`,
+          `✎ ${m.name}`,
+        ]),
+      ],
+      value,
+      (v) =>
+        update((n) => {
+          const t = at(n, index);
+          if (v.startsWith("custom:")) {
+            t.melody = v.slice(7);
+            t.layers.lead ??= t.kind === "chorus" ? "chorus" : "verse";
+          } else {
+            delete t.melody;
+            t.layers.lead = v === "verse" || v === "chorus" ? (v as MelodyKind) : null;
+          }
+        }),
+    );
+    lead.setAttribute("aria-label", "Lead melody");
+    const children: HTMLElement[] = [labelled("Lead", lead)];
+
+    if (custom && section.melody) {
+      const id = section.melody;
+      const name = input("text", custom.name, (v) =>
+        update((n) => {
+          const m = n.melodies?.[id];
+          if (m) m.name = v.trim() || m.name;
+        }),
+      );
+      name.className = "melody-name";
+      name.setAttribute("aria-label", "Melody name");
+      const length = input("number", String(custom.bars), (v) =>
+        update((n) => {
+          const m = n.melodies?.[id];
+          if (m) m.bars = Math.min(32, Math.max(1, Math.round(Number(v)) || m.bars));
+        }),
+      );
+      length.min = "1";
+      length.max = "32";
+      length.title = "Melody length in bars (it repeats over the section)";
+      children.push(name, labelled("bars", length));
+    }
+
+    // While recording, the section's lead is silenced: keep the tools (and the stop button).
+    if (L.lead || host.recording()) {
+      const range = select(
+        [
+          ["low", "Low"],
+          ["mid", "Mid"],
+          ["high", "High"],
+        ],
+        melodyPrefs.range,
+        (v) => (melodyPrefs.range = v === "low" || v === "high" ? v : "mid"),
+      );
+      range.title = "Register of the new melody";
+      const density = select(
+        [
+          ["sparse", "Sparse"],
+          ["normal", "Normal"],
+          ["busy", "Busy"],
+        ],
+        melodyPrefs.density,
+        (v) => (melodyPrefs.density = v === "sparse" || v === "busy" ? v : "normal"),
+      );
+      density.title = "How many notes per bar";
+      const write = button("New melody", () =>
+        update((n) => {
+          const m = writeMelody(
+            host.song(),
+            index,
+            melodyPrefs.range,
+            melodyPrefs.density,
+            Math.floor(Math.random() * 1e6),
+            nextMelodyName(n),
+          );
+          if (m) assignMelody(n, host.song(), index, m);
+        }),
+      );
+      write.title = "Write a new melody over this section's chords";
+
+      const record = button(host.recording() ? "■ Stop recording" : "● Record", () => {
+        void host.toggleRecording(index).then((on) => {
+          record.textContent = on ? "■ Stop recording" : "● Record";
+          record.classList.toggle("recording", on);
+        });
+      });
+      record.classList.toggle("recording", host.recording());
+      record.title =
+        "Play the melody in while the section loops: computer keys A W S E D F T G Y H U J K (Z / X: octave), or a MIDI keyboard";
+
+      const importBtn = button("Import MIDI…", () => void showImport(index, box));
+      importBtn.title = "Take a track and bars from a MIDI file as this section's melody";
+
+      const hint = el("span", "note");
+      hint.textContent = host.recording()
+        ? "Recording — play now (A W S E D F T G Y H U J K, Z / X octave, or MIDI)."
+        : "Edit notes in the piano roll's Lead lane.";
+      children.push(labelled("New", range, density), write, record, importBtn, hint);
+    }
+    box.append(...children);
+    return box;
+  }
+
+  async function showImport(index: number, box: HTMLElement): Promise<void> {
+    const file = (await host.midiFile(false)) ?? (await host.midiFile(true));
+    if (!file) return;
+    const s = spec();
+    const section = s?.sections[index];
+    if (!s || !section) return;
+    const tracks = file.tracks.map((t, i) => ({ t, i })).filter(({ t }) => t.channel !== 9);
+    const guess = matchTracks(file).lead?.[0];
+    const track = select(
+      tracks.map(({ t, i }): [string, string] => [
+        String(i),
+        `${t.name || `Track ${i + 1}`} (${t.notes.length})`,
+      ]),
+      String(guess ?? tracks[0]?.i ?? 0),
+      () => {},
+    );
+    const lastBar = Math.ceil(
+      Math.max(0, ...file.tracks.flatMap((t) => t.notes.map((n) => n.tick))) /
+        (file.ticksPerBeat * 4),
+    );
+    const firstNoteBar = (i: number) =>
+      Math.floor((file.tracks[i]?.notes[0]?.tick ?? 0) / (file.ticksPerBeat * 4));
+    const start = input("number", String(firstNoteBar(Number(track.value)) + 1), () => {});
+    start.min = "1";
+    start.max = String(Math.max(1, lastBar));
+    track.addEventListener(
+      "change",
+      () => (start.value = String(firstNoteBar(Number(track.value)) + 1)),
+    );
+    const length = input("number", String(Math.min(8, section.bars)), () => {});
+    length.min = "1";
+    length.max = "32";
+    const go = button("Import", () => {
+      const t = file.tracks[Number(track.value)];
+      if (!t) return;
+      update((n) => {
+        const target = at(n, index);
+        const key = target.key ?? n.key;
+        const m = importMelody(
+          t,
+          file.ticksPerBeat,
+          Math.max(0, Math.round(Number(start.value)) - 1),
+          Math.min(32, Math.max(1, Math.round(Number(length.value)) || 8)),
+          key,
+          target.layers.lead ?? "verse",
+          `${t.name || "MIDI"} ${start.value}`,
+        );
+        assignMelody(n, host.song(), index, m);
+      });
+    });
+    const cancel = button("Cancel", () => form.remove());
+    const form = row(
+      "melody-import",
+      labelled("Track", track),
+      labelled("from bar", start),
+      labelled("bars", length),
+      go,
+      cancel,
+    );
+    box.querySelector(".melody-import")?.remove();
+    box.append(form);
   }
 
   function songSettings(s: SongSpec): HTMLElement {
     const box = el("details", "song-settings");
     const summary = el("summary");
     summary.textContent = `Song: ${s.title} · ${keyName(s.key)} · ${s.bpm} BPM`;
-    const title = input("text", s.title, (v) => update((n) => (n.title = v.trim() || "Untitled")));
-    title.setAttribute("aria-label", "Song title");
     const tonic = select(
       Array.from({ length: 12 }, (_, t) => [String(t), keyName({ tonic: t, mode: s.key.mode })]),
       String(s.key.tonic),
@@ -334,7 +600,6 @@ export function mountCreator(
       summary,
       row(
         "song-settings-row",
-        labelled("Title", title),
         labelled("Key", tonic, mode),
         labelled("Tempo", bpm),
         labelled("Drums", kit),
@@ -418,6 +683,7 @@ export function mountCreator(
       shownSong = null;
       shownIndex = -1;
       if (!on) {
+        host.setLeadEditor(null);
         panel.hidden = true;
         panel.replaceChildren();
         chords.classList.remove("editing");

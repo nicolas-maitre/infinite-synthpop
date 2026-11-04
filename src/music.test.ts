@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar, MELODIC_TRACKS } from "./arranger";
-import { BPM_RANGE, compose } from "./composer";
+import { BPM_RANGE, compose, LEAD_RANGES } from "./composer";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
 import { blankSpec, decodeCreation, encodeCreation, songToSpec } from "./spec";
+import { assignMelody, currentMelody, importMelody, writeMelody } from "./melodies";
 import { BANK, mutate, pickProgression } from "./progressions";
 import { createRng } from "./rng";
 import { chord, chordName, chordPitchClasses, mod12, scaleForChord, voiceChord } from "./theory";
@@ -413,5 +414,109 @@ describe("export", () => {
     let hits = 0;
     for (let bar = 0; bar < song.totalBars; bar++) hits += arrangeBar(song, bar).drums.length;
     expect(drums?.notes.length).toBe(hits);
+  });
+});
+
+describe("wizard options", () => {
+  const verse = [["i"], ["iv"], ["VII"], ["III"]];
+  const chorus = [["VI"], ["VII"], ["i"], ["i"]];
+  it("uses the chosen progressions, length, ending and bass figure", () => {
+    for (let seed = 1; seed <= 10; seed++) {
+      const opts = { seed, style: 0.5, progressions: { verse, chorus }, bassStyle: "ds" as const };
+      const short = compose({ ...opts, form: "short", ending: "fade" });
+      const long = compose({ ...opts, form: "long", ending: "lift" });
+      for (const song of [short, long]) {
+        expect(song.bassStyle).toBe("ds");
+        for (const s of song.sections) {
+          if (s.kind === "verse") expect(s.progression).toEqual(verse);
+          if (s.kind === "chorus") expect(s.progression).toEqual(chorus);
+        }
+      }
+      expect(short.totalBars).toBeLessThan(long.totalBars);
+      expect(short.sections.some((s) => s.label === "Verse 3")).toBe(false);
+      expect(long.sections.some((s) => s.label === "Verse 3")).toBe(true);
+      expect(short.sections.at(-1)?.label).toContain("fade");
+      expect(long.sections.at(-1)?.key.mode).toBe("major");
+    }
+  });
+
+  it("leaves generated songs unchanged when no options are given", () => {
+    const plain = compose({ seed: 42, style: 0.4 });
+    const standard = compose({ seed: 42, style: 0.4, form: "standard" });
+    expect(arrangement(standard)).toBe(arrangement(plain));
+  });
+});
+
+describe("custom melodies", () => {
+  it("shares a customised melody across the sections that played it, and survives the link", () => {
+    const song = compose({ seed: 9, style: 0.5 });
+    const spec = songToSpec(song);
+    const verses = song.sections.flatMap((s, i) => (s.kind === "verse" ? [i] : []));
+    const [first] = verses;
+    if (first === undefined) throw new Error("no verse");
+    const melody = currentMelody(song, first, "Mine");
+    if (!melody) throw new Error("no melody");
+    melody.notes = melody.notes.map((n) => ({ ...n, pitch: n.pitch + 2 }));
+    const id = assignMelody(spec, song, first, melody);
+    // Every verse that shared the generated melody now plays the custom one.
+    for (const v of verses) {
+      if (song.sectionMelodies[v] === song.sectionMelodies[first])
+        expect(spec.sections[v]?.melody).toBe(id);
+    }
+    const edited = compose({ seed: 9, style: 0.5, custom: spec });
+    const original = song.sectionMelodies[first]!.bars[0]!;
+    const now = edited.sectionMelodies[first]!.bars[0]!;
+    expect(now.map((n) => n.midi)).toEqual(original.map((n) => n.midi + 2));
+    const decoded = decodeCreation(encodeCreation({ seed: 9, spec }));
+    expect(arrangement(compose({ seed: 9, style: 0.5, custom: decoded?.spec }))).toBe(
+      arrangement(edited),
+    );
+  });
+
+  it("follows key changes, since pitches are stored relative to the tonic", () => {
+    const song = compose({ seed: 9, style: 0.5 });
+    const spec = songToSpec(song);
+    const v = song.sections.findIndex((s) => s.kind === "verse");
+    assignMelody(spec, song, v, currentMelody(song, v, "Mine")!);
+    const up = structuredClone(spec);
+    up.key = { ...up.key, tonic: (up.key.tonic + 3) % 12 };
+    for (const s of up.sections) delete s.key;
+    const a = compose({ seed: 9, style: 0.5, custom: spec }).sectionMelodies[v]!.bars[0]!;
+    const b = compose({ seed: 9, style: 0.5, custom: up }).sectionMelodies[v]!.bars[0]!;
+    // Up a minor third: every note 3 semitones higher, not 9 lower.
+    expect(b.map((n) => n.midi)).toEqual(a.map((n) => n.midi + 3));
+  });
+
+  it("writes new melodies at the density asked for", () => {
+    const song = compose({ seed: 12, style: 0.5 });
+    const v = song.sections.findIndex((s) => s.kind === "verse");
+    const perBar = (d: "sparse" | "busy") => {
+      const m = writeMelody(song, v, "mid", d, 5, "x")!;
+      return m.notes.length / m.bars;
+    };
+    expect(perBar("sparse")).toBeLessThanOrEqual(2.5);
+    expect(perBar("busy")).toBeGreaterThan(perBar("sparse") + 1.5);
+  });
+
+  it("imports MIDI bars into the lead's register, one note per onset", () => {
+    const track = {
+      name: "Lead",
+      channel: 0,
+      notes: [
+        { tick: 384 * 2, duration: 48, midi: 88, velocity: 100 },
+        { tick: 384 * 2, duration: 48, midi: 84, velocity: 100 },
+        { tick: 384 * 2 + 96, duration: 48, midi: 91, velocity: 100 },
+        { tick: 384 * 5, duration: 48, midi: 40, velocity: 100 },
+      ],
+    };
+    const m = importMelody(track, 96, 2, 2, { tonic: 0, mode: "minor" }, "verse", "x");
+    expect(m.bars).toBe(2);
+    expect(m.notes.map((n) => [n.bar, n.step])).toEqual([
+      [0, 0],
+      [0, 4],
+    ]);
+    const pitches = m.notes.map((n) => n.pitch);
+    expect(Math.max(...pitches) - Math.min(...pitches)).toBe(3);
+    expect(Math.min(...pitches)).toBeGreaterThanOrEqual(LEAD_RANGES.verse[0] - 12);
   });
 });

@@ -48,6 +48,8 @@ export class Engine {
   private custom: Creation | null = null;
   /** Creator mode: the section being edited plays on repeat. */
   private loop: number | null = null;
+  /** The last bars scheduled, with their start on the audio clock (for recording). */
+  private scheduled: { bar: number; time: number; seconds: number }[] = [];
   /** Parts loaded from the user's MIDI files, per original (midi.ts). */
   private readonly imported: Partial<Record<ReferenceId, ImportedTracks>> = {};
   private appliedBpm = 0;
@@ -62,6 +64,19 @@ export class Engine {
 
   get playing(): boolean {
     return this.repeatId !== null;
+  }
+
+  /**
+   * Where the song is (bar + fraction) at `audioTime` on the audio clock, from the bars already
+   * scheduled; null before any.
+   */
+  positionAt(audioTime: number): number | null {
+    for (let i = this.scheduled.length - 1; i >= 0; i--) {
+      const s = this.scheduled[i];
+      if (s && s.time <= audioTime)
+        return s.bar + Math.min(0.9999, (audioTime - s.time) / s.seconds);
+    }
+    return null;
   }
 
   /** The section on repeat, or null. */
@@ -251,6 +266,8 @@ export class Engine {
     const song = this.song;
     const ev = arrangeBar(song, this.bar);
     scheduleBar(inst, ev, time, song.bpm);
+    this.scheduled.push({ bar: this.bar, time, seconds: (60 / song.bpm) * 4 });
+    if (this.scheduled.length > 16) this.scheduled.shift();
 
     atAudioTime(time, () => this.events.onBar?.(ev, song));
     this.bar++;

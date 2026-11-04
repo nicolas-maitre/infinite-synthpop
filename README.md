@@ -27,7 +27,16 @@ Press **Play**. Without the samples, the app falls back to synthesized drums, so
   jump to that section.
 - **⟲ Loop** repeats the current section. **Autoplay** starts the music when the page loads. If
   the browser blocks audio until you interact with the page, the first click or key press anywhere
-  starts it.
+  starts it. To allow real autoplay:
+  - **Chrome:** install the app (the install button in the address bar). Chrome lets installed
+    web apps start audio on their own.
+  - **Firefox:** `about:preferences#privacy` → Permissions → Autoplay → Settings…, then add
+    `http://localhost:5179` with "Allow Audio and Video".
+  - **Safari:** Settings → Websites → Auto-Play → "Allow All Auto-Play" for the site.
+- **✚ Create…** is a new-song wizard. Pick the style, key, tempo, drum machine and bass figure.
+  Choose the verse and chorus chords from the measured presets (closest to the style first), or
+  set them bar by bar. Then set the length (short, standard, long) and the ending (lift to the
+  major IV, or chorus to fade), and generate. The result is a creation, so you can keep editing it.
 - **Piano roll:** the whole current section under the timeline, one lane per instrument, with
   each bar's chords and a playhead. Click a bar to jump there.
 - **✎ Creator:** edit the playing song in place:
@@ -37,7 +46,24 @@ Press **Play**. Without the samples, the app falls back to synthesized drums, so
     bar's second half, and +/− to change the pattern length.
   - Under the piano roll you set the selected section's name, type, length and key, its drums and
     instruments, the lead melody, and a fill at its end.
-  - The **Song** line holds title, key, tempo, drum machine, bass figure and feel.
+  - **Melody:** each section's lead plays the generated verse or chorus melody, or one of your
+    own (✎). Your own melodies come from four places, and editing one changes it in every
+    section that shares it:
+    - **Edit in the piano roll:** the Lead lane becomes a note grid snapped to the key's scale
+      (hold Shift for any semitone). Click to add a note, drag a note to move it or its right edge
+      to change its length, and double- or right-click to delete it.
+    - **New melody:** writes a fresh melody over the section's chords, with a range (low, mid,
+      high) and a density (sparse, normal, busy).
+    - **● Record:** the section loops with its lead silenced while you play the melody in. Use the
+      computer keys A W S E D F T G Y H U J K (Z / X to change octave) or a MIDI keyboard. Notes
+      snap to 16ths, and you hear them as you play.
+    - **Import MIDI…:** take a track and a range of bars from a MIDI file.
+
+    Melodies are stored relative to the key they were written in, so changing the key transposes
+    them by the nearest interval.
+
+  - The song's title is edited in place, at the top. The **Song** line holds key, tempo, drum
+    machine, bass figure and feel.
   - Edits play from the next bar and are saved in the browser. The URL carries the song
     (`#song=…`), so a link replays it. A creation loops until you pick another song.
 - **Export:** **MIDI** (every instrument on its own track, drums on channel 10, sections as
@@ -91,7 +117,10 @@ src/instruments.ts   synth voices, gated reverb, buses, mixer
 src/engine.ts        bar-by-bar scheduler that chains songs forever
 src/render.ts        offline render (exports, and dev measurement)
 src/spec.ts          creator mode's song format: song ↔ spec, link encoding
-src/creator.ts       creator mode UI (timeline, chords, section panel)
+src/creator.ts       creator mode UI (timeline, chords, section panel, melody tools)
+src/melodies.ts      custom melodies: write, import, share between sections
+src/recorder.ts      record a melody from the computer keyboard or a MIDI keyboard
+src/wizard.ts        the new-song wizard
 src/pianoroll.ts     the current section's piano roll
 src/export.ts        MIDI, WAV and MP3 export
 src/main.ts          UI
