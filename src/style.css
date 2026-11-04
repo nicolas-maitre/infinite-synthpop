@@ -132,6 +132,22 @@ h3 {
   align-items: flex-start;
 }
 
+.originals {
+  flex-basis: 100%;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.originals .eyebrow {
+  margin: 0 4px 0 0;
+}
+
+.originals .note {
+  margin: 0;
+}
+
 .btn {
   font: inherit;
   font-size: 14px;
@@ -180,6 +196,11 @@ select:focus-visible {
   font-size: 12px;
   border-radius: 6px;
   min-width: 28px;
+}
+
+.originals .btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .btn.toggle[aria-pressed="true"].mute {
@@ -402,6 +423,29 @@ input[type="checkbox"] {
   align-items: center;
   margin-bottom: 8px;
   font-size: 13px;
+}
+
+/* Generated ↔ MIDI per instrument, under its mixer row once a MIDI file is loaded. */
+.mix-midi {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: -2px 0 12px;
+}
+
+.mix-midi[hidden] {
+  display: none;
+}
+
+.mix-midi select {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.btn.toggle[aria-pressed="true"].midi {
+  background: #123a4a;
+  border-color: var(--accent-2);
 }
 
 .mix-row.master {

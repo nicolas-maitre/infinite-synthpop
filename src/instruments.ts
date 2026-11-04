@@ -9,12 +9,25 @@ import type { Note } from "./composer";
 import { DrumKit } from "./drums";
 import { midiToFreq } from "./theory";
 
-export const TRACKS = ["drums", "bass", "hook", "pad", "riff", "lead", "arp", "stab"] as const;
+export const TRACKS = [
+  "drums",
+  "bass",
+  "seq",
+  "guitar",
+  "hook",
+  "pad",
+  "riff",
+  "lead",
+  "arp",
+  "stab",
+] as const;
 export type Track = (typeof TRACKS)[number];
 
 export const TRACK_LABELS: Record<Track, string> = {
   drums: "Drums",
   bass: "Seq bass",
+  seq: "Sequence",
+  guitar: "Guitar",
   hook: "Melodic bass",
   pad: "Pad",
   riff: "Riff",
@@ -26,6 +39,8 @@ export const TRACK_LABELS: Record<Track, string> = {
 export const DEFAULT_VOLUMES: Record<Track, number> = {
   drums: -3,
   bass: -10,
+  seq: -15,
+  guitar: -9,
   hook: -9,
   pad: -10,
   riff: -8,
@@ -38,6 +53,8 @@ export const DEFAULT_VOLUMES: Record<Track, number> = {
 const PANS: Record<Track, number> = {
   drums: 0,
   bass: 0,
+  seq: 0.2,
+  guitar: -0.25,
   hook: -0.15,
   pad: 0,
   riff: -0.3,
@@ -50,6 +67,8 @@ const PANS: Record<Track, number> = {
 const SENDS: Record<Track, { reverb: number; delay: number }> = {
   drums: { reverb: 0.08, delay: 0 },
   bass: { reverb: 0, delay: 0 },
+  seq: { reverb: 0.25, delay: 0.12 },
+  guitar: { reverb: 0.18, delay: 0 },
   hook: { reverb: 0.2, delay: 0.05 },
   pad: { reverb: 0.45, delay: 0 },
   riff: { reverb: 0.3, delay: 0.25 },
@@ -68,6 +87,8 @@ export class Instruments {
   private readonly gate = new Tone.Gain(0);
   private readonly bassFm: Tone.FMSynth;
   private readonly bassSaw: Tone.MonoSynth;
+  private readonly bassTone: Tone.OnePoleFilter;
+  private readonly bassPresence: Tone.Filter;
   private readonly hook: Tone.MonoSynth;
   private readonly pad: Tone.PolySynth;
   private readonly riffFm: Tone.PolySynth<Tone.FMSynth>;
@@ -77,6 +98,9 @@ export class Instruments {
   private readonly arp: Tone.PolySynth<Tone.FMSynth>;
   private readonly stab: Tone.PolySynth;
   private readonly stabNoise: Tone.NoiseSynth;
+  private readonly seq: Tone.PolySynth<Tone.MonoSynth>;
+  /** Plucked strings: louder voices for down-strokes, softer for up-strokes. */
+  private readonly guitar: { down: Tone.PluckSynth[]; up: Tone.PluckSynth[]; next: number };
 
   private constructor(reverb: Tone.Reverb, gatedVerb: Tone.Reverb) {
     // Bus glue, matched to the references' level and band balance (scripts/compare_mix.py).
@@ -100,7 +124,10 @@ export class Instruments {
       const y = v <= knee ? v : knee + (ceiling - knee) * Math.tanh((v - knee) / (ceiling - knee));
       return Math.sign(x) * y;
     }, 4096);
-    this.master.chain(eq, comp, limiter, new Tone.Gain(0.5), softClip, Tone.getDestination());
+    // Headroom trim: without it the bus compressor and limiter squashed TF-style songs to a crest
+    // factor of 11 dB (the records: 15–18).
+    const trim = new Tone.Gain(Tone.dbToGain(-4));
+    this.master.chain(trim, eq, comp, limiter, new Tone.Gain(0.5), softClip, Tone.getDestination());
     softClip.fan(this.fft, this.waveform);
 
     const delay = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.32, wet: 1 });
@@ -128,33 +155,42 @@ export class Instruments {
     this.drums.gateSend.connect(gatedVerb);
     gatedVerb.chain(this.gate, this.channels.drums);
 
-    // Sequenced bass: DX-style FM thump layered with a filtered saw for weight. Every 16th gets
-    // its own bright "thwack" (a fast FM index and filter decay), the articulation that makes the
-    // recordings' line audible through the mix. The level lives here, not on the channel, so
-    // saved mixer settings keep their meaning.
+    // Sequenced bass, voiced on the recordings' Demucs bass stems. A saw whose harmonics fall
+    // about 9 dB per octave above 200 Hz (a one-pole lowpass: TF's still carries 1.7 kHz within
+    // 22 dB of the fundamental), with a constant brightness through each note: it punches, holds,
+    // and falls linearly to a third by 200 ms. An FM body under it, a touch of drive, and a lean
+    // lowest octave. TF's tone is brighter than DS's: see setBassTone. The level lives here, not
+    // on the channel, so saved mixer settings keep their meaning.
+    const bassDrive = new Tone.Distortion({ distortion: 0.2, oversample: "2x", wet: 0.15 });
+    const bassEq = new Tone.Filter({ type: "lowshelf", frequency: 100, gain: -6 });
+    // Presence, so the harmonics stay audible against the mid parts (strongest for TF).
+    this.bassPresence = new Tone.Filter({ type: "peaking", frequency: 700, Q: 0.6, gain: 4 });
+    this.bassTone = new Tone.OnePoleFilter(220, "lowpass");
+    this.bassTone.chain(bassDrive, bassEq, this.bassPresence, this.channels.bass);
     this.bassFm = new Tone.FMSynth({
-      volume: 8,
+      volume: -10,
       harmonicity: 1,
-      modulationIndex: 8,
+      modulationIndex: 3,
       oscillator: { type: "sine" },
       modulation: { type: "sine" },
-      envelope: { attack: 0.002, decay: 0.18, sustain: 0.5, release: 0.05 },
-      modulationEnvelope: { attack: 0.002, decay: 0.07, sustain: 0.12, release: 0.05 },
-    }).connect(this.channels.bass);
+      envelope: { attack: 0.002, decay: 0.25, decayCurve: "linear", sustain: 0.2, release: 0.04 },
+      modulationEnvelope: { attack: 0.002, decay: 0.1, sustain: 0.2, release: 0.05 },
+    }).connect(bassEq);
     this.bassSaw = new Tone.MonoSynth({
-      volume: 0,
+      volume: 8,
       oscillator: { type: "sawtooth" },
-      filter: { type: "lowpass", rolloff: -24, Q: 3 },
-      envelope: { attack: 0.003, decay: 0.2, sustain: 0.5, release: 0.05 },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
+      envelope: { attack: 0.002, decay: 0.25, decayCurve: "linear", sustain: 0.2, release: 0.04 },
+      // Nearly open: only a small pluck at the attack. The tone comes from bassTone.
       filterEnvelope: {
         attack: 0.002,
-        decay: 0.1,
-        sustain: 0.12,
-        release: 0.06,
-        baseFrequency: 160,
-        octaves: 3.5,
+        decay: 0.08,
+        sustain: 0.6,
+        release: 0.05,
+        baseFrequency: 2500,
+        octaves: 0.6,
       },
-    }).connect(this.channels.bass);
+    }).connect(this.bassTone);
 
     // Melodic high bass: plucky pulse through a chorus pedal and a touch of drive.
     const hookChorus = new Tone.Chorus({
@@ -178,7 +214,9 @@ export class Instruments {
       },
     }).chain(hookDrive, hookChorus, this.channels.hook);
 
-    // Pad: detuned saws, slow attack, darkened and chorused.
+    // Pad: detuned saws, slow attack, darkened and chorused. High-passed so it leaves the bass's
+    // harmonics audible (Demucs on a render showed the pad and other mid parts swallowing them).
+    const padHighpass = new Tone.Filter(220, "highpass", -12);
     const padFilter = new Tone.Filter(2800, "lowpass", -12);
     const padChorus = new Tone.Chorus({
       frequency: 0.8,
@@ -189,7 +227,7 @@ export class Instruments {
     this.pad = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: "fatsawtooth", count: 3, spread: 22 } as Tone.OmniOscillatorOptions,
       envelope: { attack: 0.35, decay: 0.6, sustain: 0.8, release: 1.1 },
-    }).chain(padFilter, padChorus, this.channels.pad);
+    }).chain(padHighpass, padFilter, padChorus, this.channels.pad);
     this.pad.maxPolyphony = 16;
 
     // Riff: DX bell-pluck layered with a bright saw pluck.
@@ -244,6 +282,46 @@ export class Instruments {
       noise: { type: "pink" },
       envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.05 },
     }).chain(stabNoiseFilter, this.channels.stab);
+
+    // TF's high sequencer: a plucky square on 16ths.
+    this.seq = new Tone.PolySynth(Tone.MonoSynth, {
+      oscillator: { type: "square" },
+      filter: { type: "lowpass", rolloff: -24, Q: 2 },
+      envelope: { attack: 0.003, decay: 0.15, sustain: 0.35, release: 0.08 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.12,
+        sustain: 0.2,
+        release: 0.1,
+        baseFrequency: 700,
+        octaves: 2.5,
+      },
+    }).chain(new Tone.Filter(200, "highpass", -12), this.channels.seq);
+    this.seq.maxPolyphony = 12;
+
+    // Rhythm guitar: Karplus–Strong strings, DI'd and overdriven (Sound On Sound on Sumner's
+    // guitar), darkened and lightly chorused.
+    const guitarChorus = new Tone.Chorus({ frequency: 1.2, delayTime: 3, depth: 0.3, wet: 0.3 });
+    guitarChorus.start();
+    const guitarBus = new Tone.Gain(1);
+    guitarBus.chain(
+      new Tone.Distortion({ distortion: 0.6, oversample: "2x", wet: 0.85 }),
+      new Tone.Filter(3200, "lowpass", -12),
+      new Tone.Filter(180, "highpass", -12),
+      guitarChorus,
+      this.channels.guitar,
+    );
+    const plucks = (volume: number) =>
+      Array.from({ length: 8 }, () =>
+        new Tone.PluckSynth({
+          attackNoise: 1.2,
+          dampening: 3800,
+          resonance: 0.97,
+          release: 0.25,
+          volume,
+        }).connect(guitarBus),
+      );
+    this.guitar = { down: plucks(14), up: plucks(9), next: 0 };
   }
 
   static async create(): Promise<Instruments> {
@@ -327,7 +405,42 @@ export class Instruments {
           this.stabNoise.triggerAttackRelease(0.1, at(first), 0.5);
         }
         break;
+      case "guitar":
+        // Strummed: down-strokes low string first, up-strokes high first, 6 ms apart.
+        for (const group of byOnset(notes)) {
+          const [first] = group;
+          if (!first) continue;
+          const down = Math.round(first.step) % 2 === 0;
+          const strings = down ? group : [...group].reverse();
+          const pool = down ? this.guitar.down : this.guitar.up;
+          strings.forEach((n, i) => {
+            const voice = pool[this.guitar.next++ % pool.length];
+            voice?.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n) + i * 0.006);
+          });
+        }
+        break;
+      case "seq":
+        for (const group of byOnset(notes)) {
+          const [first] = group;
+          if (!first) continue;
+          this.seq.triggerAttackRelease(
+            group.map((n) => midiToFreq(n.midi)),
+            len(first),
+            at(first),
+            first.vel,
+          );
+        }
+        break;
     }
+  }
+
+  /** Opens the bass filter further toward True Faith (style 0) than The Different Story (1),
+   * as their stems measure: spectral centroid 559 Hz vs 425 Hz. */
+  setBassTone(style: number): void {
+    this.bassTone.frequency = 240 - 80 * style;
+    this.bassPresence.gain.value = 7 - 6 * style;
+    // DS's falls off faster above 220 Hz (about 12 dB per octave): close the synth's own filter.
+    this.bassSaw.filterEnvelope.baseFrequency = 2500 - 2200 * style;
   }
 
   /** Lets held pad and lead notes ring out when the transport stops. */
@@ -335,6 +448,7 @@ export class Instruments {
     const now = Tone.now();
     this.pad.releaseAll(now);
     this.stab.releaseAll(now);
+    this.seq.releaseAll(now);
     this.riffFm.releaseAll(now);
     this.riffSaw.releaseAll(now);
     this.arp.releaseAll(now);

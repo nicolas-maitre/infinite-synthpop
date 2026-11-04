@@ -2,7 +2,15 @@
  * (song, bar index) → every event in that bar, for every track. Pure, so the engine stays a thin
  * scheduler and the whole arrangement is testable without audio.
  */
-import { chordAt, type DrumMode, type Motif, type Note, type Section, type Song } from "./composer";
+import {
+  chordAt,
+  type BassStyle,
+  type DrumMode,
+  type Motif,
+  type Note,
+  type Section,
+  type Song,
+} from "./composer";
 import { createRng, type Rng } from "./rng";
 import {
   chordName,
@@ -55,6 +63,8 @@ export const MELODIC_TRACKS = [
   "leadOct",
   "arp",
   "stab",
+  "seq",
+  "guitar",
 ] as const;
 export type MelodicTrack = (typeof MELODIC_TRACKS)[number];
 
@@ -83,6 +93,12 @@ export function chordSlots(section: Section, barInSection: number): ChordSlot[] 
   });
 }
 
+function arrangeTarget(song: Song, bar: number): { section: Section; slots: ChordSlot[] } {
+  const section = song.sections[sectionIndexAt(song, bar)];
+  if (!section) throw new Error(`No section for bar ${bar}`);
+  return { section, slots: chordSlots(section, bar - section.startBar) };
+}
+
 export function arrangeBar(song: Song, bar: number): BarEvents {
   const sectionIndex = sectionIndexAt(song, bar);
   const section = song.sections[sectionIndex];
@@ -93,10 +109,29 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   const L = section.layers;
   const rng = createRng((song.seed * 7919 + bar * 104729) >>> 0);
 
+  // The figure ties the next chord's root over the bar line, so each bar needs to know whether
+  // its neighbours carry the same layer.
+  const figureContext = (layer: "bass"): FigureContext => {
+    const prev = bar > 0 ? song.sections[sectionIndexAt(song, bar - 1)] : undefined;
+    const nextBar = bar + 1 < song.totalBars ? arrangeTarget(song, bar + 1) : undefined;
+    return {
+      key,
+      slots,
+      next:
+        nextBar?.section.layers[layer] && nextBar.section.key === key
+          ? nextBar.slots[0]
+          : undefined,
+      heldIn: !!prev?.layers[layer] && prev.key === key,
+      short: L.bassShort,
+      pickup:
+        L.bassShort &&
+        barInSection === section.bars - 1 &&
+        nextBar?.section.kind === "verse" &&
+        nextBar.section.startBar === bar + 1,
+    };
+  };
   const notes: Record<MelodicTrack, Note[]> = {
-    bass: L.bass
-      ? bassLine(song, key, slots, chordSlots(section, barInSection + 1), barInSection)
-      : [],
+    bass: L.bass ? bassLine(song.bassStyle, figureContext("bass")) : [],
     hook: L.hook
       ? motifNotes(
           song.hook,
@@ -114,6 +149,8 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     leadOct: [],
     arp: L.arp ? motifNotes(song.arp, barInSection, key, slots, "chord", 72, 0.5) : [],
     stab: L.stabs && barInSection % 4 === 0 ? stabChord(key, slots) : [],
+    seq: L.seq ? sequenceLine(song, key) : [],
+    guitar: L.guitar ? guitarStrums(key, slots) : [],
   };
 
   if (L.lead) {
@@ -123,16 +160,24 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     if (L.leadDouble)
       notes.leadOct = lead.map((n) => ({ ...n, midi: n.midi + 12, vel: n.vel * 0.55 }));
   }
+  // Parts from a MIDI file replace the generated ones (midi.ts).
+  for (const [track, bars] of Object.entries(song.imported?.notes ?? {})) {
+    notes[track as MelodicTrack] = (bars[bar] ?? []).map((n) => ({ ...n }));
+    if (track === "lead") notes.leadOct = [];
+  }
 
   const isLastBar = barInSection === section.bars - 1;
-  const drums = drumBar(
-    L.drums,
-    rng.fork("drums"),
-    song.style,
-    barInSection === 0 && sectionIndex > 0,
-    section.fill && isLastBar,
-    song.sections[sectionIndex + 1]?.kind === "chorus",
-  );
+  const importedDrums = song.imported?.drums;
+  const drums = importedDrums
+    ? (importedDrums[bar] ?? []).map((h) => ({ ...h }))
+    : drumBar(L.drums, rng.fork("drums"), song.style, {
+        barInSection,
+        sectionStart: barInSection === 0 && sectionIndex > 0,
+        lastBar: isLastBar,
+        intro: section.kind === "intro",
+        fill: section.fill && isLastBar,
+        intoChorus: song.sections[sectionIndex + 1]?.kind === "chorus",
+      });
 
   // Both songs end on a fade: ramp everything down over the final section's last 8 bars.
   if (section.fade) {
@@ -148,60 +193,164 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   return { bar, sectionIndex, section, barInSection, key, chords: slots, drums, notes };
 }
 
-// ── Bass ──────────────────────────────────────────────────────────────────────────────────────
+// ── Bass and the sequenced figure ─────────────────────────────────────────────────────────────
 
-/** D2–C♯3, where the recordings' sequenced bass sits (e.g. DS's E2–A2). */
-function bassRoot(key: Key, c: Chord): number {
-  let root = nearestWithPc(mod12(key.tonic + c.root), 44);
-  while (root > 49) root -= 12;
-  while (root < 38) root += 12;
+/** Where each song's bass sits: TF G1–F♯2 (the MIDI transcription's G1 under the chorus IV),
+ * DS A1–G♯2 (Demucs stems: B1, E2, A2). */
+function bassRoot(style: BassStyle, key: Key, c: Chord): number {
+  const [lo, hi] = style === "tf" ? [31, 42] : [33, 44];
+  let root = nearestWithPc(mod12(key.tonic + c.root), (lo + hi) / 2);
+  while (root > hi) root -= 12;
+  while (root < lo) root += 12;
   return root;
 }
 
-/** The 16ths where True Faith's octave-up bass notes cluster (bass_octave_up_profile, 13–20%). */
-const TF_OCTAVE_STEPS = new Set([2, 3, 6, 7, 13, 14]);
+/** Which pitch an onset of the figure takes: the current chord's, the approach note, or the next
+ * chord's (anticipated). */
+type FigureRole = "root" | "approach" | "next";
+interface FigureHit {
+  step: number;
+  dur: number;
+  role: FigureRole;
+}
 
 /**
- * The sequenced bass both songs run on: root 16ths on every step, all the way through. The
- * recordings differ only in articulation (docs/analysis.md §1, scripts/analyze_reference.py):
- * - "pulse" (DS): short, gated 16ths with a hard accent on every 8th (its bass band pulses
- *   strongest at the 8th rate), moving to the next chord one 16th early.
- * - "bounce" (TF): longer, smoother 16ths. About one bar in five breaks into octave pairs;
- *   here the last bar of each 4-bar phrase does.
+ * The signature figure both songs run on: transcribed from Demucs stems (DS long version
+ * 4:10–4:46) and confirmed note for note by a True Faith MIDI transcription ("Sequence Bass").
+ * Legato 8ths on the root, a 16th hiccup on beat 4 with an approach note on 4e, and the next
+ * chord's root a 16th early on 4a, tied over the bar line and struck again on 1e:
+ *
+ *    1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *   (N) R  R  -  R  -  R  -  R  -  R  -  R  A  -  N
+ *
+ * `heldIn` is false when the previous bar didn't anticipate this one (it then starts on the
+ * downbeat, as TF's does where the bass enters); `tieOut` is false when the next bar has no bass.
  */
-function bassLine(
-  song: Song,
+function figure(heldIn: boolean, tieOut: boolean): FigureHit[] {
+  const hits: FigureHit[] = [];
+  if (!heldIn) hits.push({ step: 0, dur: 1, role: "root" });
+  hits.push({ step: 1, dur: 1, role: "root" }, { step: 2, dur: 2, role: "root" });
+  for (const step of [4, 6, 8, 10]) hits.push({ step, dur: 2, role: "root" });
+  hits.push({ step: 12, dur: 1, role: "root" }, { step: 13, dur: 2, role: "approach" });
+  hits.push(tieOut ? { step: 15, dur: 2, role: "next" } : { step: 15, dur: 1, role: "root" });
+  return hits;
+}
+
+/**
+ * The 4e note, by the move to the next root as the line actually travels (DS: Demucs stems; TF: the
+ * MIDI transcription):
+ * - a 4th up: the scale step below the target (A→C→D, and A→C♯→D over a major V);
+ * - a 5th up or a 4th/5th down: the scale step above the root (G→A→D, F→G→C, A→B→E);
+ * - a major 3rd up: the step in between (B♭→C→D); DS also fills a major 3rd down (E→D→C);
+ * - anything else (a step, a minor 3rd: D→D→F, E→E→G, C→C→A): the root.
+ */
+function approachNote(
+  style: BassStyle,
   key: Key,
-  slots: readonly ChordSlot[],
-  nextBar: readonly ChordSlot[],
-  barInSection: number,
-): Note[] {
+  chord: Chord,
+  root: number,
+  next: number,
+): number {
+  const move = next - root;
+  const scale = scaleForChord(key, chord);
+  const stepFrom = (from: number, dir: 1 | -1) => {
+    for (let d = 1; d <= 2; d++) if (scale.includes(mod12(from + dir * d))) return from + dir * d;
+    return root;
+  };
+  if (move === 5) return stepFrom(next, -1);
+  if (move === 7 || move === -5 || move === -7) return stepFrom(root, 1);
+  if (move === 4) return stepFrom(root, 1);
+  if (move === -4 && style === "ds") return stepFrom(root, -1);
+  return root;
+}
+
+interface FigureContext {
+  key: Key;
+  slots: readonly ChordSlot[];
+  next: ChordSlot | undefined;
+  heldIn: boolean;
+  /** Staccato 8ths (TF's turnarounds and outro). */
+  short: boolean;
+  /** The bar before a verse after a staccato turnaround: TF's pickup run (see bassLine). */
+  pickup: boolean;
+}
+
+function slotAt(slots: readonly ChordSlot[], step: number): ChordSlot | undefined {
+  return slots.find((s) => step >= s.step && step < s.step + s.length) ?? slots[0];
+}
+
+function bassLine(style: BassStyle, ctx: FigureContext): Note[] {
   const out: Note[] = [];
-  const octaveBar = barInSection % 4 === 3;
-  slots.forEach((slot, i) => {
-    const root = bassRoot(key, slot.chord);
-    const next = slots[i + 1] ?? nextBar[0];
-    const nextRoot = next ? bassRoot(key, next.chord) : root;
-    const end = slot.step + slot.length;
-    for (let s = slot.step; s < end; s++) {
-      const pos = s % 4;
-      if (song.bassStyle === "pulse") {
-        out.push({
-          step: s,
-          dur: 0.7,
-          midi: s === end - 1 ? nextRoot : root,
-          vel: pos === 0 ? 1 : pos === 2 ? 0.9 : 0.42,
-        });
-      } else {
-        out.push({
-          step: s,
-          dur: 0.9,
-          midi: octaveBar && TF_OCTAVE_STEPS.has(s) ? root + 12 : root,
-          vel: pos === 0 ? 1 : pos === 2 ? 0.85 : 0.72,
-        });
+  const nextRoot = ctx.next ? bassRoot(style, ctx.key, ctx.next.chord) : undefined;
+  // TF's pickup into a verse (MIDI bars 46 and 76): three beats' rest, then on beat 4 the root,
+  // the next root's 4th and 5th, and the next root on 4a, tied over.
+  const last = ctx.slots.at(-1);
+  if (ctx.pickup && nextRoot !== undefined && last) {
+    const root = bassRoot(style, ctx.key, last.chord);
+    return [root, nextRoot + 5, nextRoot + 7, nextRoot].map((midi, i) => ({
+      step: 12 + i,
+      dur: i === 3 ? 1.95 : 0.9,
+      midi,
+      vel: i === 0 ? 1 : 0.85,
+    }));
+  }
+  for (const hit of figure(ctx.heldIn, nextRoot !== undefined)) {
+    const slot = slotAt(ctx.slots, hit.step);
+    if (!slot) continue;
+    const root = bassRoot(style, ctx.key, slot.chord);
+    const midi =
+      hit.role === "next"
+        ? (nextRoot ?? root)
+        : hit.role === "approach"
+          ? approachNote(style, ctx.key, slot.chord, root, nextRoot ?? root)
+          : root;
+    const onBeat = hit.step % 4 === 0;
+    out.push({
+      step: hit.step,
+      dur: ctx.short ? Math.min(1, hit.dur) - 0.05 : hit.dur - 0.05,
+      midi,
+      vel: onBeat ? 1 : hit.dur < 2 ? 0.8 : 0.88,
+    });
+  }
+  return out;
+}
+
+/** TF's high sequencer: 16ths on the key's 5th (A4 in D minor), with the tonic a 4th above or the
+ * 5th an octave above on the song's generated steps. It ignores the chords, as the recording does. */
+function sequenceLine(song: Song, key: Key): Note[] {
+  const pedal = nearestWithPc(mod12(key.tonic + 7), 69);
+  const out: Note[] = [];
+  song.sequence.tops.forEach((top, step) => {
+    out.push({ step, dur: 0.6, midi: pedal, vel: step % 4 === 0 ? 0.75 : 0.6 });
+    if (top) out.push({ step, dur: 0.6, midi: pedal + top, vel: 0.55 });
+  });
+  return out;
+}
+
+/**
+ * TF's rhythm guitar (MIDI "Guitar", 6043 notes): a strum on every 16th, 3–4 strings in G3–G4,
+ * changing on the bar line. The major III and IV are voiced as sus chords (F as G–C–F, G as
+ * G–C–D). Down-strokes on the 8ths, up-strokes between.
+ */
+function guitarStrums(key: Key, slots: readonly ChordSlot[]): Note[] {
+  const out: Note[] = [];
+  for (const slot of slots) {
+    const pcs = chordPitchClasses(key, slot.chord);
+    const [root = 0, , fifth = 7] = pcs;
+    const colour =
+      slot.chord.quality === "maj" && slot.chord.numeral === "III"
+        ? [root, mod12(root + 2), fifth]
+        : slot.chord.quality === "maj" && slot.chord.numeral === "IV"
+          ? [root, mod12(root + 5), fifth]
+          : pcs;
+    const voicing = notesInRange(colour, 55, 67).slice(-4);
+    for (let step = slot.step; step < slot.step + slot.length; step++) {
+      const down = step % 2 === 0;
+      for (const midi of voicing) {
+        out.push({ step, dur: 0.9, midi, vel: step % 4 === 0 ? 1 : down ? 0.85 : 0.6 });
       }
     }
-  });
+  }
   return out;
 }
 
@@ -250,9 +399,8 @@ function padChords(key: Key, slots: readonly ChordSlot[], vel: number): Note[] {
   const out: Note[] = [];
   for (const slot of slots) {
     const pcs = chordPitchClasses(key, slot.chord);
-    const voicing = voiceChord(pcs, 62);
-    const low = nearestWithPc(pcs[0] ?? key.tonic, 48);
-    for (const midi of [low, ...voicing]) {
+    // No low root: the bass has it, and a C3-area pad note masks the bass's harmonics.
+    for (const midi of voiceChord(pcs, 62)) {
       out.push({ step: slot.step, dur: slot.length - 0.1, midi, vel });
     }
   }
@@ -268,23 +416,47 @@ function stabChord(key: Key, slots: readonly ChordSlot[]): Note[] {
 
 // ── Drums ─────────────────────────────────────────────────────────────────────────────────────
 
-function drumBar(
-  mode: DrumMode,
-  rng: Rng,
-  style: number,
-  sectionStart: boolean,
-  fill: boolean,
-  intoChorus: boolean,
-): DrumHit[] {
+interface DrumBarContext {
+  barInSection: number;
+  sectionStart: boolean;
+  lastBar: boolean;
+  intro: boolean;
+  fill: boolean;
+  intoChorus: boolean;
+}
+
+function drumBar(mode: DrumMode, rng: Rng, style: number, ctx: DrumBarContext): DrumHit[] {
   if (mode === "off") return [];
+  const { barInSection, sectionStart, intoChorus } = ctx;
   const hits: DrumHit[] = [];
   const hit = (voice: DrumVoice, step: number, vel: number) => hits.push({ voice, step, vel });
+  // The groove carries its own fill in its last bar.
+  const fill = ctx.fill && mode !== "groove";
   const fillFrom = fill ? (intoChorus ? 8 : 12) : 16;
+  const evenBar = barInSection % 2 === 0;
 
   // Kick: four on the floor — "the drums do one thing: stomp".
   if (mode === "half") hit("kick", 0, 1);
   else for (const s of [0, 4, 8, 12]) if (s < fillFrom || s === 12) hit("kick", s, 1);
   if (mode === "big" && style > 0.5 && rng.chance(0.4)) hit("kick", 14, 0.7);
+
+  // TF's drum intro (MIDI bars 0–3): a kick run into every other bar, ghost snares after beat 2,
+  // a low tom on 4& in the bars between, and a snare-and-tom fill in the last bar.
+  if (mode === "groove") {
+    for (const s of [4, 12]) hit("snare", s, 1);
+    if (ctx.lastBar) {
+      for (const s of [1, 3, 9, 11, 13, 14]) hit("snare", s, 0.5);
+      hit("toml", 14, 0.85);
+      hit("openhat", 6, 0.55);
+    } else {
+      hit("snare", 5, 0.45);
+      hit("snare", 7, 0.5);
+      if (evenBar) for (const s of [13, 14, 15]) hit("kick", s, 0.8);
+    }
+  }
+  // TF's intro keeps a low tom on 4& every other bar (MIDI bars 1–15).
+  if (style < 0.5 && ctx.intro && !evenBar && mode !== "half" && fillFrom === 16)
+    hit("toml", 14, 0.8);
 
   // Snare on 2 and 4 (beat 3 in half time), doubled by a clap in big sections.
   if (mode === "full" || mode === "big") {
@@ -300,7 +472,10 @@ function drumBar(
   for (let s = 0; s < 16; s++) {
     if (s >= fillFrom) break;
     const offbeat8 = s % 4 === 2;
-    if (mode === "big" && offbeat8) {
+    // TF opens a hat on beat 3 of every other bar (MIDI, intro to outro).
+    if (style < 0.5 && s === 8 && evenBar && mode !== "kick" && mode !== "half") {
+      hit("openhat", s, 0.6);
+    } else if (mode === "big" && offbeat8) {
       hit("openhat", s + humanise(s), 0.55 + rng.next() * 0.15);
     } else if (mode === "kick" || mode === "half") {
       if (s % 2 === 0) hit("hat", s + humanise(s), (offbeat8 ? 0.6 : 0.35) + rng.next() * 0.1);

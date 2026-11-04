@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar, MELODIC_TRACKS } from "./arranger";
 import { BPM_RANGE, compose } from "./composer";
+import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
 import { BANK, mutate, pickProgression } from "./progressions";
 import { createRng } from "./rng";
 import { chord, chordName, chordPitchClasses, mod12, scaleForChord, voiceChord } from "./theory";
@@ -72,7 +73,7 @@ describe("progressions", () => {
       for (let i = 0; i < 500; i++) if (pickProgression("chorus", style, rng) === target) n++;
       return n;
     };
-    expect(count(0, "TF chorus (measured)")).toBeGreaterThan(count(1, "TF chorus (measured)") * 3);
+    expect(count(0, "TF chorus (MIDI)")).toBeGreaterThan(count(1, "TF chorus (measured)") * 3);
     expect(count(1, "DS chorus (measured)")).toBeGreaterThan(count(0, "DS chorus (measured)") * 3);
   });
 });
@@ -135,31 +136,38 @@ describe("compose", () => {
 });
 
 describe("arrangeBar", () => {
-  it("anticipates chord changes by a 16th in the pulse bass", () => {
-    let checked = 0;
-    for (let seed = 0; seed < 40 && checked < 5; seed++) {
-      const song = compose({ seed, style: 1 });
-      if (song.bassStyle !== "pulse") continue;
+  it("anticipates the next chord on 4a and ties it over the bar line", () => {
+    for (let seed = 0; seed < 20; seed++) {
+      const song = compose({ seed, style: seed / 19 });
       const verse = song.sections.find((s) => s.kind === "verse");
       if (!verse) continue;
       const bar = arrangeBar(song, verse.startBar);
       const next = arrangeBar(song, verse.startBar + 1);
       const last = bar.notes.bass.at(-1);
-      const nextFirst = next.notes.bass[0];
       expect(last?.step).toBe(15);
-      expect(last?.midi).toBe(nextFirst?.midi);
-      checked++;
+      expect((last?.midi ?? 0) % 12).toBe(
+        (next.key.tonic + (next.chords[0]?.chord.root ?? 0)) % 12,
+      );
+      // Tied over: the next bar doesn't strike its downbeat, it re-strikes on 1e.
+      expect(next.notes.bass[0]?.step).toBe(1);
     }
-    expect(checked).toBeGreaterThan(0);
   });
 
-  it("plays the sequenced bass on every 16th of every bar it is in", () => {
+  it("plays the bass figure: 8ths on the root, the hiccup on beat 4, the tie on 4a", () => {
+    const figure = [1, 2, 4, 6, 8, 10, 12, 13, 15];
     for (let seed = 0; seed < 20; seed++) {
       const song = compose({ seed, style: seed / 19 });
       for (let bar = 0; bar < song.totalBars; bar++) {
         const ev = arrangeBar(song, bar);
         if (!ev.section.layers.bass) continue;
-        expect(ev.notes.bass.map((n) => n.step)).toEqual([...Array(16).keys()]);
+        const steps = ev.notes.bass.map((n) => n.step).filter((s) => s !== 0);
+        // TF's pickup run into a verse rests until beat 4 (tested below).
+        if (ev.section.layers.bassShort && steps[0] === 12) continue;
+        expect(steps).toEqual(figure);
+        for (const n of ev.notes.bass) {
+          expect(n.midi).toBeGreaterThanOrEqual(31);
+          expect(n.midi).toBeLessThanOrEqual(46);
+        }
       }
     }
   });
@@ -197,5 +205,141 @@ describe("arrangeBar", () => {
         }
       }
     }
+  }, 30_000);
+});
+
+describe("references", () => {
+  it("lays out both originals at their measured key, tempo and length", () => {
+    const tf = compose({ seed: 1987, style: 0.5, reference: "true-faith" });
+    const ds = compose({ seed: 1989, style: 0.5, reference: "different-story" });
+    expect(tf.key).toEqual({ tonic: 2, mode: "minor" });
+    expect(ds.key).toEqual({ tonic: 4, mode: "minor" });
+    expect(tf.bpm).toBe(117.45);
+    expect(ds.bpm).toBe(117.45);
+    // TF: the MIDI transcription's ~173 bars; DS: 112 measured, rounded to whole phrases.
+    expect(Math.abs(tf.totalBars - 173)).toBeLessThanOrEqual(2);
+    expect(Math.abs(ds.totalBars - 112)).toBeLessThanOrEqual(2);
+    expect(tf.sections.at(-1)?.key).toEqual({ tonic: 7, mode: "major" });
+    expect(tf.sections.at(-1)?.fade).toBe(true);
+  });
+
+  it("plays TF's pickup run into verse 2 and its drum groove in the intro", () => {
+    const tf = compose({ seed: 1987, style: 0.5, reference: "true-faith" });
+    const verse2 = tf.sections.find((s) => s.label === "Verse 2");
+    if (!verse2) throw new Error("no Verse 2");
+    // MIDI bar 46: three beats' rest, then C2 G2 A2 → D2.
+    expect(arrangeBar(tf, verse2.startBar - 1).notes.bass.map((n) => [n.step, n.midi])).toEqual([
+      [12, 36],
+      [13, 43],
+      [14, 45],
+      [15, 38],
+    ]);
+    const intro = arrangeBar(tf, 0).drums;
+    expect(intro.filter((h) => h.voice === "kick").map((h) => h.step)).toEqual([
+      0, 4, 8, 12, 13, 14, 15,
+    ]);
+  });
+
+  it("ignores the key, tempo and kit settings, and arranges every bar", () => {
+    const song = compose({
+      seed: 1,
+      style: 1,
+      key: { tonic: 0, mode: "minor" },
+      bpm: 130,
+      kit: "dmx",
+      reference: "true-faith",
+    });
+    expect([song.key.tonic, song.bpm, song.kit, song.bassStyle]).toEqual([2, 117.45, "sp12", "tf"]);
+    for (let bar = 0; bar < song.totalBars; bar++) {
+      const ev = arrangeBar(song, bar);
+      for (const track of MELODIC_TRACKS) {
+        for (const n of ev.notes[track]) expect(Number.isFinite(n.midi)).toBe(true);
+      }
+    }
+  });
+});
+
+describe("midi", () => {
+  it("reads note events, running status and track names into bars of 16ths", () => {
+    const bytes = (...b: number[]) => b;
+    const vlq = (n: number) => (n < 128 ? [n] : [0x80 | (n >> 7), n & 0x7f]);
+    const name = [...new TextEncoder().encode("Synth Lead")];
+    // 96 ticks per beat: a 16th is 24 ticks, a bar 384.
+    const events = [
+      ...bytes(0, 0xff, 0x03, name.length, ...name),
+      ...bytes(0, 0x90, 62, 100), // D4 on at 0
+      ...vlq(48),
+      ...bytes(62, 0), // running status, velocity 0 = off after an 8th
+      ...vlq(384 - 48 + 24),
+      ...bytes(0x90, 69, 64), // A4 on at bar 1, step 1
+      ...vlq(24),
+      ...bytes(0x80, 69, 0),
+      ...bytes(0, 0xff, 0x2f, 0),
+    ];
+    const file = new Uint8Array([
+      ...[0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, 1, 0, 96],
+      ...[0x4d, 0x54, 0x72, 0x6b, 0, 0, 0, events.length],
+      ...events,
+    ]);
+    const midi = parseMidi(file.buffer);
+    expect(midi.ticksPerBeat).toBe(96);
+    expect(midi.tracks.map((t) => t.name)).toEqual(["Synth Lead"]);
+    const bars = toBars(midi.tracks[0]!, midi.ticksPerBeat);
+    expect(bars[0]?.map((n) => [n.step, n.dur, n.midi])).toEqual([[0, 2, 62]]);
+    expect(bars[1]?.map((n) => [n.step, n.dur, n.midi])).toEqual([[1, 1, 69]]);
+  });
+});
+
+describe("midi mapping", () => {
+  const track = (name: string, channel: number, midi: number) => ({
+    name,
+    channel,
+    notes: [{ tick: 0, duration: 24, midi, velocity: 100 }],
+  });
+  // True Faith's MIDI transcription, as the user supplied it.
+  const file: MidiFile = {
+    ticksPerBeat: 96,
+    tracks: [
+      track("Guitar (Bernard Sumner)", 6, 60),
+      track("Bass (Peter Hook)", 3, 50),
+      track("Sequence Bass (Gillian Gilbert)", 10, 38),
+      track("Synth Strings (Gillian Gilbert)", 2, 62),
+      track("Sequence (Gillian Gilbert)", 4, 69),
+      track("Synth Lead (Gillian Gilbert)", 7, 76),
+      track("Synth Pad (Gillian Gilbert)", 1, 62),
+      track("Drumkit", 9, 36),
+      track("Drumkit", 9, 42),
+    ],
+  };
+
+  it("matches each instrument to the right track by name", () => {
+    expect(matchTracks(file)).toEqual({
+      drums: [7, 8],
+      bass: [2],
+      hook: [1],
+      lead: [5],
+      guitar: [0],
+      seq: [4],
+      pad: [3],
+    });
+  });
+
+  it("maps General MIDI drum keys to the drum machine", () => {
+    const bars = toDrumBars(file.tracks.slice(7), file.ticksPerBeat);
+    expect(bars[0]?.map((h) => h.voice)).toEqual(["kick", "hat"]);
+  });
+
+  it("lets imported parts replace or silence generated ones", () => {
+    const song = compose({ seed: 1987, style: 0.5, reference: "true-faith" });
+    song.imported = {
+      notes: { bass: [[{ step: 0, dur: 4, midi: 38, vel: 1 }]], riff: [] },
+      drums: [[{ voice: "kick", step: 0, vel: 1 }]],
+    };
+    const bar0 = arrangeBar(song, 0);
+    expect(bar0.notes.bass).toEqual([{ step: 0, dur: 4, midi: 38, vel: 1 }]);
+    expect(bar0.drums).toEqual([{ voice: "kick", step: 0, vel: 1 }]);
+    const instrumental = song.sections.find((s) => s.layers.riff);
+    if (!instrumental) throw new Error("no riff section");
+    expect(arrangeBar(song, instrumental.startBar).notes.riff).toEqual([]);
   });
 });

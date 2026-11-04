@@ -4,7 +4,8 @@
  */
 import * as Tone from "tone";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents, type DrumVoice } from "./arranger";
-import { compose, type KitName, type Song } from "./composer";
+import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
+import type { ReferenceId } from "./references";
 import { Instruments } from "./instruments";
 import { createRng } from "./rng";
 import type { Key } from "./theory";
@@ -24,6 +25,12 @@ export interface EngineEvents {
   onStateChange?: (playing: boolean) => void;
 }
 
+/** Fixed seeds for the originals' generated parts (lead melodies, riffs), so each plays the same. */
+const REFERENCE_SEEDS: Record<ReferenceId, number> = {
+  "true-faith": 1987,
+  "different-story": 1989,
+};
+
 export function nextSeed(seed: number): number {
   return createRng(seed).fork("next-song").int(0, 999_999);
 }
@@ -34,6 +41,10 @@ export class Engine {
   missingSamples: Record<string, DrumVoice[]> = {};
   private bar = 0;
   private repeatId: number | null = null;
+  /** Set while one of the originals plays; cleared when the next generated song starts. */
+  private reference: ReferenceId | null = null;
+  /** Parts loaded from the user's MIDI files, per original (midi.ts). */
+  private readonly imported: Partial<Record<ReferenceId, ImportedTracks>> = {};
   private appliedBpm = 0;
 
   constructor(
@@ -60,7 +71,7 @@ export class Engine {
       this.instruments = await Instruments.create();
       this.missingSamples = await this.instruments.drums.loadAll();
     }
-    this.instruments.drums.use(this.effectiveKit());
+    this.applySong(this.instruments);
     const transport = Tone.getTransport();
     this.applyBpm(Tone.now());
     this.repeatId = transport.scheduleRepeat(this.tick, "1m", 0);
@@ -83,8 +94,22 @@ export class Engine {
 
   /** Jumps to a new song (random or given seed) at the next bar line. */
   newSong(seed: number): void {
+    this.reference = null;
     this.song = this.compose(seed);
     this.bar = 0;
+    if (this.instruments) this.applySong(this.instruments);
+    this.events.onSong?.(this.song);
+  }
+
+  /**
+   * Plays one of the originals (its measured form, chords, key, tempo and kit) at the next bar
+   * line. Generated songs follow when it ends.
+   */
+  playReference(id: ReferenceId): void {
+    this.reference = id;
+    this.song = this.compose(REFERENCE_SEEDS[id]);
+    this.bar = 0;
+    if (this.instruments) this.applySong(this.instruments);
     this.events.onSong?.(this.song);
   }
 
@@ -108,13 +133,33 @@ export class Engine {
     this.settings = { ...this.settings, ...settings };
     this.song = this.compose(this.song.seed);
     if (this.bar >= this.song.totalBars) this.bar = this.song.sections.at(-1)?.startBar ?? 0;
-    if (this.instruments) this.instruments.drums.use(this.effectiveKit());
+    if (this.instruments) this.applySong(this.instruments);
     if (this.playing && "bpm" in settings) Tone.getTransport().bpm.rampTo(this.song.bpm, 0.5);
     this.events.onSong?.(this.song);
   }
 
   private compose(seed: number): Song {
-    return compose({ seed, ...this.settings });
+    const song = compose({ seed, ...this.settings, reference: this.reference });
+    const imported = this.reference ? this.imported[this.reference] : undefined;
+    if (imported) song.imported = imported;
+    return song;
+  }
+
+  /** Plays these parts (from a MIDI file) instead of the generated ones whenever this original
+   * plays; null goes back to all generated. */
+  setImported(id: ReferenceId, imported: ImportedTracks | null): void {
+    if (imported) this.imported[id] = imported;
+    else delete this.imported[id];
+    if (this.reference === id) {
+      this.song = this.compose(this.song.seed);
+      this.events.onSong?.(this.song);
+    }
+  }
+
+  /** Points the instruments at the current song: its drum machine and bass tone. */
+  private applySong(inst: Instruments): void {
+    inst.drums.use(this.effectiveKit());
+    inst.setBassTone(this.song.style);
   }
 
   private effectiveKit(): KitName {
@@ -132,9 +177,10 @@ export class Engine {
     const inst = this.instruments;
     if (!inst) return;
     if (this.bar >= this.song.totalBars) {
+      this.reference = null;
       this.song = this.compose(nextSeed(this.song.seed));
       this.bar = 0;
-      inst.drums.use(this.effectiveKit());
+      this.applySong(inst);
       const song = this.song;
       atAudioTime(time, () => this.events.onSong?.(song));
     }

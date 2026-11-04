@@ -25,10 +25,21 @@ Press **Play**. Without the samples, the app falls back to synthesized drums, so
 
 - **Play / Stop, New song, Skip section.** Keyboard: Space, N, S. Click a block on the timeline to
   jump to that section.
+- **Originals:** play _True Faith_ or _The Different Story_ through the same engine, at their
+  measured form, chords, key, tempo, drum machine and bass figure. The melodies stay generated.
+  Links: `#ref=true-faith`, `#ref=different-story`. Generated songs follow when one ends.
+- **Follow MIDI…:** pick a MIDI file to drive the current original. Each mixer row then gets a
+  **MIDI** switch (generated ↔ MIDI) and a select for which of the file's tracks it follows.
+  Tracks are matched by name ("Sequence Bass" → Seq bass, "Lead" → Lead, both drum tracks →
+  Drums, …), and you can correct any match. "None" silences an instrument. Each part is scaled to
+  the generated part's usual level, since transcriptions often have flat velocities. The file is
+  read in the page and never stored. It is mapped by bar and 16th, so its tempo doesn't matter,
+  but its bars must line up with the original's layout (a True Faith transcription with 4 bars of
+  drums before the bass does).
 - **Seed:** every song is reproducible. The URL carries `#seed=…`, so a link replays the same song.
-- **Style:** a slider from _True Faith_ (Dorian IV choruses, minor v, bounce bass, modulating
-  outro) to _The Different Story_ (minor iv choruses, major V, pulse bass, Dorian turnaround,
-  chorus fade).
+- **Style:** a slider from _True Faith_ (Dorian IV choruses, minor v, a brighter, lower bass,
+  the high 16th sequencer, modulating outro) to _The Different Story_ (minor iv choruses, major
+  V, Dorian turnaround, chorus fade). Both share the sequenced bass figure.
 - **Tempo:** auto (115–120 BPM; both originals measure 117.45) or fixed.
 - **Key:** auto or a fixed minor key.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.
@@ -53,6 +64,8 @@ unit-tested. Tone.js only plays the result.
 src/rng.ts           seeded PRNG
 src/theory.ts        keys, Roman-numeral chords, scales (incl. Dorian / harmonic-minor colour), voicing
 src/progressions.ts  progression bank measured from the recordings + style-weighted substitutions
+src/references.ts    the two originals: measured form, chords, key, tempo, kit, bass figure
+src/midi.ts          minimal MIDI file reader for user-supplied tracks
 src/composer.ts      seed → Song: form, progressions, riff / melodic-bass / arp motifs, lead melodies
 src/arranger.ts      (song, bar) → every note and drum hit in that bar
 src/drums.ts         sample kits with synthesized fallback
@@ -80,6 +93,10 @@ tracks to solo: `renderToDisk({ seed: 42, style: 0.5 }, 64, ["bass"])`. Then com
 ```
 
 You can also run `analyze_reference.py` on a render to check its tempo, chords and form.
+
+To transcribe a part of a recording (or of a render's stems), separate it with Demucs and run
+`scripts/transcribe_bass.py` on the stem folder. Its docstring has the commands. That is how the
+bass figure in `docs/analysis.md` §3 was measured.
 
 ## Sample licensing
 

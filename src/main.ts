@@ -1,9 +1,11 @@
 import "./style.css";
 import { chordSlots } from "./arranger";
-import type { BassStyle, KitName, Song } from "./composer";
+import type { BassStyle, ImportedTracks, KitName, Song } from "./composer";
 import { KIT_LABELS } from "./drums";
 import { Engine, type EngineSettings } from "./engine";
 import { DEFAULT_VOLUMES, TRACK_LABELS, TRACKS, type Track } from "./instruments";
+import { matchTracks, mergeBars, parseMidi, toDrumBars, type MidiFile } from "./midi";
+import { REFERENCES, type ReferenceId } from "./references";
 import { randomSeed } from "./rng";
 import { chord, chordName, keyName, noteName } from "./theory";
 import { startVisualizer } from "./visualizer";
@@ -88,6 +90,11 @@ const ui = {
   kitStatus: el("kit-status"),
   mixer: el("mixer-rows"),
 };
+const originals = [...document.querySelectorAll<HTMLButtonElement>("[data-reference]")];
+
+function isReferenceId(id: string | null | undefined): id is ReferenceId {
+  return !!id && id in REFERENCES;
+}
 
 // ── Engine ────────────────────────────────────────────────────────────────────────────────────
 
@@ -100,7 +107,9 @@ function engineSettings(): EngineSettings {
   };
 }
 
-const initialSeed = Number(new URLSearchParams(location.hash.slice(1)).get("seed"));
+const hash = new URLSearchParams(location.hash.slice(1));
+const initialSeed = Number(hash.get("seed"));
+const initialReference = hash.get("ref");
 const engine = new Engine(
   engineSettings(),
   Number.isInteger(initialSeed) && initialSeed > 0 ? initialSeed : randomSeed(),
@@ -113,7 +122,6 @@ const engine = new Engine(
     },
   },
 );
-
 async function togglePlay(): Promise<void> {
   if (engine.playing) {
     engine.stop();
@@ -133,8 +141,8 @@ async function togglePlay(): Promise<void> {
 // ── Rendering ─────────────────────────────────────────────────────────────────────────────────
 
 const BASS_LABELS: Record<BassStyle, string> = {
-  pulse: "16th pulse bass",
-  bounce: "16th bounce bass",
+  ds: "Different Story bass figure",
+  tf: "True Faith bass figure",
 };
 
 function renderSong(song: Song): void {
@@ -146,13 +154,16 @@ function renderSong(song: Song): void {
     `${KIT_LABELS[kit]} drums`,
     BASS_LABELS[song.bassStyle],
     `${song.totalBars} bars`,
+    ...(song.reference ? ["original form & chords, generated melodies"] : []),
   ].join(" · ");
   ui.seed.value = String(song.seed);
   if (prefs.bpmAuto) {
     ui.bpm.value = String(song.bpm);
     ui.bpmOut.value = `${song.bpm} BPM`;
   }
-  history.replaceState(null, "", `#seed=${song.seed}`);
+  history.replaceState(null, "", song.reference ? `#ref=${song.reference}` : `#seed=${song.seed}`);
+  for (const b of originals)
+    b.setAttribute("aria-pressed", String(b.dataset.reference === song.reference));
 
   ui.timeline.replaceChildren(
     ...song.sections.map((s, i) => {
@@ -310,6 +321,106 @@ ui.seed.addEventListener("keydown", (e) => {
 ui.play.addEventListener("click", () => void togglePlay());
 ui.newSong.addEventListener("click", () => engine.newSong(randomSeed()));
 ui.skip.addEventListener("click", () => engine.skipSection());
+for (const b of originals) {
+  b.addEventListener("click", () => {
+    const id = b.dataset.reference;
+    if (isReferenceId(id)) engine.playReference(id);
+  });
+}
+
+// A MIDI file the user picks can drive any instrument while an original plays: each mixer row
+// switches between the generated part and the MIDI, and picks which of the file's tracks it
+// follows. The file stays in the page; the app never stores it.
+const midiFile = el<HTMLInputElement>("midi-file");
+const midiStatus = el("midi-status");
+let midi: MidiFile | null = null;
+let midiTarget: ReferenceId = "true-faith";
+const midiChoice = new Map<Track, { on: boolean; tracks: number[] }>();
+const midiControls = new Map<
+  Track,
+  { line: HTMLElement; toggle: HTMLButtonElement; select: HTMLSelectElement }
+>();
+const ALL_DRUMS = "all-drums";
+
+function selectedTracks(value: string): number[] {
+  if (!midi || value === "") return [];
+  if (value === ALL_DRUMS) return midi.tracks.flatMap((m, i) => (m.channel === 9 ? [i] : []));
+  return [Number(value)];
+}
+
+function applyMidi(): void {
+  if (!midi) return;
+  const file = midi;
+  const imported: ImportedTracks = { notes: {} };
+  const following: string[] = [];
+  for (const t of TRACKS) {
+    const choice = midiChoice.get(t);
+    if (!choice?.on) continue;
+    const tracks = choice.tracks.flatMap((i) => file.tracks[i] ?? []);
+    if (t === "drums") imported.drums = toDrumBars(tracks, file.ticksPerBeat);
+    else imported.notes = { ...imported.notes, [t]: mergeBars(tracks, file.ticksPerBeat, t) };
+    following.push(TRACK_LABELS[t]);
+  }
+  engine.setImported(midiTarget, following.length ? imported : null);
+  midiStatus.textContent = `${REFERENCES[midiTarget].title}: ${
+    following.length ? `MIDI for ${following.join(", ")}` : "all generated"
+  }`;
+}
+
+function midiLine(t: Track): HTMLElement {
+  const line = document.createElement("div");
+  line.className = "mix-midi";
+  line.hidden = true;
+  const sw = toggle("MIDI", "midi", false, `${TRACK_LABELS[t]}: generated ↔ MIDI`, (on) => {
+    midiChoice.set(t, { tracks: [], ...midiChoice.get(t), on });
+    applyMidi();
+  });
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", `MIDI track for ${TRACK_LABELS[t]}`);
+  select.addEventListener("change", () => {
+    midiChoice.set(t, { on: true, tracks: selectedTracks(select.value) });
+    sw.setAttribute("aria-pressed", "true");
+    applyMidi();
+  });
+  line.append(sw, select);
+  midiControls.set(t, { line, toggle: sw, select });
+  return line;
+}
+
+function loadMidi(file: MidiFile): void {
+  midi = file;
+  midiTarget = engine.song.reference ?? "true-faith";
+  const match = matchTracks(file);
+  const drumTracks = file.tracks.filter((m) => m.channel === 9).length;
+  for (const t of TRACKS) {
+    const controls = midiControls.get(t);
+    if (!controls) continue;
+    const options = [new Option("None (silent)", "")];
+    if (t === "drums" && drumTracks > 1) options.push(new Option("All drum tracks", ALL_DRUMS));
+    file.tracks.forEach((m, i) =>
+      options.push(new Option(`${m.name || `Track ${i + 1}`} (${m.notes.length})`, String(i))),
+    );
+    controls.select.replaceChildren(...options);
+    const found = match[t];
+    const value = !found ? "" : t === "drums" && found.length > 1 ? ALL_DRUMS : String(found[0]);
+    controls.select.value = value;
+    midiChoice.set(t, { on: !!found, tracks: selectedTracks(value) });
+    controls.toggle.setAttribute("aria-pressed", String(!!found));
+    controls.line.hidden = false;
+  }
+  applyMidi();
+}
+
+midiFile.addEventListener("change", () => {
+  const file = midiFile.files?.[0];
+  if (!file) return;
+  void file
+    .arrayBuffer()
+    .then((buffer) => loadMidi(parseMidi(buffer)))
+    .catch((e: unknown) => {
+      midiStatus.textContent = `Couldn't read that MIDI file: ${String(e)}`;
+    });
+});
 
 document.addEventListener("keydown", (e) => {
   const target = e.target as HTMLElement | null;
@@ -406,6 +517,7 @@ for (const t of TRACKS) {
       },
       [mute, solo],
     ),
+    midiLine(t),
   );
 }
 const master = mixRow("Master", prefs.master, (v) => {
@@ -418,7 +530,8 @@ ui.mixer.append(master);
 
 // ── Go ────────────────────────────────────────────────────────────────────────────────────────
 
-renderSong(engine.song);
+if (isReferenceId(initialReference)) engine.playReference(initialReference);
+else renderSong(engine.song);
 renderKitStatus();
 startVisualizer(ui.viz, () =>
   engine.instruments && engine.playing

@@ -25,14 +25,14 @@ sequences. Timestamps are accurate to about a bar.
 
 ## 1. Fact sheet (measured)
 
-|                    | True Faith                                                  | The Different Story (single / long)                                                  |
-| ------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Length             | 5:55, 167 bars                                              | 3:50, 112 bars / 6:41, 199 bars                                                      |
-| Tempo              | **117.45 BPM**, beat jitter 6.8 ms                          | **117.45 BPM**, beat jitter 11.5 ms                                                  |
-| Tonal centre       | D minor; the outro sits in **G major**                      | E minor                                                                              |
-| Whole-song key fit | "G major". The long G outro and the Dorian IV pull it there | "D major" / "A major". The Dorian ii–IV turnaround and the VII pull it there         |
-| Kick               | On every beat (onset peaks on 16ths 1, 5, 9, 13)            | On every beat (same peaks)                                                           |
-| Bass               | 16ths with occasional upper notes (~10–20% of bars)         | Steady **root-note 16ths**, chord changes **anticipated by a 16th**, no octave jumps |
+|                    | True Faith                                                  | The Different Story (single / long)                                          |
+| ------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Length             | 5:55, 167 bars                                              | 3:50, 112 bars / 6:41, 199 bars                                              |
+| Tempo              | **117.45 BPM**, beat jitter 6.8 ms                          | **117.45 BPM**, beat jitter 11.5 ms                                          |
+| Tonal centre       | D minor; the outro sits in **G major**                      | E minor                                                                      |
+| Whole-song key fit | "G major". The long G outro and the Dorian IV pull it there | "D major" / "A major". The Dorian ii–IV turnaround and the VII pull it there |
+| Kick               | On every beat (onset peaks on 16ths 1, 5, 9, 13)            | On every beat (same peaks)                                                   |
+| Bass               | The **shared figure** (§3), TF articulation, A1–F2          | The **shared figure** (§3), DS articulation, A1–B2                           |
 
 The two songs run at **the same tempo**, within the beat tracker's resolution (about ±0.5 BPM).
 
@@ -115,10 +115,55 @@ All chords below are Roman numerals in the minor key: D minor for TF, E minor fo
   (B major, with the D♯ leading tone). That gives the continental "Euro" pull back to the tonic.
   TF stays modal the whole time.
 - **The outro.** TF's chorus chord **IV (G) becomes the new tonic**: the song modulates up a
-  fourth, from minor to major, and vamps there for 27 bars. DS fades on the chorus.
-- **The bass.** DS plays Hi-NRG/Italo-style root 16ths that move to each new chord one 16th
-  early. TF's bass "bounces" with upper neighbour notes. Peter Hook's melodic bass guitar plays
-  over the top.
+  fourth, from minor to major, and vamps there for 32 bars. DS fades on the chorus.
+- **The bass** (see the figure below): the same figure in both, from the first bars to the end
+  (TF's from 0:08). Only the approach notes differ slightly. Peter Hook's melodic bass guitar
+  plays over the top in TF's intro, bridge and outro. From after its first chorus, TF adds a high
+  16th sequencer pedal on the key's 5th.
+
+### The bass figure (separated stems, and a MIDI transcription of TF)
+
+For DS, the figure was transcribed from Demucs stems with
+[`scripts/transcribe_bass.py`](../scripts/transcribe_bass.py) (DS long version 4:10–4:46). The
+grid comes from the drum stem. For TF, a MIDI transcription (`inspiration/`, local only: "notes
+at the right time, levels inaccurate") gives its "Sequence Bass" note for note. Both songs run on
+the same one-bar figure: **legato 8ths on the root**, a **16th hiccup on beat 4**, and the
+**next chord's root a 16th early on "4a"**, tied over the bar line and struck again on "1e".
+
+```
+         1    e    &    a    2    e    &    a    3    e    &    a    4    e    &    a
+DS     (A2)  D2   D2   -    D2   -    D2   -    D2   -    D2   -    D2   E2   -    A2→
+DS     (A2)  A2   A2   -    A2   -    A2   -    A2   -    A2   -    A2   B2   -    E2→
+TF     (Bb)  Bb1  Bb1  -    Bb1  -    Bb1  -    Bb1  -    Bb1  -    Bb1  C2   -    D2→   MIDI
+TF     (G1)  G1   G1   -    G1   -    G1   -    G1   -    G1   -    G1   A1   -    D2→   MIDI
+```
+
+- **The approach note on 4e** depends on the move to the next root, as the line travels:
+  - a 4th up: the scale step below the target (A→C→D, and A→C♯→D over a major V);
+  - a 5th up or a 4th down: the step above the root (G→A→D, F→G→C, A→B→E);
+  - a major 3rd up: the step in between (B♭→C→D). DS also fills a major 3rd down (E→D→C).
+  - Otherwise it is the root: D→D→F, E→E→G, C→C→A.
+- **Register:** DS's fundamentals sit between A1 and B2 (62 Hz B1 and 83 Hz E2). TF's sit lower,
+  G1–F2: the MIDI's G1 under the chorus IV. That is five to twelve semitones below where the
+  generator first placed it.
+- **Where the bass enters:** the MIDI has TF's bass from bar 4 (0:08). Demucs had put that intro
+  bass in its "other" stem, which first suggested a separate chord synth. The 0:08 C-major peaks
+  are the Synth Strings.
+- **TF's form, from the MIDI** (173 bars): drums 4 · intro 11 (i–III–VII–IV) · B♭ 2 · verse 16 ·
+  chorus 12 · B♭–C 2 · verse 16 · chorus 12 · B♭–C 2 · bridge 7 on a D pedal · instrumental
+  chorus 13 · B♭ 2 · verse 16 · chorus 12 · B♭ 1 · chorus 12 · B♭ 1 · G outro 32, the bass
+  staccato. The chorus is **i–III–VII–IV**, one chord per bar: one note away from DS's i–III–VII–iv.
+  The verse's second line is i–VII–VI–v–VII–VI–v–v/V.
+- **Check:** the generator's TF bass matches the MIDI's sequence bass on 95% of onsets, and 88%
+  with the same pitch too. Most of the rest is turnaround fills and breaks.
+- **Timbre (Demucs bass stems):** TF's bass carries harmonics to 1.7 kHz within 22 dB of the
+  fundamental: an open saw falling about 9 dB per octave above 200 Hz. DS's is darker. Both
+  notes hold, then fall to about a third by 200 ms. Brightness stays constant through the note:
+  a filter set per song, not swept.
+- **Correction:** the earlier mix-level measurement (CQT per 16th, and the "octave-up" profile)
+  read this line as 16ths with octave notes. The separated stems show 8ths, no octave jumps, and
+  the 4e/4a hiccup. The mix-level method was confused by the kick, whose 62 Hz fundamental
+  lands on every beat, and by the higher sequenced parts.
 
 ### Corrections to the written sources
 
@@ -161,16 +206,29 @@ All chords below are Roman numerals in the minor key: D minor for TF, E minor fo
   with a melodic-bass solo / DS: interlude block) → optional verse 3 (more likely towards TF) →
   repeated choruses, the last one doubled at the octave → outro (TF: modulate to IV-major and
   vamp / DS: chorus) with a fade.
-- **Bass:** the sequenced root-16th line on every step of every section, with the songs'
-  articulation, weighted by style:
-  - **"pulse" (DS):** gated 16ths, a hard accent on every 8th, and a 16th anticipation. DS's
-    bass band pulses most strongly at the 8th rate.
-  - **"bounce" (TF):** smoother 16ths that break into octave pairs on the steps where TF's
-    octave-up notes cluster (2–3, 6–7, 13–14), about one bar in five in the recording.
-  - **Level:** the line has to sit above the kick in the 80–250 Hz band to be heard, as it
-    does in the recordings.
+- **Bass:** the shared figure in every bar the bass plays, with the approach note weighted by
+  style ("tf" or "ds", above). Register: TF G1–F♯2, DS A1–G♯2.
+  - **Sound:** a saw through a one-pole lowpass (TF brighter), a presence boost around 700 Hz
+    (TF +7 dB), a light drive, and a lean lowest octave. Each note holds, then falls linearly.
+  - **Mix:** the pad and the sequence are high-passed, and the pad drops its low root, so the
+    bass's harmonics stay audible. Measured on Demucs stems of a render, the mid parts had been
+    swallowing them.
+- **Sequence (TF):** a high 16th pedal on the key's 5th with the tonic or octave on top. It enters
+  after the first chorus and plays to the end, in most TF-leaning songs. Each song generates its
+  own top-note steps; the original's exact steps are part of the composition.
+- **Originals:** `src/references.ts` lays out both songs at their measured form, chords, key,
+  tempo, kit and bass figure, playable through the same engine. The lead melodies, riffs and
+  melodic bass stay generated: those are the copyrighted compositions.
 - **Drums:** four-on-the-floor, snare on 2 and 4, dense humanised 16th hats, fills into new
-  sections.
+  sections. TF-leaning songs open a hat on beat 3 of every other bar (MIDI) and often start with
+  TF's intro groove: a kick run on beat 4 every other bar, ghost snares after beat 2, a low tom on
+  4& in the bars between, and a snare-and-tom fill (MIDI bars 0–3). The tom on 4& continues
+  every other bar through the intro.
+- **Guitar (TF):** a strum on every 16th, 3–4 strings in G3–G4, sus2 on III and sus4 on IV (the
+  MIDI's F as G–C–F, G as G–C–D). It plays in choruses, instrumentals and the outro, never in
+  verses. Karplus–Strong strings, overdriven, as Sumner's DI'd guitar.
+- **Fills (TF):** into a verse, two staccato bars on VI–VII. The second rests until beat 4, then
+  the bass runs root, next root +5, +7, next root (MIDI bars 45–46: C G A → D).
 
 ## Sources
 
@@ -181,4 +239,5 @@ All chords below are Roman numerals in the minor key: D minor for TF, E minor fo
 - Wikipedia, "True Faith (song)": https://en.wikipedia.org/wiki/True_Faith_(song)
 - Wikipedia, "The Different Story (World of Lust and Crime)": https://en.wikipedia.org/wiki/The_Different_Story_(World_of_Lust_and_Crime)
 - Chord chart (user-submitted): https://www.guitartabsexplorer.com/schilling-peter/the-different-story--world-of-lust-and-crime--chords
+- Source separation: Demucs v4 (htdemucs), https://github.com/facebookresearch/demucs.
 - Drum samples: geikha/tidal-drum-machines, https://github.com/geikha/tidal-drum-machines (no license stated).

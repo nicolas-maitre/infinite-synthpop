@@ -17,7 +17,30 @@ interface BankEntry {
 
 export const BANK: Record<ProgressionKind, readonly BankEntry[]> = {
   verse: [
-    { name: "TF verse (measured)", bars: [["i"], ["VI", "VII"], ["v"], ["v"]], style: 0 },
+    // TF's verse from the MIDI transcription's sequence bass: the second line moves differently.
+    {
+      name: "TF verse (MIDI)",
+      bars: [
+        ["i"],
+        ["VI", "VII"],
+        ["v"],
+        ["v"],
+        ["i"],
+        ["VI", "VII"],
+        ["v"],
+        ["VII"],
+        ["i"],
+        ["VII"],
+        ["VI"],
+        ["v"],
+        ["VII"],
+        ["VI"],
+        ["v"],
+        ["v", "V"],
+      ],
+      style: 0,
+    },
+    { name: "TF verse line 1", bars: [["i"], ["VI", "VII"], ["v"], ["v"]], style: 0.1 },
     { name: "TF verse (Hooktheory)", bars: [["i"], ["VI"], ["VII"], ["v", "VII"]], style: 0.15 },
     {
       name: "DS verse (measured)",
@@ -33,22 +56,24 @@ export const BANK: Record<ProgressionKind, readonly BankEntry[]> = {
     { name: "aeolian climb", bars: [["i"], ["VI"], ["VII"], ["v"]], style: 0.5 },
   ],
   chorus: [
-    { name: "TF chorus (measured)", bars: [["i"], ["III", "VII"], ["VII"], ["IV"]], style: 0 },
+    // TF's chorus (MIDI): one note away from DS's, the major IV against the minor iv.
+    { name: "TF chorus (MIDI)", bars: [["i"], ["III"], ["VII"], ["IV"]], style: 0 },
     { name: "TF chorus (plain)", bars: [["i"], ["VII"], ["VII"], ["IV"]], style: 0.1 },
     { name: "DS chorus (measured)", bars: [["i"], ["III"], ["VII"], ["iv"]], style: 1 },
     { name: "DS chorus (C turn)", bars: [["i"], ["III"], ["VII"], ["iv", "VI"]], style: 0.9 },
-    { name: "Dorian bridge-chorus", bars: [["i"], ["III"], ["VII"], ["IV"]], style: 0.45 },
+    { name: "TF chorus (F–C split)", bars: [["i"], ["III", "VII"], ["VII"], ["IV"]], style: 0.3 },
     { name: "chorus → V", bars: [["i"], ["III"], ["VII"], ["V"]], style: 0.7 },
   ],
   interlude: [
     { name: "DS interlude (measured)", bars: [["III"], ["VII"], ["iv"], ["i", "VII"]], style: 1 },
     { name: "relative lift", bars: [["III"], ["VII"], ["iv"], ["i"]], style: 0.75 },
-    { name: "TF instrumental", bars: [["i"], ["VII"], ["VII"], ["IV"]], style: 0 },
+    { name: "TF instrumental", bars: [["i"], ["III"], ["VII"], ["IV"]], style: 0 },
   ],
   turnaround: [
     { name: "DS Dorian turnaround (measured)", bars: [["ii"], ["ii"], ["IV"], ["IV"]], style: 1 },
     { name: "TF turnaround on VI (measured)", bars: [["VI"], ["VI"]], style: 0 },
-    { name: "VI–VII", bars: [["VI"], ["VII"]], style: 0.5 },
+    { name: "TF turnaround VI–VII (MIDI)", bars: [["VI"], ["VII"]], style: 0.1 },
+    { name: "VI–VII–VI–VII", bars: [["VI"], ["VII"], ["VI"], ["VII"]], style: 0.5 },
   ],
   bridge: [
     { name: "TF i–IV vamp (measured)", bars: [["i", "IV"], ["IV"], ["i", "IV"], ["IV"]], style: 0 },

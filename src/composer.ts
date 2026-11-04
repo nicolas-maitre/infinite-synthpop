@@ -2,7 +2,9 @@
  * Turns a seed (plus a few settings) into a Song: the section plan, the progressions, and the
  * per-song motifs and melodies. Pure and deterministic; no audio here. See docs/analysis.md.
  */
+import type { DrumHit, MelodicTrack } from "./arranger";
 import { mutate, pickProgression, type Progression, type ProgressionKind } from "./progressions";
+import { REFERENCES, type ReferenceId, type ReferenceSong } from "./references";
 import { createRng, type Rng } from "./rng";
 import {
   chord,
@@ -16,11 +18,12 @@ import {
 
 export type SectionKind =
   "intro" | "verse" | "chorus" | "interlude" | "turnaround" | "break" | "bridge" | "outro";
-export type DrumMode = "off" | "kick" | "half" | "full" | "big";
+/** "groove": TF's busy intro pattern (kick runs, ghost snares, toms). */
+export type DrumMode = "off" | "kick" | "half" | "full" | "big" | "groove";
 export type KitName = "sp12" | "linndrum" | "dmx" | "synth";
-/** Both are the songs' root-16th sequenced bass. "pulse": gated, 8th-accented, anticipating chord
- * changes by a 16th (DS). "bounce": smoother, with an octave figure every 4th bar (TF). */
-export type BassStyle = "pulse" | "bounce";
+/** Both play the songs' signature bass figure (arranger.ts `figure`), in DS's articulation (16th
+ * pickups, approach notes) or TF's (dotted 8ths). */
+export type BassStyle = "ds" | "tf";
 export type MelodyKind = "verse" | "chorus";
 
 export interface Layers {
@@ -31,6 +34,12 @@ export interface Layers {
   riff: boolean;
   arp: boolean;
   stabs: boolean;
+  /** TF's high 16th sequencer on the key's 5th (see SequencePattern). */
+  seq: boolean;
+  /** Plays the bass figure staccato (TF's turnarounds and outro). */
+  bassShort: boolean;
+  /** TF's rhythm guitar: 16th strums of sus-coloured triads. */
+  guitar: boolean;
   lead: MelodyKind | null;
   /** Doubles the lead an octave up (True Faith's two-voice final chorus). */
   leadDouble: boolean;
@@ -48,6 +57,22 @@ export interface Section {
   fill: boolean;
   /** Fade out over the last 8 bars (both songs end on a fade). */
   fade: boolean;
+}
+
+/**
+ * TF's high sequencer (MIDI "Sequence", bar 46 to the end): a 16th pedal on the key's 5th, with the
+ * tonic a 4th above (5) or the 5th an octave above (12) added on some steps. The original's exact
+ * steps are part of the composition, so each song generates its own.
+ */
+export interface SequencePattern {
+  tops: readonly (0 | 5 | 12)[];
+}
+
+/** Parts read from a MIDI file at runtime (midi.ts), by song bar. A part present here replaces the
+ * generated one, even where the section wouldn't play it; an empty list of bars silences it. */
+export interface ImportedTracks {
+  notes?: Partial<Record<MelodicTrack, Note[][]>>;
+  drums?: DrumHit[][];
 }
 
 /** A realised note. `step` and `dur` are in 16ths from the start of the bar. */
@@ -78,6 +103,8 @@ export interface Melody {
 
 export interface Song {
   seed: number;
+  /** Set when this is one of the two originals (references.ts) rather than a generated song. */
+  reference: ReferenceId | null;
   title: string;
   bpm: number;
   key: Key;
@@ -90,7 +117,11 @@ export interface Song {
   riff: Motif;
   hook: Motif;
   arp: Motif;
+  sequence: SequencePattern;
   melodies: Record<MelodyKind, Melody>;
+  /** Tracks supplied at runtime from a MIDI file (midi.ts), by song bar; they replace the
+   * generated part. */
+  imported?: ImportedTracks;
 }
 
 export interface ComposeOptions {
@@ -100,6 +131,8 @@ export interface ComposeOptions {
   key?: Key | null;
   bpm?: number | null;
   kit?: KitName | "auto";
+  /** Play an original's measured form, chords, key, tempo and kit instead of generating them. */
+  reference?: ReferenceId | null;
 }
 
 /** Both recordings measure 117.45 BPM. */
@@ -124,28 +157,31 @@ const KEY_WEIGHTS: readonly (readonly [number, number])[] = [
 ];
 
 export function compose(opts: ComposeOptions): Song {
-  const style = Math.min(1, Math.max(0, opts.style));
+  const ref = opts.reference ? REFERENCES[opts.reference] : undefined;
+  const style = ref ? ref.style : Math.min(1, Math.max(0, opts.style));
   const root = createRng(opts.seed);
   const rngSetup = root.fork("setup");
 
-  const key: Key = opts.key ?? { tonic: rngSetup.weighted(KEY_WEIGHTS), mode: "minor" };
+  const key: Key = ref?.key ?? opts.key ?? { tonic: rngSetup.weighted(KEY_WEIGHTS), mode: "minor" };
   const autoBpm = rngSetup.weighted(
     Array.from({ length: (BPM_RANGE[1] - BPM_RANGE[0]) * 2 + 1 }, (_, i) => {
       const bpm = BPM_RANGE[0] + i / 2;
       return [bpm, Math.exp(-((bpm - BPM_CENTER) ** 2) / 3)] as const;
     }),
   );
-  const bpm = opts.bpm ?? autoBpm;
+  const bpm = ref?.bpm ?? opts.bpm ?? autoBpm;
   const autoKit = rngSetup.weighted<KitName>([
     ["sp12", 1.5 - style],
     ["linndrum", 0.5 + style],
     ["dmx", 0.4 + style * 0.4],
   ]);
-  const kit = !opts.kit || opts.kit === "auto" ? autoKit : opts.kit;
-  const bassStyle = rngSetup.weighted<BassStyle>([
-    ["pulse", 0.3 + style * 2],
-    ["bounce", 0.3 + (1 - style) * 2],
-  ]);
+  const kit = ref?.kit ?? (!opts.kit || opts.kit === "auto" ? autoKit : opts.kit);
+  const bassStyle =
+    ref?.bassStyle ??
+    rngSetup.weighted<BassStyle>([
+      ["ds", 0.3 + style * 2],
+      ["tf", 0.3 + (1 - style) * 2],
+    ]);
 
   const rngProg = root.fork("progressions");
   const prog = (kind: ProgressionKind) =>
@@ -158,11 +194,17 @@ export function compose(opts: ComposeOptions): Song {
     bridge: prog("bridge"),
     lift: prog("lift"),
   };
+  if (ref) {
+    progressions.verse = ref.verse;
+    progressions.chorus = ref.chorus;
+  }
 
   const rngForm = root.fork("form");
   const liftKey: Key = { tonic: mod12(key.tonic + 5), mode: "major" };
   const useLift = rngForm.chance(0.1 + 0.7 * (1 - style));
-  const sections = planSections(rngForm, key, liftKey, useLift, progressions, style);
+  const sections = ref
+    ? referenceSections(ref)
+    : planSections(rngForm, key, liftKey, useLift, progressions, style);
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 
   const rngMotif = root.fork("motifs");
@@ -178,7 +220,8 @@ export function compose(opts: ComposeOptions): Song {
 
   return {
     seed: opts.seed,
-    title: generateTitle(root.fork("title")),
+    reference: opts.reference ?? null,
+    title: ref?.title ?? generateTitle(root.fork("title")),
     bpm,
     key,
     style,
@@ -190,6 +233,7 @@ export function compose(opts: ComposeOptions): Song {
     riff: generateRiff(rngMotif),
     hook: generateHook(rngMotif),
     arp: generateArp(rngMotif),
+    sequence: generateSequence(root.fork("sequence")),
     melodies,
   };
 }
@@ -204,6 +248,9 @@ const LAYERS_OFF: Layers = {
   riff: false,
   arp: false,
   stabs: false,
+  seq: false,
+  bassShort: false,
+  guitar: false,
   lead: null,
   leadDouble: false,
 };
@@ -236,6 +283,12 @@ function planSections(
 
   const tf = 1 - style;
   const stabs = () => rng.chance(0.1 + style * 0.5);
+  // TF's sequenced chord synth plays the figure from the intro to the end of the song.
+  // TF's high sequencer comes in after the first chorus and plays to the end (MIDI: bar 46 on).
+  const useSeq = rng.chance(0.15 + 0.7 * tf);
+  // TF's rhythm guitar: choruses, instrumentals and the outro (MIDI: never in the verses).
+  const guitar = rng.chance(0.1 + 0.7 * tf);
+  let seq = false;
   const chorus = (label: string, extra: Partial<Layers> = {}) =>
     add("chorus", label, 8, p.chorus, {
       drums: "big",
@@ -244,6 +297,8 @@ function planSections(
       lead: "chorus",
       arp: rng.chance(0.5),
       stabs: stabs(),
+      seq,
+      guitar,
       ...extra,
     });
   const verse = (label: string, bars: number, extra: Partial<Layers> = {}) =>
@@ -252,6 +307,7 @@ function planSections(
       bass: true,
       pad: true,
       lead: "verse",
+      seq,
       ...extra,
     });
   // DS: interlude, the Dorian ii–IV turnaround, then a 2-bar break on the tonic.
@@ -276,10 +332,25 @@ function planSections(
     }
   };
   // TF: the band plays the chorus chords instrumentally, riff and melodic bass on top.
+  // TF's way into a verse (MIDI bars 45–46): two staccato bars on VI–VII, the second resting until
+  // the bass's pickup run (see bassLine).
+  const tfTurn = () => {
+    if (!rng.chance(0.2 + 0.7 * tf)) return;
+    add("turnaround", "Turn · VI–VII", 2, [["VI"], ["VII"]], {
+      drums: "full",
+      bass: true,
+      bassShort: true,
+      pad: true,
+      seq,
+      guitar,
+    });
+  };
   const tfInstrumental = (label: string, bars: number) =>
     add("interlude", label, bars, p.chorus, {
       drums: "full",
       bass: true,
+      seq,
+      guitar,
       pad: true,
       riff: true,
       hook: true,
@@ -287,7 +358,7 @@ function planSections(
 
   // Both songs open with drums + bass, then an instrumental over the chorus chords.
   add("intro", "Intro", 4, p.chorus, {
-    drums: rng.chance(0.5 + 0.3 * tf) ? "kick" : "full",
+    drums: rng.chance(0.6 * tf) ? "groove" : rng.chance(0.5 + 0.3 * tf) ? "kick" : "full",
     bass: true,
     hook: rng.chance(0.2 + 0.5 * tf),
   });
@@ -302,8 +373,12 @@ function planSections(
   const verseBars = rng.chance(0.8) ? 16 : 8;
   verse("Verse 1", verseBars, { hook: rng.chance(0.3 * tf) });
   chorus("Chorus");
+  seq = useSeq;
   if (rng.chance(style)) dsBlock();
-  else tfInstrumental("Instrumental", 8);
+  else {
+    tfInstrumental("Instrumental", 8);
+    tfTurn();
+  }
   verse("Verse 2", verseBars === 16 && rng.chance(0.5) ? 16 : 8, { hook: rng.chance(0.5) });
   chorus("Chorus", { arp: true });
   if (rng.chance(style)) {
@@ -323,7 +398,10 @@ function planSections(
     });
     tfInstrumental("Instrumental chorus", 8);
   }
-  if (rng.chance(0.2 + 0.6 * tf)) verse("Verse 3", rng.chance(0.5) ? 16 : 8, { hook: true });
+  if (rng.chance(0.2 + 0.6 * tf)) {
+    tfTurn();
+    verse("Verse 3", rng.chance(0.5) ? 16 : 8, { hook: true });
+  }
   chorus("Chorus");
   chorus("Chorus · double", { leadDouble: true, arp: true });
   if (rng.chance(style * 0.6)) chorus("Chorus", { leadDouble: true });
@@ -337,9 +415,12 @@ function planSections(
       {
         drums: "full",
         bass: true,
+        bassShort: guitar,
         pad: true,
         riff: true,
         hook: true,
+        guitar,
+        seq,
       },
       liftKey,
     );
@@ -348,6 +429,7 @@ function planSections(
       drums: "big",
       bass: true,
       pad: true,
+      guitar,
       lead: "chorus",
       riff: rng.chance(0.5),
       arp: true,
@@ -367,7 +449,39 @@ function planSections(
   });
 }
 
+/** An original's measured form, laid out like a generated one: fills into verses and choruses,
+ * a fade at the end. */
+function referenceSections(ref: ReferenceSong): Section[] {
+  let startBar = 0;
+  return ref.sections.map((s, i) => {
+    const next = ref.sections[i + 1];
+    const layers = { ...LAYERS_OFF, ...s.layers };
+    const section: Section = {
+      kind: s.kind,
+      label: s.label,
+      bars: s.bars,
+      progression: s.progression,
+      key: s.key ?? ref.key,
+      layers,
+      startBar,
+      fill: !!next && layers.drums !== "off" && (next.kind === "chorus" || next.kind === "verse"),
+      fade: !next,
+    };
+    startBar += s.bars;
+    return section;
+  });
+}
+
 // ── Motifs ────────────────────────────────────────────────────────────────────────────────────
+
+/** About half the steps carry a top note, mostly the tonic; never the downbeat, so the pedal
+ * marks the bar. */
+function generateSequence(rng: Rng): SequencePattern {
+  const tops = Array.from({ length: 16 }, (_, step): 0 | 5 | 12 =>
+    step === 0 || !rng.chance(0.5) ? 0 : rng.chance(0.3) ? 12 : 5,
+  );
+  return { tops };
+}
 
 /** One-beat rhythm cells ("x" = onset on that 16th). */
 type Cell = string;

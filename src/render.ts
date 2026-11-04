@@ -4,7 +4,7 @@
  */
 import * as Tone from "tone";
 import { arrangeBar } from "./arranger";
-import { compose, type ComposeOptions, type Song } from "./composer";
+import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./composer";
 import { scheduleBar } from "./engine";
 import { Instruments, type Track } from "./instruments";
 
@@ -27,6 +27,7 @@ export async function renderSong(
   song: Song,
   bars = song.totalBars,
   solo: readonly Track[] = [],
+  mute: readonly Track[] = [],
 ): Promise<AudioBuffer> {
   const barSeconds = (60 / song.bpm) * 4;
   const barTime = (bar: number) => 0.05 + bar * barSeconds;
@@ -46,7 +47,9 @@ export async function renderSong(
     const inst = await Instruments.create();
     await inst.drums.loadAll();
     inst.drums.use(song.kit);
+    inst.setBassTone(song.style);
     for (const track of solo) inst.channels[track].solo = true;
+    for (const track of mute) inst.channels[track].mute = true;
     const scheduleWindow = (from: number) => {
       const to = Math.min(bars, from + WINDOW_BARS);
       for (let bar = from; bar < to; bar++) {
@@ -101,17 +104,28 @@ export function encodeWav(audio: AudioBuffer): Blob {
   return new Blob([data.buffer], { type: "audio/wav" });
 }
 
+/** Extra render options: tracks to mute, and parts from a MIDI file (by song bar). */
+export interface RenderExtras {
+  mute?: readonly Track[];
+  imported?: ImportedTracks;
+  /** File name suffix. */
+  tag?: string;
+}
+
 /** Dev only: renders a song and saves it to renders/ through the Vite dev server. */
 export async function renderToDisk(
   opts: ComposeOptions,
   bars?: number,
   solo: readonly Track[] = [],
+  extras: RenderExtras = {},
 ): Promise<string> {
   const song = compose(opts);
+  if (extras.imported) song.imported = extras.imported;
   const started = performance.now();
-  const audio = await renderSong(song, bars, solo);
+  const audio = await renderSong(song, bars, solo, extras.mute);
   const stem = solo.length ? `-solo-${solo.join("+")}` : "";
-  const name = `seed-${song.seed}-style-${Math.round(song.style * 100)}${stem}.wav`;
+  const base = song.reference ?? `seed-${song.seed}-style-${Math.round(song.style * 100)}`;
+  const name = `${base}${stem}${extras.tag ? `-${extras.tag}` : ""}.wav`;
   const res = await fetch(`/__renders/${name}`, { method: "POST", body: encodeWav(audio) });
   const seconds = ((performance.now() - started) / 1000).toFixed(1);
   return `${await res.text()} · "${song.title}" · ${audio.duration.toFixed(0)} s audio in ${seconds} s`;

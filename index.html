@@ -38,6 +38,21 @@
             <button id="new-song" class="btn" type="button">New song</button>
             <button id="skip" class="btn" type="button">Skip section ⏭</button>
           </div>
+          <div class="originals" role="group" aria-labelledby="originals-label">
+            <span class="eyebrow" id="originals-label">Originals</span>
+            <button class="btn small" type="button" data-reference="true-faith">True Faith</button>
+            <button class="btn small" type="button" data-reference="different-story">
+              The Different Story
+            </button>
+            <label
+              class="btn small"
+              title="Play the original from your own MIDI file: each mixer row picks generated or MIDI"
+            >
+              Follow MIDI…
+              <input id="midi-file" type="file" accept=".mid,.midi,audio/midi" hidden />
+            </label>
+            <span class="note" id="midi-status" role="status"></span>
+          </div>
         </div>
 
         <div class="chord-row">
