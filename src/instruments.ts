@@ -77,6 +77,15 @@ const SENDS: Record<Track, { reverb: number; delay: number }> = {
   stab: { reverb: 0.5, delay: 0.1 },
 };
 
+export interface InstrumentOptions {
+  /** Lighter voices and effects, for phones (quality.ts). Offline renders always use the full set. */
+  lite?: boolean;
+}
+
+/** How long a track keeps sounding after a song stops using it (the bar still playing, release
+ * tails), before it is disconnected so the browser stops processing it. */
+const UNUSED_TRACK_DELAY_MS = 5000;
+
 export class Instruments {
   readonly channels: Record<Track, Tone.Channel>;
   readonly master = new Tone.Volume(0);
@@ -101,8 +110,12 @@ export class Instruments {
   private readonly seq: Tone.PolySynth<Tone.MonoSynth>;
   /** Plucked strings: louder voices for down-strokes, softer for up-strokes. */
   private readonly guitar: { down: Tone.PluckSynth[]; up: Tone.PluckSynth[]; next: number };
+  /** Where each channel's output goes (the master, its effect sends): see setActiveTracks. */
+  private readonly routes = {} as Record<Track, Tone.InputNode[]>;
+  private readonly connected = new Set<Track>(TRACKS);
+  private readonly disconnecting = new Map<Track, ReturnType<typeof setTimeout>>();
 
-  private constructor(reverb: Tone.Reverb, gatedVerb: Tone.Reverb) {
+  private constructor(reverb: Tone.Reverb, gatedVerb: Tone.Reverb, lite: boolean) {
     // Bus glue, matched to the references' level and band balance (scripts/compare_mix.py).
     const eq = new Tone.EQ3({
       low: -1.5,
@@ -142,10 +155,13 @@ export class Instruments {
           volume: DEFAULT_VOLUMES[t],
           pan: PANS[t],
           channelCount: 2,
-        }).connect(this.master);
+        });
         const { reverb: rv, delay: dl } = SENDS[t];
-        if (rv > 0) ch.connect(new Tone.Gain(rv).connect(reverb));
-        if (dl > 0) ch.connect(new Tone.Gain(dl).connect(delay));
+        const routes: Tone.InputNode[] = [this.master];
+        if (rv > 0) routes.push(new Tone.Gain(rv).connect(reverb));
+        if (dl > 0) routes.push(new Tone.Gain(dl).connect(delay));
+        ch.fan(...routes);
+        this.routes[t] = routes;
         return [t, ch];
       }),
     ) as Record<Track, Tone.Channel>;
@@ -161,7 +177,11 @@ export class Instruments {
     // and falls linearly to a third by 200 ms. An FM body under it, a touch of drive, and a lean
     // lowest octave. TF's tone is brighter than DS's: see setBassTone. The level lives here, not
     // on the channel, so saved mixer settings keep their meaning.
-    const bassDrive = new Tone.Distortion({ distortion: 0.2, oversample: "2x", wet: 0.15 });
+    const bassDrive = new Tone.Distortion({
+      distortion: 0.2,
+      oversample: lite ? "none" : "2x",
+      wet: 0.15,
+    });
     const bassEq = new Tone.Filter({ type: "lowshelf", frequency: 100, gain: -6 });
     // Presence, so the harmonics stay audible against the mid parts (strongest for TF).
     this.bassPresence = new Tone.Filter({ type: "peaking", frequency: 700, Q: 0.6, gain: 4 });
@@ -225,10 +245,15 @@ export class Instruments {
       wet: 0.5,
     }).start();
     this.pad = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: "fatsawtooth", count: 3, spread: 22 } as Tone.OmniOscillatorOptions,
+      oscillator: {
+        type: "fatsawtooth",
+        count: lite ? 2 : 3,
+        spread: 22,
+      } as Tone.OmniOscillatorOptions,
       envelope: { attack: 0.35, decay: 0.6, sustain: 0.8, release: 1.1 },
     }).chain(padHighpass, padFilter, padChorus, this.channels.pad);
-    this.pad.maxPolyphony = 16;
+    // Releases overlap the next chord, so this is about two chords' worth (lite: one and a bit).
+    this.pad.maxPolyphony = lite ? 8 : 16;
 
     // Riff: DX bell-pluck layered with a bright saw pluck.
     this.riffFm = new Tone.PolySynth(Tone.FMSynth, {
@@ -274,7 +299,11 @@ export class Instruments {
 
     // Stab: saw-brass chord plus a noise burst, a nod to the sampled orchestral hit.
     this.stab = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: "fatsawtooth", count: 3, spread: 30 } as Tone.OmniOscillatorOptions,
+      oscillator: {
+        type: "fatsawtooth",
+        count: lite ? 2 : 3,
+        spread: 30,
+      } as Tone.OmniOscillatorOptions,
       envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.25 },
     }).connect(this.channels.stab);
     const stabNoiseFilter = new Tone.Filter(2500, "bandpass");
@@ -297,22 +326,23 @@ export class Instruments {
         octaves: 2.5,
       },
     }).chain(new Tone.Filter(200, "highpass", -12), this.channels.seq);
-    this.seq.maxPolyphony = 12;
+    this.seq.maxPolyphony = lite ? 6 : 12;
 
     // Rhythm guitar: Karplus–Strong strings, DI'd and overdriven (Sound On Sound on Sumner's
     // guitar), darkened and lightly chorused.
-    const guitarChorus = new Tone.Chorus({ frequency: 1.2, delayTime: 3, depth: 0.3, wet: 0.3 });
-    guitarChorus.start();
+    // Lite: no chorus, and fewer strings (each is an AudioWorklet that runs even when silent).
     const guitarBus = new Tone.Gain(1);
     guitarBus.chain(
-      new Tone.Distortion({ distortion: 0.6, oversample: "2x", wet: 0.85 }),
+      new Tone.Distortion({ distortion: 0.6, oversample: lite ? "none" : "2x", wet: 0.85 }),
       new Tone.Filter(3200, "lowpass", -12),
       new Tone.Filter(180, "highpass", -12),
-      guitarChorus,
+      ...(lite
+        ? []
+        : [new Tone.Chorus({ frequency: 1.2, delayTime: 3, depth: 0.3, wet: 0.3 }).start()]),
       this.channels.guitar,
     );
     const plucks = (volume: number) =>
-      Array.from({ length: 8 }, () =>
+      Array.from({ length: lite ? 3 : 8 }, () =>
         new Tone.PluckSynth({
           attackNoise: 1.2,
           dampening: 3800,
@@ -324,11 +354,43 @@ export class Instruments {
     this.guitar = { down: plucks(14), up: plucks(9), next: 0 };
   }
 
-  static async create(): Promise<Instruments> {
-    const reverb = new Tone.Reverb({ decay: 3.2, preDelay: 0.02, wet: 1 });
-    const gated = new Tone.Reverb({ decay: 1.6, preDelay: 0.005, wet: 1 });
+  static async create({ lite = false }: InstrumentOptions = {}): Promise<Instruments> {
+    // Lite: shorter impulse responses. The gate shuts 200 ms after each hit, so the gated one
+    // only needs to reach the next snare.
+    const reverb = new Tone.Reverb({ decay: lite ? 2.2 : 3.2, preDelay: 0.02, wet: 1 });
+    const gated = new Tone.Reverb({ decay: lite ? 0.8 : 1.6, preDelay: 0.005, wet: 1 });
     await Promise.all([reverb.ready, gated.ready]);
-    return new Instruments(reverb, gated);
+    return new Instruments(reverb, gated, lite);
+  }
+
+  /**
+   * Keeps only these tracks connected. Browsers skip nodes that don't reach the output, but still
+   * process muted ones, so a song's unused instruments cost nothing once disconnected. A track
+   * dropped keeps sounding a few seconds first (the bar still playing, its release tail).
+   */
+  setActiveTracks(active: ReadonlySet<Track>): void {
+    for (const t of TRACKS) {
+      if (active.has(t)) this.connect(t);
+      else if (this.connected.has(t) && !this.disconnecting.has(t)) {
+        const timer = setTimeout(() => {
+          this.disconnecting.delete(t);
+          this.channels[t].disconnect();
+          this.connected.delete(t);
+        }, UNUSED_TRACK_DELAY_MS);
+        this.disconnecting.set(t, timer);
+      }
+    }
+  }
+
+  private connect(t: Track): void {
+    const timer = this.disconnecting.get(t);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      this.disconnecting.delete(t);
+    }
+    if (this.connected.has(t)) return;
+    this.channels[t].fan(...this.routes[t]);
+    this.connected.add(t);
   }
 
   drum(hit: DrumHit, time: number): void {
@@ -454,6 +516,7 @@ export class Instruments {
 
   /** Plays a note on the lead synth right now (recording: hear what you play). null releases. */
   monitor(midi: number | null, velocity = 0.85): void {
+    this.connect("lead");
     const now = Tone.now();
     if (midi === null) this.lead.triggerRelease(now);
     else this.lead.triggerAttack(midiToFreq(midi), now, velocity);

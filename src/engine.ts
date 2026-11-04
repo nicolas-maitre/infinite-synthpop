@@ -5,13 +5,14 @@
  * the last.
  */
 import * as Tone from "tone";
-import { arrangeBar, type BarEvents } from "./arranger";
+import { arrangeBar, MELODIC_TRACKS, type BarEvents } from "./arranger";
 import type { SampleReport } from "./drums";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
 import { newSongId, type Creation, type SongSpec } from "./spec";
-import { Instruments } from "./instruments";
+import { Instruments, type Track } from "./instruments";
+import { LITE, LITE_SAMPLE_RATE } from "./quality";
 import { createRng } from "./rng";
 import type { Key } from "./theory";
 
@@ -126,7 +127,7 @@ export class Engine {
     if (!this.instruments) useListeningContext();
     await Tone.start();
     if (!this.instruments) {
-      this.instruments = await Instruments.create();
+      this.instruments = await Instruments.create({ lite: LITE });
       this.samples = await this.instruments.drums.loadAll(onProgress);
     }
     this.applySong(this.instruments);
@@ -299,14 +300,17 @@ export class Engine {
     else delete this.imported[id];
     if (this.reference === id) {
       this.song = this.compose(this.song.seed);
+      if (this.instruments) this.applySong(this.instruments);
       this.events.onSong?.(this.song);
     }
   }
 
-  /** Points the instruments at the current song: its drum machine and bass tone. */
+  /** Points the instruments at the current song: its drum machine, bass tone, and the tracks it
+   * plays (the others are disconnected). */
   private applySong(inst: Instruments): void {
     inst.drums.use(this.effectiveKit());
     inst.setBassTone(this.song.style);
+    inst.setActiveTracks(usedTracks(this.song));
   }
 
   private effectiveKit(): KitName {
@@ -367,9 +371,32 @@ export class Engine {
  * With every instrument running, that left 27–60 ms between scheduling a bar and its first notes,
  * so any main-thread or audio-thread hiccup broke the music up. This is a listening app, and
  * controls act on the next bar anyway: larger buffers and a 300 ms look-ahead cost nothing here.
+ * Lite mode (phones) also runs the graph at a lower sample rate (quality.ts).
  */
 function useListeningContext(): void {
-  Tone.setContext(new Tone.Context({ latencyHint: "playback", lookAhead: 0.3 }));
+  const latencyHint = "playback";
+  let context: AudioContext | undefined;
+  if (LITE) {
+    try {
+      context = new AudioContext({ latencyHint, sampleRate: LITE_SAMPLE_RATE });
+    } catch {
+      // A browser that refuses the rate gets its default.
+    }
+  }
+  Tone.setContext(new Tone.Context({ latencyHint, lookAhead: 0.3, ...(context && { context }) }));
+}
+
+/** The mixer tracks that play anywhere in the song. */
+function usedTracks(song: Song): Set<Track> {
+  const used = new Set<Track>();
+  for (let bar = 0; bar < song.totalBars; bar++) {
+    const ev = arrangeBar(song, bar);
+    if (ev.drums.length) used.add("drums");
+    for (const t of MELODIC_TRACKS) {
+      if (ev.notes[t].length) used.add(t === "leadOct" ? "lead" : t);
+    }
+  }
+  return used;
 }
 
 /**

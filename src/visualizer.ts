@@ -1,5 +1,9 @@
 /** Spectrum bars with a waveform trace on top, drawn every animation frame. */
 import type * as Tone from "tone";
+import { animate, LITE } from "./quality";
+
+/** Waveform points drawn (of the analyser's 1024). */
+const WAVE_POINTS = LITE ? 256 : 1024;
 
 export function startVisualizer(
   canvas: HTMLCanvasElement,
@@ -8,10 +12,15 @@ export function startVisualizer(
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
+  let grad: CanvasGradient | null = null;
   const resize = () => {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(canvas.clientWidth * dpr);
     canvas.height = Math.round(canvas.clientHeight * dpr);
+    grad = ctx.createLinearGradient(0, canvas.height, 0, 0);
+    grad.addColorStop(0, "#ff3d8b");
+    grad.addColorStop(0.6, "#ffcf3d");
+    grad.addColorStop(1, "#39d0ff");
   };
   resize();
   new ResizeObserver(resize).observe(canvas);
@@ -32,18 +41,15 @@ export function startVisualizer(
         else ctx.lineTo(x, y);
       }
       ctx.stroke();
-      requestAnimationFrame(draw);
       return;
     }
 
     const fft = analysers.fft.getValue() as Float32Array;
-    const bins = Math.floor(fft.length * 0.7);
+    // Up to about 15 kHz, whatever the sample rate (lite mode runs lower).
+    const nyquist = analysers.fft.context.sampleRate / 2;
+    const bins = Math.floor(fft.length * Math.min(1, 15400 / nyquist));
     const barW = w / bins;
-    const grad = ctx.createLinearGradient(0, h, 0, 0);
-    grad.addColorStop(0, "#ff3d8b");
-    grad.addColorStop(0.6, "#ffcf3d");
-    grad.addColorStop(1, "#39d0ff");
-    ctx.fillStyle = grad;
+    if (grad) ctx.fillStyle = grad;
     for (let i = 0; i < bins; i++) {
       const db = fft[i] ?? -140;
       const v = Math.max(0, Math.min(1, (db + 100) / 80));
@@ -55,14 +61,14 @@ export function startVisualizer(
     ctx.strokeStyle = "#ffffffcc";
     ctx.lineWidth = 1.5 * (window.devicePixelRatio || 1);
     ctx.beginPath();
-    for (let i = 0; i < wave.length; i++) {
-      const x = (i / (wave.length - 1)) * w;
-      const y = h / 2 - (wave[i] ?? 0) * h * 0.45;
+    const stride = wave.length / WAVE_POINTS;
+    for (let i = 0; i < WAVE_POINTS; i++) {
+      const x = (i / (WAVE_POINTS - 1)) * w;
+      const y = h / 2 - (wave[Math.floor(i * stride)] ?? 0) * h * 0.45;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
-    requestAnimationFrame(draw);
   };
-  requestAnimationFrame(draw);
+  animate(draw);
 }

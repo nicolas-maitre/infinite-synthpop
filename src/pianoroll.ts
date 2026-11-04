@@ -6,6 +6,7 @@
  */
 import { arrangeBar, type BarEvents, type DrumVoice, type MelodicTrack } from "./arranger";
 import type { Note, Section, Song } from "./composer";
+import { animate } from "./quality";
 
 /**
  * Creator mode: the Lead lane becomes a note editor. `bars` is the melody (bar m plays in every
@@ -131,11 +132,7 @@ export class PianoRoll {
       const bar = Math.floor((x / width) * this.section.bars);
       onSeek(this.section.startBar + Math.min(this.section.bars - 1, Math.max(0, bar)));
     });
-    const frame = () => {
-      this.draw();
-      requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
+    animate(() => this.draw());
   }
 
   /** Shows `bar`'s section (re-arranging it when the song or section changed). */
