@@ -33,6 +33,15 @@ Press **Play**. Without the samples, the app falls back to synthesized drums, so
   - **Firefox:** `about:preferences#privacy` → Permissions → Autoplay → Settings…, then add
     `http://localhost:5179` with "Allow Audio and Video".
   - **Safari:** Settings → Websites → Auto-Play → "Allow All Auto-Play" for the site.
+- **Switch** picks when a new song, a section or a bar you pick starts. With **after the bar**
+  (the default), it starts at the next bar line, and a dashed ⏭ marks the bar and section waiting
+  to play. With **instantly**, it starts at once, about a third of a second after the click (the
+  audio look-ahead).
+- **My songs** lists the songs kept in this browser. Every creation (creator mode, the wizard, a
+  link you open) keeps itself there and updates as you edit. **♡ Save** keeps a generated song or
+  an original too. Click a song to play it, ⤴ to copy its link, × to delete it (with undo).
+- **⤴ Share** copies a link to what's playing. A generated song goes as its full song (its seed
+  alone would sound different with someone else's generator settings), so it plays as a creation.
 - **✚ Create…** is a new-song wizard. Pick the style, key, tempo, drum machine and bass figure.
   Choose the verse and chorus chords from the measured presets (closest to the style first), or
   set them bar by bar. Then set the length (short, standard, long) and the ending (lift to the
@@ -67,7 +76,7 @@ Press **Play**. Without the samples, the app falls back to synthesized drums, so
 
   - The song's title is edited in place, at the top. The **Song** line holds key, tempo, drum
     machine, bass figure and feel.
-  - Edits play from the next bar and are saved in the browser. The URL carries the song
+  - Edits play from the next bar and are saved in My songs. The URL carries the song
     (`#song=…`), so a link replays it. A creation loops until you pick another song.
 - **Export:** **MIDI** (every instrument on its own track, drums on channel 10, sections as
   markers) or the whole song's audio with the current mixer as **MP3** (256 kbps, encoded in the
@@ -117,7 +126,9 @@ src/composer.ts      seed → Song: form, progressions, riff / melodic-bass / ar
 src/arranger.ts      (song, bar) → every note and drum hit in that bar
 src/drums.ts         sample kits with synthesized fallback
 src/instruments.ts   synth voices, gated reverb, buses, mixer
-src/engine.ts        bar-by-bar scheduler that chains songs forever
+src/engine.ts        bar-by-bar scheduler that chains songs forever, instant or bar-line switches
+src/schedule.ts      hands a bar's notes to the synths, whole or a 16th at a time
+src/library.ts       My songs: saved songs in local storage
 src/render.ts        offline render (exports, and dev measurement)
 src/spec.ts          creator mode's song format: song ↔ spec, link encoding
 src/creator.ts       creator mode UI (timeline, chords, section panel, melody tools)

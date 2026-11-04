@@ -6,6 +6,7 @@ import { Engine, type EngineSettings } from "./engine";
 import { DEFAULT_VOLUMES, TRACK_LABELS, TRACKS, type Track } from "./instruments";
 import { matchTracks, mergeBars, parseMidi, toDrumBars, type MidiFile } from "./midi";
 import { mountCreator } from "./creator";
+import { Library, type SavedSong } from "./library";
 import { assignMelody, nextMelodyName } from "./melodies";
 import { Recorder } from "./recorder";
 import { download, exportAudio, fileName, songToMidi } from "./export";
@@ -30,6 +31,8 @@ interface Prefs {
   master: number;
   /** Start playing as soon as the page loads (or at the first interaction, if the browser asks). */
   autoplay: boolean;
+  /** Switch songs, sections and bars right away instead of at the next bar line. */
+  instant: boolean;
 }
 
 const PREFS_KEY = "infinite-synthpop:prefs:v1";
@@ -43,6 +46,7 @@ const defaults: Prefs = {
   muted: [],
   master: 0,
   autoplay: false,
+  instant: false,
 };
 
 function loadPrefs(): Prefs {
@@ -108,27 +112,91 @@ const roll = new PianoRoll(el<HTMLCanvasElement>("roll"), (bar) => {
 
 // ── Creator mode and looping ──────────────────────────────────────────────────────────────────
 
-const CREATION_KEY = "infinite-synthpop:creation:v1";
 const creatorToggle = el<HTMLButtonElement>("creator-toggle");
 const loopToggle = el<HTMLButtonElement>("loop");
 /** The section on screen (the one playing, or the one picked on the timeline). */
 let shownSection = 0;
 
-function saveCreation(creation: Creation): void {
+// ── My songs (library.ts) and sharing ──────────────────────────────────────────────────────────
+
+function storage(): Storage | null {
   try {
-    localStorage.setItem(CREATION_KEY, encodeCreation(creation));
+    return window.localStorage;
   } catch {
-    // Private mode or storage full: the link still carries the song.
+    return null; // Storage blocked: songs last for this visit only.
   }
 }
 
-function savedCreation(): Creation | null {
+const library = new Library(storage());
+/** Earlier versions kept only the last creation, under this key. */
+library.migrate("infinite-synthpop:creation:v1", ({ spec }) =>
+  songSummary(
+    spec.key,
+    spec.bpm,
+    spec.sections.reduce((n, s) => n + s.bars, 0),
+  ),
+);
+
+function songSummary(key: Song["key"], bpm: number, bars: number): string {
+  return `${keyName(key)} · ${bpm} BPM · ${bars} bars`;
+}
+
+/** What a generated song or original is, for ♡ Save (SavedSong.from). */
+function songOrigin(song: Song): string {
+  return song.reference
+    ? `ref:${song.reference}`
+    : `seed:${song.seed}/${song.style}/${song.key.tonic}/${song.bpm}/${song.kit}`;
+}
+
+/** The library entry for what's playing, if it has one. */
+function currentEntry(): SavedSong | undefined {
+  const id = engine.creation?.id;
+  return id ? library.get(id) : library.findFrom(songOrigin(engine.song));
+}
+
+/**
+ * A link that plays this exact song. A generated song goes as a creation: its seed alone would
+ * sound different with the other person's generator settings.
+ */
+function shareUrl(song: Song, creation: Creation | null): string {
+  const hash = creation
+    ? `#song=${encodeCreation(creation)}`
+    : song.reference
+      ? `#ref=${song.reference}`
+      : `#song=${encodeCreation({ seed: song.seed, spec: songToSpec(song) })}`;
+  return `${location.origin}${location.pathname}${hash}`;
+}
+
+async function copyText(text: string): Promise<boolean> {
   try {
-    const raw = localStorage.getItem(CREATION_KEY);
-    return raw ? decodeCreation(raw) : null;
+    await navigator.clipboard.writeText(text);
+    return true;
   } catch {
-    return null;
+    // No clipboard access (insecure origin, refused): let the user copy it by hand.
+    window.prompt("Copy this link:", text);
+    return false;
   }
+}
+
+/** Copies a link, with the button saying so for a moment. */
+async function share(button: HTMLButtonElement, url: string): Promise<boolean> {
+  const ok = await copyText(url);
+  if (ok) {
+    const label = button.textContent;
+    button.textContent = "✓ Link copied";
+    button.classList.add("done");
+    setTimeout(() => {
+      button.textContent = label;
+      button.classList.remove("done");
+    }, 1500);
+  }
+  return ok;
+}
+
+function latestSaved(): Creation | null {
+  const current = engine.creation?.id;
+  const entry = library.list().find((s) => s.id !== current);
+  return entry ? library.creation(entry.id) : null;
 }
 
 /** Shows a section: playback jumps there, and it becomes the looped one when looping. */
@@ -150,7 +218,9 @@ function setLooping(on: boolean): void {
 function setCreator(on: boolean): void {
   if (on && !engine.creation) {
     const song = engine.song;
-    engine.playCustom({ seed: song.seed, spec: songToSpec(song) }, true);
+    // A song kept with ♡ Save goes on as that entry; any other becomes a new one.
+    const id = library.findFrom(songOrigin(song))?.id;
+    engine.playCustom({ seed: song.seed, spec: songToSpec(song), ...(id ? { id } : {}) }, true);
   }
   creator.setActive(on);
   roll.setCreatorMode(on);
@@ -169,14 +239,8 @@ const creator = mountCreator(ui.progression, el("section-editor"), el("roll-cont
     engine.jumpTo(bar);
     if (!engine.playing) renderBar(engine.song, bar);
   },
-  saved: savedCreation,
-  copyLink: () =>
-    navigator.clipboard
-      ? navigator.clipboard.writeText(location.href).then(
-          () => true,
-          () => false,
-        )
-      : Promise.resolve(false),
+  saved: latestSaved,
+  copyLink: () => copyText(shareUrl(engine.song, engine.creation)),
   toggleRecording,
   recording: () => !!recorder?.active || recordingFrom !== null,
   midiFile: (pick) => (pick ? pickMidiFile() : Promise.resolve(midi ?? pickedMidi)),
@@ -350,8 +414,10 @@ const engine = new Engine(
       ui.play.textContent = playing ? "■ Stop" : "▶ Play";
       ui.play.setAttribute("aria-pressed", String(playing));
     },
+    onCue: renderCue,
   },
 );
+engine.setInstant(prefs.instant);
 async function togglePlay(): Promise<void> {
   if (engine.playing) {
     engine.stop();
@@ -429,7 +495,8 @@ function renderSong(song: Song): void {
     ui.bpmOut.value = `${song.bpm} BPM`;
   }
   const creation = engine.creation;
-  if (creation) saveCreation(creation);
+  if (creation) library.save(creation, songSummary(song.key, song.bpm, song.totalBars));
+  renderSongs();
   history.replaceState(
     null,
     "",
@@ -462,8 +529,150 @@ function renderSong(song: Song): void {
     }),
   );
   creator.decorateTimeline(ui.timeline);
+  renderCue(engine.cuedBar);
   renderBar(song, Math.min(engine.currentBar, song.totalBars - 1));
 }
+
+/**
+ * Marks where a switch waits for the next bar line: the bar in the piano roll, its section on the
+ * timeline. Nothing waits in instant mode.
+ */
+function renderCue(bar: number | null): void {
+  const cue = prefs.instant ? null : bar;
+  roll.setCue(cue);
+  const song = engine.song;
+  const index =
+    cue === null
+      ? -1
+      : song.sections.findIndex((s) => cue >= s.startBar && cue < s.startBar + s.bars);
+  ui.timeline.querySelectorAll<HTMLElement>(".sec").forEach((b, i) => {
+    b.classList.toggle("cued", i === index);
+  });
+}
+
+// ── My songs list ─────────────────────────────────────────────────────────────────────────────
+
+const songList = el<HTMLUListElement>("song-list");
+const songsStatus = el("songs-status");
+const saveButton = el<HTMLButtonElement>("save-song");
+const shareButton = el<HTMLButtonElement>("share");
+const dateFormat = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
+const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+
+function when(at: number): string {
+  const d = new Date(at);
+  return d.toDateString() === new Date().toDateString()
+    ? timeFormat.format(d)
+    : dateFormat.format(d);
+}
+
+function renderSongs(): void {
+  const songs = library.list();
+  const current = currentEntry();
+  el("songs-count").textContent = songs.length ? String(songs.length) : "";
+  el("songs-empty").hidden = songs.length > 0;
+  songList.replaceChildren(
+    ...songs.map((entry) => {
+      const li = document.createElement("li");
+      li.className = "song-row";
+      if (entry.id === current?.id) li.setAttribute("aria-current", "true");
+      const play = document.createElement("button");
+      play.type = "button";
+      play.className = "song-play";
+      play.title = `Play “${entry.title}”`;
+      const title = document.createElement("span");
+      title.className = "song-name";
+      title.textContent = entry.title;
+      const meta = document.createElement("span");
+      meta.className = "song-meta";
+      meta.textContent = `${entry.summary} · ${when(entry.updated)}`;
+      play.append(title, meta);
+      play.addEventListener("click", () => void playSaved(entry.id));
+      const link = document.createElement("button");
+      link.type = "button";
+      link.className = "btn small";
+      link.textContent = "⤴";
+      link.title = `Copy a link to “${entry.title}”`;
+      link.setAttribute("aria-label", link.title);
+      link.addEventListener("click", () => {
+        const creation = library.creation(entry.id);
+        if (creation) void share(link, shareUrl(engine.song, creation));
+      });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "btn small";
+      remove.textContent = "×";
+      remove.title = `Delete “${entry.title}” from My songs`;
+      remove.setAttribute("aria-label", remove.title);
+      remove.addEventListener("click", () => deleteSaved(entry.id));
+      li.append(play, link, remove);
+      return li;
+    }),
+  );
+  const saved = !!current;
+  saveButton.setAttribute("aria-pressed", String(saved));
+  saveButton.textContent = saved ? "♥ Saved" : "♡ Save";
+  saveButton.title = engine.creation
+    ? "Creations keep themselves in My songs"
+    : saved
+      ? "In My songs: click to remove it"
+      : "Keep this song in My songs";
+  if (library.failed) songsStatus.textContent = "This browser won’t store songs: use Share links.";
+}
+
+/** Plays a saved song (starting playback: the click allows it). */
+async function playSaved(id: string): Promise<void> {
+  const creation = library.creation(id);
+  if (!creation) return;
+  engine.playCustom(creation);
+  if (!engine.playing) await togglePlay();
+}
+
+function deleteSaved(id: string): void {
+  const gone = library.remove(id);
+  if (!gone) return;
+  renderSongs();
+  songsStatus.replaceChildren(`Deleted “${gone.title}”. `);
+  const undo = document.createElement("button");
+  undo.type = "button";
+  undo.className = "link";
+  undo.textContent = "Undo";
+  undo.addEventListener("click", () => {
+    library.restore(gone);
+    songsStatus.textContent = "";
+    renderSongs();
+  });
+  songsStatus.append(undo);
+}
+
+saveButton.addEventListener("click", () => {
+  const song = engine.song;
+  if (engine.creation) return; // already kept
+  const existing = library.findFrom(songOrigin(song));
+  if (existing) deleteSaved(existing.id);
+  else {
+    library.save(
+      { seed: song.seed, spec: songToSpec(song) },
+      songSummary(song.key, song.bpm, song.totalBars),
+      songOrigin(song),
+    );
+    songsStatus.textContent = `Saved “${song.title}”.`;
+    renderSongs();
+  }
+});
+shareButton.addEventListener(
+  "click",
+  () => void share(shareButton, shareUrl(engine.song, engine.creation)),
+);
+
+const switchMode = el<HTMLSelectElement>("switch-mode");
+switchMode.value = prefs.instant ? "instant" : "bar";
+switchMode.addEventListener("change", () => {
+  prefs.instant = switchMode.value === "instant";
+  savePrefs();
+  engine.setInstant(prefs.instant);
+  renderCue(engine.cuedBar);
+});
 
 function renderBar(song: Song, bar: number): void {
   const sectionIndex = song.sections.findIndex(
@@ -839,7 +1048,9 @@ ui.mixer.append(master);
 
 const linked = initialCreation ? decodeCreation(initialCreation) : null;
 if (linked) {
-  engine.playCustom(linked);
+  // A link to a song already in My songs (or a reload) carries on as that entry.
+  const known = initialCreation ? library.findData(initialCreation) : undefined;
+  engine.playCustom(known ? { ...linked, id: known.id } : linked);
   setCreator(true);
 } else if (isReferenceId(initialReference)) engine.playReference(initialReference);
 else renderSong(engine.song);

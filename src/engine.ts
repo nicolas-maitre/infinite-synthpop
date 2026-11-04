@@ -1,12 +1,15 @@
 /**
- * Plays songs forever: once per bar, asks the arranger for that bar's events and schedules them on
- * the Tone.js clock. When a song ends, composes the next one from a seed derived from the last.
+ * Plays songs forever: once per bar, asks the arranger for that bar's events, and hands them to the
+ * synths a 16th at a time on the Tone.js clock (so an instant switch has nothing left to cancel
+ * beyond the clock's look-ahead). When a song ends, composes the next one from a seed derived from
+ * the last.
  */
 import * as Tone from "tone";
-import { arrangeBar, MELODIC_TRACKS, type BarEvents, type DrumVoice } from "./arranger";
+import { arrangeBar, type BarEvents, type DrumVoice } from "./arranger";
+import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
-import type { Creation, SongSpec } from "./spec";
+import { newSongId, type Creation, type SongSpec } from "./spec";
 import { Instruments } from "./instruments";
 import { createRng } from "./rng";
 import type { Key } from "./theory";
@@ -24,6 +27,8 @@ export interface EngineEvents {
   onBar?: (events: BarEvents, song: Song) => void;
   onSong?: (song: Song) => void;
   onStateChange?: (playing: boolean) => void;
+  /** A switch is waiting for the next bar line (the bar it will play), or no longer is (null). */
+  onCue?: (bar: number | null) => void;
 }
 
 /** Fixed seeds for the originals' generated parts (lead melodies, riffs), so each plays the same. */
@@ -50,6 +55,13 @@ export class Engine {
   private loop: number | null = null;
   /** The last bars scheduled, with their start on the audio clock (for recording). */
   private scheduled: { bar: number; time: number; seconds: number }[] = [];
+  /** The bar playing now, handed to the synths a 16th at a time; and which 16th comes next. */
+  private current: { ev: BarEvents; sixteenth: number } | null = null;
+  private step = 0;
+  /** Switches (songs, jumps, skips) happen at once instead of at the next bar line. */
+  private instant = false;
+  /** Where playback goes at the next bar line, when that isn't simply the next bar. */
+  private cue: number | null = null;
   /** Parts loaded from the user's MIDI files, per original (midi.ts). */
   private readonly imported: Partial<Record<ReferenceId, ImportedTracks>> = {};
   private appliedBpm = 0;
@@ -92,6 +104,17 @@ export class Engine {
     return this.bar;
   }
 
+  /** The bar a switch is waiting to play at the next bar line (null when none is pending). */
+  get cuedBar(): number | null {
+    return this.cue;
+  }
+
+  /** true: songs, jumps and skips start at once; false: at the next bar line. */
+  setInstant(on: boolean): void {
+    this.instant = on;
+    if (on && this.cue !== null) this.restart();
+  }
+
   /** Must be called from a user gesture (browsers block audio until then). */
   async start(): Promise<void> {
     if (this.playing) return;
@@ -104,7 +127,8 @@ export class Engine {
     this.applySong(this.instruments);
     const transport = Tone.getTransport();
     this.applyBpm(Tone.now());
-    this.repeatId = transport.scheduleRepeat(this.tick, "1m", 0);
+    this.step = 0;
+    this.repeatId = transport.scheduleRepeat(this.tick, "16n", 0);
     transport.start("+0.1");
     this.events.onStateChange?.(true);
   }
@@ -115,6 +139,11 @@ export class Engine {
     transport.stop();
     transport.cancel();
     this.repeatId = null;
+    this.current = null;
+    if (this.cue !== null) {
+      this.cue = null;
+      this.events.onCue?.(null);
+    }
     this.instruments?.releaseAll();
     // Resume from the top of the section we stopped in.
     this.bar =
@@ -130,6 +159,7 @@ export class Engine {
     this.song = this.compose(seed);
     this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
+    this.switched();
     this.events.onSong?.(this.song);
   }
 
@@ -144,6 +174,7 @@ export class Engine {
     this.song = this.compose(REFERENCE_SEEDS[id]);
     this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
+    this.switched();
     this.events.onSong?.(this.song);
   }
 
@@ -153,17 +184,19 @@ export class Engine {
    */
   playCustom(creation: Creation, keepPosition = false): void {
     this.reference = null;
-    this.custom = creation;
+    // Each creation gets an id the first time it plays, for its entry in My songs.
+    this.custom = creation.id ? creation : { ...creation, id: newSongId() };
     this.song = this.compose(creation.seed);
     if (!keepPosition || this.bar >= this.song.totalBars) this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
+    if (!keepPosition) this.switched();
     this.events.onSong?.(this.song);
   }
 
   /** Applies an edit to the playing creation from the next bar, keeping the play position. */
   editCustom(spec: SongSpec): void {
     if (!this.custom) return;
-    this.custom = { seed: this.custom.seed, spec };
+    this.custom = { ...this.custom, spec };
     this.song = this.compose(this.custom.seed);
     if (this.bar >= this.song.totalBars) this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
@@ -176,19 +209,57 @@ export class Engine {
     const section = sectionIndex === null ? undefined : this.song.sections[sectionIndex];
     if (section && !(this.bar >= section.startBar && this.bar < section.startBar + section.bars)) {
       this.bar = section.startBar;
+      this.switched();
     }
   }
 
-  /** Continues from this bar at the next bar line. */
+  /** Continues from this bar: at the next bar line, or at once in instant mode. */
   jumpTo(bar: number): void {
     this.bar = Math.max(0, Math.min(this.song.totalBars - 1, bar));
+    this.switched();
   }
 
   skipSection(): void {
     const i = sectionIndex(this.song, Math.max(0, this.playing ? this.bar - 1 : this.bar));
     const next = this.song.sections[i + 1];
-    if (next) this.bar = next.startBar;
-    else this.newSong(nextSeed(this.song.seed));
+    if (next) {
+      this.bar = next.startBar;
+      this.switched();
+    } else this.newSong(nextSeed(this.song.seed));
+  }
+
+  /**
+   * After a switch (another song, a jump): starts it at once in instant mode, or marks the bar
+   * waiting for the next bar line.
+   */
+  private switched(): void {
+    this.cue = this.playing ? this.bar : null;
+    if (this.cue !== null && this.instant) this.restart();
+    else this.events.onCue?.(this.cue);
+  }
+
+  /**
+   * Instant switch: restarts the clock right away from `this.bar`. What the synths already hold
+   * (up to the clock's look-ahead) still plays; then everything is released just before the new
+   * bar's first notes. Notes the polyphonic synths were about to start are caught by a second
+   * release once they have.
+   */
+  private restart(): void {
+    const inst = this.instruments;
+    if (!this.playing || !inst) return;
+    const transport = Tone.getTransport();
+    transport.stop();
+    transport.cancel();
+    const at = Tone.now() + 0.05;
+    const cut = at - 0.01;
+    inst.releaseAll(cut);
+    setTimeout(() => inst.releaseChords(cut), Math.max(0, (cut - Tone.now()) * 1000 + 5));
+    this.current = null;
+    this.step = 0;
+    this.appliedBpm = 0;
+    this.applyBpm(at);
+    this.repeatId = transport.scheduleRepeat(this.tick, "16n", 0);
+    transport.start(at);
   }
 
   /**
@@ -200,7 +271,7 @@ export class Engine {
     this.song = this.compose(this.song.seed);
     if (this.bar >= this.song.totalBars) this.bar = this.song.sections.at(-1)?.startBar ?? 0;
     if (this.instruments) this.applySong(this.instruments);
-    if (this.playing && "bpm" in settings) Tone.getTransport().bpm.rampTo(this.song.bpm, 0.5);
+    // A new tempo starts at the next bar line (applyBpm), keeping the bar's 16ths even.
     this.events.onSong?.(this.song);
   }
 
@@ -244,9 +315,21 @@ export class Engine {
     this.appliedBpm = this.song.bpm;
   }
 
+  /** Once per 16th: starts a bar on the first, then hands the synths that 16th's notes. */
   private readonly tick = (time: number): void => {
     const inst = this.instruments;
     if (!inst) return;
+    if (this.step === 0) this.startBar(inst, time);
+    const bar = this.current;
+    if (bar) scheduleStep(inst, bar.ev, time, bar.sixteenth, this.step);
+    this.step = (this.step + 1) % 16;
+  };
+
+  private startBar(inst: Instruments, time: number): void {
+    if (this.cue !== null) {
+      this.cue = null;
+      atAudioTime(time, () => this.events.onCue?.(this.cue));
+    }
     const looped = this.loop === null ? undefined : this.song.sections[this.loop];
     if (looped && (this.bar < looped.startBar || this.bar >= looped.startBar + looped.bars)) {
       this.bar = looped.startBar;
@@ -265,13 +348,13 @@ export class Engine {
 
     const song = this.song;
     const ev = arrangeBar(song, this.bar);
-    scheduleBar(inst, ev, time, song.bpm);
+    this.current = { ev, sixteenth: 60 / song.bpm / 4 };
     this.scheduled.push({ bar: this.bar, time, seconds: (60 / song.bpm) * 4 });
     if (this.scheduled.length > 16) this.scheduled.shift();
 
     atAudioTime(time, () => this.events.onBar?.(ev, song));
     this.bar++;
-  };
+  }
 }
 
 /**
@@ -282,13 +365,6 @@ export class Engine {
  */
 function useListeningContext(): void {
   Tone.setContext(new Tone.Context({ latencyHint: "playback", lookAhead: 0.3 }));
-}
-
-/** Schedules every event of one bar starting at `time` (seconds on the audio clock). */
-export function scheduleBar(inst: Instruments, ev: BarEvents, time: number, bpm: number): void {
-  const sixteenth = 60 / bpm / 4;
-  for (const hit of ev.drums) inst.drum(hit, time + hit.step * sixteenth);
-  for (const track of MELODIC_TRACKS) inst.play(track, ev.notes[track], time, sixteenth);
 }
 
 /**

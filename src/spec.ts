@@ -24,6 +24,15 @@ export type SectionSpec = ReferenceSection;
 export interface Creation {
   seed: number;
   spec: SongSpec;
+  /** Its entry in My songs (library.ts). Local to this browser: links don't carry it. */
+  id?: string;
+}
+
+/** A fresh id for a saved song. */
+export function newSongId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export const SECTION_KINDS: readonly SectionKind[] = [

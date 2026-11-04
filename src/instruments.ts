@@ -443,6 +443,15 @@ export class Instruments {
     this.bassSaw.filterEnvelope.baseFrequency = 2500 - 2200 * style;
   }
 
+  /**
+   * Releases the polyphonic synths' notes at `time`. They start a note only once its time comes,
+   * so one just about to start when releaseAll ran needs this second release.
+   */
+  releaseChords(time: number): void {
+    for (const s of [this.pad, this.stab, this.seq, this.riffFm, this.riffSaw, this.arp])
+      s.releaseAll(time);
+  }
+
   /** Plays a note on the lead synth right now (recording: hear what you play). null releases. */
   monitor(midi: number | null, velocity = 0.85): void {
     const now = Tone.now();
@@ -451,16 +460,20 @@ export class Instruments {
   }
 
   /** Lets held pad and lead notes ring out when the transport stops. */
-  releaseAll(): void {
-    const now = Tone.now();
-    this.pad.releaseAll(now);
-    this.stab.releaseAll(now);
-    this.seq.releaseAll(now);
-    this.riffFm.releaseAll(now);
-    this.riffSaw.releaseAll(now);
-    this.arp.releaseAll(now);
-    for (const s of [this.lead, this.leadOct, this.hook, this.bassSaw]) s.triggerRelease(now);
-    this.bassFm.triggerRelease(now);
+  /**
+   * Releases every held note at `time` (now by default). The one-voice synths also drop what was
+   * scheduled after it, so a note of the song being left can't cut into the next one's first notes.
+   */
+  releaseAll(time = Tone.now()): void {
+    this.releaseChords(time);
+    for (const s of [this.lead, this.leadOct, this.hook, this.bassSaw]) {
+      s.envelope.cancel(time);
+      s.filterEnvelope.cancel(time);
+      s.triggerRelease(time);
+    }
+    this.bassFm.envelope.cancel(time);
+    this.bassFm.modulationEnvelope.cancel(time);
+    this.bassFm.triggerRelease(time);
   }
 }
 

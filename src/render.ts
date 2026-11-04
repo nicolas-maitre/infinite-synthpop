@@ -5,7 +5,7 @@
 import * as Tone from "tone";
 import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./composer";
-import { scheduleBar } from "./engine";
+import { scheduleBar } from "./schedule";
 import { Instruments, type Track } from "./instruments";
 
 /** Mixer levels (dB) to render with, and a progress callback (0–1). */

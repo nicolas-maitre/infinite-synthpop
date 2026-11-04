@@ -1079,3 +1079,124 @@ input[type="checkbox"] {
     font-size: 44px;
   }
 }
+
+/* ── Switching, cue, save and share ── */
+
+.autoplay select {
+  background: #1c1c36;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font: inherit;
+}
+
+.timeline .sec.cued {
+  border-color: var(--accent-2);
+  border-style: dashed;
+}
+
+.timeline .sec.cued span::before {
+  content: "⏭ ";
+  color: var(--accent-2);
+}
+
+#save-song[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn.done {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
+
+/* ── My songs ── */
+
+.songs h3 .count {
+  margin-left: 6px;
+  color: var(--accent-2);
+  letter-spacing: 0;
+}
+
+.song-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.song-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 2px 4px 2px 0;
+}
+
+.song-row:hover {
+  background: #ffffff08;
+}
+
+.song-row[aria-current="true"] {
+  border-color: var(--accent);
+  background: #ff3d8b12;
+}
+
+.song-play {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  text-align: left;
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  padding: 5px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.song-play:focus-visible {
+  outline: 2px solid var(--accent-2);
+}
+
+.song-name,
+.song-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-name {
+  font-size: 14px;
+}
+
+.song-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.song-row[aria-current="true"] .song-name::before {
+  content: "▶ ";
+  color: var(--accent);
+}
+
+#songs-status {
+  margin-top: 8px;
+}
+
+button.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent-2);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

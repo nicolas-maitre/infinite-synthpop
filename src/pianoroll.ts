@@ -86,6 +86,8 @@ export class PianoRoll {
   private bar = 0;
   private barStarted = 0;
   private playing = false;
+  /** The bar a switch will play at the next bar line, marked in the header (song bar, or null). */
+  private cue: number | null = null;
   private editor: LeadEditor | null = null;
   /** The editor's melody while it's being edited (committed on release). */
   private edit: Note[][] = [];
@@ -148,6 +150,11 @@ export class PianoRoll {
     this.bar = bar;
     this.barStarted = performance.now();
     this.playing = playing;
+  }
+
+  /** Marks the bar that plays at the next bar line (null: none waiting). */
+  setCue(bar: number | null): void {
+    this.cue = bar;
   }
 
   /** Creator mode: one lane per instrument the section plays (even before it has notes), with
@@ -312,6 +319,31 @@ export class PianoRoll {
     const px = xAt(this.bar - section.startBar + into, 0);
     ctx.fillStyle = "#ff3d8b";
     ctx.fillRect(px - 1, 0, 2, h);
+
+    // Cue: the bar waiting to play next, a ⏭ in its header and a dashed line down its start.
+    const cue = this.cue === null ? -1 : this.cue - section.startBar;
+    if (cue >= 0 && cue < section.bars) {
+      const cx = xAt(cue, 0);
+      ctx.fillStyle = "#17172e"; // over the chord name there
+      ctx.fillRect(cx + 1, 2, 17, HEADER_H - 2);
+      ctx.fillStyle = "#39d0ff";
+      ctx.fillRect(cx, 0, 16 * stepW, 2);
+      ctx.beginPath();
+      ctx.moveTo(cx + 4, 5);
+      ctx.lineTo(cx + 12, HEADER_H / 2);
+      ctx.lineTo(cx + 4, HEADER_H - 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(cx + 13, 5, 2, HEADER_H - 10);
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = "#39d0ff";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx + 0.75, HEADER_H);
+      ctx.lineTo(cx + 0.75, h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
   }
 
   /** Pointer position in the canvas's CSS pixels. */

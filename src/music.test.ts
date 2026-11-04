@@ -3,6 +3,8 @@ import { arrangeBar, MELODIC_TRACKS } from "./arranger";
 import { BPM_RANGE, compose, LEAD_RANGES } from "./composer";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
+import { Library, LIBRARY_KEY } from "./library";
+import { scheduleBar, scheduleStep, type Player } from "./schedule";
 import { blankSpec, decodeCreation, encodeCreation, songToSpec } from "./spec";
 import { assignMelody, currentMelody, importMelody, writeMelody } from "./melodies";
 import { BANK, mutate, pickProgression } from "./progressions";
@@ -518,5 +520,89 @@ describe("custom melodies", () => {
     const pitches = m.notes.map((n) => n.pitch);
     expect(Math.max(...pitches) - Math.min(...pitches)).toBe(3);
     expect(Math.min(...pitches)).toBeGreaterThanOrEqual(LEAD_RANGES.verse[0] - 12);
+  });
+});
+
+describe("live scheduling", () => {
+  /** A player that writes down every note and hit it is given, with its time. */
+  function recorder(): { player: Player; log: string[] } {
+    const log: string[] = [];
+    const player: Player = {
+      drum: (hit, time) => log.push(`d ${hit.voice} ${time.toFixed(4)}`),
+      play: (track, notes, barTime, sixteenth) => {
+        for (const n of notes)
+          log.push(`${track} ${n.midi} ${(barTime + n.step * sixteenth).toFixed(4)}`);
+      },
+    };
+    return { player, log };
+  }
+
+  it("schedules a bar a 16th at a time exactly as it would all at once", () => {
+    const song = compose({ seed: 4242, style: 0.5, key: null, bpm: null, kit: "auto" });
+    const sixteenth = 60 / song.bpm / 4;
+    for (const bar of [0, 9, 40, song.totalBars - 1]) {
+      const ev = arrangeBar(song, bar);
+      const whole = recorder();
+      scheduleBar(whole.player, ev, 10, song.bpm);
+      const steps = recorder();
+      for (let k = 0; k < 16; k++) scheduleStep(steps.player, ev, 10 + k * sixteenth, sixteenth, k);
+      expect(steps.log.sort()).toEqual(whole.log.sort());
+      expect(whole.log.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("my songs", () => {
+  function memoryStore(): Storage {
+    const data = new Map<string, string>();
+    return {
+      getItem: (k) => data.get(k) ?? null,
+      setItem: (k, v) => void data.set(k, v),
+      removeItem: (k) => void data.delete(k),
+      clear: () => data.clear(),
+      key: () => null,
+      length: 0,
+    };
+  }
+  const song = compose({ seed: 77, style: 0.4, key: null, bpm: null, kit: "auto" });
+  const creation = { seed: 77, spec: songToSpec(song) };
+
+  it("keeps each creation as one entry, updated in place, and survives a reload", () => {
+    const store = memoryStore();
+    let now = 1000;
+    const library = new Library(store, () => now);
+    const first = library.save({ ...creation, id: "a" }, "summary");
+    now = 2000;
+    library.save({ ...creation, id: "a" }, "summary"); // unchanged: not bumped
+    expect(library.get("a")?.updated).toBe(1000);
+    library.save({ id: "a", seed: 77, spec: { ...creation.spec, title: "Renamed" } }, "summary");
+    expect(library.list()).toHaveLength(1);
+    expect(library.get("a")?.title).toBe("Renamed");
+    expect(library.get("a")?.updated).toBe(2000);
+    const reloaded = new Library(store);
+    expect(reloaded.list().map((s) => s.id)).toEqual([first.id]);
+    expect(reloaded.creation("a")?.spec.title).toBe("Renamed");
+  });
+
+  it("finds ♡-saved songs by origin and links by content, and can undo a delete", () => {
+    const library = new Library(memoryStore());
+    const saved = library.save(creation, "summary", "seed:77");
+    expect(saved.id).toBeTruthy();
+    expect(library.findFrom("seed:77")?.id).toBe(saved.id);
+    expect(library.findData(encodeCreation(creation))?.id).toBe(saved.id);
+    const gone = library.remove(saved.id);
+    expect(library.list()).toHaveLength(0);
+    if (gone) library.restore(gone);
+    expect(library.list()).toHaveLength(1);
+  });
+
+  it("moves the single creation earlier versions kept into the list", () => {
+    const store = memoryStore();
+    store.setItem("old", encodeCreation(creation));
+    const library = new Library(store);
+    library.migrate("old", () => "summary");
+    expect(library.list()).toHaveLength(1);
+    expect(store.getItem("old")).toBeNull();
+    expect(JSON.parse(store.getItem(LIBRARY_KEY) ?? "[]")).toHaveLength(1);
   });
 });

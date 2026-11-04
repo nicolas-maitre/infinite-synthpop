@@ -57,8 +57,30 @@
             >
               ⟲ Loop
             </button>
+            <button
+              id="save-song"
+              class="btn"
+              type="button"
+              aria-pressed="false"
+              title="Keep this song in My songs"
+            >
+              ♡ Save
+            </button>
+            <button id="share" class="btn" type="button" title="Copy a link to this song">
+              ⤴ Share
+            </button>
             <label class="autoplay" title="Start playing as soon as the page loads">
               <input id="autoplay" type="checkbox" /> Autoplay
+            </label>
+            <label
+              class="autoplay"
+              title="When another song, section or bar is picked: switch at the next bar line, or right away"
+            >
+              Switch
+              <select id="switch-mode">
+                <option value="bar">after the bar</option>
+                <option value="instant">instantly</option>
+              </select>
             </label>
             <button id="creator-toggle" class="btn" type="button" aria-pressed="false">
               ✎ Creator
@@ -140,6 +162,16 @@
           <div class="roll-controls" id="roll-controls" hidden></div>
         </div>
         <div class="section-editor" id="section-editor" hidden aria-label="Selected section"></div>
+      </section>
+
+      <section class="card songs" aria-labelledby="songs-title">
+        <h3 id="songs-title">My songs <span class="count" id="songs-count"></span></h3>
+        <p class="note" id="songs-empty">
+          Songs you make or edit in creator mode keep themselves here. Press ♡ Save to keep a
+          generated one.
+        </p>
+        <ul class="song-list" id="song-list"></ul>
+        <p class="note" id="songs-status" role="status"></p>
       </section>
 
       <section class="card controls">
