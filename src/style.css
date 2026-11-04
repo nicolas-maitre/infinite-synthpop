@@ -1231,3 +1231,21 @@ button.link {
     animation-duration: 2.4s;
   }
 }
+
+/* Inline icons drawn in the text colour (the dice on Random song). */
+.btn .icon {
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.15em;
+  margin-right: 2px;
+}
+
+.btn .icon rect {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.btn .icon circle {
+  fill: currentColor;
+}

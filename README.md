@@ -30,7 +30,7 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
 
 ## Controls
 
-- **Play / Stop, New song, Skip section.** Keyboard: Space, N, S. Click a block on the timeline to
+- **Play / Stop, Random song (dice), Skip section.** Keyboard: Space, N, S. Click a block on the timeline to
   jump to that section.
 - **⟲ Loop** repeats the current section. **Autoplay** starts the music when the page loads. If
   the browser blocks audio until you interact with the page, the first click or key press anywhere
