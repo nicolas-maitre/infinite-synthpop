@@ -33,6 +33,8 @@ function saveRenders(): Plugin {
 }
 
 export default defineConfig({
+  // GitHub Pages serves the site from /infinite-synthpop/ (set by .github/workflows/pages.yml).
+  base: process.env.BASE_PATH ?? "/",
   plugins: [saveRenders()],
   build: { target: "es2022" },
   test: { include: ["src/**/*.test.ts"] },

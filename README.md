@@ -11,6 +11,9 @@ The musical rules come from an analysis of both songs, measured from the recordi
 cross-checked against published sources: see [docs/analysis.md](docs/analysis.md). The design is
 in [docs/plans/generator-design.md](docs/plans/generator-design.md).
 
+Play it at **https://nicolas-maitre.github.io/infinite-synthpop/**. Every push to `main` is checked
+and deployed there by `.github/workflows/pages.yml`.
+
 ## Quick start
 
 ```bash
