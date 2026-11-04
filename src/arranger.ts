@@ -94,7 +94,9 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   const rng = createRng((song.seed * 7919 + bar * 104729) >>> 0);
 
   const notes: Record<MelodicTrack, Note[]> = {
-    bass: L.bass ? bassLine(song, key, slots, chordSlots(section, barInSection + 1)) : [],
+    bass: L.bass
+      ? bassLine(song, key, slots, chordSlots(section, barInSection + 1), barInSection)
+      : [],
     hook: L.hook
       ? motifNotes(
           song.hook,
@@ -156,18 +158,26 @@ function bassRoot(key: Key, c: Chord): number {
   return root;
 }
 
+/** The 16ths where True Faith's octave-up bass notes cluster (bass_octave_up_profile, 13–20%). */
+const TF_OCTAVE_STEPS = new Set([2, 3, 6, 7, 13, 14]);
+
 /**
- * Sequenced bass (docs/analysis.md §1): "pulse" is DS's root 16ths, moving to the next chord one 16th
- * early; "bounce" is TF's 16ths with upper notes where the recording shows them (16ths 4, 7, 15);
- * "gallop" and "drive" are variants.
+ * The sequenced bass both songs run on: root 16ths on every step, all the way through. The
+ * recordings differ only in articulation (docs/analysis.md §1, scripts/analyze_reference.py):
+ * - "pulse" (DS): short, gated 16ths with a hard accent on every 8th (its bass band pulses
+ *   strongest at the 8th rate), moving to the next chord one 16th early.
+ * - "bounce" (TF): longer, smoother 16ths. About one bar in five breaks into octave pairs;
+ *   here the last bar of each 4-bar phrase does.
  */
 function bassLine(
   song: Song,
   key: Key,
   slots: readonly ChordSlot[],
   nextBar: readonly ChordSlot[],
+  barInSection: number,
 ): Note[] {
   const out: Note[] = [];
+  const octaveBar = barInSection % 4 === 3;
   slots.forEach((slot, i) => {
     const root = bassRoot(key, slot.chord);
     const next = slots[i + 1] ?? nextBar[0];
@@ -175,38 +185,20 @@ function bassLine(
     const end = slot.step + slot.length;
     for (let s = slot.step; s < end; s++) {
       const pos = s % 4;
-      switch (song.bassStyle) {
-        case "pulse":
-          out.push({
-            step: s,
-            dur: 0.75,
-            midi: s === end - 1 ? nextRoot : root,
-            vel: pos === 0 ? 1 : pos === 2 ? 0.8 : 0.62,
-          });
-          break;
-        case "bounce":
-          out.push({
-            step: s,
-            dur: 0.7,
-            midi: s === 3 || s === 6 || s === 14 ? root + 12 : root,
-            vel: pos === 0 ? 1 : pos === 2 ? 0.8 : 0.55,
-          });
-          break;
-        case "drive":
-          if (pos % 2 === 0) {
-            out.push({
-              step: s,
-              dur: 1.6,
-              midi: pos === 2 ? root + 12 : root,
-              vel: pos === 0 ? 1 : 0.85,
-            });
-          }
-          break;
-        case "gallop":
-          if (pos !== 1) {
-            out.push({ step: s, dur: pos === 0 ? 1.6 : 0.8, midi: root, vel: pos === 0 ? 1 : 0.7 });
-          }
-          break;
+      if (song.bassStyle === "pulse") {
+        out.push({
+          step: s,
+          dur: 0.7,
+          midi: s === end - 1 ? nextRoot : root,
+          vel: pos === 0 ? 1 : pos === 2 ? 0.9 : 0.42,
+        });
+      } else {
+        out.push({
+          step: s,
+          dur: 0.9,
+          midi: octaveBar && TF_OCTAVE_STEPS.has(s) ? root + 12 : root,
+          vel: pos === 0 ? 1 : pos === 2 ? 0.85 : 0.72,
+        });
       }
     }
   });

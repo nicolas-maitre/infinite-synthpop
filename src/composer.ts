@@ -18,9 +18,9 @@ export type SectionKind =
   "intro" | "verse" | "chorus" | "interlude" | "turnaround" | "break" | "bridge" | "outro";
 export type DrumMode = "off" | "kick" | "half" | "full" | "big";
 export type KitName = "sp12" | "linndrum" | "dmx" | "synth";
-/** "pulse": root 16ths, anticipating chord changes by a 16th (measured in DS). "bounce": 16ths
- * with upper notes (TF). "gallop" / "drive": variants. */
-export type BassStyle = "pulse" | "bounce" | "gallop" | "drive";
+/** Both are the songs' root-16th sequenced bass. "pulse": gated, 8th-accented, anticipating chord
+ * changes by a 16th (DS). "bounce": smoother, with an octave figure every 4th bar (TF). */
+export type BassStyle = "pulse" | "bounce";
 export type MelodyKind = "verse" | "chorus";
 
 export interface Layers {
@@ -145,8 +145,6 @@ export function compose(opts: ComposeOptions): Song {
   const bassStyle = rngSetup.weighted<BassStyle>([
     ["pulse", 0.3 + style * 2],
     ["bounce", 0.3 + (1 - style) * 2],
-    ["gallop", 0.25],
-    ["drive", 0.15],
   ]);
 
   const rngProg = root.fork("progressions");

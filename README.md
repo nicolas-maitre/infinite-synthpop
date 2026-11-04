@@ -72,7 +72,8 @@ python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements-analysis.
 ```
 
 To measure the generator itself, run `await renderToDisk({ seed: 42, style: 0.5 })` in the dev
-page's console. It renders the song offline into `renders/`. Then compare the mixes:
+page's console. It renders the song offline into `renders/`. For stems, pass a bar count and the
+tracks to solo: `renderToDisk({ seed: 42, style: 0.5 }, 64, ["bass"])`. Then compare the mixes:
 
 ```bash
 .venv/bin/python -I scripts/compare_mix.py inspiration/*.mp3 renders/*.wav

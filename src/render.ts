@@ -6,7 +6,7 @@ import * as Tone from "tone";
 import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type Song } from "./composer";
 import { scheduleBar } from "./engine";
-import { Instruments } from "./instruments";
+import { Instruments, type Track } from "./instruments";
 
 /** Bars scheduled per step of the offline render. */
 const WINDOW_BARS = 2;
@@ -20,8 +20,14 @@ const WINDOW_BARS = 2;
  * Instead, the native render suspends before each window of bars, so only a few bars are ever
  * pending. Tone's own clock (which PolySynth uses for just-in-time scheduling) is ticked ahead to
  * the end of each window, the way OfflineContext.render() would have ticked it.
+ *
+ * `solo` renders only those tracks (stems), with their effect sends.
  */
-export async function renderSong(song: Song, bars = song.totalBars): Promise<AudioBuffer> {
+export async function renderSong(
+  song: Song,
+  bars = song.totalBars,
+  solo: readonly Track[] = [],
+): Promise<AudioBuffer> {
   const barSeconds = (60 / song.bpm) * 4;
   const barTime = (bar: number) => 0.05 + bar * barSeconds;
   const original = Tone.getContext();
@@ -40,6 +46,7 @@ export async function renderSong(song: Song, bars = song.totalBars): Promise<Aud
     const inst = await Instruments.create();
     await inst.drums.loadAll();
     inst.drums.use(song.kit);
+    for (const track of solo) inst.channels[track].solo = true;
     const scheduleWindow = (from: number) => {
       const to = Math.min(bars, from + WINDOW_BARS);
       for (let bar = from; bar < to; bar++) {
@@ -95,11 +102,16 @@ export function encodeWav(audio: AudioBuffer): Blob {
 }
 
 /** Dev only: renders a song and saves it to renders/ through the Vite dev server. */
-export async function renderToDisk(opts: ComposeOptions, bars?: number): Promise<string> {
+export async function renderToDisk(
+  opts: ComposeOptions,
+  bars?: number,
+  solo: readonly Track[] = [],
+): Promise<string> {
   const song = compose(opts);
   const started = performance.now();
-  const audio = await renderSong(song, bars);
-  const name = `seed-${song.seed}-style-${Math.round(song.style * 100)}.wav`;
+  const audio = await renderSong(song, bars, solo);
+  const stem = solo.length ? `-solo-${solo.join("+")}` : "";
+  const name = `seed-${song.seed}-style-${Math.round(song.style * 100)}${stem}.wav`;
   const res = await fetch(`/__renders/${name}`, { method: "POST", body: encodeWav(audio) });
   const seconds = ((performance.now() - started) / 1000).toFixed(1);
   return `${await res.text()} · "${song.title}" · ${audio.duration.toFixed(0)} s audio in ${seconds} s`;

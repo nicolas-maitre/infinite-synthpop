@@ -135,8 +135,6 @@ async function togglePlay(): Promise<void> {
 const BASS_LABELS: Record<BassStyle, string> = {
   pulse: "16th pulse bass",
   bounce: "16th bounce bass",
-  drive: "8th octave bass",
-  gallop: "gallop bass",
 };
 
 function renderSong(song: Song): void {

@@ -128,27 +128,31 @@ export class Instruments {
     this.drums.gateSend.connect(gatedVerb);
     gatedVerb.chain(this.gate, this.channels.drums);
 
-    // Sequenced bass: DX-style FM thump layered with a filtered saw for weight.
+    // Sequenced bass: DX-style FM thump layered with a filtered saw for weight. Every 16th gets
+    // its own bright "thwack" (a fast FM index and filter decay), the articulation that makes the
+    // recordings' line audible through the mix. The level lives here, not on the channel, so
+    // saved mixer settings keep their meaning.
     this.bassFm = new Tone.FMSynth({
+      volume: 8,
       harmonicity: 1,
-      modulationIndex: 5,
+      modulationIndex: 8,
       oscillator: { type: "sine" },
       modulation: { type: "sine" },
-      envelope: { attack: 0.002, decay: 0.25, sustain: 0.55, release: 0.06 },
-      modulationEnvelope: { attack: 0.002, decay: 0.12, sustain: 0.25, release: 0.08 },
+      envelope: { attack: 0.002, decay: 0.18, sustain: 0.5, release: 0.05 },
+      modulationEnvelope: { attack: 0.002, decay: 0.07, sustain: 0.12, release: 0.05 },
     }).connect(this.channels.bass);
     this.bassSaw = new Tone.MonoSynth({
-      volume: -8,
+      volume: 0,
       oscillator: { type: "sawtooth" },
-      filter: { type: "lowpass", rolloff: -24, Q: 2 },
+      filter: { type: "lowpass", rolloff: -24, Q: 3 },
       envelope: { attack: 0.003, decay: 0.2, sustain: 0.5, release: 0.05 },
       filterEnvelope: {
         attack: 0.002,
-        decay: 0.14,
-        sustain: 0.2,
-        release: 0.08,
-        baseFrequency: 110,
-        octaves: 3,
+        decay: 0.1,
+        sustain: 0.12,
+        release: 0.06,
+        baseFrequency: 160,
+        octaves: 3.5,
       },
     }).connect(this.channels.bass);
 

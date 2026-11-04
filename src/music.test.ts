@@ -153,6 +153,17 @@ describe("arrangeBar", () => {
     expect(checked).toBeGreaterThan(0);
   });
 
+  it("plays the sequenced bass on every 16th of every bar it is in", () => {
+    for (let seed = 0; seed < 20; seed++) {
+      const song = compose({ seed, style: seed / 19 });
+      for (let bar = 0; bar < song.totalBars; bar++) {
+        const ev = arrangeBar(song, bar);
+        if (!ev.section.layers.bass) continue;
+        expect(ev.notes.bass.map((n) => n.step)).toEqual([...Array(16).keys()]);
+      }
+    }
+  });
+
   it("fades out over the last bars of the song", () => {
     const song = compose({ seed: 3, style: 0.5 });
     const loud = arrangeBar(song, song.totalBars - 9);

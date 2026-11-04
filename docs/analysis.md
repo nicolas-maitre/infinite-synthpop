@@ -161,8 +161,14 @@ All chords below are Roman numerals in the minor key: D minor for TF, E minor fo
   with a melodic-bass solo / DS: interlude block) → optional verse 3 (more likely towards TF) →
   repeated choruses, the last one doubled at the octave → outro (TF: modulate to IV-major and
   vamp / DS: chorus) with a fade.
-- **Bass:** "pulse" (DS: root 16ths with a 16th anticipation) or "bounce" (TF: 16ths with
-  upper notes), weighted by style.
+- **Bass:** the sequenced root-16th line on every step of every section, with the songs'
+  articulation, weighted by style:
+  - **"pulse" (DS):** gated 16ths, a hard accent on every 8th, and a 16th anticipation. DS's
+    bass band pulses most strongly at the 8th rate.
+  - **"bounce" (TF):** smoother 16ths that break into octave pairs on the steps where TF's
+    octave-up notes cluster (2–3, 6–7, 13–14), about one bar in five in the recording.
+  - **Level:** the line has to sit above the kick in the 80–250 Hz band to be heard, as it
+    does in the recordings.
 - **Drums:** four-on-the-floor, snare on 2 and 4, dense humanised 16th hats, fills into new
   sections.
 
