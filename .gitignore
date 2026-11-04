@@ -1,0 +1,13 @@
+node_modules
+dist
+.DS_Store
+*.log
+# Downloaded by `npm run fetch-samples`; the source repo states no license, so don't redistribute.
+public/samples/*
+!public/samples/.gitkeep
+
+# Reference recordings (copyrighted, local only) and the analysis venv
+inspiration/
+.venv/
+# Offline renders saved by the dev server (src/render.ts)
+renders/

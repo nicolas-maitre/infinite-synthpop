@@ -1,0 +1,7 @@
+dist
+public/samples
+pnpm-lock.yaml
+inspiration
+.venv
+docs/reference-data.json
+renders

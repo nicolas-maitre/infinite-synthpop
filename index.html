@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Infinite Synthpop</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23141428'/><path d='M6 22 L11 10 L16 22 L21 10 L26 22' stroke='%23ff3d8b' stroke-width='3' fill='none'/></svg>"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <div>
+          <h1>Infinite Synthpop</h1>
+          <p class="tagline">
+            Endless generative 1987–89 synth-pop · after <em>True Faith</em> &amp;
+            <em>The Different Story</em>
+          </p>
+        </div>
+      </div>
+      <p class="hint">Space play/stop · N new song · S skip section</p>
+    </header>
+
+    <main class="grid">
+      <section class="card now" aria-live="polite">
+        <div class="now-head">
+          <div>
+            <p class="eyebrow">Now playing</p>
+            <h2 id="song-title">Press play</h2>
+            <p class="meta" id="song-meta">—</p>
+          </div>
+          <div class="transport">
+            <button id="play" class="btn primary" type="button">▶ Play</button>
+            <button id="new-song" class="btn" type="button">New song</button>
+            <button id="skip" class="btn" type="button">Skip section ⏭</button>
+          </div>
+        </div>
+
+        <div class="chord-row">
+          <div class="chord-now">
+            <span class="chord-name" id="chord-name">–</span>
+            <span class="chord-numeral" id="chord-numeral"></span>
+          </div>
+          <div class="section-info">
+            <p class="eyebrow" id="section-name">—</p>
+            <ol class="prog" id="progression"></ol>
+            <p class="bar-count" id="bar-count"></p>
+          </div>
+        </div>
+
+        <canvas id="viz" height="140" aria-label="Audio visualiser"></canvas>
+
+        <div
+          class="timeline"
+          id="timeline"
+          role="list"
+          aria-label="Song sections (click to jump)"
+        ></div>
+      </section>
+
+      <section class="card controls">
+        <h3>Generator</h3>
+        <label class="field">
+          <span>Seed</span>
+          <span class="row">
+            <input id="seed" type="number" min="0" max="999999" inputmode="numeric" />
+            <button id="seed-go" class="btn small" type="button">Load</button>
+          </span>
+        </label>
+        <label class="field">
+          <span class="row spread"><span>Style</span><output id="style-out"></output></span>
+          <input id="style" type="range" min="0" max="1" step="0.01" />
+          <span class="row spread scale"
+            ><span>True Faith</span><span>The Different Story</span></span
+          >
+        </label>
+        <label class="field">
+          <span class="row spread"><span>Tempo</span><output id="bpm-out"></output></span>
+          <input id="bpm" type="range" min="100" max="135" step="1" />
+          <span class="row"
+            ><input id="bpm-auto" type="checkbox" />
+            <span>Auto (varies per song, 115–120; both originals run at 117.5)</span></span
+          >
+        </label>
+        <label class="field">
+          <span>Key</span>
+          <select id="key"></select>
+        </label>
+        <label class="field">
+          <span>Drum machine</span>
+          <select id="kit"></select>
+        </label>
+        <p class="note" id="kit-status"></p>
+      </section>
+
+      <section class="card mixer">
+        <h3>Mixer</h3>
+        <div id="mixer-rows"></div>
+      </section>
+
+      <section class="card about">
+        <h3>How it works</h3>
+        <p>
+          Each song is composed from a seed. Verse and chorus progressions come from a bank built on
+          the two songs' shared Aeolian engine, <b>i–VI–VII</b> in the verse and <b>i–III–VII</b> in
+          the chorus. The style slider moves the substitutions between them: True Faith's minor
+          <b>v</b> and chorus ending on <b>iv</b>, against The Different Story's major <b>V</b> and
+          ending on <b>VI</b>.
+        </p>
+        <p>
+          The riff and melodic bass are per-song motifs that follow the chords. The lead melody is
+          diatonic, mostly stepwise, with chord tones on strong beats. The final chorus doubles the
+          lead an octave up, and some outros lift to the major key a fourth up. When a song ends,
+          the next one starts.
+        </p>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
