@@ -1,11 +1,15 @@
 import "./style.css";
 import { chordSlots } from "./arranger";
-import type { BassStyle, ImportedTracks, KitName, Song } from "./composer";
+import type { BassStyle, DrumMode, ImportedTracks, KitName, Song } from "./composer";
 import { KIT_LABELS } from "./drums";
 import { Engine, type EngineSettings } from "./engine";
 import { DEFAULT_VOLUMES, TRACK_LABELS, TRACKS, type Track } from "./instruments";
 import { matchTracks, mergeBars, parseMidi, toDrumBars, type MidiFile } from "./midi";
+import { mountCreator } from "./creator";
+import { download, exportAudio, fileName, songToMidi } from "./export";
+import { PianoRoll } from "./pianoroll";
 import { REFERENCES, type ReferenceId } from "./references";
+import { decodeCreation, encodeCreation, songToSpec, type Creation } from "./spec";
 import { randomSeed } from "./rng";
 import { chord, chordName, keyName, noteName } from "./theory";
 import { startVisualizer } from "./visualizer";
@@ -21,6 +25,8 @@ interface Prefs {
   volumes: Record<Track, number>;
   muted: Track[];
   master: number;
+  /** Start playing as soon as the page loads (or at the first interaction, if the browser asks). */
+  autoplay: boolean;
 }
 
 const PREFS_KEY = "infinite-synthpop:prefs:v1";
@@ -33,6 +39,7 @@ const defaults: Prefs = {
   volumes: { ...DEFAULT_VOLUMES },
   muted: [],
   master: 0,
+  autoplay: false,
 };
 
 function loadPrefs(): Prefs {
@@ -89,7 +96,127 @@ const ui = {
   kit: el<HTMLSelectElement>("kit"),
   kitStatus: el("kit-status"),
   mixer: el("mixer-rows"),
+  sectionDetail: el("section-detail"),
 };
+const roll = new PianoRoll(el<HTMLCanvasElement>("roll"), (bar) => {
+  engine.jumpTo(bar);
+  if (!engine.playing) renderBar(engine.song, bar);
+});
+
+// ── Creator mode and looping ──────────────────────────────────────────────────────────────────
+
+const CREATION_KEY = "infinite-synthpop:creation:v1";
+const creatorToggle = el<HTMLButtonElement>("creator-toggle");
+const loopToggle = el<HTMLButtonElement>("loop");
+/** The section on screen (the one playing, or the one picked on the timeline). */
+let shownSection = 0;
+
+function saveCreation(creation: Creation): void {
+  try {
+    localStorage.setItem(CREATION_KEY, encodeCreation(creation));
+  } catch {
+    // Private mode or storage full: the link still carries the song.
+  }
+}
+
+function savedCreation(): Creation | null {
+  try {
+    const raw = localStorage.getItem(CREATION_KEY);
+    return raw ? decodeCreation(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Shows a section: playback jumps there, and it becomes the looped one when looping. */
+function selectSection(index: number): void {
+  const section = engine.song.sections[index];
+  if (!section) return;
+  shownSection = index;
+  engine.jumpTo(section.startBar);
+  if (engine.loopSection !== null) engine.setLoop(index);
+  if (!engine.playing) renderBar(engine.song, section.startBar);
+}
+
+function setLooping(on: boolean): void {
+  engine.setLoop(on ? shownSection : null);
+  loopToggle.setAttribute("aria-pressed", String(on));
+}
+
+/** Creator mode edits the playing song in place (it becomes a creation the first time). */
+function setCreator(on: boolean): void {
+  if (on && !engine.creation) {
+    const song = engine.song;
+    engine.playCustom({ seed: song.seed, spec: songToSpec(song) }, true);
+  }
+  creator.setActive(on);
+  creatorToggle.setAttribute("aria-pressed", String(on));
+  document.body.classList.toggle("creating", on);
+  renderSong(engine.song);
+}
+
+const creator = mountCreator(ui.progression, el("section-editor"), {
+  song: () => engine.song,
+  creation: () => engine.creation,
+  play: (c, keepPosition) => engine.playCustom(c, keepPosition),
+  edit: (spec) => engine.editCustom(spec),
+  select: selectSection,
+  saved: savedCreation,
+  copyLink: () =>
+    navigator.clipboard
+      ? navigator.clipboard.writeText(location.href).then(
+          () => true,
+          () => false,
+        )
+      : Promise.resolve(false),
+});
+creatorToggle.addEventListener("click", () => setCreator(!creator.active));
+loopToggle.addEventListener("click", () => setLooping(engine.loopSection === null));
+
+// ── Export ────────────────────────────────────────────────────────────────────────────────────
+
+const exportButtons = [...document.querySelectorAll<HTMLButtonElement>("[data-export]")];
+const exportStatus = el("export-status");
+
+async function exportSong(format: string): Promise<void> {
+  const song = engine.song;
+  if (format === "midi") {
+    download(songToMidi(song), fileName(song.title, "mid"), "audio/midi");
+    exportStatus.textContent = `Saved “${fileName(song.title, "mid")}”`;
+    return;
+  }
+  if (format !== "mp3" && format !== "wav") return;
+  // Rendering borrows the audio engine, so live playback stops first.
+  if (engine.playing) engine.stop();
+  for (const b of exportButtons) b.disabled = true;
+  try {
+    const blob = await exportAudio(song, format, {
+      volumes: prefs.volumes,
+      master: prefs.master,
+      muted: prefs.muted,
+      soloed: [...soloed],
+      onProgress: (f, stage) => {
+        exportStatus.textContent = `${stage === "rendering" ? "Rendering" : "Encoding"} ${Math.round(f * 100)}%`;
+      },
+    });
+    download(blob, fileName(song.title, format), blob.type);
+    exportStatus.textContent = `Saved “${fileName(song.title, format)}” (${(blob.size / 1e6).toFixed(1)} MB)`;
+  } catch (e) {
+    exportStatus.textContent = `Export failed: ${String(e)}`;
+  } finally {
+    for (const b of exportButtons) b.disabled = false;
+  }
+}
+for (const b of exportButtons) {
+  b.addEventListener("click", () => void exportSong(b.dataset.export ?? ""));
+}
+
+const autoplayBox = el<HTMLInputElement>("autoplay");
+autoplayBox.checked = prefs.autoplay;
+autoplayBox.addEventListener("change", () => {
+  prefs.autoplay = autoplayBox.checked;
+  savePrefs();
+});
 const originals = [...document.querySelectorAll<HTMLButtonElement>("[data-reference]")];
 
 function isReferenceId(id: string | null | undefined): id is ReferenceId {
@@ -110,6 +237,7 @@ function engineSettings(): EngineSettings {
 const hash = new URLSearchParams(location.hash.slice(1));
 const initialSeed = Number(hash.get("seed"));
 const initialReference = hash.get("ref");
+const initialCreation = hash.get("song");
 const engine = new Engine(
   engineSettings(),
   Number.isInteger(initialSeed) && initialSeed > 0 ? initialSeed : randomSeed(),
@@ -138,6 +266,37 @@ async function togglePlay(): Promise<void> {
   }
 }
 
+/**
+ * Autoplay on load. Browsers only let audio start without a click on sites you often play media
+ * on; a throwaway AudioContext shows whether this is one ("running" rather than "suspended").
+ * If not, the first click or key press anywhere starts playback.
+ */
+function autoplay(): void {
+  if (!prefs.autoplay) return;
+  let allowed = false;
+  try {
+    const probe = new AudioContext();
+    allowed = probe.state === "running";
+    void probe.close();
+  } catch {
+    // No Web Audio at all: leave it to the first click.
+  }
+  if (allowed) {
+    void togglePlay();
+    return;
+  }
+  ui.play.textContent = "▶ Click anywhere to start";
+  const start = (e: Event) => {
+    document.removeEventListener("pointerdown", start, true);
+    document.removeEventListener("keydown", start, true);
+    // Let a click on the Play button itself do its own toggling.
+    if (e.target instanceof Element && e.target.closest("#play")) return;
+    if (!engine.playing) void togglePlay();
+  };
+  document.addEventListener("pointerdown", start, true);
+  document.addEventListener("keydown", start, true);
+}
+
 // ── Rendering ─────────────────────────────────────────────────────────────────────────────────
 
 const BASS_LABELS: Record<BassStyle, string> = {
@@ -155,13 +314,26 @@ function renderSong(song: Song): void {
     BASS_LABELS[song.bassStyle],
     `${song.totalBars} bars`,
     ...(song.reference ? ["original form & chords, generated melodies"] : []),
+    ...(engine.creation ? ["your creation (loops)"] : []),
   ].join(" · ");
   ui.seed.value = String(song.seed);
   if (prefs.bpmAuto) {
     ui.bpm.value = String(song.bpm);
     ui.bpmOut.value = `${song.bpm} BPM`;
   }
-  history.replaceState(null, "", song.reference ? `#ref=${song.reference}` : `#seed=${song.seed}`);
+  const creation = engine.creation;
+  if (creation) saveCreation(creation);
+  history.replaceState(
+    null,
+    "",
+    creation
+      ? `#song=${encodeCreation(creation)}`
+      : song.reference
+        ? `#ref=${song.reference}`
+        : `#seed=${song.seed}`,
+  );
+  loopToggle.setAttribute("aria-pressed", String(engine.loopSection !== null));
+  if (creator.active && !engine.creation) setCreator(false);
   for (const b of originals)
     b.setAttribute("aria-pressed", String(b.dataset.reference === song.reference));
 
@@ -178,13 +350,11 @@ function renderSong(song: Song): void {
       b.innerHTML = `<div class="fill"></div><span></span>`;
       const label = b.querySelector("span");
       if (label) label.textContent = s.label;
-      b.addEventListener("click", () => {
-        engine.jumpTo(s.startBar);
-        if (!engine.playing) renderBar(engine.song, s.startBar);
-      });
+      b.addEventListener("click", () => selectSection(i));
       return b;
     }),
   );
+  creator.decorateTimeline(ui.timeline);
   renderBar(song, Math.min(engine.currentBar, song.totalBars - 1));
 }
 
@@ -213,20 +383,25 @@ function renderBar(song: Song, bar: number): void {
   }
 
   ui.sectionName.textContent = section.label;
+  shownSection = sectionIndex;
   const current = inSection % section.progression.length;
-  ui.progression.replaceChildren(
-    ...section.progression.map((numerals, i) => {
-      const li = document.createElement("li");
-      li.className = i === current ? "active" : "";
-      const names = numerals.map((n) => chordName(section.key, chord(n)));
-      li.innerHTML = `<span></span><small></small>`;
-      const [name, numeral] = li.children;
-      if (name) name.textContent = names.join(" – ");
-      if (numeral) numeral.textContent = numerals.join(" – ");
-      return li;
-    }),
-  );
+  if (creator.active) creator.show(sectionIndex, bar);
+  else
+    ui.progression.replaceChildren(
+      ...section.progression.map((numerals, i) => {
+        const li = document.createElement("li");
+        li.className = i === current ? "active" : "";
+        const names = numerals.map((n) => chordName(section.key, chord(n)));
+        li.innerHTML = `<span></span><small></small>`;
+        const [name, numeral] = li.children;
+        if (name) name.textContent = names.join(" – ");
+        if (numeral) numeral.textContent = numerals.join(" – ");
+        return li;
+      }),
+    );
   ui.barCount.textContent = `Bar ${bar + 1} / ${song.totalBars} · section bar ${inSection + 1} / ${section.bars}`;
+  renderSectionDetail(song, sectionIndex);
+  roll.show(song, bar, engine.playing);
 
   ui.timeline.querySelectorAll<HTMLElement>(".sec").forEach((node, i) => {
     node.classList.toggle("active", i === sectionIndex);
@@ -235,6 +410,31 @@ function renderBar(song: Song, bar: number): void {
     if (fill && i === sectionIndex) fill.style.width = `${((inSection + 1) / section.bars) * 100}%`;
     else if (fill && i > sectionIndex) fill.style.width = "0";
   });
+}
+
+const DRUM_LABELS: Record<DrumMode, string> = {
+  off: "no drums",
+  kick: "kick only",
+  half: "half-time drums",
+  full: "full drums",
+  big: "big drums",
+  groove: "intro groove",
+};
+
+function renderSectionDetail(song: Song, index: number): void {
+  const section = song.sections[index];
+  if (!section) return;
+  const next = song.sections[index + 1];
+  const parts = [
+    `${section.bars} bars`,
+    keyName(section.key),
+    DRUM_LABELS[section.layers.drums],
+    `next: ${next ? `${next.label} (${next.bars})` : engine.creation ? "back to the start" : "the next song"}`,
+  ];
+  ui.sectionDetail.innerHTML = "<b></b> · ";
+  const name = ui.sectionDetail.querySelector("b");
+  if (name) name.textContent = section.label;
+  ui.sectionDetail.append(parts.join(" · "));
 }
 
 function renderKitStatus(): void {
@@ -530,9 +730,14 @@ ui.mixer.append(master);
 
 // ── Go ────────────────────────────────────────────────────────────────────────────────────────
 
-if (isReferenceId(initialReference)) engine.playReference(initialReference);
+const linked = initialCreation ? decodeCreation(initialCreation) : null;
+if (linked) {
+  engine.playCustom(linked);
+  setCreator(true);
+} else if (isReferenceId(initialReference)) engine.playReference(initialReference);
 else renderSong(engine.song);
 renderKitStatus();
+autoplay();
 startVisualizer(ui.viz, () =>
   engine.instruments && engine.playing
     ? { fft: engine.instruments.fft, waveform: engine.instruments.waveform }

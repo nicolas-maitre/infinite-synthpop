@@ -105,6 +105,8 @@ export interface Song {
   seed: number;
   /** Set when this is one of the two originals (references.ts) rather than a generated song. */
   reference: ReferenceId | null;
+  /** The spec this song was laid out from: an original's, or a creation's (creator mode). */
+  spec: ReferenceSong | null;
   title: string;
   bpm: number;
   key: Key;
@@ -119,6 +121,8 @@ export interface Song {
   arp: Motif;
   sequence: SequencePattern;
   melodies: Record<MelodyKind, Melody>;
+  /** Per section (by index): the melody its lead plays, written over that section's chords. */
+  sectionMelodies: (Melody | null)[];
   /** Tracks supplied at runtime from a MIDI file (midi.ts), by song bar; they replace the
    * generated part. */
   imported?: ImportedTracks;
@@ -133,6 +137,8 @@ export interface ComposeOptions {
   kit?: KitName | "auto";
   /** Play an original's measured form, chords, key, tempo and kit instead of generating them. */
   reference?: ReferenceId | null;
+  /** Lay the song out from this spec instead (creator mode); takes precedence over `reference`. */
+  custom?: ReferenceSong | null;
 }
 
 /** Both recordings measure 117.45 BPM. */
@@ -157,7 +163,7 @@ const KEY_WEIGHTS: readonly (readonly [number, number])[] = [
 ];
 
 export function compose(opts: ComposeOptions): Song {
-  const ref = opts.reference ? REFERENCES[opts.reference] : undefined;
+  const ref = opts.custom ?? (opts.reference ? REFERENCES[opts.reference] : undefined);
   const style = ref ? ref.style : Math.min(1, Math.max(0, opts.style));
   const root = createRng(opts.seed);
   const rngSetup = root.fork("setup");
@@ -220,7 +226,8 @@ export function compose(opts: ComposeOptions): Song {
 
   return {
     seed: opts.seed,
-    reference: opts.reference ?? null,
+    reference: opts.custom ? null : (opts.reference ?? null),
+    spec: ref ?? null,
     title: ref?.title ?? generateTitle(root.fork("title")),
     bpm,
     key,
@@ -235,6 +242,7 @@ export function compose(opts: ComposeOptions): Song {
     arp: generateArp(rngMotif),
     sequence: generateSequence(root.fork("sequence")),
     melodies,
+    sectionMelodies: sectionMelodies(root, sections, key, progressions, melodies),
   };
 }
 
@@ -451,6 +459,41 @@ function planSections(
   });
 }
 
+/**
+ * The melody for each section with a lead. A section on the song's own verse or chorus progression
+ * (and key) plays the song's melody for it; any other (a creator edit, a lifted outro) gets one
+ * written over its own chords, shared by every section with the same kind, chords and key, so
+ * repeats still repeat.
+ */
+function sectionMelodies(
+  root: Rng,
+  sections: readonly Section[],
+  key: Key,
+  progressions: Record<ProgressionKind, Progression>,
+  melodies: Record<MelodyKind, Melody>,
+): (Melody | null)[] {
+  const written = new Map<string, Melody>();
+  return sections.map((section) => {
+    const kind = section.layers.lead;
+    if (!kind) return null;
+    const progression = JSON.stringify(section.progression);
+    const sameKey = section.key.tonic === key.tonic && section.key.mode === key.mode;
+    if (sameKey && progression === JSON.stringify(progressions[kind])) return melodies[kind];
+    const id = `${kind}|${section.key.tonic}${section.key.mode}|${progression}`;
+    let melody = written.get(id);
+    if (!melody) {
+      melody = generateMelody(
+        root.fork(`melody-${id}`),
+        section.key,
+        section.progression,
+        LEAD_RANGES[kind],
+      );
+      written.set(id, melody);
+    }
+    return melody;
+  });
+}
+
 /** An original's measured form, laid out like a generated one: fills into verses and choruses,
  * a fade at the end. */
 function referenceSections(ref: ReferenceSong): Section[] {
@@ -466,7 +509,10 @@ function referenceSections(ref: ReferenceSong): Section[] {
       key: s.key ?? ref.key,
       layers,
       startBar,
-      fill: !!next && layers.drums !== "off" && (next.kind === "chorus" || next.kind === "verse"),
+      fill:
+        !!next &&
+        layers.drums !== "off" &&
+        (s.fill ?? (next.kind === "chorus" || next.kind === "verse")),
       fade: !next,
     };
     startBar += s.bars;

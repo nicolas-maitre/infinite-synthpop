@@ -362,6 +362,26 @@ select:focus-visible {
   background: #16263a;
 }
 
+.section-detail {
+  margin: 14px 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.section-detail b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.roll {
+  width: 100%;
+  display: block;
+  border-radius: 10px;
+  background: #0a0a16;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -453,6 +473,206 @@ input[type="checkbox"] {
   padding-top: 12px;
   border-top: 1px solid var(--line);
   font-weight: 700;
+}
+
+.autoplay {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  align-self: center;
+}
+
+.autoplay input {
+  accent-color: var(--accent);
+}
+
+/* ── Creator mode: editing in place ── */
+
+#loop[aria-pressed="true"],
+#creator-toggle[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #2c1530;
+}
+
+/* The chords display turns into pickers, one per bar of the pattern. */
+.prog.editing {
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+}
+
+.prog.editing li.chord-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  overflow: visible;
+}
+
+.prog.editing select {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: #10101f;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 4px;
+}
+
+.prog.editing select + select {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.prog.editing li.chord-tools {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border-style: dashed;
+}
+
+/* Timeline: drag to reorder, + to add. */
+.creating .timeline .sec {
+  cursor: grab;
+}
+
+.timeline .sec.dragging {
+  opacity: 0.4;
+}
+
+.timeline .sec.drop-before {
+  box-shadow: -3px 0 0 var(--accent-2);
+}
+
+.timeline .sec.drop-after {
+  box-shadow: 3px 0 0 var(--accent-2);
+}
+
+.sec-add {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+}
+
+.sec-add > .btn {
+  height: 100%;
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 18px;
+}
+
+.sec-add-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px #0008;
+}
+
+.sec-add-menu[hidden] {
+  display: none;
+}
+
+/* The selected section's settings, under the piano roll. */
+.section-editor {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #13132a;
+}
+
+.section-editor[hidden] {
+  display: none;
+}
+
+.section-editor-head,
+.section-editor-instruments,
+.song-settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+
+.section-editor input,
+.section-editor select {
+  width: auto;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: #10101f;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.section-editor input[type="number"] {
+  width: 64px;
+}
+
+.section-editor input[type="range"] {
+  width: 140px;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.section-name-input {
+  flex: 1 1 140px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.editor-field {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.layer-toggle[aria-pressed="true"] {
+  background: #123a4a;
+  border-color: var(--accent-2);
+  color: var(--text);
+}
+
+.layer-toggle[aria-pressed="false"] {
+  color: var(--muted);
+}
+
+.song-settings {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.song-settings summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.song-settings[open] summary {
+  margin-bottom: 8px;
+}
+
+.song-settings .song-settings-row + .song-settings-row {
+  margin-top: 8px;
 }
 
 .about p {

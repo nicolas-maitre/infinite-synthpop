@@ -25,6 +25,24 @@ Press **Play**. Without the samples, the app falls back to synthesized drums, so
 
 - **Play / Stop, New song, Skip section.** Keyboard: Space, N, S. Click a block on the timeline to
   jump to that section.
+- **⟲ Loop** repeats the current section. **Autoplay** starts the music when the page loads. If
+  the browser blocks audio until you interact with the page, the first click or key press anywhere
+  starts it.
+- **Piano roll:** the whole current section under the timeline, one lane per instrument, with
+  each bar's chords and a playhead. Click a bar to jump there.
+- **✎ Creator:** edit the playing song in place:
+  - Click a timeline block to select a section, drag blocks to reorder, and use **+** at the end
+    to add one.
+  - The chords display turns into one picker per bar, with an optional second chord for the
+    bar's second half, and +/− to change the pattern length.
+  - Under the piano roll you set the selected section's name, type, length and key, its drums and
+    instruments, the lead melody, and a fill at its end.
+  - The **Song** line holds title, key, tempo, drum machine, bass figure and feel.
+  - Edits play from the next bar and are saved in the browser. The URL carries the song
+    (`#song=…`), so a link replays it. A creation loops until you pick another song.
+- **Export:** **MIDI** (every instrument on its own track, drums on channel 10, sections as
+  markers) or the whole song's audio with the current mixer as **MP3** (256 kbps, encoded in the
+  page) or **WAV**. Audio exports stop playback while they render.
 - **Originals:** play _True Faith_ or _The Different Story_ through the same engine, at their
   measured form, chords, key, tempo, drum machine and bass figure. The melodies stay generated.
   Links: `#ref=true-faith`, `#ref=different-story`. Generated songs follow when one ends.
@@ -71,7 +89,11 @@ src/arranger.ts      (song, bar) → every note and drum hit in that bar
 src/drums.ts         sample kits with synthesized fallback
 src/instruments.ts   synth voices, gated reverb, buses, mixer
 src/engine.ts        bar-by-bar scheduler that chains songs forever
-src/render.ts        offline render to WAV (dev tooling)
+src/render.ts        offline render (exports, and dev measurement)
+src/spec.ts          creator mode's song format: song ↔ spec, link encoding
+src/creator.ts       creator mode UI (timeline, chords, section panel)
+src/pianoroll.ts     the current section's piano roll
+src/export.ts        MIDI, WAV and MP3 export
 src/main.ts          UI
 ```
 
@@ -104,3 +126,6 @@ The drum samples come from
 [geikha/tidal-drum-machines](https://github.com/geikha/tidal-drum-machines), pinned to a commit in
 `scripts/fetch-samples.mjs`. That repository states no license, so the samples are git-ignored and
 fetched locally rather than redistributed.
+
+The MP3 encoder is [@breezystack/lamejs](https://www.npmjs.com/package/@breezystack/lamejs)
+(a JavaScript port of LAME, LGPL-3.0), installed as a dependency and bundled with the app.

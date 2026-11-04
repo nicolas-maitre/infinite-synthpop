@@ -8,6 +8,13 @@ import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./
 import { scheduleBar } from "./engine";
 import { Instruments, type Track } from "./instruments";
 
+/** Mixer levels (dB) to render with, and a progress callback (0–1). */
+export interface RenderOptions {
+  volumes?: Partial<Record<Track, number>>;
+  master?: number;
+  onProgress?: (fraction: number) => void;
+}
+
 /** Bars scheduled per step of the offline render. */
 const WINDOW_BARS = 2;
 
@@ -28,6 +35,7 @@ export async function renderSong(
   bars = song.totalBars,
   solo: readonly Track[] = [],
   mute: readonly Track[] = [],
+  options: RenderOptions = {},
 ): Promise<AudioBuffer> {
   const barSeconds = (60 / song.bpm) * 4;
   const barTime = (bar: number) => 0.05 + bar * barSeconds;
@@ -50,7 +58,12 @@ export async function renderSong(
     inst.setBassTone(song.style);
     for (const track of solo) inst.channels[track].solo = true;
     for (const track of mute) inst.channels[track].mute = true;
+    for (const [track, db] of Object.entries(options.volumes ?? {}) as [Track, number][]) {
+      inst.channels[track].volume.value = db;
+    }
+    if (options.master !== undefined) inst.master.volume.value = options.master;
     const scheduleWindow = (from: number) => {
+      options.onProgress?.(from / bars);
       const to = Math.min(bars, from + WINDOW_BARS);
       for (let bar = from; bar < to; bar++) {
         scheduleBar(inst, arrangeBar(song, bar), barTime(bar), song.bpm);

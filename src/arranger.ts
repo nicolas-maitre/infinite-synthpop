@@ -154,7 +154,7 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   };
 
   if (L.lead) {
-    const melody = song.melodies[L.lead];
+    const melody = song.sectionMelodies[sectionIndex] ?? song.melodies[L.lead];
     const lead = melody.bars[barInSection % melody.bars.length] ?? [];
     notes.lead = lead.map((n) => ({ ...n }));
     if (L.leadDouble)

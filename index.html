@@ -37,6 +37,21 @@
             <button id="play" class="btn primary" type="button">▶ Play</button>
             <button id="new-song" class="btn" type="button">New song</button>
             <button id="skip" class="btn" type="button">Skip section ⏭</button>
+            <button
+              id="loop"
+              class="btn"
+              type="button"
+              aria-pressed="false"
+              title="Repeat the current section (in creator mode: the one you selected)"
+            >
+              ⟲ Loop
+            </button>
+            <label class="autoplay" title="Start playing as soon as the page loads">
+              <input id="autoplay" type="checkbox" /> Autoplay
+            </label>
+            <button id="creator-toggle" class="btn" type="button" aria-pressed="false">
+              ✎ Creator
+            </button>
           </div>
           <div class="originals" role="group" aria-labelledby="originals-label">
             <span class="eyebrow" id="originals-label">Originals</span>
@@ -52,6 +67,34 @@
               <input id="midi-file" type="file" accept=".mid,.midi,audio/midi" hidden />
             </label>
             <span class="note" id="midi-status" role="status"></span>
+          </div>
+          <div class="originals exports" role="group" aria-labelledby="exports-label">
+            <span class="eyebrow" id="exports-label">Export</span>
+            <button
+              class="btn small"
+              type="button"
+              data-export="midi"
+              title="Every instrument as a MIDI track, sections as markers"
+            >
+              MIDI
+            </button>
+            <button
+              class="btn small"
+              type="button"
+              data-export="mp3"
+              title="The whole song with the current mixer, 256 kbps"
+            >
+              MP3
+            </button>
+            <button
+              class="btn small"
+              type="button"
+              data-export="wav"
+              title="The whole song with the current mixer, 16-bit WAV"
+            >
+              WAV
+            </button>
+            <span class="note" id="export-status" role="status"></span>
           </div>
         </div>
 
@@ -75,6 +118,14 @@
           role="list"
           aria-label="Song sections (click to jump)"
         ></div>
+
+        <p class="section-detail" id="section-detail"></p>
+        <canvas
+          id="roll"
+          class="roll"
+          aria-label="Piano roll of the current section: one lane per instrument (click to jump to a bar)"
+        ></canvas>
+        <div class="section-editor" id="section-editor" hidden aria-label="Selected section"></div>
       </section>
 
       <section class="card controls">

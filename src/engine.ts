@@ -6,6 +6,7 @@ import * as Tone from "tone";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents, type DrumVoice } from "./arranger";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
+import type { Creation, SongSpec } from "./spec";
 import { Instruments } from "./instruments";
 import { createRng } from "./rng";
 import type { Key } from "./theory";
@@ -43,6 +44,10 @@ export class Engine {
   private repeatId: number | null = null;
   /** Set while one of the originals plays; cleared when the next generated song starts. */
   private reference: ReferenceId | null = null;
+  /** Set while a creation (creator mode) plays; it loops until another song is chosen. */
+  private custom: Creation | null = null;
+  /** Creator mode: the section being edited plays on repeat. */
+  private loop: number | null = null;
   /** Parts loaded from the user's MIDI files, per original (midi.ts). */
   private readonly imported: Partial<Record<ReferenceId, ImportedTracks>> = {};
   private appliedBpm = 0;
@@ -57,6 +62,15 @@ export class Engine {
 
   get playing(): boolean {
     return this.repeatId !== null;
+  }
+
+  /** The section on repeat, or null. */
+  get loopSection(): number | null {
+    return this.loop;
+  }
+
+  get creation(): Creation | null {
+    return this.custom;
   }
 
   get currentBar(): number {
@@ -96,6 +110,8 @@ export class Engine {
   /** Jumps to a new song (random or given seed) at the next bar line. */
   newSong(seed: number): void {
     this.reference = null;
+    this.custom = null;
+    this.loop = null;
     this.song = this.compose(seed);
     this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
@@ -107,11 +123,45 @@ export class Engine {
    * line. Generated songs follow when it ends.
    */
   playReference(id: ReferenceId): void {
+    this.custom = null;
+    this.loop = null;
     this.reference = id;
     this.song = this.compose(REFERENCE_SEEDS[id]);
     this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
     this.events.onSong?.(this.song);
+  }
+
+  /**
+   * Plays a creation (creator mode) at the next bar line: from its first bar, or from the current
+   * bar when it was made from the playing song.
+   */
+  playCustom(creation: Creation, keepPosition = false): void {
+    this.reference = null;
+    this.custom = creation;
+    this.song = this.compose(creation.seed);
+    if (!keepPosition || this.bar >= this.song.totalBars) this.bar = 0;
+    if (this.instruments) this.applySong(this.instruments);
+    this.events.onSong?.(this.song);
+  }
+
+  /** Applies an edit to the playing creation from the next bar, keeping the play position. */
+  editCustom(spec: SongSpec): void {
+    if (!this.custom) return;
+    this.custom = { seed: this.custom.seed, spec };
+    this.song = this.compose(this.custom.seed);
+    if (this.bar >= this.song.totalBars) this.bar = 0;
+    if (this.instruments) this.applySong(this.instruments);
+    this.events.onSong?.(this.song);
+  }
+
+  /** Repeats one section (creator mode), jumping there; null plays straight through again. */
+  setLoop(sectionIndex: number | null): void {
+    this.loop = sectionIndex;
+    const section = sectionIndex === null ? undefined : this.song.sections[sectionIndex];
+    if (section && !(this.bar >= section.startBar && this.bar < section.startBar + section.bars)) {
+      this.bar = section.startBar;
+    }
   }
 
   /** Continues from this bar at the next bar line. */
@@ -140,7 +190,12 @@ export class Engine {
   }
 
   private compose(seed: number): Song {
-    const song = compose({ seed, ...this.settings, reference: this.reference });
+    const song = compose({
+      seed,
+      ...this.settings,
+      reference: this.reference,
+      custom: this.custom?.spec ?? null,
+    });
     const imported = this.reference ? this.imported[this.reference] : undefined;
     if (imported) song.imported = imported;
     return song;
@@ -177,7 +232,13 @@ export class Engine {
   private readonly tick = (time: number): void => {
     const inst = this.instruments;
     if (!inst) return;
-    if (this.bar >= this.song.totalBars) {
+    const looped = this.loop === null ? undefined : this.song.sections[this.loop];
+    if (looped && (this.bar < looped.startBar || this.bar >= looped.startBar + looped.bars)) {
+      this.bar = looped.startBar;
+    }
+    if (this.bar >= this.song.totalBars && this.custom) {
+      this.bar = 0;
+    } else if (this.bar >= this.song.totalBars) {
       this.reference = null;
       this.song = this.compose(nextSeed(this.song.seed));
       this.bar = 0;

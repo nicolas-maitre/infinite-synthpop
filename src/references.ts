@@ -18,6 +18,8 @@ export interface ReferenceSection {
   layers: Partial<Layers>;
   /** Defaults to the song's key. */
   key?: Key;
+  /** A drum fill in the last bar; defaults to one before a verse or chorus. */
+  fill?: boolean;
 }
 
 export interface ReferenceSong {

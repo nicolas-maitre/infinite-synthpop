@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar, MELODIC_TRACKS } from "./arranger";
 import { BPM_RANGE, compose } from "./composer";
+import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
+import { blankSpec, decodeCreation, encodeCreation, songToSpec } from "./spec";
 import { BANK, mutate, pickProgression } from "./progressions";
 import { createRng } from "./rng";
 import { chord, chordName, chordPitchClasses, mod12, scaleForChord, voiceChord } from "./theory";
@@ -341,5 +343,75 @@ describe("midi mapping", () => {
     const instrumental = song.sections.find((s) => s.layers.riff);
     if (!instrumental) throw new Error("no riff section");
     expect(arrangeBar(song, instrumental.startBar).notes.riff).toEqual([]);
+  });
+});
+
+/** Every note and hit of every bar, for comparing two songs. */
+function arrangement(song: ReturnType<typeof compose>): string {
+  return JSON.stringify(
+    Array.from({ length: song.totalBars }, (_, bar) => {
+      const ev = arrangeBar(song, bar);
+      return [ev.drums, Object.values(ev.notes)];
+    }),
+  );
+}
+
+describe("creator specs", () => {
+  it("turns a song into a spec that plays the same, and survives the link encoding", () => {
+    for (const seed of [3, 2001, 4242]) {
+      const song = compose({ seed, style: seed === 2001 ? 0.15 : 0.6 });
+      const spec = songToSpec(song);
+      const again = compose({ seed, style: 0, custom: spec });
+      expect(arrangement(again)).toBe(arrangement(song));
+      const decoded = decodeCreation(encodeCreation({ seed, spec }));
+      expect(decoded?.seed).toBe(seed);
+      expect(arrangement(compose({ seed, style: 0, custom: decoded?.spec }))).toBe(
+        arrangement(song),
+      );
+    }
+  });
+
+  it("writes an edited section its own melody and keeps the others'", () => {
+    const song = compose({ seed: 77, style: 0.5 });
+    const spec = songToSpec(song);
+    const verses = spec.sections.flatMap((s, i) => (s.kind === "verse" ? [i] : []));
+    const [edited, other] = verses;
+    if (edited === undefined || other === undefined) throw new Error("need two verses");
+    spec.sections[edited]!.progression = [["iv"], ["VII"], ["III"], ["VI"]];
+    const changed = compose({ seed: 77, style: 0.5, custom: spec });
+    expect(changed.sectionMelodies[edited]).not.toBe(changed.melodies.verse);
+    expect(changed.sectionMelodies[other]).toBe(changed.melodies.verse);
+  });
+
+  it("rejects garbage links and keeps only known chords", () => {
+    expect(decodeCreation("not-a-song")).toBeNull();
+    const spec = blankSpec();
+    spec.sections[0]!.progression = [["i", "VII"], ["IV"]];
+    const decoded = decodeCreation(encodeCreation({ seed: 1, spec }));
+    expect(decoded?.spec.sections[0]?.progression).toEqual([["i", "VII"], ["IV"]]);
+  });
+});
+
+describe("export", () => {
+  it("writes a MIDI file whose tracks hold exactly the arrangement's notes", () => {
+    const song = compose({ seed: 2001, style: 0.15 });
+    const file = parseMidi(songToMidi(song).buffer);
+    expect(file.ticksPerBeat).toBe(480);
+    const count = (tracks: readonly string[]) => {
+      let n = 0;
+      for (let bar = 0; bar < song.totalBars; bar++) {
+        const ev = arrangeBar(song, bar);
+        for (const t of tracks) n += ev.notes[t as keyof typeof ev.notes].length;
+      }
+      return n;
+    };
+    const byName = Object.fromEntries(file.tracks.map((t) => [t.name, t.notes.length]));
+    expect(byName["Seq bass"]).toBe(count(["bass"]));
+    expect(byName["Lead"]).toBe(count(["lead", "leadOct"]));
+    const drums = file.tracks.find((t) => t.name === "Drums");
+    expect(drums?.channel).toBe(9);
+    let hits = 0;
+    for (let bar = 0; bar < song.totalBars; bar++) hits += arrangeBar(song, bar).drums.length;
+    expect(drums?.notes.length).toBe(hits);
   });
 });
