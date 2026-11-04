@@ -115,7 +115,8 @@ export class DrumKit {
       this.synth[voice](time, vel);
       return;
     }
-    const src = new Tone.ToneBufferSource(buffer);
+    // In the kit's own context, not Tone's global one, which an offline render may be borrowing.
+    const src = new Tone.ToneBufferSource({ url: buffer, context: this.output.context });
     src.connect(voice === "snare" || voice === "clap" ? this.snareBus : this.output);
     src.onended = () => src.dispose();
     src.start(time, 0, undefined, vel ** 1.4);

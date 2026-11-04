@@ -92,6 +92,8 @@ export class Instruments {
   readonly fft = new Tone.Analyser("fft", 256);
   readonly waveform = new Tone.Analyser("waveform", 1024);
   readonly drums = new DrumKit();
+  /** Resolves once the reverbs' impulse responses are generated. */
+  readonly ready: Promise<void>;
 
   private readonly gate = new Tone.Gain(0);
   private readonly bassFm: Tone.FMSynth;
@@ -116,6 +118,7 @@ export class Instruments {
   private readonly disconnecting = new Map<Track, ReturnType<typeof setTimeout>>();
 
   private constructor(reverb: Tone.Reverb, gatedVerb: Tone.Reverb, lite: boolean) {
+    this.ready = Promise.all([reverb.ready, gatedVerb.ready]).then(() => undefined);
     // Bus glue, matched to the references' level and band balance (scripts/compare_mix.py).
     const eq = new Tone.EQ3({
       low: -1.5,
@@ -354,12 +357,16 @@ export class Instruments {
     this.guitar = { down: plucks(14), up: plucks(9), next: 0 };
   }
 
-  static async create({ lite = false }: InstrumentOptions = {}): Promise<Instruments> {
+  /**
+   * Builds every node at once, in Tone's current context; await `ready` before playing. Nothing
+   * here may straddle an await: an offline render borrows the global context, and nodes built
+   * across that swap would end up in two contexts.
+   */
+  static create({ lite = false }: InstrumentOptions = {}): Instruments {
     // Lite: shorter impulse responses. The gate shuts 200 ms after each hit, so the gated one
     // only needs to reach the next snare.
     const reverb = new Tone.Reverb({ decay: lite ? 2.2 : 3.2, preDelay: 0.02, wet: 1 });
     const gated = new Tone.Reverb({ decay: lite ? 0.8 : 1.6, preDelay: 0.005, wet: 1 });
-    await Promise.all([reverb.ready, gated.ready]);
     return new Instruments(reverb, gated, lite);
   }
 

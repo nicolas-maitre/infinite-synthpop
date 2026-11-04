@@ -50,38 +50,43 @@ export async function renderSong(
       clock._currentTime += 128 / context.sampleRate;
     }
   };
+  // The offline context is Tone's global only while the instruments are built, synchronously:
+  // the page's live engine keeps using the global context during the render (its drum hits,
+  // Tone.now(), a first Play building its own instruments).
   Tone.setContext(context);
+  let inst: Instruments;
   try {
-    const inst = await Instruments.create();
-    await inst.drums.loadAll();
-    inst.drums.use(song.kit);
-    inst.setBassTone(song.style);
-    for (const track of solo) inst.channels[track].solo = true;
-    for (const track of mute) inst.channels[track].mute = true;
-    for (const [track, db] of Object.entries(options.volumes ?? {}) as [Track, number][]) {
-      inst.channels[track].volume.value = db;
-    }
-    if (options.master !== undefined) inst.master.volume.value = options.master;
-    const scheduleWindow = (from: number) => {
-      options.onProgress?.(from / bars);
-      const to = Math.min(bars, from + WINDOW_BARS);
-      for (let bar = from; bar < to; bar++) {
-        scheduleBar(inst, arrangeBar(song, bar), barTime(bar), song.bpm);
-      }
-      tickTo(barTime(to));
-    };
-    scheduleWindow(0);
-    for (let from = WINDOW_BARS; from < bars; from += WINDOW_BARS) {
-      void raw.suspend(barTime(from) - 0.25).then(() => {
-        scheduleWindow(from);
-        void raw.resume();
-      });
-    }
-    const audio = await raw.startRendering();
-    return audio;
+    inst = Instruments.create();
   } finally {
     Tone.setContext(original);
   }
+  await inst.ready;
+  await inst.drums.loadAll();
+  inst.drums.use(song.kit);
+  inst.setBassTone(song.style);
+  for (const track of solo) inst.channels[track].solo = true;
+  for (const track of mute) inst.channels[track].mute = true;
+  for (const [track, db] of Object.entries(options.volumes ?? {}) as [Track, number][]) {
+    inst.channels[track].volume.value = db;
+  }
+  if (options.master !== undefined) inst.master.volume.value = options.master;
+  const scheduleWindow = (from: number) => {
+    options.onProgress?.(from / bars);
+    const to = Math.min(bars, from + WINDOW_BARS);
+    for (let bar = from; bar < to; bar++) {
+      scheduleBar(inst, arrangeBar(song, bar), barTime(bar), song.bpm);
+    }
+    tickTo(barTime(to));
+  };
+  scheduleWindow(0);
+  for (let from = WINDOW_BARS; from < bars; from += WINDOW_BARS) {
+    void raw.suspend(barTime(from) - 0.25).then(() => {
+      scheduleWindow(from);
+      void raw.resume();
+    });
+  }
+  const audio = await raw.startRendering();
+  return audio;
 }
 
 /** 16-bit PCM WAV. */

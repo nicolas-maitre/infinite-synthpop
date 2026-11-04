@@ -127,8 +127,10 @@ export class Engine {
     if (!this.instruments) useListeningContext();
     await Tone.start();
     if (!this.instruments) {
-      this.instruments = await Instruments.create({ lite: LITE });
-      this.samples = await this.instruments.drums.loadAll(onProgress);
+      const inst = Instruments.create({ lite: LITE });
+      await inst.ready;
+      this.instruments = inst;
+      this.samples = await inst.drums.loadAll(onProgress);
     }
     this.applySong(this.instruments);
     const transport = Tone.getTransport();
