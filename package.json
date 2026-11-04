@@ -1,6 +1,7 @@
 {
   "name": "infinite-synthpop",
   "private": true,
+  "license": "MIT",
   "version": "0.1.0",
   "description": "Endless generative 80s synth-pop in the style of True Faith / The Different Story",
   "type": "module",

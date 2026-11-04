@@ -163,12 +163,19 @@ To transcribe a part of a recording (or of a render's stems), separate it with D
 `scripts/transcribe_bass.py` on the stem folder. Its docstring has the commands. That is how the
 bass figure in `docs/analysis.md` §3 was measured.
 
-## Sample licensing
+## License
 
-The drum samples come from
-[geikha/tidal-drum-machines](https://github.com/geikha/tidal-drum-machines), pinned to a commit in
-`scripts/fetch-samples.mjs`. That repository states no license, so the samples are git-ignored and
-fetched locally rather than redistributed.
+The code is under the [MIT License](LICENSE). It does not cover these:
 
-The MP3 encoder is [@breezystack/lamejs](https://www.npmjs.com/package/@breezystack/lamejs)
-(a JavaScript port of LAME, LGPL-3.0), installed as a dependency and bundled with the app.
+- **Drum samples.** They come from
+  [geikha/tidal-drum-machines](https://github.com/geikha/tidal-drum-machines), pinned to a commit
+  in `scripts/fetch-samples.mjs`, and belong to their authors. That repository states no license,
+  so the samples aren't in this repository: `pnpm fetch-samples` downloads them locally.
+- **MP3 encoder.** [@breezystack/lamejs](https://www.npmjs.com/package/@breezystack/lamejs) (a
+  JavaScript port of LAME) stays under LGPL-3.0. It's installed as a dependency and loaded as its
+  own file, only when you export an MP3.
+- **The two songs.** "True Faith" and "The Different Story" belong to their writers and
+  publishers. The app uses only what the analysis measured: chord progressions, form, tempo and
+  groove. It contains none of their recordings, melodies or lyrics. A MIDI file you load is read in
+  your browser and never stored.
+- **Music you make with it.** The songs you generate, create or export are yours.
