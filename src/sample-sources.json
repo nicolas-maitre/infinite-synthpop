@@ -1,0 +1,49 @@
+{
+  "repo": "geikha/tidal-drum-machines",
+  "commit": "6577395a4d05031728ced2ec3e5637fa89d8be48",
+  "root": "machines",
+  "kits": {
+    "sp12": {
+      "kick": "EmuSP12/emusp12-bd/Bassdrum-01.wav",
+      "snare": "EmuSP12/emusp12-sd/Snaredrum-01.wav",
+      "hat": "EmuSP12/emusp12-hh/Hat Closed-01.wav",
+      "openhat": "EmuSP12/emusp12-oh/Hhopen1.wav",
+      "clap": "EmuSP12/emusp12-cp/Clap.wav",
+      "crash": "EmuSP12/emusp12-cr/Crash.wav",
+      "tomh": "EmuSP12/emusp12-ht/Tom H-01.wav",
+      "tomm": "EmuSP12/emusp12-mt/Tom M-01.wav",
+      "toml": "EmuSP12/emusp12-lt/Tom L-01.wav",
+      "rim": "EmuSP12/emusp12-rim/zRim Shot-01.wav",
+      "tamb": "LinnDrum/linndrum-tb/Tambourine.wav",
+      "cabasa": "LinnDrum/linndrum-sh/Cabasa.wav"
+    },
+    "linndrum": {
+      "kick": "LinnDrum/linndrum-bd/Bassdrum.wav",
+      "snare": "LinnDrum/linndrum-sd/0Snarderum-01.wav",
+      "hat": "LinnDrum/linndrum-hh/Hat Closed-01.wav",
+      "openhat": "LinnDrum/linndrum-oh/Hat Open.wav",
+      "clap": "LinnDrum/linndrum-cp/Clap.wav",
+      "crash": "LinnDrum/linndrum-cr/Crash.wav",
+      "tomh": "LinnDrum/linndrum-ht/Tom H-01.wav",
+      "tomm": "LinnDrum/linndrum-mt/Tom M-01.wav",
+      "toml": "LinnDrum/linndrum-lt/Tom L-01.wav",
+      "rim": "LinnDrum/linndrum-rim/Sidestick-01.wav",
+      "tamb": "LinnDrum/linndrum-tb/Tambourine.wav",
+      "cabasa": "LinnDrum/linndrum-sh/Cabasa.wav"
+    },
+    "dmx": {
+      "kick": "OberheimDMX/oberheimdmx-bd/Bassdrum-01.wav",
+      "snare": "OberheimDMX/oberheimdmx-sd/Snaredrum-01.wav",
+      "hat": "OberheimDMX/oberheimdmx-hh/Hat Closed.wav",
+      "openhat": "OberheimDMX/oberheimdmx-oh/Hat Open.wav",
+      "clap": "OberheimDMX/oberheimdmx-cp/Clap.wav",
+      "crash": "OberheimDMX/oberheimdmx-cr/Crash.wav",
+      "tomh": "OberheimDMX/oberheimdmx-ht/Tom H.wav",
+      "tomm": "OberheimDMX/oberheimdmx-mt/Tom M.wav",
+      "toml": "OberheimDMX/oberheimdmx-lt/Tom L.wav",
+      "rim": "OberheimDMX/oberheimdmx-rim/Rim Shot.wav",
+      "tamb": "LinnDrum/linndrum-tb/Tambourine.wav",
+      "cabasa": "LinnDrum/linndrum-sh/Cabasa.wav"
+    }
+  }
+}

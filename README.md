@@ -19,7 +19,11 @@ pnpm fetch-samples   # one-time: downloads the drum-machine samples into public/
 pnpm dev             # http://localhost:5173
 ```
 
-Press **Play**. Without the samples, the app falls back to synthesized drums, so it still works.
+Press **Play**. The first press loads the synths and drum samples (a spinner and a percentage on
+the button). Each sample comes from this site's `public/samples/` if it's there. If not, it comes
+from the samples' GitHub repository at the same pinned commit, and failing that a synthesized drum
+plays instead. The line under the drum-machine picker says which. So a deploy without the samples
+(GitHub Pages, say) still plays the real drum machines.
 
 ## Controls
 
@@ -124,7 +128,7 @@ src/references.ts    the two originals: measured form, chords, key, tempo, kit, 
 src/midi.ts          minimal MIDI file reader for user-supplied tracks
 src/composer.ts      seed → Song: form, progressions, riff / melodic-bass / arp motifs, lead melodies
 src/arranger.ts      (song, bar) → every note and drum hit in that bar
-src/drums.ts         sample kits with synthesized fallback
+src/drums.ts         sample kits: local, else GitHub, else synthesized
 src/instruments.ts   synth voices, gated reverb, buses, mixer
 src/engine.ts        bar-by-bar scheduler that chains songs forever, instant or bar-line switches
 src/schedule.ts      hands a bar's notes to the synths, whole or a 16th at a time
@@ -170,7 +174,9 @@ The code is under the [MIT License](LICENSE). It does not cover these:
 - **Drum samples.** They come from
   [geikha/tidal-drum-machines](https://github.com/geikha/tidal-drum-machines), pinned to a commit
   in `scripts/fetch-samples.mjs`, and belong to their authors. That repository states no license,
-  so the samples aren't in this repository: `pnpm fetch-samples` downloads them locally.
+  so the samples aren't in this repository: `pnpm fetch-samples` downloads them locally, and
+  without that the app loads them from that repository on GitHub. The file list and the pinned
+  commit are in `src/sample-sources.json`.
 - **MP3 encoder.** [@breezystack/lamejs](https://www.npmjs.com/package/@breezystack/lamejs) (a
   JavaScript port of LAME) stays under LGPL-3.0. It's installed as a dependency and loaded as its
   own file, only when you export an MP3.

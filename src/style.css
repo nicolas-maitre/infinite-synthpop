@@ -1200,3 +1200,34 @@ button.link {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* Play while the synths and samples load. */
+.btn.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: progress;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn.loading::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.loading::before {
+    animation-duration: 2.4s;
+  }
+}

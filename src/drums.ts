@@ -1,10 +1,31 @@
 /**
- * Drum machine: local samples (public/samples/<kit>/<voice>.wav, fetched by `pnpm fetch-samples`),
- * with a synthesized voice for anything that's missing or for the "synth" kit.
+ * Drum machine samples, from the first place that has each one:
+ * 1. this site (public/samples/<kit>/<voice>.wav, fetched by `pnpm fetch-samples`);
+ * 2. GitHub's raw-file CDN, serving the same files from their repository at the pinned commit
+ *    (jsDelivr would cache better, but refuses that repository: it is over its 50 MB limit);
+ * 3. a synthesized voice (also the whole "synth" kit).
  */
 import * as Tone from "tone";
 import { DRUM_VOICES, type DrumVoice } from "./arranger";
 import type { KitName } from "./composer";
+import SOURCES from "./sample-sources.json";
+
+/** Where each kit's samples came from, voice by voice. */
+export interface SampleReport {
+  local: number;
+  /** Loaded from GitHub. */
+  remote: number;
+  /** Voices played by the synth instead. */
+  missing: DrumVoice[];
+}
+
+const REMOTE = `https://raw.githubusercontent.com/${SOURCES.repo}/${SOURCES.commit}/${SOURCES.root}`;
+
+/** Where GitHub serves a kit's voice, or null if it has none. */
+export function remoteUrl(kit: string, voice: DrumVoice): string | null {
+  const path = (SOURCES.kits as Record<string, Partial<Record<DrumVoice, string>>>)[kit]?.[voice];
+  return path ? `${REMOTE}/${path.split("/").map(encodeURIComponent).join("/")}` : null;
+}
 
 export const SAMPLE_KITS = ["sp12", "linndrum", "dmx"] as const satisfies readonly KitName[];
 export const KIT_LABELS: Record<KitName, string> = {
@@ -37,28 +58,38 @@ export class DrumKit {
     return this.current;
   }
 
-  /** Loads every sample kit. Returns the voices that fell back to synthesis, per kit. */
-  async loadAll(): Promise<Record<string, DrumVoice[]>> {
-    const missing: Record<string, DrumVoice[]> = {};
+  /**
+   * Loads every sample kit, each voice from the site, else GitHub, else leaving it to the synth.
+   * `onProgress` hears how many of the voices are settled.
+   */
+  async loadAll(
+    onProgress?: (done: number, total: number) => void,
+  ): Promise<Record<string, SampleReport>> {
+    const report: Record<string, SampleReport> = {};
+    const total = SAMPLE_KITS.length * DRUM_VOICES.length;
+    let done = 0;
     await Promise.all(
       SAMPLE_KITS.map(async (kit) => {
         const map = new Map<DrumVoice, Tone.ToneAudioBuffer>();
-        const lost: DrumVoice[] = [];
+        const kitReport: SampleReport = { local: 0, remote: 0, missing: [] };
+        report[kit] = kitReport;
         await Promise.all(
           DRUM_VOICES.map(async (voice) => {
-            try {
-              const url = `${import.meta.env.BASE_URL}samples/${kit}/${voice}.wav`;
-              map.set(voice, await new Tone.ToneAudioBuffer().load(url));
-            } catch {
-              lost.push(voice);
-            }
+            const local = `${import.meta.env.BASE_URL}samples/${kit}/${voice}.wav`;
+            const remote = remoteUrl(kit, voice);
+            const here = await load(local);
+            const buffer = here ?? (remote ? await load(remote) : null);
+            if (buffer) {
+              map.set(voice, buffer);
+              kitReport[here ? "local" : "remote"]++;
+            } else kitReport.missing.push(voice);
+            onProgress?.(++done, total);
           }),
         );
         this.buffers.set(kit, map);
-        if (lost.length) missing[kit] = lost;
       }),
     );
-    return missing;
+    return report;
   }
 
   use(kit: KitName): void {
@@ -86,6 +117,15 @@ export class DrumKit {
     src.onended = () => src.dispose();
     src.start(time, 0, undefined, vel ** 1.4);
     if (voice === "openhat") this.openHat = src;
+  }
+}
+
+/** A sample, or null when it isn't there (a 404, or a page served in its place). */
+async function load(url: string): Promise<Tone.ToneAudioBuffer | null> {
+  try {
+    return await new Tone.ToneAudioBuffer().load(url);
+  } catch {
+    return null;
   }
 }
 

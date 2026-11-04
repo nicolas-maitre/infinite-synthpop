@@ -5,7 +5,8 @@
  * the last.
  */
 import * as Tone from "tone";
-import { arrangeBar, type BarEvents, type DrumVoice } from "./arranger";
+import { arrangeBar, type BarEvents } from "./arranger";
+import type { SampleReport } from "./drums";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
@@ -44,7 +45,8 @@ export function nextSeed(seed: number): number {
 export class Engine {
   song: Song;
   instruments: Instruments | null = null;
-  missingSamples: Record<string, DrumVoice[]> = {};
+  /** Where each kit's drum samples came from (drums.ts), once loaded. */
+  samples: Record<string, SampleReport> = {};
   private bar = 0;
   private repeatId: number | null = null;
   /** Set while one of the originals plays; cleared when the next generated song starts. */
@@ -115,14 +117,17 @@ export class Engine {
     if (on && this.cue !== null) this.restart();
   }
 
-  /** Must be called from a user gesture (browsers block audio until then). */
-  async start(): Promise<void> {
+  /**
+   * Must be called from a user gesture (browsers block audio until then). The first time, it
+   * loads the instruments and samples, telling `onProgress` how many samples are settled.
+   */
+  async start(onProgress?: (done: number, total: number) => void): Promise<void> {
     if (this.playing) return;
     if (!this.instruments) useListeningContext();
     await Tone.start();
     if (!this.instruments) {
       this.instruments = await Instruments.create();
-      this.missingSamples = await this.instruments.drums.loadAll();
+      this.samples = await this.instruments.drums.loadAll(onProgress);
     }
     this.applySong(this.instruments);
     const transport = Tone.getTransport();

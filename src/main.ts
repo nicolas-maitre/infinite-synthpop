@@ -424,13 +424,18 @@ async function togglePlay(): Promise<void> {
     return;
   }
   ui.play.disabled = true;
+  // The first start loads the synths and ~36 drum samples: a spinner, then a count.
+  ui.play.classList.add("loading");
   ui.play.textContent = "Loading…";
   try {
-    await engine.start();
+    await engine.start((done, total) => {
+      ui.play.textContent = `Loading ${Math.round((done / total) * 100)}%`;
+    });
     applyMixer();
     renderKitStatus();
   } finally {
     ui.play.disabled = false;
+    ui.play.classList.remove("loading");
   }
 }
 
@@ -754,13 +759,25 @@ function renderSectionDetail(song: Song, index: number): void {
 }
 
 function renderKitStatus(): void {
-  const missing = Object.entries(engine.missingSamples);
-  const total = missing.reduce((n, [, v]) => n + v.length, 0);
-  ui.kitStatus.textContent = !engine.instruments
-    ? "Samples load from public/samples on first play."
-    : total === 0
-      ? "All drum samples loaded locally."
-      : `Synth fallback for ${total} missing sample(s): ${missing.map(([k, v]) => `${k}: ${v.join(", ")}`).join("; ")}. Run \`pnpm fetch-samples\`.`;
+  if (!engine.instruments) {
+    ui.kitStatus.textContent = "Drum samples load on first play: from this site, else from GitHub.";
+    return;
+  }
+  const kits = Object.entries(engine.samples);
+  const count = (key: "local" | "remote") => kits.reduce((n, [, r]) => n + r[key], 0);
+  const missing = kits.filter(([, r]) => r.missing.length);
+  const lines = [
+    count("local") && !count("remote") && !missing.length ? "All drum samples loaded locally." : "",
+    count("remote")
+      ? `${count("remote")} drum sample(s) from GitHub (\`pnpm fetch-samples\` keeps them on this site).`
+      : "",
+    missing.length
+      ? `Synthesized instead of ${missing.reduce((n, [, r]) => n + r.missing.length, 0)} sample(s) neither place had: ${missing
+          .map(([kit, r]) => `${KIT_LABELS[kit as KitName]}: ${r.missing.join(", ")}`)
+          .join("; ")}.`
+      : "",
+  ];
+  ui.kitStatus.textContent = lines.filter(Boolean).join(" ");
 }
 
 // ── Controls ──────────────────────────────────────────────────────────────────────────────────
