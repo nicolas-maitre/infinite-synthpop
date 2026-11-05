@@ -7,6 +7,7 @@ import * as Tone from "tone";
 import type { DrumHit, MelodicTrack } from "./arranger";
 import type { Note } from "./composer";
 import { DrumKit } from "./drums";
+import { FixedEQ3, FixedFilter } from "./filters";
 import { midiToFreq } from "./theory";
 
 export const TRACKS = [
@@ -99,7 +100,7 @@ export class Instruments {
   private readonly bassFm: Tone.FMSynth;
   private readonly bassSaw: Tone.MonoSynth;
   private readonly bassTone: Tone.OnePoleFilter;
-  private readonly bassPresence: Tone.Filter;
+  private readonly bassPresence: FixedFilter;
   private readonly hook: Tone.MonoSynth;
   private readonly pad: Tone.PolySynth;
   private readonly riffFm: Tone.PolySynth<Tone.FMSynth>;
@@ -120,13 +121,23 @@ export class Instruments {
   private constructor(reverb: Tone.Reverb, gatedVerb: Tone.Reverb, lite: boolean) {
     this.ready = Promise.all([reverb.ready, gatedVerb.ready]).then(() => undefined);
     // Bus glue, matched to the references' level and band balance (scripts/compare_mix.py).
-    const eq = new Tone.EQ3({
-      low: -1.5,
-      mid: 1.5,
-      high: 2.5,
-      lowFrequency: 150,
-      highFrequency: 3500,
-    });
+    // Lite: about the same curve from two shelves, which cost Firefox a fraction of the band split
+    // in a real mix (5% of real time against under 1%, on a desktop).
+    const eq = lite
+      ? [
+          new Tone.Gain(Tone.dbToGain(1.5)),
+          new FixedFilter("lowshelf", 150, { gain: -3 }),
+          new FixedFilter("highshelf", 3500, { gain: 1 }),
+        ]
+      : [
+          new FixedEQ3({
+            low: -1.5,
+            mid: 1.5,
+            high: 2.5,
+            lowFrequency: 150,
+            highFrequency: 3500,
+          }),
+        ];
     const comp = new Tone.Compressor({ threshold: -20, ratio: 2.5, attack: 0.02, release: 0.25 });
     const limiter = new Tone.Limiter(-1);
     // Tone's Limiter is a fast compressor, so drum transients overshoot it and clipped (245
@@ -143,11 +154,19 @@ export class Instruments {
     // Headroom trim: without it the bus compressor and limiter squashed TF-style songs to a crest
     // factor of 11 dB (the records: 15–18).
     const trim = new Tone.Gain(Tone.dbToGain(-4));
-    this.master.chain(trim, eq, comp, limiter, new Tone.Gain(0.5), softClip, Tone.getDestination());
+    this.master.chain(
+      trim,
+      ...eq,
+      comp,
+      limiter,
+      new Tone.Gain(0.5),
+      softClip,
+      Tone.getDestination(),
+    );
     softClip.fan(this.fft, this.waveform);
 
     const delay = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.32, wet: 1 });
-    const delayFilter = new Tone.Filter(600, "highpass");
+    const delayFilter = new FixedFilter("highpass", 600);
     delay.chain(delayFilter, this.master);
     reverb.connect(this.master);
 
@@ -185,9 +204,9 @@ export class Instruments {
       oversample: lite ? "none" : "2x",
       wet: 0.15,
     });
-    const bassEq = new Tone.Filter({ type: "lowshelf", frequency: 100, gain: -6 });
+    const bassEq = new FixedFilter("lowshelf", 100, { gain: -6 });
     // Presence, so the harmonics stay audible against the mid parts (strongest for TF).
-    this.bassPresence = new Tone.Filter({ type: "peaking", frequency: 700, Q: 0.6, gain: 4 });
+    this.bassPresence = new FixedFilter("peaking", 700, { Q: 0.6, gain: 4 });
     this.bassTone = new Tone.OnePoleFilter(220, "lowpass");
     this.bassTone.chain(bassDrive, bassEq, this.bassPresence, this.channels.bass);
     this.bassFm = new Tone.FMSynth({
@@ -239,8 +258,8 @@ export class Instruments {
 
     // Pad: detuned saws, slow attack, darkened and chorused. High-passed so it leaves the bass's
     // harmonics audible (Demucs on a render showed the pad and other mid parts swallowing them).
-    const padHighpass = new Tone.Filter(220, "highpass", -12);
-    const padFilter = new Tone.Filter(2800, "lowpass", -12);
+    const padHighpass = new FixedFilter("highpass", 220);
+    const padFilter = new FixedFilter("lowpass", 2800);
     const padChorus = new Tone.Chorus({
       frequency: 0.8,
       delayTime: 4,
@@ -265,7 +284,7 @@ export class Instruments {
       envelope: { attack: 0.001, decay: 0.4, sustain: 0.08, release: 0.3 },
       modulationEnvelope: { attack: 0.001, decay: 0.18, sustain: 0.1, release: 0.2 },
     }).connect(this.channels.riff);
-    const riffFilter = new Tone.Filter(3200, "lowpass");
+    const riffFilter = new FixedFilter("lowpass", 3200);
     this.riffSaw = new Tone.PolySynth(Tone.Synth, {
       volume: -6,
       oscillator: { type: "sawtooth" },
@@ -274,7 +293,7 @@ export class Instruments {
 
     // Lead "voice": portamento + vibrato on detuned saws.
     const vibrato = new Tone.Vibrato({ frequency: 5.2, depth: 0.07 });
-    const leadFilter = new Tone.Filter(4500, "lowpass");
+    const leadFilter = new FixedFilter("lowpass", 4500);
     vibrato.chain(leadFilter, this.channels.lead);
     const leadOptions: ConstructorParameters<typeof Tone.MonoSynth>[0] = {
       portamento: 0.045,
@@ -309,7 +328,7 @@ export class Instruments {
       } as Tone.OmniOscillatorOptions,
       envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.25 },
     }).connect(this.channels.stab);
-    const stabNoiseFilter = new Tone.Filter(2500, "bandpass");
+    const stabNoiseFilter = new FixedFilter("bandpass", 2500);
     this.stabNoise = new Tone.NoiseSynth({
       noise: { type: "pink" },
       envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.05 },
@@ -328,7 +347,7 @@ export class Instruments {
         baseFrequency: 700,
         octaves: 2.5,
       },
-    }).chain(new Tone.Filter(200, "highpass", -12), this.channels.seq);
+    }).chain(new FixedFilter("highpass", 200), this.channels.seq);
     this.seq.maxPolyphony = lite ? 6 : 12;
 
     // Rhythm guitar: Karplus–Strong strings, DI'd and overdriven (Sound On Sound on Sumner's
@@ -337,8 +356,8 @@ export class Instruments {
     const guitarBus = new Tone.Gain(1);
     guitarBus.chain(
       new Tone.Distortion({ distortion: 0.6, oversample: lite ? "none" : "2x", wet: 0.85 }),
-      new Tone.Filter(3200, "lowpass", -12),
-      new Tone.Filter(180, "highpass", -12),
+      new FixedFilter("lowpass", 3200),
+      new FixedFilter("highpass", 180),
       ...(lite
         ? []
         : [new Tone.Chorus({ frequency: 1.2, delayTime: 3, depth: 0.3, wet: 0.3 }).start()]),

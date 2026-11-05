@@ -6,6 +6,7 @@
  * 3. a synthesized voice (also the whole "synth" kit).
  */
 import * as Tone from "tone";
+import { FixedFilter } from "./filters";
 import { DRUM_VOICES, type DrumVoice } from "./arranger";
 import type { KitName } from "./composer";
 import SOURCES from "./sample-sources.json";
@@ -150,7 +151,7 @@ function buildSynthKit(
     freq: number,
     dest = out,
   ) => {
-    const f = new Tone.Filter(freq, filter).connect(dest);
+    const f = new FixedFilter(filter, freq).connect(dest);
     return new Tone.NoiseSynth({
       noise: { type },
       envelope: { attack: 0.001, decay, sustain: 0, release: decay / 2 },
