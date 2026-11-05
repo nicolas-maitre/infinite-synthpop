@@ -1249,3 +1249,20 @@ button.link {
 .btn .icon circle {
   fill: currentColor;
 }
+
+/* ?stats / ?latency readout (audiostats.ts) */
+.audio-stats {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  z-index: 50;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.75);
+  color: #9f9;
+  font:
+    11px/1.35 ui-monospace,
+    monospace;
+  pointer-events: none;
+}

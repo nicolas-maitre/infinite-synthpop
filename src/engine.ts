@@ -13,7 +13,7 @@ import { compose, type ImportedTracks, type KitName, type Song } from "./compose
 import type { ReferenceId } from "./references";
 import { newSongId, type Creation, type SongSpec } from "./spec";
 import { Instruments, type Track } from "./instruments";
-import { LITE, LITE_SAMPLE_RATE } from "./quality";
+import { LATENCY, LITE, LITE_SAMPLE_RATE } from "./quality";
 import { createRng } from "./rng";
 import type { Key } from "./theory";
 
@@ -380,18 +380,21 @@ export class Engine {
  * AudioParam").
  */
 function useListeningContext(): void {
-  const latencyHint = "playback";
+  const latencyHint = LATENCY ?? "playback";
   let context: StandardAudioContext | undefined;
-  if (LITE) {
+  if (LITE || LATENCY !== undefined) {
+    const sampleRate = LITE ? LITE_SAMPLE_RATE : undefined;
     try {
-      context = new StandardAudioContext({ latencyHint, sampleRate: LITE_SAMPLE_RATE });
+      context = new StandardAudioContext({ latencyHint, ...(sampleRate && { sampleRate }) });
     } catch {
-      // A browser that refuses the rate gets its default.
+      // A browser that refuses the rate or buffer gets its defaults.
     }
   }
   // Tone types its option as the browser's AudioContext, though it wraps this library's own.
   const raw = context as unknown as AudioContext | undefined;
-  Tone.setContext(new Tone.Context({ latencyHint, lookAhead: 0.3, ...(raw && { context: raw }) }));
+  Tone.setContext(
+    new Tone.Context({ latencyHint: "playback", lookAhead: 0.3, ...(raw && { context: raw }) }),
+  );
 }
 
 /** The mixer tracks that play anywhere in the song. */

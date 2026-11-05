@@ -17,6 +17,8 @@ import { decodeCreation, encodeCreation, songToSpec, type Creation, type SongSpe
 import { randomSeed } from "./rng";
 import { chord, chordName, keyName, noteName } from "./theory";
 import { startVisualizer } from "./visualizer";
+import { mountAudioStats } from "./audiostats";
+import { SHOW_AUDIO_STATS } from "./quality";
 
 // ── Persisted preferences (per browser; everything still works without storage) ─────────────
 
@@ -1082,6 +1084,8 @@ startVisualizer(ui.viz, () =>
     ? { fft: engine.instruments.fft, waveform: engine.instruments.waveform }
     : null,
 );
+
+if (SHOW_AUDIO_STATS) mountAudioStats();
 
 if (import.meta.env.DEV) {
   void Promise.all([import("tone"), import("./render")]).then(([Tone, { renderToDisk }]) =>

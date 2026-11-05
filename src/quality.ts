@@ -21,6 +21,21 @@ export const LITE = QUALITY === "lite";
 export const LITE_SAMPLE_RATE = 32000;
 
 /**
+ * Audio output buffer to ask for, in seconds, from `?latency=0.5`. Unset, the context asks for the
+ * browser's "playback" default. A bigger buffer rides out short audio-thread stalls, not a graph
+ * that is too heavy to render in real time. `?latency` also shows the audio stats readout.
+ */
+export const LATENCY: number | undefined = (() => {
+  if (typeof window === "undefined") return undefined;
+  const value = Number(new URLSearchParams(location.search).get("latency"));
+  return value > 0 && value <= 2 ? value : undefined;
+})();
+
+/** Show the audio stats readout (`?stats` or `?latency=…`). */
+export const SHOW_AUDIO_STATS =
+  typeof window !== "undefined" && /[?&](stats|latency)\b/.test(location.search);
+
+/**
  * Calls `draw` every animation frame, or every other one in lite mode (about 30 fps).
  * `draw` gets the frame's timestamp.
  */
