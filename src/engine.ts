@@ -142,6 +142,23 @@ export class Engine {
     this.events.onStateChange?.(true);
   }
 
+  /**
+   * Reopens the sound output after the page was hidden. When the screen locks, Firefox on Android
+   * loses the output but keeps the audio clock running, so the song moved on silently and stayed
+   * silent after unlocking. Suspending and resuming the context makes Firefox reopen the output
+   * (and resumes a context the browser suspended or interrupted itself).
+   */
+  async wake(): Promise<void> {
+    if (!this.instruments) return;
+    const raw = Tone.getContext().rawContext as unknown as AudioContext;
+    try {
+      if (raw.state === "running") await raw.suspend();
+      await raw.resume();
+    } catch (error) {
+      console.error("Couldn't wake the audio", error);
+    }
+  }
+
   stop(): void {
     if (!this.playing) return;
     const transport = Tone.getTransport();

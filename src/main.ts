@@ -1087,6 +1087,14 @@ startVisualizer(ui.viz, () =>
 
 if (SHOW_AUDIO_STATS) mountAudioStats();
 
+// Brief tab switches don't need it; a locked screen does (Engine.wake).
+const WAKE_AFTER_HIDDEN_MS = 1000;
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) hiddenAt = performance.now();
+  else if (performance.now() - hiddenAt > WAKE_AFTER_HIDDEN_MS) void engine.wake();
+});
+
 if (import.meta.env.DEV) {
   void Promise.all([import("tone"), import("./render")]).then(([Tone, { renderToDisk }]) =>
     Object.assign(window, { engine, Tone, renderToDisk, roll }),
