@@ -1266,3 +1266,11 @@ button.link {
     monospace;
   pointer-events: none;
 }
+
+.mixer-head {
+  margin-bottom: 14px;
+}
+
+.mixer-head h3 {
+  margin: 0;
+}

@@ -116,6 +116,7 @@ const ui = {
   kit: el<HTMLSelectElement>("kit"),
   kitStatus: el("kit-status"),
   mixer: el("mixer-rows"),
+  mixerReset: el<HTMLButtonElement>("mixer-reset"),
   sectionDetail: el("section-detail"),
 };
 const roll = new PianoRoll(el<HTMLCanvasElement>("roll"), (bar) => {
@@ -1045,6 +1046,10 @@ function toggle(
   return b;
 }
 
+const sliders = new Map<Track | "master", HTMLInputElement>();
+const muteButtons = new Map<Track, HTMLButtonElement>();
+const soloButtons: HTMLButtonElement[] = [];
+
 for (const t of TRACKS) {
   const mute = toggle("M", "mute", prefs.muted.includes(t), `Mute ${TRACK_LABELS[t]}`, (on) => {
     prefs.muted = on ? [...prefs.muted, t] : prefs.muted.filter((m) => m !== t);
@@ -1056,19 +1061,20 @@ for (const t of TRACKS) {
     else soloed.delete(t);
     applyMixer();
   });
-  ui.mixer.append(
-    mixRow(
-      TRACK_LABELS[t],
-      prefs.volumes[t],
-      (v) => {
-        prefs.volumes[t] = v;
-        savePrefs();
-        applyMixer();
-      },
-      [mute, solo],
-    ),
-    midiLine(t),
+  muteButtons.set(t, mute);
+  soloButtons.push(solo);
+  const row = mixRow(
+    TRACK_LABELS[t],
+    prefs.volumes[t],
+    (v) => {
+      prefs.volumes[t] = v;
+      savePrefs();
+      applyMixer();
+    },
+    [mute, solo],
   );
+  sliders.set(t, row.querySelector("input")!);
+  ui.mixer.append(row, midiLine(t));
 }
 const master = mixRow("Master", prefs.master, (v) => {
   prefs.master = v;
@@ -1076,7 +1082,23 @@ const master = mixRow("Master", prefs.master, (v) => {
   applyMixer();
 });
 master.classList.add("master");
+sliders.set("master", master.querySelector("input")!);
 ui.mixer.append(master);
+
+ui.mixerReset.addEventListener("click", () => {
+  prefs.volumes = { ...DEFAULT_VOLUMES };
+  prefs.master = 0;
+  prefs.muted = [];
+  soloed.clear();
+  savePrefs();
+  for (const t of TRACKS) {
+    sliders.get(t)!.value = String(prefs.volumes[t]);
+    muteButtons.get(t)!.setAttribute("aria-pressed", "false");
+  }
+  sliders.get("master")!.value = "0";
+  for (const b of soloButtons) b.setAttribute("aria-pressed", "false");
+  applyMixer();
+});
 
 // ── Go ────────────────────────────────────────────────────────────────────────────────────────
 
