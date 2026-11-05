@@ -46,9 +46,19 @@ export const DEFAULT_VOLUMES: Record<Track, number> = {
   pad: -10,
   riff: -8,
   lead: -6,
-  arp: -16,
-  stab: -14,
+  arp: -9,
+  stab: -5,
 };
+
+/**
+ * Gain (dB) inside the arp and stab synths. Both used to sit about 30 dB under a chorus, too
+ * quiet to hear; they now sit 16–18 dB under it, picked by ear from renders. The faders top
+ * out at 0 dB, so the extra level lives here and leaves the faders room above.
+ */
+const ARP_STAB_GAIN_DB = 6;
+
+/** Old default fader levels, moved to the new defaults when found in saved preferences. */
+export const PREVIOUS_DEFAULT_VOLUMES: Partial<Record<Track, number>> = { arp: -16, stab: -14 };
 
 /** Spread the motif layers across the stereo field; bass, lead and drums stay centred. */
 const PANS: Record<Track, number> = {
@@ -317,6 +327,7 @@ export class Instruments {
       modulationIndex: 3,
       envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.15 },
       modulationEnvelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 },
+      volume: ARP_STAB_GAIN_DB,
     };
     // Lite: three voices in turn, which cost about half what the PolySynth does. Its notes last
     // under 0.4 s and come a 16th apart at most, so a voice has finished before its turn comes again.
@@ -334,11 +345,13 @@ export class Instruments {
         spread: 30,
       } as Tone.OmniOscillatorOptions,
       envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.25 },
+      volume: ARP_STAB_GAIN_DB,
     }).connect(this.channels.stab);
     const stabNoiseFilter = new FixedFilter("bandpass", 2500);
     this.stabNoise = new Tone.NoiseSynth({
       noise: { type: "pink" },
       envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.05 },
+      volume: ARP_STAB_GAIN_DB,
     }).chain(stabNoiseFilter, this.channels.stab);
 
     // TF's high sequencer: a plucky square on 16ths.

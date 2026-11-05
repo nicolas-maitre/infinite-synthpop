@@ -3,7 +3,13 @@ import { chordSlots } from "./arranger";
 import type { BassStyle, DrumMode, ImportedTracks, KitName, Song } from "./composer";
 import { KIT_LABELS } from "./drums";
 import { Engine, type EngineSettings } from "./engine";
-import { DEFAULT_VOLUMES, TRACK_LABELS, TRACKS, type Track } from "./instruments";
+import {
+  DEFAULT_VOLUMES,
+  PREVIOUS_DEFAULT_VOLUMES,
+  TRACK_LABELS,
+  TRACKS,
+  type Track,
+} from "./instruments";
 import { matchTracks, mergeBars, parseMidi, toDrumBars, type MidiFile } from "./midi";
 import { mountCreator } from "./creator";
 import { Library, type SavedSong } from "./library";
@@ -56,7 +62,12 @@ function loadPrefs(): Prefs {
     const raw = localStorage.getItem(PREFS_KEY);
     if (!raw) return defaults;
     const p = JSON.parse(raw) as Partial<Prefs>;
-    return { ...defaults, ...p, volumes: { ...defaults.volumes, ...p.volumes } };
+    const volumes = { ...defaults.volumes, ...p.volumes };
+    // Faders left at an old default follow the new one.
+    for (const [t, old] of Object.entries(PREVIOUS_DEFAULT_VOLUMES) as [Track, number][]) {
+      if (volumes[t] === old) volumes[t] = DEFAULT_VOLUMES[t];
+    }
+    return { ...defaults, ...p, volumes };
   } catch {
     return defaults;
   }
