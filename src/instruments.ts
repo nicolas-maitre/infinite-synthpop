@@ -107,7 +107,7 @@ export class Instruments {
   private readonly riffSaw: Tone.PolySynth;
   private readonly lead: Tone.MonoSynth;
   private readonly leadOct: Tone.MonoSynth;
-  private readonly arp: Tone.PolySynth<Tone.FMSynth>;
+  private readonly arp: NoteSynth;
   private readonly stab: Tone.PolySynth;
   private readonly stabNoise: Tone.NoiseSynth;
   private readonly seq: Tone.PolySynth<Tone.MonoSynth>;
@@ -312,12 +312,19 @@ export class Instruments {
     this.lead = new Tone.MonoSynth(leadOptions).connect(vibrato);
     this.leadOct = new Tone.MonoSynth(leadOptions).connect(vibrato);
 
-    this.arp = new Tone.PolySynth(Tone.FMSynth, {
+    const arpOptions = {
       harmonicity: 4,
       modulationIndex: 3,
       envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.15 },
       modulationEnvelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 },
-    }).connect(this.channels.arp);
+    };
+    // Lite: three voices in turn, which cost about half what the PolySynth does. Its notes last
+    // under 0.4 s and come a 16th apart at most, so a voice has finished before its turn comes again.
+    this.arp = lite
+      ? new VoiceRing(
+          Array.from({ length: 3 }, () => new Tone.FMSynth(arpOptions).connect(this.channels.arp)),
+        )
+      : new Tone.PolySynth(Tone.FMSynth, arpOptions).connect(this.channels.arp);
 
     // Stab: saw-brass chord plus a noise burst, a nod to the sampled orchestral hit.
     this.stab = new Tone.PolySynth(Tone.Synth, {
@@ -574,4 +581,26 @@ function byOnset(notes: readonly Note[]): Note[][] {
     else groups.set(n.step, [n]);
   }
   return [...groups.values()];
+}
+
+/** What the instruments need from a polyphonic synth. */
+interface NoteSynth {
+  triggerAttackRelease(frequency: number, duration: number, time: number, velocity?: number): void;
+  releaseAll(time?: number): void;
+}
+
+/** A fixed set of FM voices, played in turn: a cheaper PolySynth for short notes. */
+class VoiceRing implements NoteSynth {
+  private next = 0;
+
+  constructor(private readonly voices: readonly Tone.FMSynth[]) {}
+
+  triggerAttackRelease(frequency: number, duration: number, time: number, velocity?: number) {
+    const voice = this.voices[this.next++ % this.voices.length];
+    voice?.triggerAttackRelease(frequency, duration, time, velocity);
+  }
+
+  releaseAll(time?: number): void {
+    for (const voice of this.voices) voice.triggerRelease(time);
+  }
 }
