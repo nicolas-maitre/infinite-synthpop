@@ -8,6 +8,7 @@ import type { DrumHit, MelodicTrack } from "./arranger";
 import type { Note } from "./composer";
 import { DrumKit } from "./drums";
 import { FixedEQ3, FixedFilter } from "./filters";
+import { NativeFMSynth, NativeMonoSynth, NativeSynth } from "./voices";
 import { midiToFreq } from "./theory";
 
 export const TRACKS = [
@@ -112,15 +113,15 @@ export class Instruments {
   private readonly bassTone: Tone.OnePoleFilter;
   private readonly bassPresence: FixedFilter;
   private readonly hook: Tone.MonoSynth;
-  private readonly pad: Tone.PolySynth;
-  private readonly riffFm: Tone.PolySynth<Tone.FMSynth>;
-  private readonly riffSaw: Tone.PolySynth;
+  private readonly pad: NativeSynth;
+  private readonly riffFm: NativeFMSynth;
+  private readonly riffSaw: NativeSynth;
   private readonly lead: Tone.MonoSynth;
   private readonly leadOct: Tone.MonoSynth;
-  private readonly arp: NoteSynth;
-  private readonly stab: Tone.PolySynth;
+  private readonly arp: NativeFMSynth;
+  private readonly stab: NativeSynth;
   private readonly stabNoise: Tone.NoiseSynth;
-  private readonly seq: Tone.PolySynth<Tone.MonoSynth>;
+  private readonly seq: NativeMonoSynth;
   /** Plucked strings: louder voices for down-strokes, softer for up-strokes. */
   private readonly guitar: { down: Tone.PluckSynth[]; up: Tone.PluckSynth[]; next: number };
   /** Where each channel's output goes (the master, its effect sends): see setActiveTracks. */
@@ -276,26 +277,22 @@ export class Instruments {
       depth: 0.5,
       wet: 0.5,
     }).start();
-    this.pad = new Tone.PolySynth(Tone.Synth, {
-      oscillator: {
-        type: "fatsawtooth",
-        count: lite ? 2 : 3,
-        spread: 22,
-      } as Tone.OmniOscillatorOptions,
+    this.pad = new NativeSynth({
+      oscillator: { type: "sawtooth", count: lite ? 2 : 3, spread: 22 },
       envelope: { attack: 0.35, decay: 0.6, sustain: 0.8, release: 1.1 },
+      // Releases overlap the next chord, so this is about two chords' worth (lite: one and a bit).
+      maxPolyphony: lite ? 8 : 16,
     }).chain(padHighpass, padFilter, padChorus, this.channels.pad);
-    // Releases overlap the next chord, so this is about two chords' worth (lite: one and a bit).
-    this.pad.maxPolyphony = lite ? 8 : 16;
 
     // Riff: DX bell-pluck layered with a bright saw pluck.
-    this.riffFm = new Tone.PolySynth(Tone.FMSynth, {
+    this.riffFm = new NativeFMSynth({
       harmonicity: 3.01,
       modulationIndex: 9,
       envelope: { attack: 0.001, decay: 0.4, sustain: 0.08, release: 0.3 },
       modulationEnvelope: { attack: 0.001, decay: 0.18, sustain: 0.1, release: 0.2 },
     }).connect(this.channels.riff);
     const riffFilter = new FixedFilter("lowpass", 3200);
-    this.riffSaw = new Tone.PolySynth(Tone.Synth, {
+    this.riffSaw = new NativeSynth({
       volume: -6,
       oscillator: { type: "sawtooth" },
       envelope: { attack: 0.002, decay: 0.18, sustain: 0.15, release: 0.2 },
@@ -329,21 +326,11 @@ export class Instruments {
       modulationEnvelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 },
       volume: ARP_STAB_GAIN_DB,
     };
-    // Lite: three voices in turn, which cost about half what the PolySynth does. Its notes last
-    // under 0.4 s and come a 16th apart at most, so a voice has finished before its turn comes again.
-    this.arp = lite
-      ? new VoiceRing(
-          Array.from({ length: 3 }, () => new Tone.FMSynth(arpOptions).connect(this.channels.arp)),
-        )
-      : new Tone.PolySynth(Tone.FMSynth, arpOptions).connect(this.channels.arp);
+    this.arp = new NativeFMSynth(arpOptions).connect(this.channels.arp);
 
     // Stab: saw-brass chord plus a noise burst, a nod to the sampled orchestral hit.
-    this.stab = new Tone.PolySynth(Tone.Synth, {
-      oscillator: {
-        type: "fatsawtooth",
-        count: lite ? 2 : 3,
-        spread: 30,
-      } as Tone.OmniOscillatorOptions,
+    this.stab = new NativeSynth({
+      oscillator: { type: "sawtooth", count: lite ? 2 : 3, spread: 30 },
       envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.25 },
       volume: ARP_STAB_GAIN_DB,
     }).connect(this.channels.stab);
@@ -355,7 +342,7 @@ export class Instruments {
     }).chain(stabNoiseFilter, this.channels.stab);
 
     // TF's high sequencer: a plucky square on 16ths.
-    this.seq = new Tone.PolySynth(Tone.MonoSynth, {
+    this.seq = new NativeMonoSynth({
       oscillator: { type: "square" },
       filter: { type: "lowpass", rolloff: -24, Q: 2 },
       envelope: { attack: 0.003, decay: 0.15, sustain: 0.35, release: 0.08 },
@@ -367,8 +354,8 @@ export class Instruments {
         baseFrequency: 700,
         octaves: 2.5,
       },
+      maxPolyphony: lite ? 6 : 12,
     }).chain(new FixedFilter("highpass", 200), this.channels.seq);
-    this.seq.maxPolyphony = lite ? 6 : 12;
 
     // Rhythm guitar: Karplus–Strong strings, DI'd and overdriven (Sound On Sound on Sumner's
     // guitar), darkened and lightly chorused.
@@ -594,26 +581,4 @@ function byOnset(notes: readonly Note[]): Note[][] {
     else groups.set(n.step, [n]);
   }
   return [...groups.values()];
-}
-
-/** What the instruments need from a polyphonic synth. */
-interface NoteSynth {
-  triggerAttackRelease(frequency: number, duration: number, time: number, velocity?: number): void;
-  releaseAll(time?: number): void;
-}
-
-/** A fixed set of FM voices, played in turn: a cheaper PolySynth for short notes. */
-class VoiceRing implements NoteSynth {
-  private next = 0;
-
-  constructor(private readonly voices: readonly Tone.FMSynth[]) {}
-
-  triggerAttackRelease(frequency: number, duration: number, time: number, velocity?: number) {
-    const voice = this.voices[this.next++ % this.voices.length];
-    voice?.triggerAttackRelease(frequency, duration, time, velocity);
-  }
-
-  releaseAll(time?: number): void {
-    for (const voice of this.voices) voice.triggerRelease(time);
-  }
 }
