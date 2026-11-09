@@ -27,7 +27,8 @@ unit-testable. The audio side only plays events.
 ```
 rng.ts           seeded PRNG (mulberry32)
 theory.ts        pitch classes, keys, Roman-numeral chords, scales, voicing
-progressions.ts  measured progression bank + style-weighted substitutions (analysis §3)
+genres.ts        genre profiles: references, tempo, keys, progression bank, every style weighting
+progressions.ts  progression picking + style-weighted substitutions (analysis §3)
 composer.ts      Song = sections + per-song motifs (riff, melodic bass, melodies)
 arranger.ts      (song, bar index) → BarEvents: every note for every track in that bar
 ───────────────── audio boundary ─────────────────
@@ -52,6 +53,19 @@ main.ts          controls, mixer, section timeline, chord display, visualiser
   Dorian IV vs minor iv, a modal v vs major V, the TF form blocks (VI turnaround, i–IV bass-solo
   vamp, instrumental chorus, modulating outro) vs the DS ones (interlude, ii–IV turnaround, break,
   chorus to fade), and the bounce bass vs the pulse bass.
+- **Every style weighting lives in a genre profile** (`src/genres.ts`, `GENRES.synthpop`), which
+  composer, progressions, arranger, instruments and wizard read instead of hard-coded numbers. The
+  profile holds the genre's references (TF at style 0, DS at 1), tempo range and centre, key
+  weights, progression bank and substitutions, kit and bass-figure weights, ending, counter-line
+  and section-planner odds, drum details and bass tone. `compose` takes a `genre` (default
+  `synthpop`) and the song records it; specs and share links don't carry it yet. `style` becomes
+  one weight per reference (`[1 − style, style]`), and each style-dependent number is a `Blend`:
+  a base plus what each reference adds in proportion to its weight (`0.1 + 0.7 × TF`). That's the
+  form the old expressions had, so the output stayed bit-identical (checked by
+  `src/snapshot.test.ts`), and it extends to 3+ references once the weights come from a point in
+  a polygon instead of the slider. Drum details (TF's intro low tom and beat-3 open hat, DS's
+  extra kick and tambourine) are per-reference traits that apply while that reference outweighs
+  every other; on a tie, the genre's defaults.
 - **The mix is matched by measurement.** `scripts/compare_mix.py` compares loudness, crest factor,
   stereo width and band energy with the recordings. That's how two bugs were found: Tone.Channel
   defaults to mono, which collapsed the stereo field, and the bass sat too low and thin. A third

@@ -11,6 +11,7 @@ import {
   type Section,
   type Song,
 } from "./composer";
+import { GENRES, genreAt, type DrumTraits } from "./genres";
 import { createRng, type Rng } from "./rng";
 import {
   chordName,
@@ -175,7 +176,7 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   const importedDrums = song.imported?.drums;
   const drums = importedDrums
     ? (importedDrums[bar] ?? []).map((h) => ({ ...h }))
-    : drumBar(L.drums, rng.fork("drums"), song.style, {
+    : drumBar(L.drums, rng.fork("drums"), genreAt(GENRES[song.genre], song.style).drums, {
         barInSection,
         sectionStart: barInSection === 0 && sectionIndex > 0,
         lastBar: isLastBar,
@@ -430,7 +431,7 @@ interface DrumBarContext {
   intoChorus: boolean;
 }
 
-function drumBar(mode: DrumMode, rng: Rng, style: number, ctx: DrumBarContext): DrumHit[] {
+function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarContext): DrumHit[] {
   if (mode === "off") return [];
   const { barInSection, sectionStart, intoChorus } = ctx;
   const hits: DrumHit[] = [];
@@ -443,7 +444,7 @@ function drumBar(mode: DrumMode, rng: Rng, style: number, ctx: DrumBarContext): 
   // Kick: four on the floor — "the drums do one thing: stomp".
   if (mode === "half") hit("kick", 0, 1);
   else for (const s of [0, 4, 8, 12]) if (s < fillFrom || s === 12) hit("kick", s, 1);
-  if (mode === "big" && style > 0.5 && rng.chance(0.4)) hit("kick", 14, 0.7);
+  if (mode === "big" && traits.bigKick14 && rng.chance(0.4)) hit("kick", 14, 0.7);
 
   // TF's drum intro (MIDI bars 0–3): a kick run into every other bar, ghost snares after beat 2,
   // a low tom on 4& in the bars between, and a snare-and-tom fill in the last bar.
@@ -460,7 +461,7 @@ function drumBar(mode: DrumMode, rng: Rng, style: number, ctx: DrumBarContext): 
     }
   }
   // TF's intro keeps a low tom on 4& every other bar (MIDI bars 1–15).
-  if (style < 0.5 && ctx.intro && !evenBar && mode !== "half" && fillFrom === 16)
+  if (traits.introLowTom && ctx.intro && !evenBar && mode !== "half" && fillFrom === 16)
     hit("toml", 14, 0.8);
 
   // Snare on 2 and 4 (beat 3 in half time), doubled by a clap in big sections.
@@ -478,7 +479,7 @@ function drumBar(mode: DrumMode, rng: Rng, style: number, ctx: DrumBarContext): 
     if (s >= fillFrom) break;
     const offbeat8 = s % 4 === 2;
     // TF opens a hat on beat 3 of every other bar (MIDI, intro to outro).
-    if (style < 0.5 && s === 8 && evenBar && mode !== "kick" && mode !== "half") {
+    if (traits.openHatBeat3 && s === 8 && evenBar && mode !== "kick" && mode !== "half") {
       hit("openhat", s, 0.6);
     } else if (mode === "big" && offbeat8) {
       hit("openhat", s + humanise(s), 0.55 + rng.next() * 0.15);
@@ -491,7 +492,7 @@ function drumBar(mode: DrumMode, rng: Rng, style: number, ctx: DrumBarContext): 
   }
 
   if (mode === "big") {
-    if (style > 0.5) {
+    if (traits.bigPercussion === "tamb") {
       for (const s of [2, 6, 10, 14]) if (s < fillFrom) hit("tamb", s, 0.45);
     } else {
       for (let s = 1; s < fillFrom; s += 2) hit("cabasa", s, 0.3 + rng.next() * 0.1);

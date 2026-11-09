@@ -3,6 +3,7 @@
  * per-song motifs and melodies. Pure and deterministic; no audio here. See docs/analysis.md.
  */
 import type { DrumHit, MelodicTrack } from "./arranger";
+import { GENRES, genreAt, type GenreAt, type GenreId } from "./genres";
 import { mutate, pickProgression, type Progression, type ProgressionKind } from "./progressions";
 import { REFERENCES, type ReferenceId, type ReferenceSong } from "./references";
 import { createRng, type Rng } from "./rng";
@@ -130,6 +131,8 @@ export interface Song {
   bpm: number;
   key: Key;
   style: number;
+  /** The genre whose profile the song was generated with (not yet part of specs or links). */
+  genre: GenreId;
   kit: KitName;
   bassStyle: BassStyle;
   progressions: Record<ProgressionKind, Progression>;
@@ -152,7 +155,10 @@ export interface Song {
 
 export interface ComposeOptions {
   seed: number;
-  /** 0 = True Faith … 1 = The Different Story. Unset or null = pick per song. */
+  /** The genre profile to generate with (genres.ts); synthpop by default. */
+  genre?: GenreId;
+  /** Where the song sits between the genre's references (synthpop: 0 = True Faith … 1 = The
+   * Different Story). Unset or null = pick per song. */
   style?: number | null;
   key?: Key | null;
   bpm?: number | null;
@@ -172,9 +178,6 @@ export interface ComposeOptions {
 
 export type SongForm = "short" | "standard" | "long";
 
-/** True Faith measures 117.0 BPM, The Different Story 119.8: centred between them. */
-export const BPM_RANGE = [116, 121] as const;
-export const BPM_CENTER = 118.5;
 export const LEAD_RANGES: Record<MelodyKind, readonly [number, number]> = {
   verse: [57, 70],
   chorus: [62, 74],
@@ -183,50 +186,37 @@ export const LEAD_RANGES: Record<MelodyKind, readonly [number, number]> = {
  * E6. */
 export const COUNTER_RANGE = [74, 86] as const;
 
-/** Weighted toward the originals' keys: D minor (True Faith) and E minor (The Different Story). */
-const KEY_WEIGHTS: readonly (readonly [number, number])[] = [
-  [2, 3],
-  [4, 3],
-  [9, 2],
-  [0, 1.5],
-  [7, 1.5],
-  [11, 1],
-  [5, 1],
-  [6, 1],
-  [1, 0.5],
-];
-
 export function compose(opts: ComposeOptions): Song {
   const ref = opts.custom ?? (opts.reference ? REFERENCES[opts.reference] : undefined);
   const root = createRng(opts.seed);
   // Its own stream, so an auto style draws nothing from the others.
   const autoStyle = Math.round(root.fork("style").next() * 100) / 100;
   const style = ref ? ref.style : Math.min(1, Math.max(0, opts.style ?? autoStyle));
+  const genreId = opts.genre ?? "synthpop";
+  const genre = GENRES[genreId];
+  const g = genreAt(genre, style);
   const rngSetup = root.fork("setup");
 
-  const key: Key = ref?.key ?? opts.key ?? { tonic: rngSetup.weighted(KEY_WEIGHTS), mode: "minor" };
+  const key: Key = ref?.key ??
+    opts.key ?? { tonic: rngSetup.weighted(genre.keyWeights), mode: "minor" };
+  const [bpmLo, bpmHi] = genre.tempo.range;
   const autoBpm = rngSetup.weighted(
-    Array.from({ length: (BPM_RANGE[1] - BPM_RANGE[0]) * 2 + 1 }, (_, i) => {
-      const bpm = BPM_RANGE[0] + i / 2;
-      return [bpm, Math.exp(-((bpm - BPM_CENTER) ** 2) / 3)] as const;
+    Array.from({ length: (bpmHi - bpmLo) * 2 + 1 }, (_, i) => {
+      const bpm = bpmLo + i / 2;
+      return [bpm, Math.exp(-((bpm - genre.tempo.center) ** 2) / 3)] as const;
     }),
   );
   const bpm = ref?.bpm ?? opts.bpm ?? autoBpm;
-  const autoKit = rngSetup.weighted<KitName>([
-    ["sp12", 1.5 - style],
-    ["linndrum", 0.5 + style],
-    ["dmx", 0.4 + style * 0.4],
-  ]);
+  const autoKit = rngSetup.weighted<KitName>(genre.kits.map(([kit, w]) => [kit, g.at(w)]));
   const kit = ref?.kit ?? (!opts.kit || opts.kit === "auto" ? autoKit : opts.kit);
-  const pickedBass = rngSetup.weighted<BassStyle>([
-    ["ds", 0.3 + style * 2],
-    ["tf", 0.3 + (1 - style) * 2],
-  ]);
+  const pickedBass = rngSetup.weighted<BassStyle>(
+    genre.bassFigures.map(([figure, w]) => [figure, g.at(w)]),
+  );
   const bassStyle = ref?.bassStyle ?? opts.bassStyle ?? pickedBass;
 
   const rngProg = root.fork("progressions");
   const prog = (kind: ProgressionKind) =>
-    mutate(pickProgression(kind, style, rngProg), kind, style, rngProg);
+    mutate(genre, pickProgression(genre, kind, style, rngProg), kind, style, rngProg);
   const progressions: Record<ProgressionKind, Progression> = {
     verse: prog("verse"),
     chorus: prog("chorus"),
@@ -243,12 +233,12 @@ export function compose(opts: ComposeOptions): Song {
 
   const rngForm = root.fork("form");
   const liftKey: Key = { tonic: mod12(key.tonic + 5), mode: "major" };
-  const liftChance = rngForm.chance(0.1 + 0.7 * (1 - style));
+  const liftChance = rngForm.chance(g.at(genre.liftEnding));
   const useLift = opts.ending ? opts.ending === "lift" : liftChance;
   const sections = ref
     ? referenceSections(ref)
-    : planSections(rngForm, key, liftKey, useLift, progressions, style, opts.form ?? "standard");
-  if (!ref) addCounter(root.fork("counter"), sections, style);
+    : planSections(rngForm, key, liftKey, useLift, progressions, g, opts.form ?? "standard");
+  if (!ref) addCounter(root.fork("counter"), sections, g);
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 
   const counter = generateCounter(root.fork("counter-line"), key, progressions.chorus);
@@ -271,6 +261,7 @@ export function compose(opts: ComposeOptions): Song {
     bpm,
     key,
     style,
+    genre: genreId,
     kit,
     bassStyle,
     progressions,
@@ -311,7 +302,7 @@ function planSections(
   liftKey: Key,
   useLift: boolean,
   p: Record<ProgressionKind, Progression>,
-  style: number,
+  g: GenreAt,
   form: SongForm,
 ): Section[] {
   const plan: Omit<Section, "startBar" | "fill" | "fade">[] = [];
@@ -332,13 +323,14 @@ function planSections(
       layers: { ...LAYERS_OFF, ...layers },
     });
 
-  const tf = 1 - style;
-  const stabs = () => rng.chance(0.1 + style * 0.5);
+  const odds = g.genre.form;
+  const chance = (b: (typeof odds)[keyof typeof odds]) => rng.chance(g.at(b));
+  const stabs = () => chance(odds.stabs);
   // TF's sequenced chord synth plays the figure from the intro to the end of the song.
   // TF's high sequencer comes in after the first chorus and plays to the end (MIDI: bar 46 on).
-  const useSeq = rng.chance(0.15 + 0.7 * tf);
+  const useSeq = chance(odds.seq);
   // TF's rhythm guitar: choruses, instrumentals and the outro (MIDI: never in the verses).
-  const guitar = rng.chance(0.1 + 0.7 * tf);
+  const guitar = chance(odds.guitar);
   let seq = false;
   const chorus = (label: string, extra: Partial<Layers> = {}) =>
     add("chorus", label, 8, p.chorus, {
@@ -368,7 +360,7 @@ function planSections(
       bass: true,
       pad: true,
       riff: true,
-      hook: rng.chance(0.3 * tf),
+      hook: chance(odds.interludeHook),
       arp: rng.chance(0.5),
     });
     add("turnaround", "Turnaround", p.turnaround.length > 2 ? 4 : 2, p.turnaround, {
@@ -386,7 +378,7 @@ function planSections(
   // TF's way into a verse (MIDI bars 45–46): two staccato bars on VI–VII, the second resting until
   // the bass's pickup run (see bassLine).
   const tfTurn = () => {
-    if (!rng.chance(0.2 + 0.7 * tf)) return;
+    if (!chance(odds.turn)) return;
     add("turnaround", "Turn · VI–VII", 2, [["VI"], ["VII"]], {
       drums: "full",
       bass: true,
@@ -406,28 +398,28 @@ function planSections(
       guitar,
       pad: true,
       riff: true,
-      hook: rng.chance(0.2 + 0.5 * tf),
+      hook: chance(odds.instrumentalHook),
     });
 
   // Both songs open with drums + bass, then an instrumental over the chorus chords.
   add("intro", "Intro", 4, p.chorus, {
-    drums: rng.chance(0.6 * tf) ? "groove" : rng.chance(0.5 + 0.3 * tf) ? "kick" : "full",
+    drums: chance(odds.introGroove) ? "groove" : chance(odds.introKick) ? "kick" : "full",
     bass: true,
-    hook: rng.chance(0.5 * tf),
+    hook: chance(odds.introHook),
   });
   add("intro", "Intro · riff", rng.pick([8, 8, 12]), p.chorus, {
     drums: "full",
     bass: true,
     pad: true,
     riff: true,
-    hook: rng.chance(0.1 + 0.6 * tf),
-    arp: rng.chance(0.3 * style),
+    hook: chance(odds.riffIntroHook),
+    arp: chance(odds.riffIntroArp),
   });
   const verseBars = form === "short" ? 8 : rng.chance(0.8) ? 16 : 8;
   verse("Verse 1", verseBars);
   chorus("Chorus");
   seq = useSeq;
-  if (rng.chance(style)) dsBlock();
+  if (chance(odds.dsBlock)) dsBlock();
   else {
     tfInstrumental("Instrumental", 8);
     tfTurn();
@@ -436,7 +428,7 @@ function planSections(
   chorus("Chorus", { arp: true });
   if (form === "short") {
     // Straight on to the final choruses.
-  } else if (rng.chance(style)) {
+  } else if (chance(odds.dsBlock)) {
     dsBlock();
   } else {
     // TF: a turnaround on VI, the i–IV vamp with the melodic-bass solo, an instrumental chorus.
@@ -453,13 +445,13 @@ function planSections(
     });
     tfInstrumental("Instrumental chorus", 8);
   }
-  if (form === "long" || (form === "standard" && rng.chance(0.2 + 0.6 * tf))) {
+  if (form === "long" || (form === "standard" && chance(odds.thirdVerse))) {
     tfTurn();
     verse("Verse 3", rng.chance(0.5) ? 16 : 8);
   }
   chorus("Chorus");
   chorus("Chorus · double", { leadDouble: true, arp: true });
-  if (form === "long" || (form === "standard" && rng.chance(style * 0.6)))
+  if (form === "long" || (form === "standard" && chance(odds.extraChorus)))
     chorus("Chorus", { leadDouble: true });
   if (useLift) {
     // TF: the chorus's IV becomes the new tonic.
@@ -510,8 +502,8 @@ function planSections(
  * chorus to fade, in about four TF-style songs out of five and one DS-style song in five. Its own
  * random stream, so adding it changed nothing else about any seed.
  */
-function addCounter(rng: Rng, sections: Section[], style: number): void {
-  if (!rng.chance(0.2 + 0.6 * (1 - style))) return;
+function addCounter(rng: Rng, sections: Section[], g: GenreAt): void {
+  if (!rng.chance(g.at(g.genre.counter))) return;
   for (const s of sections) {
     if (s.kind === "chorus" || (s.kind === "outro" && s.layers.lead === "chorus"))
       s.layers.counter = true;

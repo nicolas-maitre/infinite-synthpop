@@ -8,6 +8,7 @@ import type { DrumHit, MelodicTrack } from "./arranger";
 import type { Note } from "./composer";
 import { DrumKit } from "./drums";
 import { FixedEQ3, FixedFilter } from "./filters";
+import type { BassTone } from "./genres";
 import { NativeFMSynth, NativeMonoSynth, NativeSynth } from "./voices";
 import { midiToFreq } from "./theory";
 
@@ -540,13 +541,12 @@ export class Instruments {
     }
   }
 
-  /** Opens the bass filter further toward True Faith (style 0) than The Different Story (1),
-   * as their stems measure: spectral centroid 559 Hz vs 425 Hz. */
-  setBassTone(style: number): void {
-    this.bassTone.frequency = 240 - 80 * style;
-    this.bassPresence.gain.value = 7 - 6 * style;
-    // DS's falls off faster above 220 Hz (about 12 dB per octave): close the synth's own filter.
-    this.bassSaw.filterEnvelope.baseFrequency = 2500 - 2200 * style;
+  /** Sets the bass's brightness from the genre profile (genres.ts `bassTone`): for synthpop, more
+   * open toward True Faith than The Different Story, as their stems measure. */
+  setBassTone(tone: BassTone): void {
+    this.bassTone.frequency = tone.frequency;
+    this.bassPresence.gain.value = tone.presence;
+    this.bassSaw.filterEnvelope.baseFrequency = tone.sawCutoff;
   }
 
   /**

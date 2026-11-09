@@ -5,7 +5,8 @@
  */
 import { compose, type BassStyle, type KitName, type Song, type SongForm } from "./composer";
 import { KIT_LABELS } from "./drums";
-import { BANK, type Progression } from "./progressions";
+import { GENRES } from "./genres";
+import type { Progression } from "./progressions";
 import { randomSeed } from "./rng";
 import { CHORD_CHOICES, KITS, songToSpec, type Creation } from "./spec";
 import { chord, chordName, keyName, type Key } from "./theory";
@@ -27,6 +28,8 @@ export interface WizardChoices {
 }
 
 const STORE_KEY = "infinite-synthpop:wizard:v1";
+/** The wizard generates synthpop; picking a genre comes later. */
+const BANK = GENRES.synthpop.bank;
 
 function defaults(): WizardChoices {
   return {

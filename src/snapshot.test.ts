@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type Song } from "./composer";
-import { BANK } from "./progressions";
+import { GENRES } from "./genres";
 import { decodeCreation, encodeCreation, songToSpec } from "./spec";
 
 const SEEDS = [1, 42, 1234, 98765];
@@ -94,7 +94,7 @@ describe("output snapshot", () => {
   it("keeps the progression bank", () => {
     expect(
       Object.fromEntries(
-        Object.entries(BANK).map(([kind, entries]) => [
+        Object.entries(GENRES.synthpop.bank).map(([kind, entries]) => [
           kind,
           entries.map((e) => `${e.name}|${e.style}|${e.bars.map((b) => b.join("-")).join(" ")}`),
         ]),

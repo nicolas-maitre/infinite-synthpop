@@ -8,6 +8,7 @@ import { AudioContext as StandardAudioContext } from "standardized-audio-context
 import * as Tone from "tone";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents } from "./arranger";
 import type { SampleReport } from "./drums";
+import { bassTone, GENRES } from "./genres";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
@@ -330,7 +331,7 @@ export class Engine {
    * plays (the others are disconnected). */
   private applySong(inst: Instruments): void {
     inst.drums.use(this.effectiveKit());
-    inst.setBassTone(this.song.style);
+    inst.setBassTone(bassTone(GENRES[this.song.genre], this.song.style));
     inst.setActiveTracks(usedTracks(this.song));
   }
 

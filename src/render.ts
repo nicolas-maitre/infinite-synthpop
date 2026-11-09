@@ -5,6 +5,7 @@
 import * as Tone from "tone";
 import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./composer";
+import { bassTone, GENRES } from "./genres";
 import { scheduleBar } from "./schedule";
 import { Instruments, type Track } from "./instruments";
 
@@ -63,7 +64,7 @@ export async function renderSong(
   await inst.ready;
   await inst.drums.loadAll();
   inst.drums.use(song.kit);
-  inst.setBassTone(song.style);
+  inst.setBassTone(bassTone(GENRES[song.genre], song.style));
   for (const track of solo) inst.channels[track].solo = true;
   for (const track of mute) inst.channels[track].mute = true;
   for (const [track, db] of Object.entries(options.volumes ?? {}) as [Track, number][]) {

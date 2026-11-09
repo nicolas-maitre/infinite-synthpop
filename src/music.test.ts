@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar, MELODIC_TRACKS } from "./arranger";
-import { BPM_RANGE, compose, COUNTER_RANGE, LEAD_RANGES } from "./composer";
+import { compose, COUNTER_RANGE, LEAD_RANGES } from "./composer";
+import { bassTone, GENRES } from "./genres";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
 import { Library, LIBRARY_KEY } from "./library";
 import { scheduleBar, scheduleStep, type Player } from "./schedule";
 import { blankSpec, decodeCreation, encodeCreation, songToSpec } from "./spec";
 import { assignMelody, currentMelody, importMelody, writeMelody } from "./melodies";
-import { BANK, mutate, pickProgression } from "./progressions";
+import { mutate, pickProgression } from "./progressions";
+
+const SYNTHPOP = GENRES.synthpop;
+const BANK = SYNTHPOP.bank;
+const BPM_RANGE = SYNTHPOP.tempo.range;
 import { createRng } from "./rng";
 import { chord, chordName, chordPitchClasses, mod12, scaleForChord, voiceChord } from "./theory";
 
@@ -64,7 +69,14 @@ describe("progressions", () => {
     for (let seed = 0; seed < 200; seed++) {
       const rng = createRng(seed);
       for (const kind of ["chorus", "verse"] as const) {
-        const p = mutate(pickProgression(kind, (seed % 5) / 4, rng), kind, (seed % 5) / 4, rng, 1);
+        const p = mutate(
+          SYNTHPOP,
+          pickProgression(SYNTHPOP, kind, (seed % 5) / 4, rng),
+          kind,
+          (seed % 5) / 4,
+          rng,
+          1,
+        );
         expect(p[0]).toEqual(["i"]);
       }
     }
@@ -75,11 +87,24 @@ describe("progressions", () => {
       const target = BANK.chorus.find((e) => e.name === name)?.bars;
       const rng = createRng(1);
       let n = 0;
-      for (let i = 0; i < 500; i++) if (pickProgression("chorus", style, rng) === target) n++;
+      for (let i = 0; i < 500; i++)
+        if (pickProgression(SYNTHPOP, "chorus", style, rng) === target) n++;
       return n;
     };
     expect(count(0, "TF chorus (MIDI)")).toBeGreaterThan(count(1, "TF chorus (measured)") * 3);
     expect(count(1, "DS chorus (measured)")).toBeGreaterThan(count(0, "DS chorus (measured)") * 3);
+  });
+});
+
+describe("genre profile", () => {
+  it("keeps the measured bass tone at both ends of synthpop", () => {
+    expect(bassTone(SYNTHPOP, 0)).toEqual({ frequency: 240, presence: 7, sawCutoff: 2500 });
+    expect(bassTone(SYNTHPOP, 1)).toEqual({ frequency: 160, presence: 1, sawCutoff: 300 });
+    expect(bassTone(SYNTHPOP, 0.35)).toEqual({
+      frequency: 240 - 80 * 0.35,
+      presence: 7 - 6 * 0.35,
+      sawCutoff: 2500 - 2200 * 0.35,
+    });
   });
 });
 
