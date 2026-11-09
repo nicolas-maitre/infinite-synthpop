@@ -352,7 +352,7 @@ on their tonic and colour it.
 
 Bass roots come from the bass stem (pYIN pitch, each section checked against the spectrum for
 octave errors). Chord qualities come from the "other" stem's chroma, split into the pad register
-(C3–B4) and the top line (C5 up). Numerals are in E major. **(?)** marks a bar I'm unsure of.
+(C3–B4) and the top line (C5 up). Numerals are in E major. The bars the stems left uncertain were checked by ear against the record (A/B clips with each candidate chord), and the text says which.
 
 **The loop**: intro, hook, verses, choruses and outro, 4 bars.
 
