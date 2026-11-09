@@ -1,14 +1,14 @@
 /**
  * Synth voices, effect buses and the mixer. Each voice is modelled on the gear in
  * docs/analysis.md §4: DX-style FM bass, chorused melodic bass, Emulator/Voyetra-ish pad, FM riff,
- * a singing mono lead, a breathy sampled counter-line, FM bell arp, and saw-brass stabs.
+ * a singing mono lead, an electric-piano counter-line, FM bell arp, and saw-brass stabs.
  */
 import * as Tone from "tone";
 import type { DrumHit, MelodicTrack } from "./arranger";
 import type { Note } from "./composer";
 import { DrumKit } from "./drums";
 import { FixedEQ3, FixedFilter } from "./filters";
-import { NativeBreathSynth, NativeFMSynth, NativeMonoSynth, NativeSynth } from "./voices";
+import { NativeFMSynth, NativeMonoSynth, NativeSynth } from "./voices";
 import { midiToFreq } from "./theory";
 
 export const TRACKS = [
@@ -123,7 +123,7 @@ export class Instruments {
   private readonly riffSaw: NativeSynth;
   private readonly lead: Tone.MonoSynth;
   private readonly leadOct: Tone.MonoSynth;
-  private readonly counter: NativeBreathSynth;
+  private readonly counter: NativeFMSynth;
   private readonly arp: NativeFMSynth;
   private readonly stab: NativeSynth;
   private readonly stabNoise: Tone.NoiseSynth;
@@ -325,22 +325,19 @@ export class Instruments {
     this.lead = new Tone.MonoSynth(leadOptions).connect(vibrato);
     this.leadOct = new Tone.MonoSynth(leadOptions).connect(vibrato);
 
-    // TF's chorus counter-line (MIDI "Synth Lead", measured on a Demucs "other" stem of the
-    // record): a soft, sampled-sounding wind voice, not a synth lead. Measured over each held
-    // note, its harmonics fall about 10, 17, 18 and 29 dB under the fundamental; the partials sit
-    // above that because the drift smears the upper harmonics' peaks in the same measurement.
-    // Breath noise carries much of the sound, notes swell in over 50–90 ms, and the pitch wanders
-    // 5–15 cents rather than following a vibrato (no chorus effect: the drift moves it already).
-    // It sits well under the sung line: the whole "other" stem is 4 dB under the vocal in chorus 1.
-    this.counter = new NativeBreathSynth({
-      partials: [1, 0.45, 0.25, 0.2, 0.08, 0.05, 0.02],
-      breath: 6,
-      breathQ: 3,
-      drift: lite ? 0 : 7,
-      envelope: { attack: 0.06, decay: 0.4, sustain: 0.8, release: 0.3 },
-      volume: -13,
+    // TF's chorus counter-line (MIDI "Synth Lead"): an electric-piano tone, a 1:1 FM pair whose
+    // brightness fades after the strike. On a Demucs "other" stem of the record, its held C6s put
+    // the harmonics about 10, 17, 18 and 29 dB under the fundamental. It sits well under the sung
+    // line: the whole "other" stem is 4 dB under the vocal in chorus 1.
+    this.counter = new NativeFMSynth({
+      harmonicity: 1,
+      modulationIndex: 7,
+      modulation: { type: "sine" },
+      envelope: { attack: 0.004, decay: 1.2, sustain: 0.45, release: 0.35 },
+      modulationEnvelope: { attack: 0.002, decay: 0.35, sustain: 0.5, release: 0.3 },
+      volume: 0,
       maxPolyphony: lite ? 2 : 4,
-    }).chain(new FixedFilter("lowpass", 7000), this.channels.counter);
+    }).connect(this.channels.counter);
 
     const arpOptions = {
       harmonicity: 4,

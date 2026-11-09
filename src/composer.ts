@@ -43,7 +43,7 @@ export interface Layers {
   lead: MelodyKind | null;
   /** Doubles the lead an octave up (True Faith's two-voice final chorus). */
   leadDouble: boolean;
-  /** TF's chorus counter-line: a high, sparse sampled-wind line above the vocal (MIDI "Synth
+  /** TF's chorus counter-line: a high, sparse electric-piano line above the vocal (MIDI "Synth
    * Lead"). */
   counter: boolean;
 }
