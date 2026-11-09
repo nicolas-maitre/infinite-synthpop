@@ -5,7 +5,7 @@
 import * as Tone from "tone";
 import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./composer";
-import { bassTone, genreAt, GENRES } from "./genres";
+import { bassTone, genreAt, GENRES, isStyleWeights } from "./genres";
 import { scheduleBar } from "./schedule";
 import { Instruments, type Track } from "./instruments";
 
@@ -145,7 +145,11 @@ export async function renderToDisk(
   const started = performance.now();
   const audio = await renderSong(song, bars, solo, extras.mute);
   const stem = solo.length ? `-solo-${solo.join("+")}` : "";
-  const base = song.reference ?? `seed-${song.seed}-style-${Math.round(song.style * 100)}`;
+  // A song a legacy style describes keeps its old name; others name their weights (TF-DS-YC %).
+  const blend = isStyleWeights(GENRES[song.genre], song.weights, song.style)
+    ? `style-${Math.round(song.style * 100)}`
+    : `w-${song.weights.map((w) => Math.round(w * 100)).join("-")}`;
+  const base = song.reference ?? `seed-${song.seed}-${blend}`;
   const name = `${base}${stem}${extras.tag ? `-${extras.tag}` : ""}.wav`;
   const res = await fetch(`/__renders/${name}`, { method: "POST", body: encodeWav(audio) });
   const seconds = ((performance.now() - started) / 1000).toFixed(1);

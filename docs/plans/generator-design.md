@@ -8,8 +8,8 @@
 machines with a synthesized fallback, and nothing loaded from a CDN at runtime.
 
 **Status:** v1 implemented. The harmony, form, tempo and bass were revised after measuring the
-reference recordings (analysis §1–§3). You Came joined as a third reference (analysis §6–§7);
-its weight is set only by tests until a polygon control replaces the slider.
+reference recordings (analysis §1–§3). You Came joined as a third reference (analysis §6–§7),
+and a style triangle replaced the TF ↔ DS slider.
 
 ## Stack
 
@@ -50,21 +50,20 @@ main.ts          controls, mixer, section timeline, chord display, visualiser
   repetition is what makes the output sound like a song instead of noise. Bars 4–7 replay bars
   0–3's rhythm and random choices over their own chords, so the melody follows DS's two-line
   verse, then cadences on the root.
-- **The style slider (0 = True Faith, 1 = Different Story)** biases these choices: the chorus's
+- **The style (between True Faith and The Different Story)** biases these choices: the chorus's
   Dorian IV vs minor iv, a modal v vs major V, the TF form blocks (VI turnaround, i–IV bass-solo
   vamp, instrumental chorus, modulating outro) vs the DS ones (interlude, ii–IV turnaround, break,
   chorus to fade), and the bounce bass vs the pulse bass.
 - **Every style weighting lives in a genre profile** (`src/genres.ts`, `GENRES.synthpop`), which
   composer, progressions, arranger, instruments and wizard read instead of hard-coded numbers. The
-  profile holds the genre's references (TF at style 0, DS at 1, You Came off the slider), tempo range and centre, key
+  profile holds the genre's references (TF, DS, You Came: the style polygon's vertices), tempo range and centre, key
   weights, progression bank and substitutions, kit and bass-figure weights, ending, counter-line
   and section-planner odds, drum details and bass tone. `compose` takes a `genre` (default
-  `synthpop`) and the song records it; specs and share links don't carry it yet. `style` becomes
-  one weight per reference (`[1 − style, style, 0]`), and each style-dependent number is a `Blend`:
-  a base plus what each reference adds in proportion to its weight (`0.1 + 0.7 × TF`). That's the
-  form the old expressions had, so the output stayed bit-identical (checked by
-  `src/snapshot.test.ts`), and it extends to 3+ references once the weights come from a point in
-  a polygon instead of the slider. Drum details (TF's intro low tom and beat-3 open hat, DS's
+  `synthpop`) and the song records it; specs and share links don't carry it yet. A song has one
+  weight per reference, and each style-dependent number is a `Blend`: a base plus what each
+  reference adds in proportion to its weight (`0.1 + 0.7 × TF`). That's the form the old
+  expressions had, so the output stayed bit-identical (checked by `src/snapshot.test.ts`). The
+  legacy scalar `style` still works as an input, meaning `[1 − style, style, 0]`. Drum details (TF's intro low tom and beat-3 open hat, DS's
   extra kick and tambourine) are per-reference traits that apply while that reference outweighs
   every other; on a tie, the genre's defaults.
 - **You Came is the third reference** (analysis §6–§7): E major, a IV–V loop shared by verse
@@ -74,10 +73,43 @@ main.ts          controls, mixer, section timeline, chord display, visualiser
   walk-down from v, an octave-layered tone), drum traits (beat-&-a hats, a snare-8ths fill closing
   every 8-bar phrase, a 4& pickup, an ungated snare) and planner blocks (verse on the loop,
   pre-chorus, stacked chorus voices, breakdown and 4-bar bridge, 16th-hat break and instrumental,
-  IV held at the end). A song carries one weight per reference; the slider still sets only
-  TF↔DS and gives You Came 0. Every You Came choice draws from its own random streams (the key's
-  mode, the blocks) and its bank entries weigh in with its weight, so at 0 a song is unchanged
-  bit for bit.
+  IV held at the end). Every You Came choice draws from its own random streams (the key's mode,
+  the blocks) and its bank entries weigh in with its weight, so at 0 a song is unchanged bit for
+  bit.
+- **The style is a point in a polygon** (`src/polygon.ts`, `src/blendpad.ts`). Blending happens
+  only within a genre, between its references, one per vertex of a regular polygon; with two
+  references it is a segment, so the same control is a slider. The first two references sit on
+  the bottom edge, left to right (the old slider's order); the rest go round from there, so a
+  genre should list similar references next to each other. A point's weights are its
+  **Wachspress coordinates** (generalized barycentric coordinates for convex polygons: plain
+  barycentric on a triangle, linear on a segment), **sharpened**: raised to the power 2 and
+  renormalized. Sharpening keeps vertices pure, edges two-way and the centre an equal mix, but
+  gives each reference more of the area around its vertex, so most of the triangle has one or two
+  dominant references:
+
+  | exponent       | one reference ≥ 60 % | one ≥ 60 % or two ≥ 90 % | all three ≥ 20 % |
+  | -------------- | -------------------- | ------------------------ | ---------------- |
+  | 1 (plain)      | 48 %                 | 63 %                     | 16 %             |
+  | 1.5            | 66 %                 | 81 %                     | 8 %              |
+  | **2 (chosen)** | **76 %**             | **89 %**                 | **4 %**          |
+  | 3              | 85 %                 | 95 %                     | 2 %              |
+
+  (Shares of the triangle's area; for a pentagon at 2: 64 % and 76 %.) At 3 the blends shrink to
+  thin seams between the references' regions, too narrow to aim for. On the TF–DS edge the old
+  slider's linear `t` becomes `t² / (t² + (1 − t)²)`. Weights are rounded to hundredths, so they
+  travel exactly in links. "Auto" picks a uniformly random point of the polygon per song, from
+  its own random stream. The control has keyboard support (arrows, Shift, Home, number keys), a
+  double-click and a button to centre, touch dragging, and reads out every weight as its slider
+  value.
+
+- **Weights are stored wherever the style was.** Prefs, the wizard's choices and engine settings
+  hold weights; a style saved before them loads as `[1 − style, style, 0]`, which plays exactly
+  as it did. A creation's spec carries its weights (`w` in the compact link format), written only
+  when they differ from its legacy `st`, so links made before them decode to the same songs
+  (`src/legacy-links.json`, recorded with the old code, is part of the snapshot test) and a
+  creation made from You Came keeps its drum details, bass tone and high riff. Links also carry
+  You Came's stacked chorus voices (`ls`), which they used to drop. `#seed=` links still carry
+  only the seed: the viewer's own style settings apply.
 - **The mix is matched by measurement.** `scripts/compare_mix.py` compares loudness, crest factor,
   stereo width and band energy with the recordings. That's how two bugs were found: Tone.Channel
   defaults to mono, which collapsed the stereo field, and the bass sat too low and thin. A third
@@ -94,7 +126,8 @@ main.ts          controls, mixer, section timeline, chord display, visualiser
 ## Controls
 
 Play/stop · new song · skip section · seed (replays any song) · tempo with an auto/lock switch ·
-key (auto or fixed) · drum kit · Faith ↔ Story slider · the three originals (True Faith, The
+key (auto or fixed) · drum kit · style triangle (True Faith, The Different Story, You Came) · the
+three originals (True Faith, The
 Different Story, You Came) · per-track volume / mute / solo · master volume.
 
 ## Out of scope for v1

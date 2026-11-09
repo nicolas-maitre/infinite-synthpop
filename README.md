@@ -49,9 +49,9 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   an original too. Click a song to play it, ⤴ to copy its link, × to delete it (with undo).
 - **⤴ Share** copies a link to what's playing. A generated song goes as its full song (its seed
   alone would sound different with someone else's generator settings), so it plays as a creation.
-- **✚ Create…** is a new-song wizard. Pick the style (or leave it to vary per song), key, tempo,
-  drum machine and bass figure. Choose the verse and chorus chords from the measured presets
-  (closest to a fixed style first), or set them bar by bar. Then set the length (short, standard, long) and the ending (lift to the
+- **✚ Create…** is a new-song wizard. Pick the style on the triangle (or leave it to vary per
+  song), key, tempo, drum machine and bass figure. Choose the verse and chorus chords from the
+  measured presets (closest to the chosen point first), or set them bar by bar. Then set the length (short, standard, long) and the ending (lift to the
   major IV, or chorus to fade), and generate. The result is a creation, so you can keep editing it.
 - **Piano roll:** the whole current section under the timeline, one lane per instrument, with
   each bar's chords and a playhead. Click a bar to jump there.
@@ -82,7 +82,9 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
     them by the nearest interval.
 
   - The song's title is edited in place, at the top. The **Song** line holds key, tempo, drum
-    machine, bass figure and feel.
+    machine, bass figure and feel: a small style triangle that sets which references' drum
+    details, bass tone and riff register the creation plays with (its form and chords are its
+    own).
   - Edits play from the next bar and are saved in My songs. The URL carries the song
     (`#song=…`), so a link replays it. A creation loops until you pick another song.
 - **Export:** **MIDI** (every instrument on its own track, drums on channel 10, sections as
@@ -101,12 +103,14 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   but its bars must line up with the original's layout (a True Faith transcription with 4 bars of
   drums before the bass does).
 - **Seed:** every song is reproducible. The URL carries `#seed=…`, so a link replays the same song.
-- **Style:** a slider from _True Faith_ (Dorian IV choruses, minor v, a brighter, lower bass,
-  the high 16th sequencer, modulating outro) to _The Different Story_ (minor iv choruses, major
-  V, Dorian turnaround, chorus fade). Both share the sequenced bass figure. Auto (a new style
-  each song) or fixed. You Came is the genre's third reference (major key, IV–V loop, pre-chorus,
-  root-8ths bass, beat-&-a hats); the slider doesn't reach it yet, so only its original button
-  plays it.
+- **Style:** a point in a triangle whose corners are the three references: _True Faith_ (Dorian
+  IV choruses, minor v, a brighter, lower bass, the high 16th sequencer, modulating outro), _The
+  Different Story_ (minor iv choruses, major V, Dorian turnaround, chorus fade) and _You Came_
+  (major key, IV–V loop, pre-chorus, root-8ths bass, beat-&-a hats). A corner is that song alone,
+  an edge a blend of two, the centre an equal mix; most of the triangle leans clearly to one or
+  two of them. Drag the point (or tap where it should go), or focus it and use the arrow keys
+  (Shift for bigger steps), Home or a double-click to centre it, and 1–3 to jump to a corner.
+  Auto (a new point each song) or fixed. Settings saved with the old slider carry over.
 - **Tempo:** auto (116–121 BPM; the originals measure 117, 119.8 and 119.0) or fixed.
 - **Key:** auto or a fixed minor key.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.
@@ -161,7 +165,8 @@ python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements-analysis.
 ```
 
 To measure the generator itself, run `await renderToDisk({ seed: 42, style: 0.5 })` in the dev
-page's console. It renders the song offline into `renders/`. For stems, pass a bar count and the
+page's console (or pass the references' weights, True Faith, The Different Story, You Came:
+`{ seed: 42, weights: [0.2, 0.2, 0.6] }`). It renders the song offline into `renders/`. For stems, pass a bar count and the
 tracks to solo: `renderToDisk({ seed: 42, style: 0.5 }, 64, ["bass"])`. Then compare the mixes:
 
 ```bash
