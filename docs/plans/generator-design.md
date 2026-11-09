@@ -8,7 +8,8 @@
 machines with a synthesized fallback, and nothing loaded from a CDN at runtime.
 
 **Status:** v1 implemented. The harmony, form, tempo and bass were revised after measuring the
-reference recordings (analysis §1–§3).
+reference recordings (analysis §1–§3). You Came joined as a third reference (analysis §6–§7);
+its weight is set only by tests until a polygon control replaces the slider.
 
 ## Stack
 
@@ -55,17 +56,28 @@ main.ts          controls, mixer, section timeline, chord display, visualiser
   chorus to fade), and the bounce bass vs the pulse bass.
 - **Every style weighting lives in a genre profile** (`src/genres.ts`, `GENRES.synthpop`), which
   composer, progressions, arranger, instruments and wizard read instead of hard-coded numbers. The
-  profile holds the genre's references (TF at style 0, DS at 1), tempo range and centre, key
+  profile holds the genre's references (TF at style 0, DS at 1, You Came off the slider), tempo range and centre, key
   weights, progression bank and substitutions, kit and bass-figure weights, ending, counter-line
   and section-planner odds, drum details and bass tone. `compose` takes a `genre` (default
   `synthpop`) and the song records it; specs and share links don't carry it yet. `style` becomes
-  one weight per reference (`[1 − style, style]`), and each style-dependent number is a `Blend`:
+  one weight per reference (`[1 − style, style, 0]`), and each style-dependent number is a `Blend`:
   a base plus what each reference adds in proportion to its weight (`0.1 + 0.7 × TF`). That's the
   form the old expressions had, so the output stayed bit-identical (checked by
   `src/snapshot.test.ts`), and it extends to 3+ references once the weights come from a point in
   a polygon instead of the slider. Drum details (TF's intro low tom and beat-3 open hat, DS's
   extra kick and tambourine) are per-reference traits that apply while that reference outweighs
   every other; on a tie, the genre's defaults.
+- **You Came is the third reference** (analysis §6–§7): E major, a IV–V loop shared by verse
+  and chorus, a pre-chorus of secondary dominants, root-8th bass. It brought major keys (secondary
+  dominants, inversions and sus/7/maj7/add9 colours in `theory.ts`, with the melody scale altered
+  per chord), a third bass style (`"yc"`: root 8ths, a same-note 16th on 4a, octave hops on ii, a
+  walk-down from v, an octave-layered tone), drum traits (beat-&-a hats, a snare-8ths fill closing
+  every 8-bar phrase, a 4& pickup, an ungated snare) and planner blocks (verse on the loop,
+  pre-chorus, stacked chorus voices, breakdown and 4-bar bridge, 16th-hat break and instrumental,
+  IV held at the end). A song carries one weight per reference; the slider still sets only
+  TF↔DS and gives You Came 0. Every You Came choice draws from its own random streams (the key's
+  mode, the blocks) and its bank entries weigh in with its weight, so at 0 a song is unchanged
+  bit for bit.
 - **The mix is matched by measurement.** `scripts/compare_mix.py` compares loudness, crest factor,
   stereo width and band energy with the recordings. That's how two bugs were found: Tone.Channel
   defaults to mono, which collapsed the stereo field, and the bass sat too low and thin. A third
@@ -82,8 +94,8 @@ main.ts          controls, mixer, section timeline, chord display, visualiser
 ## Controls
 
 Play/stop · new song · skip section · seed (replays any song) · tempo with an auto/lock switch ·
-key (auto or fixed) · drum kit · Faith ↔ Story slider · per-track volume / mute / solo · master
-volume.
+key (auto or fixed) · drum kit · Faith ↔ Story slider · the three originals (True Faith, The
+Different Story, You Came) · per-track volume / mute / solo · master volume.
 
 ## Out of scope for v1
 

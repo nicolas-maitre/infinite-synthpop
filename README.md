@@ -4,10 +4,10 @@
 # Infinite Synthpop
 
 An endless generative 1987–89 synth-pop machine for the browser, in the style of New Order's
-"True Faith" and Peter Schilling's "The Different Story (World of Lust and Crime)". Every song is
-composed from a seed. When it ends, the next one starts.
+"True Faith", Peter Schilling's "The Different Story (World of Lust and Crime)" and Kim Wilde's
+"You Came". Every song is composed from a seed. When it ends, the next one starts.
 
-The musical rules come from an analysis of both songs, measured from the recordings and
+The musical rules come from an analysis of the songs, measured from the recordings and
 cross-checked against published sources: see [docs/analysis.md](docs/analysis.md). The design is
 in [docs/plans/generator-design.md](docs/plans/generator-design.md).
 
@@ -88,9 +88,10 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
 - **Export:** **MIDI** (every instrument on its own track, drums on channel 10, sections as
   markers) or the whole song's audio with the current mixer as **MP3** (256 kbps, encoded in the
   page) or **WAV**. Audio exports stop playback while they render.
-- **Originals:** play _True Faith_ or _The Different Story_ through the same engine, at their
-  measured form, chords, key, tempo, drum machine and bass figure. The melodies stay generated.
-  Links: `#ref=true-faith`, `#ref=different-story`. Generated songs follow when one ends.
+- **Originals:** play _True Faith_, _The Different Story_ or _You Came_ (album version, E major)
+  through the same engine, at their measured form, chords, key, tempo, drum machine and bass
+  figure. The melodies and riffs stay generated. Links: `#ref=true-faith`,
+  `#ref=different-story`, `#ref=you-came`. Generated songs follow when one ends.
 - **Follow MIDI…:** pick a MIDI file to drive the current original. Each mixer row then gets a
   **MIDI** switch (generated ↔ MIDI) and a select for which of the file's tracks it follows.
   Tracks are matched by name ("Sequence Bass" → Seq bass, "Lead" → Lead, both drum tracks →
@@ -103,8 +104,10 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
 - **Style:** a slider from _True Faith_ (Dorian IV choruses, minor v, a brighter, lower bass,
   the high 16th sequencer, modulating outro) to _The Different Story_ (minor iv choruses, major
   V, Dorian turnaround, chorus fade). Both share the sequenced bass figure. Auto (a new style
-  each song) or fixed.
-- **Tempo:** auto (116–121 BPM; the originals measure 117 and 119.8) or fixed.
+  each song) or fixed. You Came is the genre's third reference (major key, IV–V loop, pre-chorus,
+  root-8ths bass, beat-&-a hats); the slider doesn't reach it yet, so only its original button
+  plays it.
+- **Tempo:** auto (116–121 BPM; the originals measure 117, 119.8 and 119.0) or fixed.
 - **Key:** auto or a fixed minor key.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.
 - **Mixer:** per-track volume, mute and solo, plus a master fader.
@@ -128,7 +131,7 @@ unit-tested. Tone.js only plays the result.
 src/rng.ts           seeded PRNG
 src/theory.ts        keys, Roman-numeral chords, scales (incl. Dorian / harmonic-minor colour), voicing
 src/progressions.ts  progression bank measured from the recordings + style-weighted substitutions
-src/references.ts    the two originals: measured form, chords, key, tempo, kit, bass figure
+src/references.ts    the originals: measured form, chords, key, tempo, kit, bass figure
 src/midi.ts          minimal MIDI file reader for user-supplied tracks
 src/composer.ts      seed → Song: form, progressions, riff / melodic-bass / arp motifs, lead and counter melodies
 src/arranger.ts      (song, bar) → every note and drum hit in that bar
@@ -184,8 +187,8 @@ The code is under the [MIT License](LICENSE). It does not cover these:
 - **MP3 encoder.** [@breezystack/lamejs](https://www.npmjs.com/package/@breezystack/lamejs) (a
   JavaScript port of LAME) stays under LGPL-3.0. It's installed as a dependency and loaded as its
   own file, only when you export an MP3.
-- **The two songs.** "True Faith" and "The Different Story" belong to their writers and
-  publishers. The app uses only what the analysis measured: chord progressions, form, tempo and
-  groove. It contains none of their recordings, melodies or lyrics. A MIDI file you load is read in
+- **The three songs.** "True Faith", "The Different Story" and "You Came" belong to their
+  writers and publishers. The app uses only what the analysis measured: chord progressions, form,
+  tempo and groove. It contains none of their recordings, melodies or lyrics. A MIDI file you load is read in
   your browser and never stored.
 - **Music you make with it.** The songs you generate, create or export are yours.
