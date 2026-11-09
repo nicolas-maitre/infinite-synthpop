@@ -238,7 +238,8 @@ TF     (G1)  G1   G1   -    G1   -    G1   -    G1   -    G1   -    G1   A1   - 
   (medians over chorus 1's long notes). The noise between those harmonics is other parts bleeding
   into the stem, not breath: a breathy voice built from that reading sounded wrong. Separated the
   same way, our render with the MIDI's parts puts the line's fundamental a few dB higher against
-  the whole mix than the record does, so it isn't quieter there. Sound On Sound names the
+  the whole mix than the record does, so it isn't quieter there; it still
+  sounded a bit quiet by ear, so it plays 3 dB above that. Sound On Sound names the
   session's samplers as an Akai S900 and an Emulator II, not a Fairlight. The generator writes its
   own line in this shape for every chorus, in most TF-leaning songs.
 

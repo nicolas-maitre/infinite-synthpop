@@ -311,7 +311,8 @@ export class Instruments {
     // TF's chorus counter-line (MIDI "Synth Lead"): a plucked electric-piano tone. Measured on
     // Demucs "other" stems of chorus 1 (record and our render alike), its held notes strike hard
     // and fade about 11 dB over 0.75 s, and its harmonics fall about 5, 11, 17, 22 and 25 dB under
-    // the fundamental, early and late in the note alike. The carrier plays those harmonics; a
+    // the fundamental, early and late in the note alike; it plays 3 dB above
+    // the record's level, which by ear sounded a bit quiet. The carrier plays those harmonics; a
     // 1:1 FM strike brightens only the first tenth of a second.
     this.counter = new NativeFMSynth({
       harmonicity: 1,
@@ -321,7 +322,7 @@ export class Instruments {
       // A 7.3 s decay to 0.15 falls with a 0.4 s time constant: -11 dB at 0.75 s.
       envelope: { attack: 0.003, decay: 7.3, sustain: 0.15, release: 0.35 },
       modulationEnvelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 0.2 },
-      volume: 0,
+      volume: 3,
       maxPolyphony: lite ? 2 : 4,
     }).connect(this.channels.counter);
 
