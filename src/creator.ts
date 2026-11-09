@@ -5,7 +5,10 @@
  * roll. Every edit goes to the engine as a new spec (spec.ts) and plays from the next bar.
  */
 import { LEAD_RANGES, type Layers, type MelodyKind, type SectionKind, type Song } from "./composer";
+import { BlendPad, initials } from "./blendpad";
 import { KIT_LABELS } from "./drums";
+import { GENRES, specWeights, styleOf } from "./genres";
+import { REFERENCES } from "./references";
 import {
   assignMelody,
   fromBars,
@@ -131,6 +134,8 @@ export function mountCreator(
   let shownSong: Song | null = null;
   let shownIndex = -1;
   let chordCells: HTMLElement[] = [];
+  /** Whether the song settings are open, so a re-render keeps them so. */
+  let settingsOpen = false;
   const melodyPrefs: { range: MelodyRange; density: MelodyDensity } = {
     range: "mid",
     density: "normal",
@@ -345,7 +350,10 @@ export function mountCreator(
     );
 
     importSlot = el("div", "melody-import-slot");
+    // An edit re-renders the panel: keep the song settings open, and the feel pad focused.
+    const feelFocused = document.activeElement?.closest(".song-settings .blendpad") != null;
     panel.replaceChildren(addList(s, index), head, importSlot, songSettings(s));
+    if (feelFocused) panel.querySelector<HTMLElement>(".song-settings .blendpad-surface")?.focus();
     renderLanes(s, index);
   }
 
@@ -657,6 +665,8 @@ export function mountCreator(
 
   function songSettings(s: SongSpec): HTMLElement {
     const box = el("details", "song-settings");
+    box.open = settingsOpen;
+    box.addEventListener("toggle", () => (settingsOpen = box.open));
     const summary = el("summary");
     summary.textContent = `Song: ${s.title} · ${keyName(s.key)} · ${s.bpm} BPM`;
     const tonic = select(
@@ -692,11 +702,28 @@ export function mountCreator(
       s.bassStyle,
       (v) => update((n) => (n.bassStyle = v === "ds" || v === "yc" ? v : "tf")),
     );
-    const feel = input("range", String(s.style), (v) => update((n) => (n.style = Number(v))));
-    feel.min = "0";
-    feel.max = "1";
-    feel.step = "0.05";
-    feel.title = "Feel: True Faith ↔ The Different Story (hats, drum details)";
+    // The song's style triangle, small: which reference's drum details, bass tone and riff
+    // register the creation plays with (its form and chords are its own).
+    const genre = GENRES.synthpop;
+    const names = genre.references.map((id) => REFERENCES[id].title);
+    const feel = new BlendPad({
+      names,
+      short: initials(names),
+      weights: specWeights(genre, s),
+      label: "Feel",
+      compact: true,
+      onChange: (w) =>
+        update((n) => {
+          n.weights = w;
+          n.style = styleOf(w);
+        }),
+    });
+    feel.element.title = "Feel: the references' drum details, bass tone and riff register";
+    // Not a label: a click on the pad would also press the label's button (the pad's reset).
+    const feelField = el("div", "editor-field feel-field");
+    const feelName = el("span");
+    feelName.textContent = "Feel";
+    feelField.append(feelName, feel.element);
 
     const copy = button("Copy link", () => {
       void host.copyLink().then((ok) => {
@@ -729,7 +756,7 @@ export function mountCreator(
         labelled("Tempo", bpm),
         labelled("Drums", kit),
         labelled("Bass figure", bass),
-        labelled("Feel", feel),
+        feelField,
       ),
       row("song-settings-row", ...actions),
     );
