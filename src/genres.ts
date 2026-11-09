@@ -2,19 +2,21 @@
  * Genre profiles: everything the generator weighs differently from one reference song to another.
  * A genre is a discrete choice; blending happens only between its own references.
  *
- * Today the blend is the scalar `style` (0 = the first reference … 1 = the second), turned into one
- * weight per reference by `referenceWeights`; references after the second get weight 0 from it, and
- * only `compose`'s `weights` option (tests, until a polygon control sets them) gives them more. Every style-dependent number is a `Blend`: a base plus
- * what each reference adds in proportion to its weight. That is the form the original expressions
- * had (`0.1 + 0.7 * (1 - style)` is a base of 0.1 plus 0.7 from True Faith), so the profile
- * reproduces them bit for bit, and it extends to any number of references once the weights come
- * from a point inside a polygon instead of a slider.
+ * The blend is one weight per reference, in `references` order. The UI sets them with a point
+ * inside a regular polygon, one reference per vertex (polygon.ts, blendpad.ts); with two
+ * references that is a slider. The scalar `style` (0 = the first reference … 1 = the second) is
+ * the older form, kept for saved settings and links: `referenceWeights` turns it into
+ * `[1 − style, style, 0, …]`. Every style-dependent number is a `Blend`: a base plus what each
+ * reference adds in proportion to its weight. That is the form the original expressions had
+ * (`0.1 + 0.7 * (1 - style)` is a base of 0.1 plus 0.7 from True Faith), so the profile reproduces
+ * them bit for bit.
  */
 import type { BassStyle, KitName } from "./composer";
 import type { DrumVoice } from "./arranger";
 import type { BankEntry, Progression, ProgressionKind } from "./progressions";
 import type { ReferenceId } from "./references";
 import type { Mode } from "./theory";
+import { polygonVertices, quantize, randomPoint, weightsAt, type Point } from "./polygon";
 
 export type GenreId = "synthpop";
 
@@ -87,8 +89,10 @@ export interface Substitution {
 export interface Genre {
   id: GenreId;
   name: string;
-  /** The references the blend runs between. The slider runs from the first (`style` 0) to the
-   * second (1); the others get weight only from explicit weights. */
+  /** The references the blend runs between, one per vertex of the style polygon (polygon.ts): the
+   * first two on its bottom edge, left to right (the legacy `style` runs from the first, 0, to the
+   * second, 1), the others round from there. List similar references next to each other, so they
+   * get neighbouring vertices. */
   references: readonly ReferenceId[];
   tempo: { range: readonly [number, number]; center: number };
   /** Key tonic (pitch class) → weight, for minor keys. */
@@ -486,10 +490,46 @@ export const GENRES: Record<GenreId, Genre> = {
   },
 };
 
-/** One weight per reference, in `genre.references` order, from the slider's `style`. The slider
- * runs from the first reference to the second; the others get 0. */
+/** One weight per reference, in `genre.references` order, from the legacy scalar `style`: it runs
+ * from the first reference to the second; the others get 0. Saved settings and links from before
+ * the weights still play this way. */
 export function referenceWeights(genre: Genre, style: number): readonly number[] {
   return genre.references.map((_, i) => (i === 0 ? 1 - style : i === 1 ? style : 0));
+}
+
+/** Do these weights say no more than a legacy `style` would? (Then links store only the style.) */
+export function isStyleWeights(genre: Genre, weights: readonly number[], style: number): boolean {
+  const legacy = referenceWeights(genre, style);
+  return weights.length === legacy.length && weights.every((w, i) => w === legacy[i]);
+}
+
+/** Weights read from storage or a link: one finite, non-negative number per reference (missing
+ * ones 0), not all 0; null otherwise. */
+export function parseWeights(genre: Genre, raw: unknown): number[] | null {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > genre.references.length) return null;
+  const w = genre.references.map((_, i) => Number(raw[i] ?? 0));
+  if (!w.every((x) => Number.isFinite(x) && x >= 0) || !w.some((x) => x > 0)) return null;
+  return w.map((x) => Math.min(1, x));
+}
+
+/** The genre's style polygon: one vertex per reference (polygon.ts). */
+export function genreVertices(genre: Genre): Point[] {
+  return polygonVertices(genre.references.length);
+}
+
+/** The weights at a point of the genre's polygon, rounded to hundredths (they travel in links). */
+export function weightsAtPoint(genre: Genre, p: Point): number[] {
+  return quantize(weightsAt(genreVertices(genre), p));
+}
+
+/** A random point of the genre's polygon, as weights: the "auto" style. */
+export function randomWeights(genre: Genre, random: () => number): number[] {
+  return weightsAtPoint(genre, randomPoint(genreVertices(genre), random));
+}
+
+/** The genre's references' weights for a spec: its own, else its legacy style's. */
+export function specWeights(genre: Genre, spec: { style: number; weights?: readonly number[] }) {
+  return spec.weights ?? referenceWeights(genre, spec.style);
 }
 
 /** All the weight on one reference (an original playing). */

@@ -6,8 +6,10 @@ import type { DrumHit, MelodicTrack } from "./arranger";
 import {
   GENRES,
   genreAt,
+  randomWeights,
   referenceWeights,
   soloWeights,
+  specWeights,
   styleOf,
   type Blend,
   type GenreAt,
@@ -190,12 +192,13 @@ export interface ComposeOptions {
   seed: number;
   /** The genre profile to generate with (genres.ts); synthpop by default. */
   genre?: GenreId;
-  /** Where the song sits between the genre's references (synthpop: 0 = True Faith … 1 = The
-   * Different Story). Unset or null = pick per song. */
+  /** Legacy: where the song sits between the genre's first two references (synthpop: 0 = True
+   * Faith … 1 = The Different Story), as weights `[1 − style, style, 0]`. Unset or null, with no
+   * `weights` either, picks a style on that axis per song (as the old slider's auto did). */
   style?: number | null;
-  /** The references' weights, in the genre's `references` order; overrides `style`. Only tests
-   * set this until a control does (the slider gives the references after the second weight 0). */
-  weights?: readonly number[] | null;
+  /** The references' weights, in the genre's `references` order; overrides `style`. "auto" picks
+   * a random point of the genre's polygon per song. */
+  weights?: readonly number[] | "auto" | null;
   key?: Key | null;
   bpm?: number | null;
   kit?: KitName | "auto";
@@ -231,17 +234,22 @@ export function compose(opts: ComposeOptions): Song {
   const autoStyle = Math.round(root.fork("style").next() * 100) / 100;
   const genreId = opts.genre ?? "synthpop";
   const genre = GENRES[genreId];
+  // The auto point draws from its own stream too.
+  const rngPoint = root.fork("point");
+  const given =
+    opts.weights === "auto" ? randomWeights(genre, () => rngPoint.next()) : (opts.weights ?? null);
   const style = ref
     ? ref.style
-    : opts.weights
-      ? styleOf(opts.weights)
+    : given
+      ? styleOf(given)
       : Math.min(1, Math.max(0, opts.style ?? autoStyle));
-  // An original plays with all the weight on itself; a creation where its style puts it.
-  const weights =
-    opts.weights ??
-    (ref && !opts.custom && opts.reference
+  // An original plays with all the weight on itself; a creation with its own weights (or its
+  // legacy style's).
+  const weights = opts.custom
+    ? specWeights(genre, opts.custom)
+    : ref && opts.reference
       ? soloWeights(genre, opts.reference)
-      : referenceWeights(genre, style));
+      : (given ?? referenceWeights(genre, style));
   const g = genreAt(genre, weights);
   const rngSetup = root.fork("setup");
   // You Came's choices draw from their own streams, so at its weight 0 a song is what it was.

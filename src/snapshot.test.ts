@@ -1,8 +1,9 @@
 /**
  * Locks down the generator's output: the composed song and every arranged bar, for a fixed set of
  * seeds, styles, forms and the originals, plus a creation round-tripped through a share link.
- * Songs with You Came's weight above 0 set the weights directly, as no control does yet.
- * Refactors that must not change what plays are checked against this snapshot. The full arranged
+ * Songs with You Came's weight above 0 set the weights directly (or pick them: "auto").
+ * Old share links (legacy-links.json, made when creations carried only the scalar style) must
+ * decode to the songs they played then. Refactors that must not change what plays are checked against this snapshot. The full arranged
  * events would make a multi-megabyte file, so each song's bars are stored as one digest
  * next to a readable summary of the song.
  */
@@ -11,6 +12,7 @@ import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type Song } from "./composer";
 import { GENRES } from "./genres";
 import { decodeCreation, encodeCreation, songToSpec } from "./spec";
+import LEGACY_LINKS from "./legacy-links.json";
 
 const SEEDS = [1, 42, 1234, 98765];
 const STYLES = [0, 0.25, 0.5, 0.75, 1, null];
@@ -92,6 +94,11 @@ const CASES: [string, ComposeOptions][] = [
       { seed, weights },
     ]),
   ),
+  // A random point of the triangle per song (the UI's auto).
+  ...[1, 42].map((seed): [string, ComposeOptions] => [
+    `seed ${seed} weights auto`,
+    { seed, weights: "auto" },
+  ]),
 ];
 
 describe("output snapshot", () => {
@@ -103,6 +110,15 @@ describe("output snapshot", () => {
     const song = compose({ seed: 314, style: 0.6 });
     const decoded = decodeCreation(encodeCreation({ seed: song.seed, spec: songToSpec(song) }));
     expect(decoded).toMatchSnapshot();
+    if (!decoded) return;
+    expect(summarise(compose({ seed: decoded.seed, custom: decoded.spec }))).toMatchSnapshot();
+  });
+
+  // Share links made before creations carried weights (only the scalar `st`), recorded with that
+  // code: they must keep playing exactly the same song.
+  it.each(Object.entries(LEGACY_LINKS))("plays the old link %s as before", (_, link) => {
+    const decoded = decodeCreation(link);
+    expect(decoded).not.toBeNull();
     if (!decoded) return;
     expect(summarise(compose({ seed: decoded.seed, custom: decoded.spec }))).toMatchSnapshot();
   });

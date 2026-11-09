@@ -3,6 +3,10 @@
  * sections in order, each with its length, chords per bar, instruments and key, plus song-level
  * key, tempo, drum machine and bass style. A creation is a spec plus the seed its motifs, melodies
  * and drum details come from. Creations travel compactly in the URL and in local storage.
+ *
+ * A spec carries the genre's references' weights (`w` in links). Creations from before the weights
+ * carry only the scalar style (`st`), which plays as `[1 − st, st, 0]`, exactly as it did; a
+ * creation whose weights say no more than that is still written that way.
  */
 import type {
   BassStyle,
@@ -17,6 +21,7 @@ import type {
 import type { Progression } from "./progressions";
 import type { ReferenceSection, ReferenceSong } from "./references";
 import { chord, type Key, type Mode } from "./theory";
+import { GENRES, isStyleWeights, parseWeights } from "./genres";
 
 export type SongSpec = ReferenceSong;
 export type SectionSpec = ReferenceSection;
@@ -123,6 +128,7 @@ export function songToSpec(song: Song): SongSpec {
   return {
     title: song.title,
     style: song.style,
+    weights: [...song.weights],
     key: { ...song.key },
     bpm: song.bpm,
     kit: song.kit,
@@ -193,6 +199,8 @@ interface CompactSection {
   on: string[];
   ld?: MelodyKind;
   x?: 1;
+  /** A second voice a 3rd under the lead (You Came's choruses). */
+  ls?: 1;
   st?: 1;
   /** Drum fill at the end: 1 on, 0 off, absent = default. */
   f?: 0 | 1;
@@ -205,7 +213,11 @@ interface CompactCreation {
   v: 1;
   seed: number;
   t: string;
+  /** Legacy scalar style (0 = True Faith … 1 = The Different Story); without `w`, the weights are
+   * `[1 − st, st, 0]`. */
   st: number;
+  /** The references' weights (genres.ts), when they differ from `st`'s. */
+  w?: number[];
   key: [number, Mode];
   bpm: number;
   kit: KitName;
@@ -224,6 +236,10 @@ export function encodeCreation({ seed, spec }: Creation): string {
     seed,
     t: spec.title,
     st: Math.round(spec.style * 100) / 100,
+    // Written as they are: the UI rounds them to hundredths, which JSON keeps short and exact.
+    ...(spec.weights && !isStyleWeights(GENRES.synthpop, spec.weights, spec.style)
+      ? { w: [...spec.weights] }
+      : {}),
     key: [spec.key.tonic, spec.key.mode],
     bpm: spec.bpm,
     kit: spec.kit,
@@ -258,6 +274,7 @@ export function encodeCreation({ seed, spec }: Creation): string {
         on: SECTION_INSTRUMENTS.filter((i) => L[i]),
         ...(L.lead ? { ld: L.lead } : {}),
         ...(L.leadDouble ? { x: 1 as const } : {}),
+        ...(L.leadStack ? { ls: 1 as const } : {}),
         ...(L.bassShort ? { st: 1 as const } : {}),
         ...(s.fill === undefined ? {} : { f: s.fill ? (1 as const) : (0 as const) }),
         ...(s.melody ? { ml: s.melody } : {}),
@@ -284,6 +301,8 @@ export function decodeCreation(encoded: string): Creation | null {
         drums: DRUM_MODES.includes(s.d) ? s.d : "full",
         lead: s.ld === "verse" || s.ld === "chorus" ? s.ld : null,
         leadDouble: s.x === 1,
+        // Only when set: old links have no `ls`, and decode as they did.
+        ...(s.ls === 1 ? { leadStack: true } : {}),
         bassShort: s.st === 1,
       };
       for (const i of SECTION_INSTRUMENTS) layers[i] = s.on.includes(i);
@@ -300,11 +319,13 @@ export function decodeCreation(encoded: string): Creation | null {
       };
     });
     const first = (kind: SectionKind) => sections.find((s) => s.kind === kind)?.progression;
+    const weights = c.w === undefined ? null : parseWeights(GENRES.synthpop, c.w);
     return {
       seed: clampInt(c.seed, 0, 999_999),
       spec: {
         title: String(c.t || "Untitled").slice(0, 60),
         style: Math.min(1, Math.max(0, Number(c.st) || 0)),
+        ...(weights ? { weights } : {}),
         key,
         bpm: Math.min(160, Math.max(60, Number(c.bpm) || 118.5)),
         kit: KITS.includes(c.kit) ? c.kit : "sp12",

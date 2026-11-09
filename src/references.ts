@@ -30,6 +30,10 @@ export interface ReferenceSong {
    * original plays with all the weight on itself whatever this says (You Came sits off the axis,
    * at 0.5). */
   style: number;
+  /** The genre's references' weights a creation plays with (genres.ts), in `references` order.
+   * Unset: its `style`'s, `[1 − style, style, 0]` (creations from before the weights). An
+   * original plays with all the weight on itself whatever this says. */
+  weights?: readonly number[];
   key: Key;
   bpm: number;
   kit: KitName;

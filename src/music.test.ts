@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar, MELODIC_TRACKS } from "./arranger";
 import { compose, COUNTER_RANGE, LEAD_RANGES } from "./composer";
-import { bassTone, GENRES } from "./genres";
+import { bassTone, genreAt, GENRES, referenceWeights, specWeights } from "./genres";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
 import { Library, LIBRARY_KEY } from "./library";
@@ -377,6 +377,30 @@ describe("references", () => {
     expect(compose({ seed: 9, style: 0.3 })).toEqual(compose({ seed: 9, weights: [0.7, 0.3, 0] }));
   });
 
+  it("plays a legacy style as the weights [1 − style, style, 0], exactly", () => {
+    // Saved settings from before the weights hold only a style; they now go in as these weights.
+    for (const seed of [1, 9, 4242])
+      for (const style of [0, 0.05, 0.15, 0.3, 0.37, 0.5, 0.65, 0.93, 1]) {
+        const weights = referenceWeights(SYNTHPOP, style);
+        expect(weights).toEqual([1 - style, style, 0]);
+        expect(compose({ seed, weights })).toEqual(compose({ seed, style }));
+      }
+  });
+
+  it("picks a point of the triangle per song when the weights are auto", () => {
+    const songs = Array.from({ length: 60 }, (_, seed) => compose({ seed, weights: "auto" }));
+    expect(compose({ seed: 5, weights: "auto" })).toEqual(songs[5]);
+    // Each reference leads some songs, and the weights are hundredths that add up.
+    const leads = new Set(songs.map((s) => s.weights.indexOf(Math.max(...s.weights))));
+    expect(leads).toEqual(new Set([0, 1, 2]));
+    for (const { weights } of songs) {
+      expect(weights.reduce((a, b) => a + Math.round(b * 100), 0)).toBe(100);
+      expect(weights.map((w) => Math.round(w * 100) / 100)).toEqual(weights);
+    }
+    // A point is not a style: auto weights don't change the legacy auto style's songs.
+    expect(compose({ seed: 5 })).toEqual(compose({ seed: 5, style: null, weights: null }));
+  });
+
   it("plays TF's pickup run into verse 2 and its drum groove in the intro", () => {
     const tf = compose({ seed: 1987, style: 0.5, reference: "true-faith" });
     const verse2 = tf.sections.find((s) => s.label === "Verse 2");
@@ -527,6 +551,63 @@ describe("creator specs", () => {
       expect(arrangement(compose({ seed, style: 0, custom: decoded?.spec }))).toBe(
         arrangement(song),
       );
+    }
+  });
+
+  it("keeps a creation's weights through the link, so You Came's details survive", () => {
+    const yc = compose({ seed: 1988, reference: "you-came" });
+    const weighted = compose({ seed: 3, weights: [0.12, 0.18, 0.7] });
+    for (const song of [yc, weighted]) {
+      const spec = songToSpec(song);
+      expect(spec.weights).toEqual(song.weights);
+      const link = encodeCreation({ seed: song.seed, spec });
+      const decoded = decodeCreation(link);
+      expect(decoded?.spec.weights).toEqual(song.weights);
+      const again = compose({ seed: song.seed, custom: decoded?.spec });
+      expect(again.weights).toEqual(song.weights);
+      expect(arrangement(again)).toBe(arrangement(compose({ seed: song.seed, custom: spec })));
+    }
+    // From the original: You Came's drums (beat-&-a hats, no gate) and bass tone.
+    const fromYc = compose({
+      seed: 1988,
+      custom: decodeCreation(encodeCreation({ seed: 1988, spec: songToSpec(yc) }))?.spec,
+    });
+    expect(genreAt(SYNTHPOP, fromYc.weights).drums).toEqual(SYNTHPOP.drumTraits["you-came"]);
+    expect(bassTone(SYNTHPOP, fromYc.weights).octave).toBe(1);
+    expect(fromYc.riffHigh).toBe(yc.riffHigh);
+  });
+
+  it("decodes an old link (style only) to the weights [1 − st, st, 0]", () => {
+    const song = compose({ seed: 2001, style: 0.15 });
+    const link = encodeCreation({ seed: 2001, spec: songToSpec(song) });
+    // A style song's weights say nothing more: the link stays in the old form.
+    expect(link).not.toContain(btoa('"w":').slice(0, 3));
+    const decoded = decodeCreation(link);
+    expect(decoded?.spec.weights).toBeUndefined();
+    expect(specWeights(SYNTHPOP, decoded!.spec)).toEqual([0.85, 0.15, 0]);
+    expect(compose({ seed: 2001, custom: decoded?.spec }).weights).toEqual([0.85, 0.15, 0]);
+  });
+
+  it("rejects malformed weights in a link and falls back to the style", () => {
+    const spec = songToSpec(compose({ seed: 3, style: 0.4 }));
+    for (const w of [[-1, 0, 2], [0, 0, 0], ["x", 1, 0], [0.2, 0.3, 0.5, 0.1], "1,0,0"]) {
+      const json = JSON.parse(
+        new TextDecoder().decode(
+          Uint8Array.from(
+            atob(encodeCreation({ seed: 3, spec }).replace(/-/g, "+").replace(/_/g, "/")),
+            (c) => c.charCodeAt(0),
+          ),
+        ),
+      ) as Record<string, unknown>;
+      json.w = w;
+      const bytes = new TextEncoder().encode(JSON.stringify(json));
+      const link = btoa(String.fromCharCode(...bytes))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+      const decoded = decodeCreation(link);
+      expect(decoded?.spec.weights).toBeUndefined();
+      expect(compose({ seed: 3, custom: decoded?.spec }).weights).toEqual([0.6, 0.4, 0]);
     }
   });
 

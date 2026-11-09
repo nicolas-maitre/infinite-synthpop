@@ -197,6 +197,516 @@ exports[`output snapshot > keeps the progression bank 1`] = `
 }
 `;
 
+exports[`output snapshot > plays the old link auto style as before 1`] = `
+{
+  "bars": "1c18ecfc57a7a0f1506250",
+  "bassStyle": "ds",
+  "bpm": 119.5,
+  "key": {
+    "mode": "minor",
+    "tonic": 9,
+  },
+  "kit": "linndrum",
+  "melodies": "c2d0a014379b55e512753",
+  "motifs": "11b3c6675ffd95962008",
+  "progressions": {
+    "bridge": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "III",
+        "VII",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "I",
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "v",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|4|9minor|fill=true|i III-VII VII IV|drums=kick,bass",
+    "intro|Intro · riff|8|9minor|fill=true|i III-VII VII IV|drums=full,bass,pad,riff",
+    "verse|Verse 1|8|9minor|fill=true|i VI VII v|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|9minor|fill=false|i III-VII VII IV|drums=big,bass,pad,arp,guitar,lead=chorus",
+    "interlude|Instrumental|8|9minor|fill=false|i III-VII VII IV|drums=full,bass,hook,pad,riff,seq,guitar",
+    "turnaround|Turn · VI–VII|2|9minor|fill=true|VI VII|drums=full,bass,pad,seq,bassShort,guitar",
+    "verse|Verse 2|8|9minor|fill=true|i VI VII v|drums=full,bass,pad,seq,lead=verse",
+    "chorus|Chorus|8|9minor|fill=true|i III-VII VII IV|drums=big,bass,pad,arp,seq,guitar,lead=chorus",
+    "turnaround|Turnaround|2|9minor|fill=false|VI VII|drums=full,bass,pad",
+    "bridge|Bridge · bass solo|8|9minor|fill=false|iv VI VII i|drums=full,bass,hook,pad",
+    "interlude|Instrumental chorus|8|9minor|fill=true|i III-VII VII IV|drums=full,bass,hook,pad,riff,seq,guitar",
+    "chorus|Chorus|8|9minor|fill=true|i III-VII VII IV|drums=big,bass,pad,seq,guitar,lead=chorus",
+    "chorus|Chorus · double|8|9minor|fill=true|i III-VII VII IV|drums=big,bass,pad,arp,seq,guitar,lead=chorus,leadDouble",
+    "outro|Outro · chorus to fade|16|9minor|fill=false|i III-VII VII IV|drums=big,bass,pad,arp,guitar,lead=chorus",
+  ],
+  "style": 0.39,
+  "title": "The Neon Language",
+  "totalBars": 104,
+}
+`;
+
+exports[`output snapshot > plays the old link style 0.15 as before 1`] = `
+{
+  "bars": "f68e33d3d5d3c1bc545992",
+  "bassStyle": "tf",
+  "bpm": 117,
+  "key": {
+    "mode": "minor",
+    "tonic": 4,
+  },
+  "kit": "linndrum",
+  "melodies": "e0990ce62ba94fb811290",
+  "motifs": "187e69033b0307fc1785",
+  "progressions": {
+    "bridge": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "V",
+        "VII",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|4|4minor|fill=false|i VII VII IV|drums=groove,bass",
+    "intro|Intro · riff|8|4minor|fill=true|i VII VII IV|drums=full,bass,hook,pad,riff",
+    "verse|Verse 1|8|4minor|fill=true|i VI VII V-VII|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|4minor|fill=true|i VII VII IV|drums=big,bass,pad,arp,stabs,guitar,lead=chorus",
+    "interlude|Instrumental|8|4minor|fill=false|i VII VII IV|drums=full,bass,pad,riff,seq,guitar",
+    "turnaround|Turn · VI–VII|2|4minor|fill=true|VI VII|drums=full,bass,pad,seq,bassShort,guitar",
+    "verse|Verse 2|8|4minor|fill=true|i VI VII V-VII|drums=full,bass,pad,seq,lead=verse",
+    "chorus|Chorus|8|4minor|fill=true|i VII VII IV|drums=big,bass,pad,arp,seq,guitar,lead=chorus",
+    "turnaround|Turnaround|2|4minor|fill=false|VI VII|drums=full,bass,pad",
+    "bridge|Bridge · bass solo|8|4minor|fill=false|iv VI VII i|drums=full,bass,hook,pad",
+    "interlude|Instrumental chorus|8|4minor|fill=true|i VII VII IV|drums=full,bass,hook,pad,riff,seq,guitar",
+    "turnaround|Turn · VI–VII|2|4minor|fill=true|VI VII|drums=full,bass,pad,seq,bassShort,guitar",
+    "verse|Verse 3|16|4minor|fill=true|i VI VII V-VII|drums=full,bass,pad,seq,lead=verse",
+    "chorus|Chorus|8|4minor|fill=true|i VII VII IV|drums=big,bass,pad,arp,seq,guitar,lead=chorus",
+    "chorus|Chorus · double|8|4minor|fill=true|i VII VII IV|drums=big,bass,pad,arp,seq,guitar,lead=chorus,leadDouble",
+    "outro|Outro · lift to IV|16|9major|fill=false|I IV I V|drums=full,bass,hook,pad,riff,seq,bassShort,guitar",
+  ],
+  "style": 0.15,
+  "title": "Distant Weather",
+  "totalBars": 122,
+}
+`;
+
+exports[`output snapshot > plays the old link style 0.93 as before 1`] = `
+{
+  "bars": "8361ce65e4b8a482327678",
+  "bassStyle": "tf",
+  "bpm": 119,
+  "key": {
+    "mode": "minor",
+    "tonic": 4,
+  },
+  "kit": "linndrum",
+  "melodies": "066c53927b2c674a14235",
+  "motifs": "70f49b5f67328a441938",
+  "progressions": {
+    "bridge": [
+      [
+        "ii",
+      ],
+      [
+        "ii",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "iv",
+        "VI",
+      ],
+    ],
+    "interlude": [
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "VI",
+        "VII",
+      ],
+      [
+        "v",
+      ],
+      [
+        "v",
+      ],
+      [
+        "i",
+      ],
+      [
+        "VI",
+        "VII",
+      ],
+      [
+        "v",
+      ],
+      [
+        "V",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|4|4minor|fill=true|i III VII iv-VI|drums=kick,bass",
+    "intro|Intro · riff|8|4minor|fill=true|i III VII iv-VI|drums=full,bass,pad,riff",
+    "verse|Verse 1|16|4minor|fill=true|i VI-VII v v i VI-VII v V|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|4minor|fill=false|i III VII iv-VI|drums=big,bass,pad,lead=chorus",
+    "interlude|Interlude|8|4minor|fill=true|III VII iv i|drums=full,bass,pad,riff,arp",
+    "turnaround|Turnaround|4|4minor|fill=true|VI VII VI VII|drums=full,bass,pad,riff,arp",
+    "break|Break|2|4minor|fill=true|i|drums=kick,pad,riff",
+    "verse|Verse 2|16|4minor|fill=true|i VI-VII v v i VI-VII v V|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|4minor|fill=false|i III VII iv-VI|drums=big,bass,pad,arp,stabs,lead=chorus",
+    "interlude|Interlude|8|4minor|fill=true|III VII iv i|drums=full,bass,pad,riff",
+    "turnaround|Turnaround|4|4minor|fill=false|VI VII VI VII|drums=full,bass,pad,riff,arp",
+    "break|Break|2|4minor|fill=true|i|drums=kick,pad,riff",
+    "verse|Verse 3|8|4minor|fill=true|i VI-VII v v i VI-VII v V|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|4minor|fill=true|i III VII iv-VI|drums=big,bass,pad,lead=chorus",
+    "chorus|Chorus · double|8|4minor|fill=true|i III VII iv-VI|drums=big,bass,pad,arp,stabs,lead=chorus,leadDouble",
+    "outro|Outro · chorus to fade|16|4minor|fill=false|i III VII iv-VI|drums=big,bass,pad,arp,lead=chorus",
+  ],
+  "style": 0.93,
+  "title": "The Burning Language (Extended)",
+  "totalBars": 128,
+}
+`;
+
+exports[`output snapshot > plays the old link you-came original as before 1`] = `
+{
+  "bars": "253c0a5d8989d714294749",
+  "bassStyle": "yc",
+  "bpm": 119,
+  "key": {
+    "mode": "major",
+    "tonic": 4,
+  },
+  "kit": "linndrum",
+  "melodies": "8cf975ce1a562e2c18131",
+  "motifs": "fb35afee7dcebbe61968",
+  "progressions": {
+    "bridge": [
+      [
+        "IV",
+      ],
+      [
+        "v",
+      ],
+      [
+        "IV/3",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "chorus": [
+      [
+        "IV",
+      ],
+      [
+        "V",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "V",
+        "I/3",
+      ],
+    ],
+    "interlude": [
+      [
+        "IVadd9",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "prechorus": [
+      [
+        "ii",
+      ],
+      [
+        "I",
+      ],
+      [
+        "Vsus4/vi",
+      ],
+      [
+        "V7/vi",
+      ],
+    ],
+    "turnaround": [
+      [
+        "IV",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "verse": [
+      [
+        "IV",
+      ],
+      [
+        "V",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "V",
+        "I/3",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "V",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "V",
+        "I",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro · pad on IV|2|4major|fill=false|IV|drums=off,pad",
+    "intro|Intro · the loop|4|4major|fill=false|IV V IVadd9 V|drums=off,pad",
+    "intro|Hook|8|4major|fill=true|IV V IV V-I/3|drums=full,bass,pad,riff",
+    "verse|Verse 1|8|4major|fill=false|IV V IV V-I/3 IV V IV V-I|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus 1|8|4major|fill=true|V/ii ii I v ii I Vsus4/vi V7/vi|drums=full,bass,pad,arp,lead=verse",
+    "chorus|Chorus 1|8|4major|fill=true|IV V IV V-I/3|drums=full,bass,pad,riff,lead=chorus",
+    "verse|Verse 2|8|4major|fill=false|IV V IV V-I/3 IV V IV V-I|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus 2|8|4major|fill=true|V/ii ii I v ii I Vsus4/vi V7/vi|drums=full,bass,pad,arp,lead=verse",
+    "chorus|Chorus 2 · ×2|16|4major|fill=true|IV V IV V-I/3 IV V IV V-I/3 IV V IV V-I IV V IV V-I/3|drums=full,bass,pad,riff,lead=chorus",
+    "verse|Breakdown|8|4major|fill=false|IV V|drums=breakdown,pad,lead=verse",
+    "bridge|Bridge|4|4major|fill=true|IVmaj7 Vadd9 IV/3 Vsus4-V|drums=breakdown,pad,lead=verse",
+    "chorus|Chorus 3 · ×2|16|4major|fill=false|IV V IV V IV V IV V-I/3|drums=full,bass,pad,riff,lead=chorus",
+    "break|Break|8|4major|fill=false|IVadd9 V|drums=hats16,pad",
+    "interlude|Instrumental|8|4major|fill=false|IV V IV V IV V IV V-I/3|drums=hats16,bass,pad",
+    "interlude|Instrumental · riff|8|4major|fill=true|IV V IV V IV V IV V-I/3|drums=full,bass,pad,riff",
+    "chorus|Final chorus|8|4major|fill=false|IV V IV V IV V IV V-I/3|drums=full,bass,pad,riff,lead=chorus",
+    "outro|Ending · IV held|5|4major|fill=false|IV|drums=off,pad",
+  ],
+  "style": 0.5,
+  "title": "You Came",
+  "totalBars": 135,
+}
+`;
+
 exports[`output snapshot > round-trips a creation through a share link 1`] = `
 {
   "seed": 314,
@@ -1660,6 +2170,153 @@ exports[`output snapshot > seed 1 style null 1`] = `
   "style": 0.85,
   "title": "Heaven (Land of Thunder and Light)",
   "totalBars": 136,
+}
+`;
+
+exports[`output snapshot > seed 1 weights auto 1`] = `
+{
+  "bars": "28d2460ff0ccff47315941",
+  "bassStyle": "tf",
+  "bpm": 117.5,
+  "key": {
+    "mode": "minor",
+    "tonic": 0,
+  },
+  "kit": "linndrum",
+  "melodies": "ebbe552501716c0814393",
+  "motifs": "53b3bdb075f68eaf1925",
+  "progressions": {
+    "bridge": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "prechorus": [
+      [
+        "VI",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "III",
+      ],
+      [
+        "v",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "III",
+      ],
+      [
+        "Vsus4",
+      ],
+      [
+        "V7",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "v",
+        "VII",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|4|0minor|fill=false|i III VII IV|drums=kick,bass",
+    "intro|Intro · riff|8|0minor|fill=true|i III VII IV|drums=full,bass,hook,pad,riff",
+    "verse|Verse 1|16|0minor|fill=true|i VI VII v-VII|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|0minor|fill=false|i III VII IV|drums=big,bass,pad,lead=chorus,counter",
+    "interlude|Instrumental|8|0minor|fill=true|i III VII IV|drums=full,bass,pad,riff",
+    "turnaround|Turn · VI–VII|2|0minor|fill=true|VI VII|drums=full,bass,pad,bassShort",
+    "verse|Verse 2|16|0minor|fill=true|i VI VII v-VII|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|0minor|fill=false|i III VII IV|drums=big,bass,pad,arp,lead=chorus,counter",
+    "turnaround|Turnaround|4|0minor|fill=true|VI VII VI VII|drums=full,bass,pad",
+    "bridge|Bridge · bass solo|8|0minor|fill=true|iv VI VII i|drums=full,bass,hook,pad",
+    "interlude|Instrumental chorus|8|0minor|fill=true|i III VII IV|drums=full,bass,pad,riff",
+    "chorus|Chorus|8|0minor|fill=true|i III VII IV|drums=big,bass,pad,arp,lead=chorus,counter",
+    "chorus|Chorus · double|8|0minor|fill=false|i III VII IV|drums=big,bass,pad,arp,lead=chorus,leadDouble,counter",
+    "outro|Outro · lift to IV|16|5major|fill=false|I IV I V|drums=full,bass,hook,pad,riff",
+  ],
+  "style": 0.44999999999999996,
+  "title": "Heaven (Land of Thunder and Light)",
+  "totalBars": 122,
 }
 `;
 
@@ -4160,6 +4817,147 @@ exports[`output snapshot > seed 42 weights 0/0/1 1`] = `
   "style": 0.5,
   "title": "Heaven (World of Silence and Ice)",
   "totalBars": 124,
+}
+`;
+
+exports[`output snapshot > seed 42 weights auto 1`] = `
+{
+  "bars": "d7562b3b9f2515ed421723",
+  "bassStyle": "ds",
+  "bpm": 118,
+  "key": {
+    "mode": "minor",
+    "tonic": 0,
+  },
+  "kit": "sp12",
+  "melodies": "66fc7637128927ea13416",
+  "motifs": "70ca88782aaee57f1895",
+  "progressions": {
+    "bridge": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "iv",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "prechorus": [
+      [
+        "VI",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "III",
+      ],
+      [
+        "v",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "III",
+      ],
+      [
+        "Vsus4",
+      ],
+      [
+        "V7",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "VI",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "V",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|4|0minor|fill=false|i III VII iv|drums=kick,bass,hook",
+    "intro|Intro · riff|8|0minor|fill=true|i III VII iv|drums=full,bass,pad,riff,arp",
+    "verse|Verse 1|16|0minor|fill=false|i VI iv V i VI iv V i VI iv V i VI iv V-i|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus|8|0minor|fill=true|VI iv III v IV III Vsus4 V7|drums=full,bass,pad,arp,lead=verse",
+    "chorus|Chorus|8|0minor|fill=true|i III VII iv|drums=big,bass,pad,stabs,lead=chorus",
+    "interlude|Interlude|8|0minor|fill=false|i III VII IV|drums=full,bass,pad,riff,arp",
+    "turnaround|Turnaround|2|0minor|fill=true|VI VI|drums=full,bass,pad,riff,arp",
+    "verse|Verse 2|16|0minor|fill=true|i VI iv V i VI iv V i VI iv V i VI iv V-i|drums=full,bass,pad,seq,lead=verse",
+    "prechorus|Pre-chorus|8|0minor|fill=true|VI iv III v IV III Vsus4 V7|drums=full,bass,pad,arp,seq,lead=verse",
+    "chorus|Chorus|8|0minor|fill=false|i III VII iv|drums=big,bass,pad,arp,seq,lead=chorus",
+    "interlude|Interlude|8|0minor|fill=true|i III VII IV|drums=full,bass,hook,pad,riff,arp",
+    "turnaround|Turnaround|2|0minor|fill=true|VI VI|drums=full,bass,pad,riff,arp",
+    "chorus|Chorus|8|0minor|fill=true|i III VII iv|drums=big,bass,pad,arp,seq,lead=chorus",
+    "chorus|Chorus · double|8|0minor|fill=true|i III VII iv|drums=big,bass,pad,arp,stabs,seq,lead=chorus,leadDouble",
+    "outro|Outro · lift to IV|16|5major|fill=false|I IV I V|drums=full,bass,hook,pad,riff,seq",
+  ],
+  "style": 0.6829268292682927,
+  "title": "Heaven (World of Silence and Ice)",
+  "totalBars": 128,
 }
 `;
 
