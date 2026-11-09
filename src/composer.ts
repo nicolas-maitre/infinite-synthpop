@@ -43,6 +43,9 @@ export interface Layers {
   lead: MelodyKind | null;
   /** Doubles the lead an octave up (True Faith's two-voice final chorus). */
   leadDouble: boolean;
+  /** TF's chorus counter-line: a high, sparse sampled-wind line above the vocal (MIDI "Synth
+   * Lead"). */
+  counter: boolean;
 }
 
 export interface Section {
@@ -139,6 +142,9 @@ export interface Song {
   melodies: Record<MelodyKind, Melody>;
   /** Per section (by index): the melody its lead plays, written over that section's chords. */
   sectionMelodies: (Melody | null)[];
+  /** The counter-line over the chorus chords, and per section the one it plays (or null). */
+  counter: Melody;
+  sectionCounters: (Melody | null)[];
   /** Tracks supplied at runtime from a MIDI file (midi.ts), by song bar; they replace the
    * generated part. */
   imported?: ImportedTracks;
@@ -173,6 +179,9 @@ export const LEAD_RANGES: Record<MelodyKind, readonly [number, number]> = {
   verse: [57, 70],
   chorus: [62, 74],
 };
+/** The counter-line sits above the sung chorus: TF's MIDI keeps it to F5–C6, reaching to A4 and
+ * E6. */
+export const COUNTER_RANGE = [74, 86] as const;
 
 /** Weighted toward the originals' keys: D minor (True Faith) and E minor (The Different Story). */
 const KEY_WEIGHTS: readonly (readonly [number, number])[] = [
@@ -237,8 +246,10 @@ export function compose(opts: ComposeOptions): Song {
   const sections = ref
     ? referenceSections(ref)
     : planSections(rngForm, key, liftKey, useLift, progressions, style, opts.form ?? "standard");
+  if (!ref) addCounter(root.fork("counter"), sections, style);
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 
+  const counter = generateCounter(root.fork("counter-line"), key, progressions.chorus);
   const rngMotif = root.fork("motifs");
   const melodies: Record<MelodyKind, Melody> = {
     verse: generateMelody(root.fork("melody-verse"), key, progressions.verse, LEAD_RANGES.verse),
@@ -269,6 +280,8 @@ export function compose(opts: ComposeOptions): Song {
     sequence: generateSequence(root.fork("sequence")),
     melodies,
     sectionMelodies: sectionMelodies(root, sections, key, progressions, melodies, ref?.melodies),
+    counter,
+    sectionCounters: sectionCounters(root, sections, key, progressions.chorus, counter),
   };
 }
 
@@ -287,6 +300,7 @@ const LAYERS_OFF: Layers = {
   guitar: false,
   lead: null,
   leadDouble: false,
+  counter: false,
 };
 
 function planSections(
@@ -486,6 +500,44 @@ function planSections(
     const section: Section = { ...s, startBar, fill, fade: !next };
     startBar += s.bars;
     return section;
+  });
+}
+
+/**
+ * Gives a generated song TF's chorus counter-line: in every chorus, and the outro when it is a
+ * chorus to fade, in about four TF-style songs out of five and one DS-style song in five. Its own
+ * random stream, so adding it changed nothing else about any seed.
+ */
+function addCounter(rng: Rng, sections: Section[], style: number): void {
+  if (!rng.chance(0.2 + 0.6 * (1 - style))) return;
+  for (const s of sections) {
+    if (s.kind === "chorus" || (s.kind === "outro" && s.layers.lead === "chorus"))
+      s.layers.counter = true;
+  }
+}
+
+/** The counter-line each section plays: the song's own over its chorus chords and key, otherwise
+ * one written over the section's chords, shared by every section with the same chords and key. */
+function sectionCounters(
+  root: Rng,
+  sections: readonly Section[],
+  key: Key,
+  chorus: Progression,
+  counter: Melody,
+): (Melody | null)[] {
+  const written = new Map<string, Melody>();
+  return sections.map((section) => {
+    if (!section.layers.counter) return null;
+    const progression = JSON.stringify(section.progression);
+    const sameKey = section.key.tonic === key.tonic && section.key.mode === key.mode;
+    if (sameKey && progression === JSON.stringify(chorus)) return counter;
+    const id = `${section.key.tonic}${section.key.mode}|${progression}`;
+    let line = written.get(id);
+    if (!line) {
+      line = generateCounter(root.fork(`counter-${id}`), section.key, section.progression);
+      written.set(id, line);
+    }
+    return line;
   });
 }
 
@@ -832,6 +884,94 @@ function splitBars(notes: readonly (RhythmNote & { midi: number })[]): Note[][] 
     bar.push({ step: n.step % 16, dur: n.dur, midi: n.midi, vel: n.step % 8 === 0 ? 0.9 : 0.78 });
   }
   return bars;
+}
+
+// ── Counter-line ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A statement bar of the counter-line: a held note or two, with shorter notes around them (TF's
+ * line holds 6–8 16ths and steps between the holds). [step, dur] pairs.
+ */
+const COUNTER_STATEMENTS: readonly (readonly (readonly [number, number])[])[] = [
+  [
+    [0, 6],
+    [6, 2],
+    [8, 6],
+    [14, 2],
+  ],
+  [
+    [0, 2],
+    [2, 8],
+    [10, 2],
+    [12, 4],
+  ],
+  [
+    [0, 8],
+    [8, 4],
+    [12, 4],
+  ],
+  [
+    [2, 6],
+    [8, 2],
+    [10, 6],
+  ],
+  [
+    [0, 4],
+    [4, 8],
+    [12, 2],
+    [14, 2],
+  ],
+];
+/** The bar answering it: mostly rest, then a held note or a short run back up. */
+const COUNTER_ANSWERS: readonly (readonly [readonly (readonly [number, number])[], number])[] = [
+  [[[4, 8]], 2],
+  [
+    [
+      [4, 8],
+      [14, 2],
+    ],
+    2,
+  ],
+  [
+    [
+      [8, 2],
+      [10, 2],
+      [12, 2],
+      [14, 2],
+    ],
+    2,
+  ],
+  [
+    [
+      [6, 2],
+      [8, 2],
+      [10, 2],
+      [12, 4],
+    ],
+    1.5,
+  ],
+  [[[12, 4]], 1],
+];
+
+/**
+ * TF's chorus counter-line, written fresh for each song: a 4-bar call and response above the sung
+ * melody (COUNTER_RANGE), one statement rhythm played twice, each answered differently, so it
+ * loops with the chorus chords. Long notes land on chord tones (realise), the short ones step
+ * between them. Bars 4–7 replay the same choices over their own chords, as the sung melody does.
+ */
+export function generateCounter(rng: Rng, key: Key, progression: Progression): Melody {
+  const statement = rng.pick(COUNTER_STATEMENTS);
+  const first = rng.weighted(COUNTER_ANSWERS);
+  let second = rng.weighted(COUNTER_ANSWERS);
+  if (second === first) second = rng.weighted(COUNTER_ANSWERS);
+  const rhythm: RhythmNote[] = [statement, first, statement, second].flatMap((bar, i) =>
+    bar.map(([step, dur]) => ({ step: i * 16 + step, dur })),
+  );
+  const half = (barOffset: number) =>
+    splitBars(
+      realise(rng.fork("walk"), key, progression, rhythm, COUNTER_RANGE, barOffset, false),
+    ).map((bar) => bar.map((n) => ({ ...n, vel: n.dur >= 4 ? 0.85 : 0.7 })));
+  return { bars: [...half(0), ...half(4)] };
 }
 
 // ── Titles ────────────────────────────────────────────────────────────────────────────────────

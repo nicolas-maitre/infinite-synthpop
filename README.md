@@ -129,7 +129,7 @@ src/theory.ts        keys, Roman-numeral chords, scales (incl. Dorian / harmonic
 src/progressions.ts  progression bank measured from the recordings + style-weighted substitutions
 src/references.ts    the two originals: measured form, chords, key, tempo, kit, bass figure
 src/midi.ts          minimal MIDI file reader for user-supplied tracks
-src/composer.ts      seed → Song: form, progressions, riff / melodic-bass / arp motifs, lead melodies
+src/composer.ts      seed → Song: form, progressions, riff / melodic-bass / arp motifs, lead and counter melodies
 src/arranger.ts      (song, bar) → every note and drum hit in that bar
 src/drums.ts         sample kits: local, else GitHub, else synthesized
 src/instruments.ts   synth voices, gated reverb, buses, mixer

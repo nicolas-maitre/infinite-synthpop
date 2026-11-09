@@ -62,6 +62,7 @@ export const SECTION_INSTRUMENTS = [
   "hook",
   "pad",
   "riff",
+  "counter",
   "arp",
   "stabs",
 ] as const satisfies readonly (keyof Layers)[];

@@ -3,7 +3,7 @@
  * runtime (e.g. an original's lead line). Nothing from the file is stored in the app.
  */
 import type { DrumHit, DrumVoice } from "./arranger";
-import type { Note } from "./composer";
+import { LEAD_RANGES, type Note } from "./composer";
 import type { Track } from "./instruments";
 
 export interface MidiNote {
@@ -215,9 +215,10 @@ export type MidiAssignment = Partial<Record<Track, number[]>>;
 export function matchTracks(file: MidiFile): MidiAssignment {
   const used = new Set<number>();
   const melodic = file.tracks.map((t, i) => ({ t, i })).filter(({ t }) => t.channel !== 9);
-  const pick = (test: (name: string) => boolean, byLowest = false) => {
+  const pick = (test: (name: string) => boolean, byLowest = false, aboveSung = false) => {
     const found = melodic
       .filter(({ t, i }) => !used.has(i) && test(t.name.toLowerCase()))
+      .filter(({ t }) => !aboveSung || meanPitch(t) > LEAD_RANGES.chorus[1])
       .sort((a, b) => (byLowest ? meanPitch(a.t) - meanPitch(b.t) : 0));
     const hit = found[0];
     if (!hit) return undefined;
@@ -234,6 +235,12 @@ export function matchTracks(file: MidiFile): MidiAssignment {
   if (bass) out.bass = bass;
   const hook = pick((n) => n.includes("bass"));
   if (hook) out.hook = hook;
+  // A "lead" pitched above anything sung is a counter-line: TF's "Synth Lead" averages E5–F♯5,
+  // over the sung chorus, while the vocal isn't in the file at all.
+  const counter =
+    pick((n) => /counter|fairlight/.test(n)) ??
+    pick((n) => /lead|melody/.test(n) && !/vocal|voice/.test(n), false, true);
+  if (counter) out.counter = counter;
   const lead = pick((n) => /lead|melody|vocal|voice/.test(n));
   if (lead) out.lead = lead;
   const guitar = pick((n) => /guitar|gtr/.test(n));

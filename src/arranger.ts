@@ -61,6 +61,7 @@ export const MELODIC_TRACKS = [
   "riff",
   "lead",
   "leadOct",
+  "counter",
   "arp",
   "stab",
   "seq",
@@ -147,6 +148,7 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     riff: L.riff ? motifNotes(song.riff, barInSection, key, slots, "chord", 67, 0.85) : [],
     lead: [],
     leadOct: [],
+    counter: [],
     arp: L.arp ? motifNotes(song.arp, barInSection, key, slots, "chord", 72, 0.5) : [],
     stab: L.stabs && barInSection % 4 === 0 ? stabChord(key, slots) : [],
     seq: L.seq ? sequenceLine(song, key) : [],
@@ -160,6 +162,9 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     if (L.leadDouble)
       notes.leadOct = lead.map((n) => ({ ...n, midi: n.midi + 12, vel: n.vel * 0.55 }));
   }
+  const counter = L.counter ? (song.sectionCounters[sectionIndex] ?? song.counter) : null;
+  if (counter)
+    notes.counter = (counter.bars[barInSection % counter.bars.length] ?? []).map((n) => ({ ...n }));
   // Parts from a MIDI file replace the generated ones (midi.ts).
   for (const [track, bars] of Object.entries(song.imported?.notes ?? {})) {
     notes[track as MelodicTrack] = (bars[bar] ?? []).map((n) => ({ ...n }));

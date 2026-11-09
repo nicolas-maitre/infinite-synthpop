@@ -516,3 +516,111 @@ export class NativeFMSynth extends NativePoly {
     return voice;
   }
 }
+
+/** A periodic wave from harmonic amplitudes (1 = the fundamental), cached per context. */
+const partialWaves = new WeakMap<BaseAudioContext, Map<string, PeriodicWave>>();
+function partialsWave(context: BaseAudioContext, partials: readonly number[]): PeriodicWave {
+  let cache = partialWaves.get(context);
+  if (!cache) partialWaves.set(context, (cache = new Map()));
+  const key = partials.join(",");
+  let wave = cache.get(key);
+  if (!wave) {
+    const real = new Float32Array(partials.length + 1);
+    const imag = new Float32Array(partials.length + 1);
+    partials.forEach((a, i) => (imag[i + 1] = a));
+    wave = context.createPeriodicWave(real, imag);
+    cache.set(key, wave);
+  }
+  return wave;
+}
+
+/** Two seconds of white noise, looped by every voice that breathes (cached per context). */
+const noiseBuffers = new WeakMap<BaseAudioContext, AudioBuffer>();
+function noiseBuffer(context: BaseAudioContext): AudioBuffer {
+  let buffer = noiseBuffers.get(context);
+  if (!buffer) {
+    buffer = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    noiseBuffers.set(context, buffer);
+  }
+  return buffer;
+}
+
+/**
+ * A breathy sampled-wind voice (True Faith's chorus counter-line): a tone of a few soft harmonics,
+ * breath noise band-passed around the note, both under one envelope, and a slow uneven pitch
+ * drift instead of a regular vibrato.
+ */
+export class NativeBreathSynth extends NativePoly {
+  readonly name = "NativeBreathSynth";
+
+  constructor(
+    private readonly options: {
+      /** Harmonic amplitudes, the fundamental first. */
+      partials: readonly number[];
+      /** Breath noise level against the tone (gain). */
+      breath: number;
+      /** Band-pass Q of the breath around the note. */
+      breathQ: number;
+      /** Pitch drift depth in cents; 0 builds no drift oscillators (lite). */
+      drift: number;
+      envelope: Adsr;
+      volume?: number;
+      maxPolyphony?: number;
+    },
+  ) {
+    super(options.volume ?? 0, options.maxPolyphony);
+  }
+
+  protected makeVoice(frequency: number, start: number, release: number, velocity: number): Voice {
+    const o = this.options;
+    const amp = this.raw.createGain();
+    amp.gain.value = 0;
+    amp.connect(this.output);
+    const tone = this.raw.createOscillator();
+    tone.setPeriodicWave(partialsWave(this.raw, o.partials));
+    tone.frequency.value = frequency;
+    tone.connect(amp);
+    const noise = this.raw.createBufferSource();
+    noise.buffer = noiseBuffer(this.raw);
+    noise.loop = true;
+    // Each voice starts somewhere else in the loop, so repeated notes don't breathe alike.
+    const offset = Math.random() * 1.9;
+    const band = this.raw.createBiquadFilter();
+    band.type = "bandpass";
+    band.frequency.value = frequency;
+    band.Q.value = o.breathQ;
+    const breath = this.raw.createGain();
+    breath.gain.value = o.breath;
+    noise.connect(band).connect(breath).connect(amp);
+    const voice: Voice = {
+      start,
+      end: 0,
+      sources: [tone, noise],
+      envelopes: [],
+      nodes: [amp, tone, noise, band, breath],
+    };
+    if (o.drift > 0) {
+      // Two slow sines at unrelated rates: a wander, not a vibrato.
+      for (const [rate, share] of [
+        [0.7 + Math.random() * 0.4, 0.6],
+        [4.1 + Math.random() * 1.2, 0.4],
+      ] as const) {
+        const lfo = this.raw.createOscillator();
+        lfo.frequency.value = rate;
+        const depth = this.raw.createGain();
+        depth.gain.value = o.drift * share;
+        lfo.connect(depth).connect(tone.detune);
+        lfo.start(start);
+        voice.sources.push(lfo);
+        voice.nodes.push(lfo, depth);
+      }
+    }
+    tone.start(start);
+    noise.start(start, offset);
+    voice.end = this.envelope(voice, [amp.gain], o.envelope, start, release, velocity);
+    for (const s of voice.sources) s.stop(voice.end);
+    return voice;
+  }
+}

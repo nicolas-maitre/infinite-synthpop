@@ -73,6 +73,7 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
   // fade). The sequence bass plays the figure from 0:08 (bar 4) to the end, Hook's bass joins in
   // the intro, and the high 16th sequencer runs from the first turnaround (the MIDI's bar 46) on.
   // The bridge sits on a D pedal. The outro modulates: the chorus's IV (G) becomes the tonic.
+  // The MIDI's "Synth Lead" is the counter-line above the vocal, in every chorus.
   "true-faith": {
     title: "True Faith",
     style: 0,
@@ -116,7 +117,7 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         label: "Chorus 1",
         bars: 12,
         progression: TF_CHORUS,
-        layers: { guitar: true, ...band, drums: "big", lead: "chorus" },
+        layers: { guitar: true, ...band, drums: "big", lead: "chorus", counter: true },
       },
       {
         kind: "turnaround",
@@ -137,7 +138,15 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         label: "Chorus 2",
         bars: 12,
         progression: TF_CHORUS,
-        layers: { guitar: true, ...band, drums: "big", seq: true, lead: "chorus", arp: true },
+        layers: {
+          guitar: true,
+          ...band,
+          drums: "big",
+          seq: true,
+          lead: "chorus",
+          arp: true,
+          counter: true,
+        },
       },
       {
         kind: "turnaround",
@@ -194,7 +203,15 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         label: "Chorus 3",
         bars: 12,
         progression: TF_CHORUS,
-        layers: { guitar: true, ...band, drums: "big", seq: true, lead: "chorus", arp: true },
+        layers: {
+          guitar: true,
+          ...band,
+          drums: "big",
+          seq: true,
+          lead: "chorus",
+          arp: true,
+          counter: true,
+        },
       },
       {
         kind: "turnaround",
@@ -216,6 +233,7 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
           lead: "chorus",
           leadDouble: true,
           arp: true,
+          counter: true,
         },
       },
       {

@@ -1,14 +1,14 @@
 /**
  * Synth voices, effect buses and the mixer. Each voice is modelled on the gear in
  * docs/analysis.md §4: DX-style FM bass, chorused melodic bass, Emulator/Voyetra-ish pad, FM riff,
- * a singing mono lead, FM bell arp, and saw-brass stabs.
+ * a singing mono lead, a breathy sampled counter-line, FM bell arp, and saw-brass stabs.
  */
 import * as Tone from "tone";
 import type { DrumHit, MelodicTrack } from "./arranger";
 import type { Note } from "./composer";
 import { DrumKit } from "./drums";
 import { FixedEQ3, FixedFilter } from "./filters";
-import { NativeFMSynth, NativeMonoSynth, NativeSynth } from "./voices";
+import { NativeBreathSynth, NativeFMSynth, NativeMonoSynth, NativeSynth } from "./voices";
 import { midiToFreq } from "./theory";
 
 export const TRACKS = [
@@ -20,6 +20,7 @@ export const TRACKS = [
   "pad",
   "riff",
   "lead",
+  "counter",
   "arp",
   "stab",
 ] as const;
@@ -34,6 +35,7 @@ export const TRACK_LABELS: Record<Track, string> = {
   pad: "Pad",
   riff: "Riff",
   lead: "Lead",
+  counter: "Counter line",
   arp: "Arp",
   stab: "Stabs",
 };
@@ -47,6 +49,7 @@ export const DEFAULT_VOLUMES: Record<Track, number> = {
   pad: -10,
   riff: -8,
   lead: -6,
+  counter: -9,
   arp: -9,
   stab: -5,
 };
@@ -71,6 +74,7 @@ const PANS: Record<Track, number> = {
   pad: 0,
   riff: -0.3,
   lead: 0,
+  counter: -0.2,
   arp: 0.35,
   stab: 0.1,
 };
@@ -85,6 +89,7 @@ const SENDS: Record<Track, { reverb: number; delay: number }> = {
   pad: { reverb: 0.45, delay: 0 },
   riff: { reverb: 0.3, delay: 0.25 },
   lead: { reverb: 0.35, delay: 0.2 },
+  counter: { reverb: 0.45, delay: 0.15 },
   arp: { reverb: 0.4, delay: 0.3 },
   stab: { reverb: 0.5, delay: 0.1 },
 };
@@ -118,6 +123,7 @@ export class Instruments {
   private readonly riffSaw: NativeSynth;
   private readonly lead: Tone.MonoSynth;
   private readonly leadOct: Tone.MonoSynth;
+  private readonly counter: NativeBreathSynth;
   private readonly arp: NativeFMSynth;
   private readonly stab: NativeSynth;
   private readonly stabNoise: Tone.NoiseSynth;
@@ -319,6 +325,23 @@ export class Instruments {
     this.lead = new Tone.MonoSynth(leadOptions).connect(vibrato);
     this.leadOct = new Tone.MonoSynth(leadOptions).connect(vibrato);
 
+    // TF's chorus counter-line (MIDI "Synth Lead", measured on a Demucs "other" stem of the
+    // record): a soft, sampled-sounding wind voice, not a synth lead. Measured over each held
+    // note, its harmonics fall about 10, 17, 18 and 29 dB under the fundamental; the partials sit
+    // above that because the drift smears the upper harmonics' peaks in the same measurement.
+    // Breath noise carries much of the sound, notes swell in over 50–90 ms, and the pitch wanders
+    // 5–15 cents rather than following a vibrato (no chorus effect: the drift moves it already).
+    // It sits well under the sung line: the whole "other" stem is 4 dB under the vocal in chorus 1.
+    this.counter = new NativeBreathSynth({
+      partials: [1, 0.45, 0.25, 0.2, 0.08, 0.05, 0.02],
+      breath: 6,
+      breathQ: 3,
+      drift: lite ? 0 : 7,
+      envelope: { attack: 0.06, decay: 0.4, sustain: 0.8, release: 0.3 },
+      volume: -13,
+      maxPolyphony: lite ? 2 : 4,
+    }).chain(new FixedFilter("lowpass", 7000), this.channels.counter);
+
     const arpOptions = {
       harmonicity: 4,
       modulationIndex: 3,
@@ -465,6 +488,10 @@ export class Instruments {
           this.leadOct.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         }
         break;
+      case "counter":
+        for (const n of notes)
+          this.counter.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+        break;
       case "riff":
         for (const n of notes) {
           this.riffFm.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
@@ -543,8 +570,16 @@ export class Instruments {
    * so one just about to start when releaseAll ran needs this second release.
    */
   releaseChords(time: number): void {
-    for (const s of [this.pad, this.stab, this.seq, this.riffFm, this.riffSaw, this.arp])
-      s.releaseAll(time);
+    const synths = [
+      this.pad,
+      this.stab,
+      this.seq,
+      this.riffFm,
+      this.riffSaw,
+      this.arp,
+      this.counter,
+    ];
+    for (const s of synths) s.releaseAll(time);
   }
 
   /** Plays a note on the lead synth right now (recording: hear what you play). null releases. */

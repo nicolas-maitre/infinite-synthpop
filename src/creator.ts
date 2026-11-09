@@ -80,6 +80,7 @@ const LANE_ORDER: readonly LaneId[] = [
   "pad",
   "riff",
   "lead",
+  "counter",
   "arp",
   "stabs",
 ];
@@ -92,6 +93,7 @@ const LANE_LABELS: Record<LaneId, string> = {
   pad: "Pad",
   riff: "Riff",
   lead: "Lead",
+  counter: "Counter line",
   arp: "Arp",
   stabs: "Stabs",
 };
@@ -596,7 +598,9 @@ export function mountCreator(
     const section = s?.sections[index];
     if (!s || !section) return;
     const tracks = file.tracks.map((t, i) => ({ t, i })).filter(({ t }) => t.channel !== 9);
-    const guess = matchTracks(file).lead?.[0];
+    // A file with no sung line (TF's) offers its counter-line, the nearest thing to a melody.
+    const match = matchTracks(file);
+    const guess = (match.lead ?? match.counter)?.[0];
     const track = select(
       tracks.map(({ t, i }): [string, string] => [
         String(i),

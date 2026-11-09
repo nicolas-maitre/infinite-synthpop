@@ -229,6 +229,15 @@ TF     (G1)  G1   G1   -    G1   -    G1   -    G1   -    G1   -    G1   A1   - 
   verses. Karplus–Strong strings, overdriven, as Sumner's DI'd guitar.
 - **Fills (TF):** into a verse, two staccato bars on VI–VII. The second rests until beat 4, then
   the bass runs root, next root +5, +7, next root (MIDI bars 45–46: C G A → D).
+- **Counter-line (TF):** the MIDI's "Synth Lead" is not the vocal. It plays only in the choruses
+  (and their last pickup bars), A4–E6 but mostly F5–C6, so it sits above the sung chorus: held
+  notes of 6–8 16ths on chord tones, stepping between them, in a 4-bar call and response that
+  loops with the chorus chords. On the record (Demucs "other" stem of chorus 1, not the vocal
+  stem), it is a soft, sampled-sounding wind voice, not a synth lead. Its harmonics fall about
+  10, 17, 18 and 29 dB under the fundamental, breath noise carries much of it, notes swell in over
+  50–90 ms, and its pitch wanders 5–15 cents with no regular vibrato. Sound On Sound names the
+  session's samplers as an Akai S900 and an Emulator II, not a Fairlight. The generator writes its
+  own line in this shape for every chorus, in most TF-leaning songs.
 
 ## Sources
 

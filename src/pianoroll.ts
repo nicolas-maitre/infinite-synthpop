@@ -23,7 +23,17 @@ export interface LeadEditor {
 
 /** A lane's instrument: the section layer that turns it on. */
 export type LaneId =
-  "drums" | "bass" | "seq" | "guitar" | "hook" | "pad" | "riff" | "lead" | "arp" | "stabs";
+  | "drums"
+  | "bass"
+  | "seq"
+  | "guitar"
+  | "hook"
+  | "pad"
+  | "riff"
+  | "lead"
+  | "counter"
+  | "arp"
+  | "stabs";
 
 interface Lane {
   id: Exclude<LaneId, "drums">;
@@ -40,6 +50,7 @@ export const LANES: readonly Lane[] = [
   { id: "pad", label: "Pad", color: "#8f7dff", tracks: ["pad"] },
   { id: "riff", label: "Riff", color: "#3dffb0", tracks: ["riff"] },
   { id: "lead", label: "Lead", color: "#f4f2ff", tracks: ["lead", "leadOct"] },
+  { id: "counter", label: "Counter line", color: "#b8f0ff", tracks: ["counter"] },
   { id: "arp", label: "Arp", color: "#3d9bff", tracks: ["arp"] },
   { id: "stabs", label: "Stabs", color: "#ff6bd5", tracks: ["stab"] },
 ];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar, MELODIC_TRACKS } from "./arranger";
-import { BPM_RANGE, compose, LEAD_RANGES } from "./composer";
+import { BPM_RANGE, compose, COUNTER_RANGE, LEAD_RANGES } from "./composer";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
 import { Library, LIBRARY_KEY } from "./library";
@@ -213,6 +213,54 @@ describe("arrangeBar", () => {
   }, 30_000);
 });
 
+describe("counter-line", () => {
+  it("plays above the sung chorus, in TF's choruses only", () => {
+    const tf = compose({ seed: 1987, style: 0.5, reference: "true-faith" });
+    for (const section of tf.sections) {
+      const notes = Array.from({ length: section.bars }, (_, b) =>
+        arrangeBar(tf, section.startBar + b),
+      ).flatMap((ev) => ev.notes.counter);
+      if (section.kind !== "chorus") {
+        expect(notes).toEqual([]);
+        continue;
+      }
+      expect(notes.length).toBeGreaterThan(section.bars);
+      for (const n of notes) {
+        expect(n.midi).toBeGreaterThanOrEqual(COUNTER_RANGE[0]);
+        expect(n.midi).toBeLessThanOrEqual(COUNTER_RANGE[1]);
+      }
+      const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+      const lead = Array.from({ length: section.bars }, (_, b) =>
+        arrangeBar(tf, section.startBar + b),
+      ).flatMap((ev) => ev.notes.lead.map((n) => n.midi));
+      expect(mean(notes.map((n) => n.midi))).toBeGreaterThan(mean(lead) + 7);
+    }
+  });
+
+  it("loops with a 4-bar chorus and holds long notes", () => {
+    const tf = compose({ seed: 1987, style: 0.5, reference: "true-faith" });
+    const bars = tf.counter.bars;
+    expect(bars).toHaveLength(8);
+    expect(bars.slice(4)).toEqual(bars.slice(0, 4));
+    expect(bars.flat().some((n) => n.dur >= 6)).toBe(true);
+  });
+
+  it("comes with most TF-style songs and few DS-style ones", () => {
+    const share = (style: number) =>
+      Array.from({ length: 40 }, (_, seed) => compose({ seed, style })).filter((song) =>
+        song.sections.some((s) => s.layers.counter),
+      ).length / 40;
+    expect(share(0)).toBeGreaterThan(0.6);
+    expect(share(1)).toBeLessThan(0.4);
+    for (let seed = 0; seed < 40; seed++) {
+      const song = compose({ seed, style: 0 });
+      for (const s of song.sections) {
+        if (s.layers.counter) expect(s.kind === "chorus" || s.kind === "outro").toBe(true);
+      }
+    }
+  });
+});
+
 describe("references", () => {
   it("lays out both originals at their measured key, tempo and length", () => {
     const tf = compose({ seed: 1987, style: 0.5, reference: "true-faith" });
@@ -322,11 +370,18 @@ describe("midi mapping", () => {
       drums: [7, 8],
       bass: [2],
       hook: [1],
-      lead: [5],
+      counter: [5],
       guitar: [0],
       seq: [4],
       pad: [3],
     });
+  });
+
+  it("keeps a lead track pitched where a voice sings on the lead", () => {
+    const sung: MidiFile = { ticksPerBeat: 96, tracks: [track("Lead vocal", 0, 66)] };
+    expect(matchTracks(sung)).toEqual({ lead: [0] });
+    const high: MidiFile = { ticksPerBeat: 96, tracks: [track("Melody", 0, 80)] };
+    expect(matchTracks(high)).toEqual({ counter: [0] });
   });
 
   it("maps General MIDI drum keys to the drum machine", () => {

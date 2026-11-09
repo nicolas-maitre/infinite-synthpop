@@ -26,6 +26,9 @@ const MIDI_PARTS: {
   { name: "Lead", tracks: ["lead", "leadOct"], channel: 6, program: 81 },
   { name: "Arp", tracks: ["arp"], channel: 7, program: 98 },
   { name: "Stabs", tracks: ["stab"], channel: 8, program: 61 },
+  // Channel index 9 is the drums' (GM channel 10). Program 75 is GM 76, Pan Flute, the nearest
+  // breathy wind.
+  { name: "Counter line", tracks: ["counter"], channel: 10, program: 75 },
 ];
 
 /** The drum machine's voices as General MIDI percussion keys. */
