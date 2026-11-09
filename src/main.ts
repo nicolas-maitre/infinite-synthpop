@@ -30,6 +30,7 @@ import { SHOW_AUDIO_STATS } from "./quality";
 
 interface Prefs {
   style: number;
+  styleAuto: boolean;
   bpm: number;
   bpmAuto: boolean;
   key: number | null;
@@ -46,6 +47,7 @@ interface Prefs {
 const PREFS_KEY = "infinite-synthpop:prefs:v1";
 const defaults: Prefs = {
   style: 0.5,
+  styleAuto: true,
   bpm: 118,
   bpmAuto: true,
   key: null,
@@ -109,6 +111,7 @@ const ui = {
   seedGo: el<HTMLButtonElement>("seed-go"),
   style: el<HTMLInputElement>("style"),
   styleOut: el<HTMLOutputElement>("style-out"),
+  styleAuto: el<HTMLInputElement>("style-auto"),
   bpm: el<HTMLInputElement>("bpm"),
   bpmOut: el<HTMLOutputElement>("bpm-out"),
   bpmAuto: el<HTMLInputElement>("bpm-auto"),
@@ -407,7 +410,7 @@ function isReferenceId(id: string | null | undefined): id is ReferenceId {
 
 function engineSettings(): EngineSettings {
   return {
-    style: prefs.style,
+    style: prefs.styleAuto ? null : prefs.style,
     key: prefs.key === null ? null : { tonic: prefs.key, mode: "minor" },
     bpm: prefs.bpmAuto ? null : prefs.bpm,
     kit: prefs.kit,
@@ -513,6 +516,10 @@ function renderSong(song: Song): void {
     ...(engine.creation ? ["your creation (loops)"] : []),
   ].join(" · ");
   ui.seed.value = String(song.seed);
+  if (prefs.styleAuto) {
+    ui.style.value = String(song.style);
+    ui.styleOut.value = styleLabel(song.style);
+  }
   if (prefs.bpmAuto) {
     ui.bpm.value = String(song.bpm);
     ui.bpmOut.value = `${song.bpm} BPM`;
@@ -807,6 +814,8 @@ function styleLabel(v: number): string {
 }
 
 ui.style.value = String(prefs.style);
+ui.styleAuto.checked = prefs.styleAuto;
+ui.style.disabled = prefs.styleAuto;
 ui.styleOut.value = styleLabel(prefs.style);
 ui.style.addEventListener("input", () => {
   ui.styleOut.value = styleLabel(Number(ui.style.value));
@@ -815,6 +824,14 @@ ui.style.addEventListener("change", () => {
   prefs.style = Number(ui.style.value);
   savePrefs();
   engine.update({ style: prefs.style });
+});
+ui.styleAuto.addEventListener("change", () => {
+  prefs.styleAuto = ui.styleAuto.checked;
+  // Overriding starts from the style the slider shows (the current song's).
+  if (!prefs.styleAuto) prefs.style = Number(ui.style.value);
+  ui.style.disabled = prefs.styleAuto;
+  savePrefs();
+  engine.update({ style: prefs.styleAuto ? null : prefs.style });
 });
 
 ui.bpm.value = String(prefs.bpm);
@@ -831,6 +848,7 @@ ui.bpm.addEventListener("change", () => {
 });
 ui.bpmAuto.addEventListener("change", () => {
   prefs.bpmAuto = ui.bpmAuto.checked;
+  if (!prefs.bpmAuto) prefs.bpm = Number(ui.bpm.value);
   ui.bpm.disabled = prefs.bpmAuto;
   savePrefs();
   engine.update({ bpm: prefs.bpmAuto ? null : prefs.bpm });

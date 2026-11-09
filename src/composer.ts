@@ -152,8 +152,8 @@ export interface Song {
 
 export interface ComposeOptions {
   seed: number;
-  /** 0 = True Faith … 1 = The Different Story. */
-  style: number;
+  /** 0 = True Faith … 1 = The Different Story. Unset or null = pick per song. */
+  style?: number | null;
   key?: Key | null;
   bpm?: number | null;
   kit?: KitName | "auto";
@@ -198,8 +198,10 @@ const KEY_WEIGHTS: readonly (readonly [number, number])[] = [
 
 export function compose(opts: ComposeOptions): Song {
   const ref = opts.custom ?? (opts.reference ? REFERENCES[opts.reference] : undefined);
-  const style = ref ? ref.style : Math.min(1, Math.max(0, opts.style));
   const root = createRng(opts.seed);
+  // Its own stream, so an auto style draws nothing from the others.
+  const autoStyle = Math.round(root.fork("style").next() * 100) / 100;
+  const style = ref ? ref.style : Math.min(1, Math.max(0, opts.style ?? autoStyle));
   const rngSetup = root.fork("setup");
 
   const key: Key = ref?.key ?? opts.key ?? { tonic: rngSetup.weighted(KEY_WEIGHTS), mode: "minor" };

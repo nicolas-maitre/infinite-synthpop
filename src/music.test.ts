@@ -99,6 +99,15 @@ describe("compose", () => {
     );
   });
 
+  it("picks a style per song when none is given, and keeps an override", () => {
+    const styles = Array.from({ length: 40 }, (_, seed) => compose({ seed }).style);
+    expect(new Set(styles).size).toBeGreaterThan(20);
+    expect(Math.min(...styles)).toBeLessThan(0.2);
+    expect(Math.max(...styles)).toBeGreaterThan(0.8);
+    expect(compose({ seed: 5 })).toEqual(compose({ seed: 5, style: null }));
+    expect(compose({ seed: 5, style: 0.3 }).style).toBe(0.3);
+  });
+
   it("plans a contiguous song in the expected tempo range", () => {
     for (let seed = 0; seed < 50; seed++) {
       const song = compose({ seed, style: seed / 50 });

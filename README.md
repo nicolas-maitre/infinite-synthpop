@@ -102,7 +102,8 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
 - **Seed:** every song is reproducible. The URL carries `#seed=…`, so a link replays the same song.
 - **Style:** a slider from _True Faith_ (Dorian IV choruses, minor v, a brighter, lower bass,
   the high 16th sequencer, modulating outro) to _The Different Story_ (minor iv choruses, major
-  V, Dorian turnaround, chorus fade). Both share the sequenced bass figure.
+  V, Dorian turnaround, chorus fade). Both share the sequenced bass figure. Auto (a new style
+  each song) or fixed.
 - **Tempo:** auto (115–120 BPM; both originals measure 117.45) or fixed.
 - **Key:** auto or a fixed minor key.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.

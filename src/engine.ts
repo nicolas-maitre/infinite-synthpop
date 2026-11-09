@@ -18,7 +18,8 @@ import { createRng } from "./rng";
 import type { Key } from "./theory";
 
 export interface EngineSettings {
-  style: number;
+  /** null = pick per song. */
+  style: number | null;
   /** null = pick per song. */
   key: Key | null;
   /** null = pick per song. */
