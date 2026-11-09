@@ -7,12 +7,15 @@ export interface Key {
   mode: Mode;
 }
 
-export type Quality = "maj" | "min" | "dim";
+/** Triads, plus the colours You Came uses: sus4, dominant 7th, major 7th and added 9th. */
+export type Quality = "maj" | "min" | "dim" | "sus4" | "dom7" | "maj7" | "add9";
 export interface Chord {
   numeral: string;
   /** Semitones above the key's tonic. */
   root: number;
   quality: Quality;
+  /** The bass note, in semitones above the tonic, when it isn't the root (an inversion). */
+  bass?: number;
 }
 
 const SHARP_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "G♯", "A", "B♭", "B"];
@@ -24,7 +27,9 @@ const FLAT_MAJOR_TONICS = new Set([5, 10, 3, 8, 1, 6]);
 
 // Semitones above the tonic. Uppercase = major, lowercase = minor; ♭VI / ♭VII are written VI / VII
 // as in the analysis (they are the natural-minor degrees).
-const NUMERALS: Record<string, { root: number; quality: Quality }> = {
+// You Came (docs/analysis.md §6.2) adds inversions ("I/3" is E/G♯ in E major), secondary
+// dominants named by their target ("V/ii" is C♯ in E major, "V7/vi" G♯7) and coloured chords.
+const NUMERALS: Record<string, { root: number; quality: Quality; bass?: number }> = {
   i: { root: 0, quality: "min" },
   I: { root: 0, quality: "maj" },
   ii: { root: 2, quality: "min" },
@@ -38,12 +43,37 @@ const NUMERALS: Record<string, { root: number; quality: Quality }> = {
   VI: { root: 8, quality: "maj" },
   vi: { root: 9, quality: "min" },
   VII: { root: 10, quality: "maj" },
+  "I/3": { root: 0, quality: "maj", bass: 4 },
+  "IV/3": { root: 5, quality: "maj", bass: 9 },
+  IVmaj7: { root: 5, quality: "maj7" },
+  IVadd9: { root: 5, quality: "add9" },
+  V7: { root: 7, quality: "dom7" },
+  Vsus4: { root: 7, quality: "sus4" },
+  Vadd9: { root: 7, quality: "add9" },
+  "V/ii": { root: 9, quality: "maj" },
+  "V/vi": { root: 4, quality: "maj" },
+  "V7/vi": { root: 4, quality: "dom7" },
+  "Vsus4/vi": { root: 4, quality: "sus4" },
 };
 
 const QUALITY_INTERVALS: Record<Quality, readonly number[]> = {
   maj: [0, 4, 7],
   min: [0, 3, 7],
   dim: [0, 3, 6],
+  sus4: [0, 5, 7],
+  dom7: [0, 4, 7, 10],
+  maj7: [0, 4, 7, 11],
+  add9: [0, 4, 7, 2],
+};
+
+const QUALITY_SUFFIXES: Record<Quality, string> = {
+  maj: "",
+  min: "m",
+  dim: "°",
+  sus4: "sus4",
+  dom7: "7",
+  maj7: "maj7",
+  add9: "add9",
 };
 
 const SCALES: Record<Mode, readonly number[]> = {
@@ -76,19 +106,33 @@ export function chordPitchClasses(key: Key, c: Chord): number[] {
 }
 
 export function chordName(key: Key, c: Chord): string {
-  const suffix = c.quality === "min" ? "m" : c.quality === "dim" ? "°" : "";
-  return noteName(key.tonic + c.root, key) + suffix;
+  const name = noteName(key.tonic + c.root, key) + QUALITY_SUFFIXES[c.quality];
+  return c.bass === undefined ? name : `${name}/${noteName(key.tonic + c.bass, key)}`;
 }
 
 /**
  * The scale melodies draw from over a chord. In minor, a major V borrows the harmonic-minor
- * leading tone; IV and ii borrow Dorian's raised 6th.
+ * leading tone; IV and ii borrow Dorian's raised 6th. In major, a secondary dominant raises the
+ * note under its target (V/ii's E♯, V/vi's B♯ in E major), and any other borrowed tone (the minor
+ * v's D♮, a ♭VI or ♭VII) takes the place of the scale step a semitone above it.
  */
 export function scaleForChord(key: Key, c: Chord): number[] {
   const steps = [...SCALES[key.mode]];
-  if (key.mode === "minor" && c.numeral === "V") steps[6] = 11;
-  // Dorian colour: the major IV and minor ii both carry the raised 6th (TF's G, DS's F♯m–A).
-  if (key.mode === "minor" && (c.numeral === "IV" || c.numeral === "ii")) steps[5] = 9;
+  if (key.mode === "minor") {
+    if (c.numeral === "V" || c.numeral === "V7") steps[6] = 11;
+    // Dorian colour: the major IV and minor ii both carry the raised 6th (TF's G, DS's F♯m–A).
+    if (c.numeral === "IV" || c.numeral === "ii") steps[5] = 9;
+  } else {
+    if (c.numeral === "V/ii") steps[0] = 1;
+    if (c.numeral === "V/vi" || c.numeral === "V7/vi") steps[4] = 8;
+    for (const i of QUALITY_INTERVALS[c.quality]) {
+      const t = mod12(c.root + i);
+      if (steps.includes(t)) continue;
+      const above = steps.indexOf(mod12(t + 1));
+      const at = above >= 0 ? above : steps.indexOf(mod12(t - 1));
+      if (at >= 0) steps[at] = t;
+    }
+  }
   return steps.map((s) => mod12(key.tonic + s));
 }
 

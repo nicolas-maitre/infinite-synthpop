@@ -54,6 +54,17 @@ describe("theory", () => {
     expect(scaleForChord(D_MINOR, chord("v"))).toContain(0); // C
     expect(scaleForChord(D_MINOR, chord("IV"))).toContain(11); // B♮
     expect(scaleForChord(D_MINOR, chord("iv"))).toContain(10); // B♭
+    // You Came's E major: V/ii's E♯ (F) replaces E, V/vi's B♯ (C) replaces B, the borrowed v's
+    // D♮ replaces D♯.
+    const eMajor = { tonic: 4, mode: "major" } as const;
+    expect(scaleForChord(eMajor, chord("V/ii"))).toContain(5);
+    expect(scaleForChord(eMajor, chord("V/ii"))).not.toContain(4);
+    expect(scaleForChord(eMajor, chord("V7/vi"))).toContain(0);
+    expect(scaleForChord(eMajor, chord("V7/vi"))).not.toContain(11);
+    expect(scaleForChord(eMajor, chord("v"))).toContain(2);
+    expect(scaleForChord(eMajor, chord("v"))).not.toContain(3);
+    expect(chordName(eMajor, chord("I/3"))).toBe("E/G♯");
+    expect(chordName(eMajor, chord("Vsus4/vi"))).toBe("G♯sus4");
   });
 
   it("voices chords around the centre", () => {
