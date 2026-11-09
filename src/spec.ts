@@ -38,6 +38,7 @@ export function newSongId(): string {
 export const SECTION_KINDS: readonly SectionKind[] = [
   "intro",
   "verse",
+  "prechorus",
   "chorus",
   "interlude",
   "turnaround",
@@ -45,13 +46,63 @@ export const SECTION_KINDS: readonly SectionKind[] = [
   "bridge",
   "outro",
 ];
-export const DRUM_MODES: readonly DrumMode[] = ["off", "kick", "half", "full", "big", "groove"];
+export const DRUM_MODES: readonly DrumMode[] = [
+  "off",
+  "kick",
+  "half",
+  "full",
+  "big",
+  "groove",
+  "breakdown",
+  "hats16",
+];
 export const KITS: readonly KitName[] = ["sp12", "linndrum", "dmx", "synth"];
 
 /** The chords the picker offers in each mode, the songs' usual ones first. */
 export const CHORD_CHOICES: Record<Mode, readonly string[]> = {
-  minor: ["i", "III", "VI", "VII", "iv", "IV", "v", "V", "ii", "ii°", "iii", "vi", "I"],
-  major: ["I", "IV", "V", "vi", "ii", "iii", "VII", "VI", "III", "iv", "v", "i"],
+  minor: [
+    "i",
+    "III",
+    "VI",
+    "VII",
+    "iv",
+    "IV",
+    "v",
+    "V",
+    "ii",
+    "ii°",
+    "iii",
+    "vi",
+    "I",
+    "V7",
+    "Vsus4",
+  ],
+  // You Came's colours after the plain triads (analysis §6.2).
+  major: [
+    "I",
+    "IV",
+    "V",
+    "vi",
+    "ii",
+    "iii",
+    "VII",
+    "VI",
+    "III",
+    "iv",
+    "v",
+    "i",
+    "I/3",
+    "IV/3",
+    "IVmaj7",
+    "IVadd9",
+    "Vsus4",
+    "Vadd9",
+    "V7",
+    "V/ii",
+    "V/vi",
+    "Vsus4/vi",
+    "V7/vi",
+  ],
 };
 
 /** The on/off instruments a section can play, besides drums and lead. */
@@ -257,7 +308,7 @@ export function decodeCreation(encoded: string): Creation | null {
         key,
         bpm: Math.min(160, Math.max(60, Number(c.bpm) || 118.5)),
         kit: KITS.includes(c.kit) ? c.kit : "sp12",
-        bassStyle: c.bs === "ds" ? "ds" : "tf",
+        bassStyle: c.bs === "ds" || c.bs === "yc" ? c.bs : "tf",
         verse: c.pv ? parseProgression(c.pv) : (first("verse") ?? VERSE),
         chorus: c.pc ? parseProgression(c.pc) : (first("chorus") ?? CHORUS),
         ...(c.m ? { melodies: parseMelodies(c.m, key.tonic) } : {}),

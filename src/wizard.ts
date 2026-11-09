@@ -3,10 +3,17 @@
  * and chorus progressions (from the measured bank or chord by chord), the length and the ending,
  * then generate. The result is a creation (spec.ts), so it can be shared and edited further.
  */
-import { compose, type BassStyle, type KitName, type Song, type SongForm } from "./composer";
+import {
+  compose,
+  type BassStyle,
+  type KitName,
+  type Song,
+  type SongEnding,
+  type SongForm,
+} from "./composer";
 import { KIT_LABELS } from "./drums";
 import { GENRES } from "./genres";
-import type { Progression } from "./progressions";
+import type { BankEntry, Progression } from "./progressions";
 import { randomSeed } from "./rng";
 import { CHORD_CHOICES, KITS, songToSpec, type Creation } from "./spec";
 import { chord, chordName, keyName, type Key } from "./theory";
@@ -24,12 +31,17 @@ export interface WizardChoices {
   verse: Progression;
   chorus: Progression;
   form: SongForm;
-  ending: "auto" | "lift" | "fade";
+  ending: "auto" | SongEnding;
 }
 
 const STORE_KEY = "infinite-synthpop:wizard:v1";
-/** The wizard generates synthpop; picking a genre comes later. */
-const BANK = GENRES.synthpop.bank;
+/** The wizard generates synthpop in minor keys; picking a genre (and a major key) comes later. */
+const minorOnly = (entries: readonly BankEntry[]) =>
+  entries.filter((e) => (e.mode ?? "minor") === "minor");
+const BANK = {
+  verse: minorOnly(GENRES.synthpop.bank.verse),
+  chorus: minorOnly(GENRES.synthpop.bank.chorus),
+};
 
 function defaults(): WizardChoices {
   return {
@@ -158,9 +170,10 @@ export function mountWizard(
         ["auto", "Auto (by style)"],
         ["tf", "True Faith"],
         ["ds", "The Different Story"],
+        ["yc", "You Came"],
       ],
       c.bassStyle,
-      (v) => (choices.bassStyle = v === "tf" || v === "ds" ? v : "auto"),
+      (v) => (choices.bassStyle = v === "tf" || v === "ds" || v === "yc" ? v : "auto"),
     );
 
     const formPick = radios(
@@ -178,9 +191,10 @@ export function mountWizard(
         ["auto", "Auto (by style)"],
         ["lift", "Lift to the major IV (True Faith)"],
         ["fade", "Chorus to fade (The Different Story)"],
+        ["hold", "Hold IV (You Came)"],
       ],
       c.ending,
-      (v) => (choices.ending = v === "lift" || v === "fade" ? v : "auto"),
+      (v) => (choices.ending = v === "lift" || v === "fade" || v === "hold" ? v : "auto"),
     );
 
     const actions = el("div", "wizard-actions");
@@ -219,7 +233,8 @@ export function mountWizard(
     const presets = choices.styleAuto
       ? [...BANK[kind]]
       : [...BANK[kind]].sort(
-          (a, b) => Math.abs(a.style - choices.style) - Math.abs(b.style - choices.style),
+          (a, b) =>
+            Math.abs((a.style ?? 0.5) - choices.style) - Math.abs((b.style ?? 0.5) - choices.style),
         );
     const match = presets.findIndex((p) => same(p.bars, current));
     const preset = select(

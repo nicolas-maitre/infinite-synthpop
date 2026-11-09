@@ -687,9 +687,10 @@ export function mountCreator(
       [
         ["tf", "True Faith"],
         ["ds", "The Different Story"],
+        ["yc", "You Came"],
       ],
       s.bassStyle,
-      (v) => update((n) => (n.bassStyle = v === "ds" ? "ds" : "tf")),
+      (v) => update((n) => (n.bassStyle = v === "ds" || v === "yc" ? v : "tf")),
     );
     const feel = input("range", String(s.style), (v) => update((n) => (n.style = Number(v))));
     feel.min = "0";

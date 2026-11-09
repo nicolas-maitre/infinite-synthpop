@@ -1,6 +1,7 @@
 /**
  * Locks down the generator's output: the composed song and every arranged bar, for a fixed set of
- * seeds, styles, forms and both originals, plus a creation round-tripped through a share link.
+ * seeds, styles, forms and the originals, plus a creation round-tripped through a share link.
+ * Songs with You Came's weight above 0 set the weights directly, as no control does yet.
  * Refactors that must not change what plays are checked against this snapshot. The full arranged
  * events would make a multi-megabyte file, so each song's bars are stored as one digest
  * next to a readable summary of the song.
@@ -76,6 +77,21 @@ const CASES: [string, ComposeOptions][] = [
   ],
   ["true-faith", { seed: 5, reference: "true-faith" }],
   ["different-story", { seed: 5, reference: "different-story" }],
+  ["you-came", { seed: 5, reference: "you-came" }],
+  // Weights in GENRES.synthpop.references order: True Faith, The Different Story, You Came.
+  ...(
+    [
+      [0, 0, 1],
+      [0.5, 0, 0.5],
+      [0, 0.6, 0.4],
+      [0.3, 0.3, 0.4],
+    ] as const
+  ).flatMap((weights) =>
+    [3, 42].map((seed): [string, ComposeOptions] => [
+      `seed ${seed} weights ${weights.join("/")}`,
+      { seed, weights },
+    ]),
+  ),
 ];
 
 describe("output snapshot", () => {
@@ -96,7 +112,11 @@ describe("output snapshot", () => {
       Object.fromEntries(
         Object.entries(GENRES.synthpop.bank).map(([kind, entries]) => [
           kind,
-          entries.map((e) => `${e.name}|${e.style}|${e.bars.map((b) => b.join("-")).join(" ")}`),
+          entries.map(
+            (e) =>
+              `${e.name}|${e.style ?? e.ref}${e.mode === "major" ? " major" : ""}|` +
+              e.bars.map((b) => b.join("-")).join(" "),
+          ),
         ]),
       ),
     ).toMatchSnapshot();

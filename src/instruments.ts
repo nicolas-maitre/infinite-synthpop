@@ -116,6 +116,12 @@ export class Instruments {
   private readonly gate = new Tone.Gain(0);
   private readonly bassFm: Tone.FMSynth;
   private readonly bassSaw: Tone.MonoSynth;
+  /** You Came's octave layer: a second saw an octave up (see setBassTone). */
+  private readonly bassOct: Tone.MonoSynth;
+  private readonly bassOctLevel = new Tone.Gain(0);
+  private bassOctOn = false;
+  /** Whether snare and clap hits open the gated reverb (see setSnareGate). */
+  private snareGated = true;
   private readonly bassTone: Tone.OnePoleFilter;
   private readonly bassPresence: FixedFilter;
   private readonly hook: Tone.MonoSynth;
@@ -234,6 +240,24 @@ export class Instruments {
         octaves: 0.6,
       },
     }).connect(this.bassTone);
+    // You Came's bass is two oscillators an octave apart (its 2nd harmonic as loud as the
+    // fundamental, the 3rd 18–20 dB down, the 4th louder than the 3rd): a saw an octave up over
+    // the low oscillator played as a triangle (see setBassTone), through the same tone.
+    this.bassOctLevel.connect(this.bassTone);
+    this.bassOct = new Tone.MonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
+      envelope: { attack: 0.002, decay: 0.25, decayCurve: "linear", sustain: 0.2, release: 0.04 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.08,
+        sustain: 0.6,
+        release: 0.05,
+        baseFrequency: 2500,
+        octaves: 0.6,
+      },
+    }).connect(this.bassOctLevel);
+    this.bassOct.volume.value = 8;
 
     // Melodic high bass: plucky pulse through a chorus pedal and a touch of drive.
     const hookChorus = new Tone.Chorus({
@@ -436,7 +460,7 @@ export class Instruments {
 
   drum(hit: DrumHit, time: number): void {
     this.drums.trigger(hit.voice, time, hit.vel);
-    if (hit.voice === "snare" || hit.voice === "clap") this.gateHit(time);
+    if (this.snareGated && (hit.voice === "snare" || hit.voice === "clap")) this.gateHit(time);
   }
 
   /** Opens the gated-reverb return for ~200 ms, then slams it shut. */
@@ -458,6 +482,7 @@ export class Instruments {
           const f = midiToFreq(n.midi);
           this.bassFm.triggerAttackRelease(f, len(n), at(n), n.vel);
           this.bassSaw.triggerAttackRelease(f, len(n), at(n), n.vel);
+          if (this.bassOctOn) this.bassOct.triggerAttackRelease(f * 2, len(n), at(n), n.vel);
         }
         break;
       case "hook":
@@ -547,6 +572,22 @@ export class Instruments {
     this.bassTone.frequency = tone.frequency;
     this.bassPresence.gain.value = tone.presence;
     this.bassSaw.filterEnvelope.baseFrequency = tone.sawCutoff;
+    this.bassOct.filterEnvelope.baseFrequency = tone.sawCutoff * 2;
+    this.bassOctLevel.gain.value = tone.octave;
+    this.bassOctOn = tone.octave > 0;
+    const type = this.bassOctOn ? "triangle" : "sawtooth";
+    if (this.bassSaw.oscillator.type !== type) this.bassSaw.oscillator.type = type;
+    this.bassSaw.envelope.sustain = tone.sustain;
+    this.bassOct.envelope.sustain = tone.sustain;
+  }
+
+  /** Gated reverb on the snare and clap (TF, DS), or an open, untreated tail (You Came's long,
+   * smooth snare: −10 dB at 80 ms, −20 dB at 220 ms, no gate cut-off). */
+  setSnareGate(gated: boolean): void {
+    this.snareGated = gated;
+    const g = this.gate.gain;
+    g.cancelScheduledValues(0);
+    g.value = gated ? 0 : 0.35;
   }
 
   /**
@@ -581,7 +622,7 @@ export class Instruments {
    */
   releaseAll(time = Tone.now()): void {
     this.releaseChords(time);
-    for (const s of [this.lead, this.leadOct, this.hook, this.bassSaw]) {
+    for (const s of [this.lead, this.leadOct, this.hook, this.bassSaw, this.bassOct]) {
       s.envelope.cancel(time);
       s.filterEnvelope.cancel(time);
       s.triggerRelease(time);

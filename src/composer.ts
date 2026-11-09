@@ -3,7 +3,16 @@
  * per-song motifs and melodies. Pure and deterministic; no audio here. See docs/analysis.md.
  */
 import type { DrumHit, MelodicTrack } from "./arranger";
-import { GENRES, genreAt, type GenreAt, type GenreId } from "./genres";
+import {
+  GENRES,
+  genreAt,
+  referenceWeights,
+  soloWeights,
+  styleOf,
+  type Blend,
+  type GenreAt,
+  type GenreId,
+} from "./genres";
 import { mutate, pickProgression, type Progression, type ProgressionKind } from "./progressions";
 import { REFERENCES, type ReferenceId, type ReferenceSong } from "./references";
 import { createRng, type Rng } from "./rng";
@@ -18,13 +27,24 @@ import {
 } from "./theory";
 
 export type SectionKind =
-  "intro" | "verse" | "chorus" | "interlude" | "turnaround" | "break" | "bridge" | "outro";
-/** "groove": TF's busy intro pattern (kick runs, ghost snares, toms). */
-export type DrumMode = "off" | "kick" | "half" | "full" | "big" | "groove";
+  | "intro"
+  | "verse"
+  | "prechorus"
+  | "chorus"
+  | "interlude"
+  | "turnaround"
+  | "break"
+  | "bridge"
+  | "outro";
+/** "groove": TF's busy intro pattern (kick runs, ghost snares, toms). "breakdown": You Came's
+ * breakdown and bridge, no snare and the kick on 1 for three bars. "hats16": the full kit with
+ * 16th hats whatever the song's hat pattern (You Came's break and instrumental). */
+export type DrumMode = "off" | "kick" | "half" | "full" | "big" | "groove" | "breakdown" | "hats16";
 export type KitName = "sp12" | "linndrum" | "dmx" | "synth";
-/** Both play the songs' signature bass figure (arranger.ts `figure`), in DS's articulation (16th
- * pickups, approach notes) or TF's (dotted 8ths). */
-export type BassStyle = "ds" | "tf";
+/** "ds" and "tf" play the songs' signature bass figure (arranger.ts `figure`), in DS's
+ * articulation (16th pickups, approach notes) or TF's (dotted 8ths). "yc" is You Came's root 8ths
+ * with a same-note 16th on 4a (arranger.ts `ycBassLine`). */
+export type BassStyle = "ds" | "tf" | "yc";
 export type MelodyKind = "verse" | "chorus";
 
 export interface Layers {
@@ -44,6 +64,9 @@ export interface Layers {
   lead: MelodyKind | null;
   /** Doubles the lead an octave up (True Faith's two-voice final chorus). */
   leadDouble: boolean;
+  /** Stacks a second voice a diatonic 3rd under the lead (You Came's choruses); it takes the
+   * place of `leadDouble`. */
+  leadStack: boolean;
   /** TF's chorus counter-line: a high, sparse electric-piano line above the vocal (MIDI "Synth
    * Lead"). */
   counter: boolean;
@@ -121,9 +144,15 @@ export interface Melody {
   bars: Note[][];
 }
 
+/** A song's progressions by kind. The pre-chorus is only picked where one can play (You Came's
+ * weight above 0, or a major key). */
+export type Progressions = Record<Exclude<ProgressionKind, "prechorus">, Progression> & {
+  prechorus?: Progression;
+};
+
 export interface Song {
   seed: number;
-  /** Set when this is one of the two originals (references.ts) rather than a generated song. */
+  /** Set when this is one of the originals (references.ts) rather than a generated song. */
   reference: ReferenceId | null;
   /** The spec this song was laid out from: an original's, or a creation's (creator mode). */
   spec: ReferenceSong | null;
@@ -131,14 +160,18 @@ export interface Song {
   bpm: number;
   key: Key;
   style: number;
+  /** The genre's references' weights the song was generated with, in `references` order. */
+  weights: readonly number[];
   /** The genre whose profile the song was generated with (not yet part of specs or links). */
   genre: GenreId;
   kit: KitName;
   bassStyle: BassStyle;
-  progressions: Record<ProgressionKind, Progression>;
+  progressions: Progressions;
   sections: Section[];
   totalBars: number;
   riff: Motif;
+  /** The riff an octave up, around C♯6–G♯6 (You Came's register, §7.5). */
+  riffHigh: boolean;
   hook: Motif;
   arp: Motif;
   sequence: SequencePattern;
@@ -160,6 +193,9 @@ export interface ComposeOptions {
   /** Where the song sits between the genre's references (synthpop: 0 = True Faith … 1 = The
    * Different Story). Unset or null = pick per song. */
   style?: number | null;
+  /** The references' weights, in the genre's `references` order; overrides `style`. Only tests
+   * set this until a control does (the slider gives the references after the second weight 0). */
+  weights?: readonly number[] | null;
   key?: Key | null;
   bpm?: number | null;
   kit?: KitName | "auto";
@@ -169,14 +205,16 @@ export interface ComposeOptions {
   custom?: ReferenceSong | null;
   // The new-song wizard's choices (each optional; unset means the generator decides).
   /** Use these progressions instead of picking from the bank. */
-  progressions?: Partial<Record<ProgressionKind, Progression>>;
+  progressions?: Partial<Progressions>;
   /** Short: one verse/chorus block less, 8-bar verses. Long: always a third verse and chorus. */
   form?: SongForm;
-  ending?: "lift" | "fade";
+  ending?: SongEnding;
   bassStyle?: BassStyle;
 }
 
 export type SongForm = "short" | "standard" | "long";
+/** A lift to IV (TF), a chorus to fade (DS), or IV held (You Came). */
+export type SongEnding = "lift" | "fade" | "hold";
 
 export const LEAD_RANGES: Record<MelodyKind, readonly [number, number]> = {
   verse: [57, 70],
@@ -191,14 +229,34 @@ export function compose(opts: ComposeOptions): Song {
   const root = createRng(opts.seed);
   // Its own stream, so an auto style draws nothing from the others.
   const autoStyle = Math.round(root.fork("style").next() * 100) / 100;
-  const style = ref ? ref.style : Math.min(1, Math.max(0, opts.style ?? autoStyle));
   const genreId = opts.genre ?? "synthpop";
   const genre = GENRES[genreId];
-  const g = genreAt(genre, style);
+  const style = ref
+    ? ref.style
+    : opts.weights
+      ? styleOf(opts.weights)
+      : Math.min(1, Math.max(0, opts.style ?? autoStyle));
+  // An original plays with all the weight on itself; a creation where its style puts it.
+  const weights =
+    opts.weights ??
+    (ref && !opts.custom && opts.reference
+      ? soloWeights(genre, opts.reference)
+      : referenceWeights(genre, style));
+  const g = genreAt(genre, weights);
   const rngSetup = root.fork("setup");
+  // You Came's choices draw from their own streams, so at its weight 0 a song is what it was.
+  const rngMode = root.fork("mode");
+  const rngYc = root.fork("you-came");
+  const yc = (b: Blend) => rngYc.chance(g.at(b));
 
-  const key: Key = ref?.key ??
-    opts.key ?? { tonic: rngSetup.weighted(genre.keyWeights), mode: "minor" };
+  // The minor tonic is drawn first either way, so the draws after it stay where they were.
+  const autoKey = (): Key => {
+    const tonic = rngSetup.weighted(genre.keyWeights);
+    return rngMode.chance(g.at(genre.major))
+      ? { tonic: rngMode.weighted(genre.majorKeyWeights), mode: "major" }
+      : { tonic, mode: "minor" };
+  };
+  const key: Key = ref?.key ?? opts.key ?? autoKey();
   const [bpmLo, bpmHi] = genre.tempo.range;
   const autoBpm = rngSetup.weighted(
     Array.from({ length: (bpmHi - bpmLo) * 2 + 1 }, (_, i) => {
@@ -210,14 +268,22 @@ export function compose(opts: ComposeOptions): Song {
   const autoKit = rngSetup.weighted<KitName>(genre.kits.map(([kit, w]) => [kit, g.at(w)]));
   const kit = ref?.kit ?? (!opts.kit || opts.kit === "auto" ? autoKit : opts.kit);
   const pickedBass = rngSetup.weighted<BassStyle>(
-    genre.bassFigures.map(([figure, w]) => [figure, g.at(w)]),
+    genre.bassFigures.map(([figure, w]) => [figure, g.at(w)] as const).filter(([, w]) => w > 0),
   );
   const bassStyle = ref?.bassStyle ?? opts.bassStyle ?? pickedBass;
 
   const rngProg = root.fork("progressions");
-  const prog = (kind: ProgressionKind) =>
-    mutate(genre, pickProgression(genre, kind, style, rngProg), kind, style, rngProg);
-  const progressions: Record<ProgressionKind, Progression> = {
+  const prog = (kind: ProgressionKind, rng = rngProg) =>
+    mutate(
+      genre,
+      pickProgression(genre, kind, style, rng, { mode: key.mode, weights }),
+      kind,
+      weights,
+      rng,
+      0.3,
+      key.mode,
+    );
+  const progressions: Progressions = {
     verse: prog("verse"),
     chorus: prog("chorus"),
     interlude: prog("interlude"),
@@ -225,19 +291,35 @@ export function compose(opts: ComposeOptions): Song {
     bridge: prog("bridge"),
     lift: prog("lift"),
   };
+  if (key.mode === "major" || g.at(genre.form.preChorus) > 0)
+    progressions.prechorus = prog("prechorus", root.fork("prechorus"));
+  // You Came's verse is its chorus loop.
+  if (yc(genre.form.verseOnLoop)) progressions.verse = progressions.chorus;
   Object.assign(progressions, opts.progressions);
   if (ref) {
     progressions.verse = ref.verse;
     progressions.chorus = ref.chorus;
   }
+  const riffHigh = yc(genre.form.chorusRiff);
 
   const rngForm = root.fork("form");
   const liftKey: Key = { tonic: mod12(key.tonic + 5), mode: "major" };
   const liftChance = rngForm.chance(g.at(genre.liftEnding));
-  const useLift = opts.ending ? opts.ending === "lift" : liftChance;
+  const holdChance = yc(genre.form.holdEnding);
+  const ending: SongEnding = opts.ending ?? (holdChance ? "hold" : liftChance ? "lift" : "fade");
   const sections = ref
     ? referenceSections(ref)
-    : planSections(rngForm, key, liftKey, useLift, progressions, g, opts.form ?? "standard");
+    : planSections(
+        rngForm,
+        rngYc,
+        key,
+        liftKey,
+        ending,
+        progressions,
+        g,
+        opts.form ?? "standard",
+        riffHigh,
+      );
   if (!ref) addCounter(root.fork("counter"), sections, g);
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 
@@ -261,6 +343,7 @@ export function compose(opts: ComposeOptions): Song {
     bpm,
     key,
     style,
+    weights,
     genre: genreId,
     kit,
     bassStyle,
@@ -268,6 +351,7 @@ export function compose(opts: ComposeOptions): Song {
     sections,
     totalBars,
     riff: generateRiff(rngMotif),
+    riffHigh,
     hook: generateHook(rngMotif),
     arp: generateArp(rngMotif),
     sequence: generateSequence(root.fork("sequence")),
@@ -293,17 +377,28 @@ const LAYERS_OFF: Layers = {
   guitar: false,
   lead: null,
   leadDouble: false,
+  leadStack: false,
   counter: false,
 };
 
+/** A progression over `bars` bars whose last bar turns to the tonic halfway, pushed into what
+ * follows (You Came's verse into its pre-chorus). */
+function intoTonic(prog: Progression, bars: number, tonic: string): Progression {
+  const out = Array.from({ length: bars }, (_, i) => prog[i % prog.length] ?? [tonic]);
+  out[bars - 1] = [out[bars - 1]?.[0] ?? tonic, tonic];
+  return out;
+}
+
 function planSections(
   rng: Rng,
+  rngYc: Rng,
   key: Key,
   liftKey: Key,
-  useLift: boolean,
-  p: Record<ProgressionKind, Progression>,
+  ending: SongEnding,
+  p: Progressions,
   g: GenreAt,
   form: SongForm,
+  chorusRiff: boolean,
 ): Section[] {
   const plan: Omit<Section, "startBar" | "fill" | "fade">[] = [];
   const add = (
@@ -324,7 +419,15 @@ function planSections(
     });
 
   const odds = g.genre.form;
-  const chance = (b: (typeof odds)[keyof typeof odds]) => rng.chance(g.at(b));
+  const chance = (b: Blend) => rng.chance(g.at(b));
+  const tonic = key.mode === "major" ? "I" : "i";
+  // You Came's blocks (analysis §7.2), decided up front from their own stream.
+  const yc = (b: Blend) => rngYc.chance(g.at(b));
+  const preChorus = yc(odds.preChorus) && !!p.prechorus;
+  const stack = yc(odds.stack);
+  const straightOn = yc(odds.straightOn);
+  const breakdown = yc(odds.breakdown);
+  const instrumental16 = yc(odds.instrumental16);
   const stabs = () => chance(odds.stabs);
   // TF's sequenced chord synth plays the figure from the intro to the end of the song.
   // TF's high sequencer comes in after the first chorus and plays to the end (MIDI: bar 46 on).
@@ -342,10 +445,13 @@ function planSections(
       stabs: stabs(),
       seq,
       guitar,
+      ...(stack ? { leadStack: true } : {}),
+      ...(chorusRiff ? { riff: true } : {}),
       ...extra,
     });
-  const verse = (label: string, bars: number, extra: Partial<Layers> = {}) =>
-    add("verse", label, bars, p.verse, {
+  // You Came: the verse turns to the tonic in its last bar, pushed into the pre-chorus.
+  const verse = (label: string, bars: number, extra: Partial<Layers> = {}) => {
+    add("verse", label, bars, preChorus ? intoTonic(p.verse, bars, tonic) : p.verse, {
       drums: "full",
       bass: true,
       pad: true,
@@ -353,6 +459,17 @@ function planSections(
       seq,
       ...extra,
     });
+    if (preChorus && p.prechorus) {
+      add("prechorus", "Pre-chorus", Math.min(8, p.prechorus.length), p.prechorus, {
+        drums: "full",
+        bass: true,
+        pad: true,
+        arp: true,
+        lead: "verse",
+        seq,
+      });
+    }
+  };
   // DS: interlude, the Dorian ii–IV turnaround, then a 2-bar break on the tonic.
   const dsBlock = () => {
     add("interlude", "Interlude", 8, p.interlude, {
@@ -371,7 +488,7 @@ function planSections(
       arp: true,
     });
     if (rng.chance(0.7)) {
-      add("break", "Break", 2, [["i"]], { drums: "kick", riff: true, pad: true });
+      add("break", "Break", 2, [[tonic]], { drums: "kick", riff: true, pad: true });
     }
   };
   // TF: the band plays the chorus chords instrumentally, riff and melodic bass on top.
@@ -419,7 +536,9 @@ function planSections(
   verse("Verse 1", verseBars);
   chorus("Chorus");
   seq = useSeq;
-  if (chance(odds.dsBlock)) dsBlock();
+  if (straightOn) {
+    // You Came: straight on to verse 2.
+  } else if (chance(odds.dsBlock)) dsBlock();
   else {
     tfInstrumental("Instrumental", 8);
     tfTurn();
@@ -428,6 +547,15 @@ function planSections(
   chorus("Chorus", { arp: true });
   if (form === "short") {
     // Straight on to the final choruses.
+  } else if (breakdown) {
+    // You Came (2:22): a breakdown verse over the loop's first two chords with no bass and no
+    // snare, then a 4-bar bridge into the last choruses.
+    add("verse", "Breakdown", 8, p.chorus.slice(0, 2), {
+      drums: "breakdown",
+      pad: true,
+      lead: "verse",
+    });
+    add("bridge", "Bridge", 4, p.bridge, { drums: "breakdown", pad: true, lead: "verse" });
   } else if (chance(odds.dsBlock)) {
     dsBlock();
   } else {
@@ -450,10 +578,25 @@ function planSections(
     verse("Verse 3", rng.chance(0.5) ? 16 : 8);
   }
   chorus("Chorus");
+  if (instrumental16) {
+    // You Came (3:18): a break without bass or voice, then an instrumental, both on 16th hats,
+    // the riff joining for its second half.
+    add("break", "Break", 8, p.chorus.slice(0, 2), { drums: "hats16", pad: true });
+    add("interlude", "Instrumental", 8, p.chorus, { drums: "hats16", bass: true, pad: true });
+    add("interlude", "Instrumental · riff", 8, p.chorus, {
+      drums: "full",
+      bass: true,
+      pad: true,
+      riff: true,
+    });
+  }
   chorus("Chorus · double", { leadDouble: true, arp: true });
   if (form === "long" || (form === "standard" && chance(odds.extraChorus)))
     chorus("Chorus", { leadDouble: true });
-  if (useLift) {
+  if (ending === "hold") {
+    // You Came (4:23): the loop's IV held to the end.
+    add("outro", "Ending · IV held", 4, [["IV"]], { pad: true, riff: chorusRiff });
+  } else if (ending === "lift") {
     // TF: the chorus's IV becomes the new tonic.
     add(
       "outro",
@@ -545,7 +688,7 @@ function sectionMelodies(
   root: Rng,
   sections: readonly Section[],
   key: Key,
-  progressions: Record<ProgressionKind, Progression>,
+  progressions: Progressions,
   melodies: Record<MelodyKind, Melody>,
   custom: Record<string, CustomMelody> = {},
 ): (Melody | null)[] {

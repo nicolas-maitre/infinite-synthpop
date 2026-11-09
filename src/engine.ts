@@ -8,7 +8,7 @@ import { AudioContext as StandardAudioContext } from "standardized-audio-context
 import * as Tone from "tone";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents } from "./arranger";
 import type { SampleReport } from "./drums";
-import { bassTone, GENRES } from "./genres";
+import { bassTone, genreAt, GENRES } from "./genres";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
@@ -40,6 +40,7 @@ export interface EngineEvents {
 const REFERENCE_SEEDS: Record<ReferenceId, number> = {
   "true-faith": 1987,
   "different-story": 1989,
+  "you-came": 1988,
 };
 
 export function nextSeed(seed: number): number {
@@ -331,7 +332,9 @@ export class Engine {
    * plays (the others are disconnected). */
   private applySong(inst: Instruments): void {
     inst.drums.use(this.effectiveKit());
-    inst.setBassTone(bassTone(GENRES[this.song.genre], this.song.style));
+    const genre = GENRES[this.song.genre];
+    inst.setBassTone(bassTone(genre, this.song.weights));
+    inst.setSnareGate(genreAt(genre, this.song.weights).drums.gatedSnare);
     inst.setActiveTracks(usedTracks(this.song));
   }
 

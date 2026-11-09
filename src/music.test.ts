@@ -109,12 +109,34 @@ describe("progressions", () => {
 
 describe("genre profile", () => {
   it("keeps the measured bass tone at both ends of synthpop", () => {
-    expect(bassTone(SYNTHPOP, 0)).toEqual({ frequency: 240, presence: 7, sawCutoff: 2500 });
-    expect(bassTone(SYNTHPOP, 1)).toEqual({ frequency: 160, presence: 1, sawCutoff: 300 });
+    expect(bassTone(SYNTHPOP, 0)).toEqual({
+      frequency: 240,
+      presence: 7,
+      sawCutoff: 2500,
+      octave: 0,
+      sustain: 0.2,
+    });
+    expect(bassTone(SYNTHPOP, 1)).toEqual({
+      frequency: 160,
+      presence: 1,
+      sawCutoff: 300,
+      octave: 0,
+      sustain: 0.2,
+    });
     expect(bassTone(SYNTHPOP, 0.35)).toEqual({
       frequency: 240 - 80 * 0.35,
       presence: 7 - 6 * 0.35,
       sawCutoff: 2500 - 2200 * 0.35,
+      octave: 0,
+      sustain: 0.2,
+    });
+    // You Came's: darker than TF's, with the octave layer.
+    expect(bassTone(SYNTHPOP, [0, 0, 1])).toEqual({
+      frequency: 180,
+      presence: 2,
+      sawCutoff: 600,
+      octave: 1,
+      sustain: 0.35,
     });
   });
 });
@@ -319,6 +341,40 @@ describe("references", () => {
     expect(Math.abs(ds.totalBars - 112)).toBeLessThanOrEqual(2);
     expect(tf.sections.at(-1)?.key).toEqual({ tonic: 7, mode: "major" });
     expect(tf.sections.at(-1)?.fade).toBe(true);
+  });
+
+  it("lays out You Came's album version in E major at 119 BPM", () => {
+    const yc = compose({ seed: 1988, reference: "you-came" });
+    expect(yc.key).toEqual({ tonic: 4, mode: "major" });
+    expect([yc.bpm, yc.kit, yc.bassStyle, yc.totalBars]).toEqual([119, "linndrum", "yc", 135]);
+    expect(yc.weights).toEqual([0, 0, 1]);
+    // The record ends on IV.
+    expect(yc.sections.at(-1)?.progression).toEqual([["IV"]]);
+    for (let bar = 0; bar < yc.totalBars; bar++) {
+      const ev = arrangeBar(yc, bar);
+      // The hats never play the "e" outside the break and the instrumental's 16ths.
+      if (ev.section.layers.drums !== "hats16") {
+        for (const h of ev.drums) if (h.voice === "hat") expect(Math.round(h.step) % 4).not.toBe(1);
+      }
+      for (const track of MELODIC_TRACKS) {
+        for (const n of ev.notes[track]) expect(Number.isFinite(n.midi)).toBe(true);
+      }
+    }
+  });
+
+  it("plays You Came's bass: the pushed tonic, the ii's octaves and the v's walk", () => {
+    const yc = compose({ seed: 1988, reference: "you-came" });
+    const pre = yc.sections.find((s) => s.label === "Pre-chorus 1");
+    if (!pre) throw new Error("no pre-chorus");
+    const bass = (bar: number) => arrangeBar(yc, bar).notes.bass.map((n) => n.midi);
+    // B1 B1 B1, then E2 an 8th early, dropping to E1 on beat 4.
+    expect(bass(pre.startBar - 1)).toEqual([35, 35, 35, 40, 40, 40, 28, 28]);
+    expect(bass(pre.startBar + 1)).toEqual([30, 30, 42, 30, 30, 30, 42, 30]);
+    expect(bass(pre.startBar + 3)).toEqual([35, 35, 37, 37, 35, 35, 33, 32]);
+  });
+
+  it("gives You Came's weight nothing to do from the slider", () => {
+    expect(compose({ seed: 9, style: 0.3 })).toEqual(compose({ seed: 9, weights: [0.7, 0.3, 0] }));
   });
 
   it("plays TF's pickup run into verse 2 and its drum groove in the intro", () => {

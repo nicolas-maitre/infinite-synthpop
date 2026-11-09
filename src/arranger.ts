@@ -9,6 +9,7 @@ import {
   type Motif,
   type Note,
   type Section,
+  type SectionKind,
   type Song,
 } from "./composer";
 import { GENRES, genreAt, type DrumTraits } from "./genres";
@@ -133,7 +134,11 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     };
   };
   const notes: Record<MelodicTrack, Note[]> = {
-    bass: L.bass ? bassLine(song.bassStyle, figureContext("bass")) : [],
+    bass: !L.bass
+      ? []
+      : song.bassStyle === "yc"
+        ? ycBassLine(figureContext("bass"), rng.fork("bass"), section.kind !== "prechorus")
+        : bassLine(song.bassStyle, figureContext("bass")),
     hook: L.hook
       ? motifNotes(
           song.hook,
@@ -146,7 +151,9 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
         )
       : [],
     pad: L.pad ? padChords(key, slots, section.kind === "break" ? 0.75 : 0.55) : [],
-    riff: L.riff ? motifNotes(song.riff, barInSection, key, slots, "chord", 67, 0.85) : [],
+    riff: L.riff
+      ? motifNotes(song.riff, barInSection, key, slots, "chord", song.riffHigh ? 79 : 67, 0.85)
+      : [],
     lead: [],
     leadOct: [],
     counter: [],
@@ -160,7 +167,13 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     const melody = song.sectionMelodies[sectionIndex] ?? song.melodies[L.lead];
     const lead = melody.bars[barInSection % melody.bars.length] ?? [];
     notes.lead = lead.map((n) => ({ ...n }));
-    if (L.leadDouble)
+    if (L.leadStack) {
+      notes.leadOct = lead.map((n) => ({
+        ...n,
+        midi: thirdBelow(key, slots, n),
+        vel: n.vel * 0.6,
+      }));
+    } else if (L.leadDouble)
       notes.leadOct = lead.map((n) => ({ ...n, midi: n.midi + 12, vel: n.vel * 0.55 }));
   }
   const counter = L.counter ? (song.sectionCounters[sectionIndex] ?? song.counter) : null;
@@ -176,7 +189,8 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   const importedDrums = song.imported?.drums;
   const drums = importedDrums
     ? (importedDrums[bar] ?? []).map((h) => ({ ...h }))
-    : drumBar(L.drums, rng.fork("drums"), genreAt(GENRES[song.genre], song.style).drums, {
+    : drumBar(L.drums, rng.fork("drums"), genreAt(GENRES[song.genre], song.weights).drums, {
+        kind: section.kind,
         barInSection,
         sectionStart: barInSection === 0 && sectionIndex > 0,
         lastBar: isLastBar,
@@ -202,10 +216,11 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
 // ── Bass and the sequenced figure ─────────────────────────────────────────────────────────────
 
 /** Where each song's bass sits: TF G1–F♯2 (the MIDI transcription's G1 under the chorus IV),
- * DS A1–G♯2 (Demucs stems: B1, E2, A2). */
+ * DS A1–G♯2 (Demucs stems: B1, E2, A2), You Came F♯1–F2 (stems: A1 and B1 in the loop, F♯1 to E2
+ * in the pre-chorus). An inverted chord puts its bass note there instead of its root. */
 function bassRoot(style: BassStyle, key: Key, c: Chord): number {
-  const [lo, hi] = style === "tf" ? [31, 42] : [33, 44];
-  let root = nearestWithPc(mod12(key.tonic + c.root), (lo + hi) / 2);
+  const [lo, hi] = style === "tf" ? [31, 42] : style === "yc" ? [30, 41] : [33, 44];
+  let root = nearestWithPc(mod12(key.tonic + (c.bass ?? c.root)), (lo + hi) / 2);
   while (root > hi) root -= 12;
   while (root < lo) root += 12;
   return root;
@@ -321,6 +336,56 @@ function bassLine(style: BassStyle, ctx: FigureContext): Note[] {
   return out;
 }
 
+/**
+ * You Came's bass (analysis §6.3): legato 8ths on the root, re-struck every 8th, the "&"s a little
+ * stronger than the beats (an off-beat pump). In loop bars it repeats the root as a 16th on 4a in
+ * about two thirds of the bars; unlike the TF/DS figure it never anticipates the next chord. A bar
+ * with two chords changes on beat 3, except that a root-position tonic is pushed an 8th early and
+ * drops an octave on beat 4 (the bar into the pre-chorus: B B B E E E E₁ E₁). A ii bar hops up
+ * the octave on beats 2 and 4, and a v bar walks: root, a step up, root, then two steps down.
+ *
+ *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *   loop     R  -  R  -  R  -  R  -  R  -  R  -  R  -  R  R
+ *   ii       R  -  R  -  R8 -  R  -  R  -  R  -  R8 -  R  -
+ *   v        R  -  R  -  +1 -  +1 -  R  -  R  -  −1 -  −2 -
+ */
+function ycBassLine(ctx: FigureContext, rng: Rng, loop: boolean): Note[] {
+  const [first, second] = ctx.slots;
+  if (!first) return [];
+  const pushed = second?.chord.numeral === "I";
+  const change = second ? (pushed ? 6 : second.step) : 16;
+  const out: Note[] = [];
+  for (let step = 0; step < 16; step += 2) {
+    const c = (step >= change && second ? second : first).chord;
+    let midi = bassRoot("yc", ctx.key, c);
+    if (!second && c.numeral === "ii" && (step === 4 || step === 12)) midi += 12;
+    if (!second && c.numeral === "v") {
+      const scale = notesInRange(scaleForChord(ctx.key, c), midi - 5, midi + 3);
+      const at = scale.indexOf(midi);
+      const by = step === 4 || step === 6 ? 1 : step === 12 ? -1 : step === 14 ? -2 : 0;
+      midi = scale[at + by] ?? midi;
+    }
+    if (pushed && step >= 12 && midi - 12 >= 28) midi -= 12;
+    out.push({ step, dur: 1.9, midi, vel: step % 4 === 0 ? 0.85 : 0.95 });
+  }
+  const last = out.at(-1);
+  if (loop && !second && last && rng.chance(0.67)) {
+    // Cut short, so the 4a is struck afresh.
+    last.dur = 0.6;
+    out.push({ step: 15, dur: 0.95, midi: last.midi, vel: 0.95 });
+  }
+  if (ctx.short) for (const n of out) n.dur = Math.min(0.95, n.dur);
+  return out;
+}
+
+/** A diatonic 3rd under a lead note: the stacked voice of You Came's choruses. */
+function thirdBelow(key: Key, slots: readonly ChordSlot[], n: Note): number {
+  const slot = slotAt(slots, n.step);
+  if (!slot) return n.midi - 3;
+  const below = notesInRange(scaleForChord(key, slot.chord), n.midi - 6, n.midi - 1);
+  return below.at(-2) ?? n.midi - 3;
+}
+
 /** TF's high sequencer: 16ths on the key's 5th (A4 in D minor), with the tonic a 4th above or the
  * 5th an octave above on the song's generated steps. It ignores the chords, as the recording does. */
 function sequenceLine(song: Song, key: Key): Note[] {
@@ -423,6 +488,7 @@ function stabChord(key: Key, slots: readonly ChordSlot[]): Note[] {
 // ── Drums ─────────────────────────────────────────────────────────────────────────────────────
 
 interface DrumBarContext {
+  kind: SectionKind;
   barInSection: number;
   sectionStart: boolean;
   lastBar: boolean;
@@ -436,13 +502,19 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
   const { barInSection, sectionStart, intoChorus } = ctx;
   const hits: DrumHit[] = [];
   const hit = (voice: DrumVoice, step: number, vel: number) => hits.push({ voice, step, vel });
+  // You Came's fill closes every 8-bar phrase (and a section that fills), and a crash opens the
+  // next phrase. It replaces the random fills.
+  const kitMode = mode === "full" || mode === "big" || mode === "hats16";
+  const phraseFill = traits.phraseFills && (ctx.fill || (kitMode && barInSection % 8 === 7));
+  const phraseStart = traits.phraseFills && kitMode && barInSection > 0 && barInSection % 8 === 0;
   // The groove carries its own fill in its last bar.
-  const fill = ctx.fill && mode !== "groove";
+  const fill = ctx.fill && mode !== "groove" && !phraseFill;
   const fillFrom = fill ? (intoChorus ? 8 : 12) : 16;
   const evenBar = barInSection % 2 === 0;
 
-  // Kick: four on the floor — "the drums do one thing: stomp".
-  if (mode === "half") hit("kick", 0, 1);
+  // Kick: four on the floor — "the drums do one thing: stomp". You Came's breakdown keeps it to
+  // the 1 for three bars.
+  if (mode === "half" || (mode === "breakdown" && barInSection < 3)) hit("kick", 0, 1);
   else for (const s of [0, 4, 8, 12]) if (s < fillFrom || s === 12) hit("kick", s, 1);
   if (mode === "big" && traits.bigKick14 && rng.chance(0.4)) hit("kick", 14, 0.7);
 
@@ -464,8 +536,10 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
   if (traits.introLowTom && ctx.intro && !evenBar && mode !== "half" && fillFrom === 16)
     hit("toml", 14, 0.8);
 
-  // Snare on 2 and 4 (beat 3 in half time), doubled by a clap in big sections.
-  if (mode === "full" || mode === "big") {
+  // Snare on 2 and 4 (beat 3 in half time), doubled by a clap in big sections. None in a
+  // breakdown, nor in the first half of You Came's break.
+  const snare = kitMode && !(mode === "hats16" && ctx.kind === "break" && barInSection < 4);
+  if (snare) {
     for (const s of [4, 12]) {
       if (s >= fillFrom) continue;
       hit("snare", s, 1);
@@ -475,7 +549,23 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
 
   // Hats were played live on the record, so humanise velocity and timing.
   const humanise = (s: number) => (s === 0 ? 0 : (rng.next() - 0.5) * 0.12);
-  for (let s = 0; s < 16; s++) {
+  const ycHats =
+    phraseFill ||
+    (traits.hats === "beat-and-a" && (mode === "full" || mode === "big" || mode === "breakdown"));
+  if (ycHats) {
+    // You Came: the beat, the "&" and (in most bars) the "a", never the "e"; the "a" rings open
+    // in about a third of the bars. A fill bar drops to 8ths; a crash takes the 1's hat.
+    const open = rng.chance(1 / 3);
+    for (let s = 0; s < 16; s++) {
+      const pos = s % 4;
+      if (pos === 1 || (s === 0 && (sectionStart || phraseStart))) continue;
+      if (pos === 3) {
+        if (phraseFill || !rng.chance(0.75)) continue;
+        hit(open ? "openhat" : "hat", s + humanise(s), 0.6 + rng.next() * 0.1);
+      } else hit("hat", s + humanise(s), (pos === 0 ? 0.55 : 0.7) + rng.next() * 0.12);
+    }
+  }
+  for (let s = 0; s < 16 && !ycHats; s++) {
     if (s >= fillFrom) break;
     const offbeat8 = s % 4 === 2;
     // TF opens a hat on beat 3 of every other bar (MIDI, intro to outro).
@@ -494,12 +584,17 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
   if (mode === "big") {
     if (traits.bigPercussion === "tamb") {
       for (const s of [2, 6, 10, 14]) if (s < fillFrom) hit("tamb", s, 0.45);
-    } else {
+    } else if (traits.bigPercussion === "cabasa") {
       for (let s = 1; s < fillFrom; s += 2) hit("cabasa", s, 0.3 + rng.next() * 0.1);
     }
   }
 
-  if (sectionStart && mode !== "half") hit("crash", 0, 0.8);
+  if ((sectionStart || phraseStart) && mode !== "half") hit("crash", 0, 0.8);
+
+  // You Came's fill: the snare on 2 and 4 and on every "&", none on 1 and 3.
+  if (phraseFill) for (const s of [2, 4, 6, 10, 12, 14]) hit("snare", s, s % 8 === 4 ? 1 : 0.75);
+  // …and its pickup snare on 4& in a third of the other bars.
+  else if (traits.snarePickup && snare && rng.chance(0.35)) hit("snare", 14, 0.7);
 
   if (fill) {
     const kind = rng.weighted([

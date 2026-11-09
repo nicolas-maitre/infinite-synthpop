@@ -1,14 +1,14 @@
 /**
- * The two originals as songs for the same engine: the measured form, chords per section, key,
- * tempo, drum machine and bass figure (docs/analysis.md §1–§3; section lengths rounded to whole
- * phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
+ * The originals as songs for the same engine: the measured form, chords per section, key, tempo,
+ * drum machine and bass figure (docs/analysis.md §1–§3 and, for You Came, §2 and §6; section
+ * lengths rounded to whole phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
  * the copyrighted compositions, while harmony, form and groove are what the generator studies.
  */
 import type { BassStyle, CustomMelody, KitName, Layers, SectionKind } from "./composer";
 import type { Progression } from "./progressions";
 import type { Key } from "./theory";
 
-export type ReferenceId = "true-faith" | "different-story";
+export type ReferenceId = "true-faith" | "different-story" | "you-came";
 
 export interface ReferenceSection {
   kind: SectionKind;
@@ -26,7 +26,9 @@ export interface ReferenceSection {
 
 export interface ReferenceSong {
   title: string;
-  /** Where the song sits on the style axis (0 = True Faith … 1 = The Different Story). */
+  /** Where the song sits on the style axis (0 = True Faith … 1 = The Different Story). An
+   * original plays with all the weight on itself whatever this says (You Came sits off the axis,
+   * at 0.5). */
   style: number;
   key: Key;
   bpm: number;
@@ -65,6 +67,43 @@ const DS_VERSE: Progression = [["i"], ["VI"], ["VII"], ["v"], ["i"], ["VI"], ["i
 const DS_CHORUS: Progression = [["i"], ["III"], ["VII"], ["iv"]];
 const DS_INTERLUDE: Progression = [["III"], ["VII"], ["iv"], ["i", "VII"]];
 const DS_TURNAROUND: Progression = [["ii"], ["ii"], ["IV"], ["IV"]];
+
+// You Came, in E major (§6.2). The loop is IV │ V │ IV │ V–I⁶: the bass drops to G♯ (E/G♯) on bar
+// 4's beat 3 every 4 bars in the hook, verses and choruses 1–2, every 8 in chorus 3 and the outro.
+// Into a pre-chorus, bar 4 turns to E instead, pushed an 8th early by the bass (ycBassLine).
+const YC_LOOP: Progression = [["IV"], ["V"], ["IV"], ["V", "I/3"]];
+const YC_LOOP8: Progression = [["IV"], ["V"], ["IV"], ["V"], ["IV"], ["V"], ["IV"], ["V", "I/3"]];
+const YC_VERSE: Progression = [
+  ["IV"],
+  ["V"],
+  ["IV"],
+  ["V", "I/3"],
+  ["IV"],
+  ["V"],
+  ["IV"],
+  ["V", "I"],
+];
+// Chorus 2's 12th bar (2:12) lands on E, the only root-position tonic inside a chorus.
+const YC_CHORUS2: Progression = [
+  ...YC_LOOP,
+  ...YC_LOOP,
+  ["IV"],
+  ["V"],
+  ["IV"],
+  ["V", "I"],
+  ...YC_LOOP,
+];
+// C♯ │ F♯m │ E │ Bm │ F♯m │ E │ G♯sus4 │ G♯7, leaving deceptively to the loop's A.
+const YC_PRECHORUS: Progression = [
+  ["V/ii"],
+  ["ii"],
+  ["I"],
+  ["v"],
+  ["ii"],
+  ["I"],
+  ["Vsus4/vi"],
+  ["V7/vi"],
+];
 
 const band = { drums: "full", bass: true, pad: true } as const;
 
@@ -356,6 +395,145 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         bars: 16,
         progression: DS_CHORUS,
         layers: { ...band, drums: "big", lead: "chorus", leadDouble: true, riff: true },
+      },
+    ],
+  },
+  // Album version (the file is the 4:33 album cut on Close, not the 7″ edit), 135 bars at 119.0
+  // BPM, every section boundary exact to the bar (§2). The kit is the closest sample kit to the
+  // measured one (§6.4: short, falling kick, smooth untreated snare tail; LinnDrum or Linn 9000 by
+  // the sources). The verse and chorus share the loop: the verse is the lead alone, the chorus
+  // stacked voices and the riff. Contrast comes from muting (§6.5): no bass in the intro, the
+  // breakdown, the bridge or the break; no snare in the breakdown; the riff rests in the verses.
+  // The bridge's bass pickups and the breakdown's bare roots-and-fifths pads are left out.
+  "you-came": {
+    title: "You Came",
+    style: 0.5,
+    key: { tonic: 4, mode: "major" },
+    bpm: 119,
+    kit: "linndrum",
+    bassStyle: "yc",
+    verse: YC_VERSE,
+    chorus: YC_LOOP,
+    sections: [
+      {
+        kind: "intro",
+        label: "Intro · pad on IV",
+        bars: 2,
+        progression: [["IV"]],
+        layers: { pad: true },
+      },
+      {
+        kind: "intro",
+        label: "Intro · the loop",
+        bars: 4,
+        progression: [["IV"], ["V"], ["IVadd9"], ["V"]],
+        layers: { pad: true },
+      },
+      {
+        kind: "intro",
+        label: "Hook",
+        bars: 8,
+        progression: YC_LOOP,
+        layers: { ...band, riff: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 1",
+        bars: 8,
+        progression: YC_VERSE,
+        layers: { ...band, lead: "verse" },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus 1",
+        bars: 8,
+        progression: YC_PRECHORUS,
+        layers: { ...band, arp: true, lead: "verse" },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 1",
+        bars: 8,
+        progression: YC_LOOP,
+        layers: { ...band, riff: true, lead: "chorus", leadStack: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 2",
+        bars: 8,
+        progression: YC_VERSE,
+        layers: { ...band, lead: "verse" },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus 2",
+        bars: 8,
+        progression: YC_PRECHORUS,
+        layers: { ...band, arp: true, lead: "verse" },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 2 · ×2",
+        bars: 16,
+        progression: YC_CHORUS2,
+        layers: { ...band, riff: true, lead: "chorus", leadStack: true },
+      },
+      {
+        kind: "verse",
+        label: "Breakdown",
+        bars: 8,
+        progression: [["IV"], ["V"]],
+        layers: { drums: "breakdown", pad: true, lead: "verse" },
+      },
+      {
+        kind: "bridge",
+        label: "Bridge",
+        bars: 4,
+        progression: [["IVmaj7"], ["Vadd9"], ["IV/3"], ["Vsus4", "V"]],
+        layers: { drums: "breakdown", pad: true, lead: "verse" },
+        fill: true,
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 3 · ×2",
+        bars: 16,
+        progression: YC_LOOP8,
+        layers: { ...band, riff: true, lead: "chorus", leadStack: true },
+      },
+      {
+        kind: "break",
+        label: "Break",
+        bars: 8,
+        progression: [["IVadd9"], ["V"]],
+        layers: { drums: "hats16", pad: true },
+      },
+      {
+        kind: "interlude",
+        label: "Instrumental",
+        bars: 8,
+        progression: YC_LOOP8,
+        layers: { ...band, drums: "hats16" },
+      },
+      {
+        kind: "interlude",
+        label: "Instrumental · riff",
+        bars: 8,
+        progression: YC_LOOP8,
+        layers: { ...band, riff: true },
+      },
+      {
+        kind: "chorus",
+        label: "Final chorus",
+        bars: 8,
+        progression: YC_LOOP8,
+        layers: { ...band, riff: true, lead: "chorus", leadStack: true },
+      },
+      {
+        kind: "outro",
+        label: "Ending · IV held",
+        bars: 5,
+        progression: [["IV"]],
+        layers: { pad: true },
       },
     ],
   },

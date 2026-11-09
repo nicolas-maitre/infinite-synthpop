@@ -496,6 +496,7 @@ function autoplay(): void {
 const BASS_LABELS: Record<BassStyle, string> = {
   ds: "Different Story bass figure",
   tf: "True Faith bass figure",
+  yc: "You Came root-8ths bass",
 };
 
 function renderSong(song: Song): void {
@@ -518,7 +519,8 @@ function renderSong(song: Song): void {
   ui.seed.value = String(song.seed);
   if (prefs.styleAuto) {
     ui.style.value = String(song.style);
-    ui.styleOut.value = styleLabel(song.style);
+    // You Came sits off the slider's axis: name it rather than its slider position.
+    ui.styleOut.value = song.reference ? REFERENCES[song.reference].title : styleLabel(song.style);
   }
   if (prefs.bpmAuto) {
     ui.bpm.value = String(song.bpm);
@@ -765,6 +767,8 @@ const DRUM_LABELS: Record<DrumMode, string> = {
   full: "full drums",
   big: "big drums",
   groove: "intro groove",
+  breakdown: "breakdown drums (no snare)",
+  hats16: "drums with 16th hats",
 };
 
 function renderSectionDetail(song: Song, index: number): void {
