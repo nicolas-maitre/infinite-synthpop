@@ -19,8 +19,8 @@ import { createRng } from "./rng";
 import type { Key } from "./theory";
 
 export interface EngineSettings {
-  /** null = pick per song. */
-  style: number | null;
+  /** The genre's references' weights (genres.ts); null = a random point of its polygon per song. */
+  weights: readonly number[] | null;
   /** null = pick per song. */
   key: Key | null;
   /** null = pick per song. */
@@ -293,7 +293,7 @@ export class Engine {
 
   /**
    * Settings changes recompose the current song in place from the same seed. Key, tempo and kit keep
-   * the form; style can reshape it, so the play position is clamped into the new song.
+   * the form; the weights can reshape it, so the play position is clamped into the new song.
    */
   update(settings: Partial<EngineSettings>): void {
     this.settings = { ...this.settings, ...settings };
@@ -308,6 +308,7 @@ export class Engine {
     const song = compose({
       seed,
       ...this.settings,
+      weights: this.settings.weights ?? "auto",
       reference: this.reference,
       custom: this.custom?.spec ?? null,
     });

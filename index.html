@@ -199,16 +199,16 @@
             <button id="seed-go" class="btn small" type="button">Load</button>
           </span>
         </label>
-        <label class="field">
-          <span class="row spread"><span>Style</span><output id="style-out"></output></span>
-          <input id="style" type="range" min="0" max="1" step="0.01" />
-          <span class="row spread scale"
-            ><span>True Faith</span><span>The Different Story</span></span
+        <div class="field" role="group" aria-labelledby="style-label">
+          <span class="row spread"
+            ><span id="style-label">Style</span><output id="style-out"></output
+          ></span>
+          <div id="style-pad"></div>
+          <label class="row"
+            ><input id="style-auto" type="checkbox" />
+            <span>Auto (a new point each song)</span></label
           >
-          <span class="row"
-            ><input id="style-auto" type="checkbox" /> <span>Auto (varies per song)</span></span
-          >
-        </label>
+        </div>
         <label class="field">
           <span class="row spread"><span>Tempo</span><output id="bpm-out"></output></span>
           <input id="bpm" type="range" min="100" max="135" step="1" />
@@ -247,10 +247,12 @@
         <h3>How it works</h3>
         <p>
           Each song is composed from a seed. Verse and chorus progressions come from a bank built on
-          the two songs' shared Aeolian engine, <b>i–VI–VII</b> in the verse and <b>i–III–VII</b> in
-          the chorus. The style slider moves the substitutions between them: True Faith's minor
+          True Faith's and The Different Story's shared Aeolian engine, <b>i–VI–VII</b> in the verse
+          and <b>i–III–VII</b> in the chorus, and You Came's major <b>IV–V</b> loop. The style
+          triangle blends the three: each corner is one song alone, each edge a mix of two, the
+          centre all three. Between the first two it moves the substitutions: True Faith's minor
           <b>v</b> and chorus ending on <b>iv</b>, against The Different Story's major <b>V</b> and
-          ending on <b>VI</b>.
+          ending on <b>VI</b>; toward You Came, major keys, a pre-chorus and its drums and bass.
         </p>
         <p>
           The riff and melodic bass are per-song motifs that follow the chords. The lead melody is

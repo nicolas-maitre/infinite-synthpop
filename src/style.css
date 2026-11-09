@@ -694,6 +694,21 @@ input[type="checkbox"] {
   display: flex;
 }
 
+.wizard > .wizard-style {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.wizard-style-head {
+  display: flex;
+  justify-content: space-between;
+}
+
+.wizard-style .blendpad-surface {
+  max-width: 260px;
+}
+
 .wizard-radios {
   display: inline-flex;
   gap: 10px;
@@ -1286,4 +1301,141 @@ button.link {
 
 .mixer-head h3 {
   margin: 0;
+}
+
+/* ── Style picker (blendpad.ts): a point in a polygon of references ─────────────────────────── */
+
+.blendpad {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.blendpad-surface {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+  /* Dragging the point mustn't scroll the page. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: crosshair;
+  border-radius: 10px;
+  outline: none;
+}
+
+.blendpad-surface:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+.blendpad-surface svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.blendpad-face {
+  fill: #0f0f22;
+}
+
+.blendpad-edge {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.blendpad-guide {
+  stroke: var(--line);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+
+.blendpad-track {
+  stroke: var(--line);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.blendpad-centre {
+  fill: var(--muted);
+}
+
+.blendpad-vertex {
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.blendpad-spoke {
+  stroke-linecap: round;
+}
+
+.blendpad-handle {
+  fill: var(--text);
+  stroke: var(--accent);
+  stroke-width: 3;
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.6));
+}
+
+.blendpad.dragging .blendpad-handle,
+.blendpad-surface:focus-visible .blendpad-handle {
+  stroke: var(--accent-2);
+}
+
+.blendpad-label {
+  position: absolute;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.blendpad-label[data-anchor="above"] {
+  transform: translate(-50%, calc(-100% - 9px));
+}
+
+.blendpad-label[data-anchor="below"] {
+  transform: translate(-50%, 9px);
+}
+
+.blendpad-label[data-anchor="below-start"] {
+  transform: translate(-8px, 9px);
+}
+
+.blendpad-label[data-anchor="below-end"] {
+  transform: translate(calc(-100% + 8px), 9px);
+}
+
+.blendpad-label[data-anchor="left"] {
+  transform: translate(calc(-100% - 10px), -50%);
+}
+
+.blendpad-label[data-anchor="right"] {
+  transform: translate(10px, -50%);
+}
+
+.blendpad-reset {
+  justify-self: end;
+}
+
+.blendpad.disabled .blendpad-surface {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.blendpad.compact {
+  grid-template-columns: auto auto;
+  align-items: end;
+  gap: 6px;
+}
+
+.blendpad.compact .blendpad-surface {
+  width: 150px;
+}
+
+.blendpad.compact .blendpad-label {
+  font-size: 10px;
 }

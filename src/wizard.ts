@@ -11,8 +11,18 @@ import {
   type SongEnding,
   type SongForm,
 } from "./composer";
+import { BlendPad, initials, weightsSummary } from "./blendpad";
 import { KIT_LABELS } from "./drums";
-import { GENRES } from "./genres";
+import {
+  GENRES,
+  parseWeights,
+  referenceWeights,
+  styleOf,
+  weightOf,
+  weightsAtPoint,
+} from "./genres";
+import { CENTRE } from "./polygon";
+import { REFERENCES } from "./references";
 import type { BankEntry, Progression } from "./progressions";
 import { randomSeed } from "./rng";
 import { CHORD_CHOICES, KITS, songToSpec, type Creation } from "./spec";
@@ -20,8 +30,9 @@ import { chord, chordName, keyName, type Key } from "./theory";
 
 export interface WizardChoices {
   title: string;
-  style: number;
-  /** The generator picks the style per song (the slider keeps the last fixed one). */
+  /** The references' weights (genres.ts), set with the style triangle. */
+  weights: number[];
+  /** The generator picks a point per song (the triangle keeps the last fixed one). */
   styleAuto: boolean;
   tonic: number;
   /** null = the generator picks (116–121 BPM). */
@@ -38,15 +49,18 @@ const STORE_KEY = "infinite-synthpop:wizard:v1";
 /** The wizard generates synthpop in minor keys; picking a genre (and a major key) comes later. */
 const minorOnly = (entries: readonly BankEntry[]) =>
   entries.filter((e) => (e.mode ?? "minor") === "minor");
+const GENRE = GENRES.synthpop;
 const BANK = {
-  verse: minorOnly(GENRES.synthpop.bank.verse),
-  chorus: minorOnly(GENRES.synthpop.bank.chorus),
+  verse: minorOnly(GENRE.bank.verse),
+  chorus: minorOnly(GENRE.bank.chorus),
 };
+const NAMES = GENRE.references.map((id) => REFERENCES[id].title);
+const SHORT = initials(NAMES);
 
 function defaults(): WizardChoices {
   return {
     title: "",
-    style: 0.5,
+    weights: weightsAtPoint(GENRE, CENTRE),
     styleAuto: true,
     tonic: 2,
     bpm: null,
@@ -62,7 +76,15 @@ function defaults(): WizardChoices {
 function load(): WizardChoices {
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    return raw ? { ...defaults(), ...(JSON.parse(raw) as Partial<WizardChoices>) } : defaults();
+    if (!raw) return defaults();
+    const stored = JSON.parse(raw) as Partial<WizardChoices> & { style?: unknown };
+    // Saved before the triangle: only a style, which plays as [1 − style, style, 0].
+    const style = typeof stored.style === "number" ? Math.min(1, Math.max(0, stored.style)) : null;
+    const weights =
+      parseWeights(GENRE, stored.weights) ??
+      (style === null ? defaults().weights : [...referenceWeights(GENRE, style)]);
+    delete stored.style;
+    return { ...defaults(), ...stored, weights };
   } catch {
     return defaults();
   }
@@ -80,7 +102,7 @@ function save(c: WizardChoices): void {
 export function generateFromChoices(c: WizardChoices, seed = randomSeed()): Creation {
   const song: Song = compose({
     seed,
-    style: c.styleAuto ? null : c.style,
+    weights: c.styleAuto ? "auto" : c.weights,
     key: { tonic: c.tonic, mode: "minor" },
     bpm: c.bpm,
     kit: c.kit,
@@ -115,21 +137,21 @@ export function mountWizard(
     title.value = c.title;
     title.addEventListener("input", () => (choices.title = title.value));
 
-    const style = el("input");
-    style.type = "range";
-    style.min = "0";
-    style.max = "1";
-    style.step = "0.05";
-    style.value = String(c.style);
-    style.disabled = c.styleAuto;
     const styleOut = el("output");
-    styleOut.value = c.styleAuto ? "" : styleName(c.style);
-    style.addEventListener("input", () => {
-      choices.style = Number(style.value);
-      styleOut.value = styleName(choices.style);
+    styleOut.value = c.styleAuto ? "" : weightsSummary(NAMES, SHORT, c.weights);
+    const style = new BlendPad({
+      names: NAMES,
+      weights: c.weights,
+      label: "Style",
+      onInput: (w) => (styleOut.value = weightsSummary(NAMES, SHORT, w)),
+      onChange: (w) => {
+        choices.weights = w;
+        styleOut.value = weightsSummary(NAMES, SHORT, w);
+        // Re-rank the presets for the new style (only them: the pad keeps its focus).
+        refreshPickers();
+      },
     });
-    // Re-rank the presets for the new style.
-    style.addEventListener("change", render);
+    style.disabled = c.styleAuto;
     const styleAuto = el("label", "wizard-radios");
     const styleAutoBox = el("input");
     styleAutoBox.type = "checkbox";
@@ -138,7 +160,7 @@ export function mountWizard(
       choices.styleAuto = styleAutoBox.checked;
       render();
     });
-    styleAuto.append(styleAutoBox, " Auto (varies per song)");
+    styleAuto.append(styleAutoBox, " Auto (a new point each song)");
 
     const tonic = select(
       Array.from({ length: 12 }, (_, t) => [String(t), keyName({ tonic: t, mode: "minor" })]),
@@ -213,13 +235,33 @@ export function mountWizard(
       onCreate(generateFromChoices(choices));
     });
 
+    let verse = progressionPicker("Verse chords", "verse", key);
+    let chorus = progressionPicker("Chorus chords", "chorus", key);
+    const refreshPickers = () => {
+      const [v, ch] = [
+        progressionPicker("Verse chords", "verse", key),
+        progressionPicker("Chorus chords", "chorus", key),
+      ];
+      verse.replaceWith(v);
+      chorus.replaceWith(ch);
+      [verse, chorus] = [v, ch];
+    };
+
+    // A div, not a label: a click on the pad mustn't toggle the auto box.
+    const styleField = el("div", "wizard-field wizard-style");
+    const styleHead = el("span", "wizard-style-head");
+    const styleName = el("span");
+    styleName.textContent = "Style";
+    styleHead.append(styleName, styleOut);
+    styleField.append(styleHead, style.element, styleAuto);
+
     form.append(
       heading,
       title,
-      row(field("Style", style, styleOut), styleAuto),
+      styleField,
       row(field("Key", tonic), field("Tempo", bpm), field("Drums", kit), field("Bass", bass)),
-      progressionPicker("Verse chords", "verse", key),
-      progressionPicker("Chorus chords", "chorus", key),
+      verse,
+      chorus,
       row(field("Length", formPick), field("Ending", ending)),
       actions,
     );
@@ -233,8 +275,7 @@ export function mountWizard(
     const presets = choices.styleAuto
       ? [...BANK[kind]]
       : [...BANK[kind]].sort(
-          (a, b) =>
-            Math.abs((a.style ?? 0.5) - choices.style) - Math.abs((b.style ?? 0.5) - choices.style),
+          (a, b) => closeness(b, choices.weights) - closeness(a, choices.weights),
         );
     const match = presets.findIndex((p) => same(p.bars, current));
     const preset = select(
@@ -306,10 +347,12 @@ export function mountWizard(
   };
 }
 
-function styleName(v: number): string {
-  if (v < 0.2) return "True Faith";
-  if (v > 0.8) return "The Different Story";
-  return v < 0.45 ? "leaning True Faith" : v > 0.55 ? "leaning The Different Story" : "half & half";
+/** How well a bank entry fits the weights: an entry on the first two references' axis by its
+ * distance along it, scaled by their share; one leaning to a reference by that one's weight. */
+function closeness(e: BankEntry, weights: readonly number[]): number {
+  if (e.ref) return weightOf(GENRE, weights, e.ref);
+  const axis = (weights[0] ?? 0) + (weights[1] ?? 0);
+  return (1 - Math.abs((e.style ?? 0.5) - styleOf(weights))) * axis;
 }
 
 function names(p: Progression, key: Key): string {

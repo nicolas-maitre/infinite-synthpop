@@ -25,11 +25,15 @@ import { chord, chordName, keyName, noteName } from "./theory";
 import { startVisualizer } from "./visualizer";
 import { mountAudioStats } from "./audiostats";
 import { SHOW_AUDIO_STATS } from "./quality";
+import { BlendPad, initials, weightsSummary } from "./blendpad";
+import { GENRES, isStyleWeights, parseWeights, referenceWeights, weightsAtPoint } from "./genres";
+import { CENTRE } from "./polygon";
 
 // ── Persisted preferences (per browser; everything still works without storage) ─────────────
 
 interface Prefs {
-  style: number;
+  /** The synthpop references' weights (genres.ts), set with the style triangle. */
+  weights: number[];
   styleAuto: boolean;
   bpm: number;
   bpmAuto: boolean;
@@ -45,8 +49,13 @@ interface Prefs {
 }
 
 const PREFS_KEY = "infinite-synthpop:prefs:v1";
+const GENRE = GENRES.synthpop;
+/** The style triangle's references, at its vertices. */
+const REF_NAMES = GENRE.references.map((id) => REFERENCES[id].title);
+const REF_SHORT = initials(REF_NAMES);
+
 const defaults: Prefs = {
-  style: 0.5,
+  weights: weightsAtPoint(GENRE, CENTRE),
   styleAuto: true,
   bpm: 118,
   bpmAuto: true,
@@ -63,13 +72,19 @@ function loadPrefs(): Prefs {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
     if (!raw) return defaults;
-    const p = JSON.parse(raw) as Partial<Prefs>;
+    const p = JSON.parse(raw) as Partial<Prefs> & { style?: unknown };
     const volumes = { ...defaults.volumes, ...p.volumes };
+    // Saved before the triangle: only a style, which plays as [1 − style, style, 0].
+    const style = typeof p.style === "number" ? Math.min(1, Math.max(0, p.style)) : null;
+    const weights =
+      parseWeights(GENRE, p.weights) ??
+      (style === null ? defaults.weights : [...referenceWeights(GENRE, style)]);
+    delete p.style;
     // Faders left at an old default follow the new one.
     for (const [t, old] of Object.entries(PREVIOUS_DEFAULT_VOLUMES) as [Track, number][]) {
       if (volumes[t] === old) volumes[t] = DEFAULT_VOLUMES[t];
     }
-    return { ...defaults, ...p, volumes };
+    return { ...defaults, ...p, volumes, weights };
   } catch {
     return defaults;
   }
@@ -109,7 +124,7 @@ const ui = {
   viz: el<HTMLCanvasElement>("viz"),
   seed: el<HTMLInputElement>("seed"),
   seedGo: el<HTMLButtonElement>("seed-go"),
-  style: el<HTMLInputElement>("style"),
+  stylePad: el("style-pad"),
   styleOut: el<HTMLOutputElement>("style-out"),
   styleAuto: el<HTMLInputElement>("style-auto"),
   bpm: el<HTMLInputElement>("bpm"),
@@ -158,11 +173,15 @@ function songSummary(key: Song["key"], bpm: number, bars: number): string {
   return `${keyName(key)} · ${bpm} BPM · ${bars} bars`;
 }
 
-/** What a generated song or original is, for ♡ Save (SavedSong.from). */
+/** What a generated song or original is, for ♡ Save (SavedSong.from). A song a legacy style
+ * describes keeps the old form, so songs saved before the weights are still found. */
 function songOrigin(song: Song): string {
+  const style = isStyleWeights(GENRES[song.genre], song.weights, song.style)
+    ? String(song.style)
+    : `w${song.weights.join(",")}`;
   return song.reference
     ? `ref:${song.reference}`
-    : `seed:${song.seed}/${song.style}/${song.key.tonic}/${song.bpm}/${song.kit}`;
+    : `seed:${song.seed}/${style}/${song.key.tonic}/${song.bpm}/${song.kit}`;
 }
 
 /** The library entry for what's playing, if it has one. */
@@ -410,7 +429,7 @@ function isReferenceId(id: string | null | undefined): id is ReferenceId {
 
 function engineSettings(): EngineSettings {
   return {
-    style: prefs.styleAuto ? null : prefs.style,
+    weights: prefs.styleAuto ? null : prefs.weights,
     key: prefs.key === null ? null : { tonic: prefs.key, mode: "minor" },
     bpm: prefs.bpmAuto ? null : prefs.bpm,
     kit: prefs.kit,
@@ -518,9 +537,11 @@ function renderSong(song: Song): void {
   ].join(" · ");
   ui.seed.value = String(song.seed);
   if (prefs.styleAuto) {
-    ui.style.value = String(song.style);
-    // You Came sits off the slider's axis: name it rather than its slider position.
-    ui.styleOut.value = song.reference ? REFERENCES[song.reference].title : styleLabel(song.style);
+    // Auto: the pad shows where this song's point landed.
+    stylePad.setWeights(song.weights);
+    ui.styleOut.value = song.reference
+      ? REFERENCES[song.reference].title
+      : weightsSummary(REF_NAMES, REF_SHORT, song.weights);
   }
   if (prefs.bpmAuto) {
     ui.bpm.value = String(song.bpm);
@@ -811,31 +832,29 @@ function renderKitStatus(): void {
 
 // ── Controls ──────────────────────────────────────────────────────────────────────────────────
 
-function styleLabel(v: number): string {
-  if (v < 0.2) return "True Faith";
-  if (v > 0.8) return "The Different Story";
-  return v < 0.5 ? "leaning Faith" : v > 0.5 ? "leaning Story" : "half & half";
-}
-
-ui.style.value = String(prefs.style);
+const stylePad = new BlendPad({
+  names: REF_NAMES,
+  weights: prefs.weights,
+  label: "Style",
+  onInput: (w) => (ui.styleOut.value = weightsSummary(REF_NAMES, REF_SHORT, w)),
+  onChange: (w) => {
+    ui.styleOut.value = weightsSummary(REF_NAMES, REF_SHORT, w);
+    prefs.weights = w;
+    savePrefs();
+    engine.update({ weights: prefs.weights });
+  },
+});
+ui.stylePad.append(stylePad.element);
 ui.styleAuto.checked = prefs.styleAuto;
-ui.style.disabled = prefs.styleAuto;
-ui.styleOut.value = styleLabel(prefs.style);
-ui.style.addEventListener("input", () => {
-  ui.styleOut.value = styleLabel(Number(ui.style.value));
-});
-ui.style.addEventListener("change", () => {
-  prefs.style = Number(ui.style.value);
-  savePrefs();
-  engine.update({ style: prefs.style });
-});
+stylePad.disabled = prefs.styleAuto;
+if (!prefs.styleAuto) ui.styleOut.value = weightsSummary(REF_NAMES, REF_SHORT, prefs.weights);
 ui.styleAuto.addEventListener("change", () => {
   prefs.styleAuto = ui.styleAuto.checked;
-  // Overriding starts from the style the slider shows (the current song's).
-  if (!prefs.styleAuto) prefs.style = Number(ui.style.value);
-  ui.style.disabled = prefs.styleAuto;
+  // Overriding starts from the point the pad shows (the current song's).
+  if (!prefs.styleAuto) prefs.weights = stylePad.weights;
+  stylePad.disabled = prefs.styleAuto;
   savePrefs();
-  engine.update({ style: prefs.styleAuto ? null : prefs.style });
+  engine.update({ weights: prefs.styleAuto ? null : prefs.weights });
 });
 
 ui.bpm.value = String(prefs.bpm);
