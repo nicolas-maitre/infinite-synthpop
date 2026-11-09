@@ -1138,6 +1138,31 @@ startVisualizer(ui.viz, () =>
 
 if (SHOW_AUDIO_STATS) mountAudioStats();
 
+// ── Footer: which build this is ─────────────────────────────────────────────────────────────
+
+declare const __BUILD__: { commit: string | null; time: string | null };
+
+function renderBuildInfo(): void {
+  const el = document.getElementById("build-info");
+  if (!el) return;
+  const { commit, time } = __BUILD__;
+  if (commit) {
+    const link = document.createElement("a");
+    link.href = `https://github.com/nicolas-maitre/infinite-synthpop/commit/${commit}`;
+    link.textContent = commit.slice(0, 7);
+    link.title = "The commit this build was made from";
+    el.append("Version ", link);
+  } else el.append("Version unknown");
+  if (time) {
+    const date = new Date(time);
+    const stamp = document.createElement("time");
+    stamp.dateTime = time;
+    stamp.textContent = date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+    el.append(" · deployed ", stamp);
+  } else el.append(" · dev server");
+}
+renderBuildInfo();
+
 // Brief tab switches don't need it; a locked screen does (Engine.wake).
 const WAKE_AFTER_HIDDEN_MS = 1000;
 let hiddenAt = 0;

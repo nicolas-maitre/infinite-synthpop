@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -39,11 +40,28 @@ function hasLocalSamples(): boolean {
   return existsSync(dir) && readdirSync(dir).some((kit) => !kit.startsWith("."));
 }
 
-export default defineConfig({
+/** The commit being built: GitHub Actions sets GITHUB_SHA, a local build asks git. */
+function commitHash(): string | null {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
+  try {
+    return execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    return null;
+  }
+}
+
+export default defineConfig(({ command }) => ({
   // GitHub Pages serves the site from /infinite-synthpop/ (set by .github/workflows/pages.yml).
   base: process.env.BASE_PATH ?? "/",
   plugins: [saveRenders()],
-  define: { __LOCAL_SAMPLES__: JSON.stringify(hasLocalSamples()) },
+  define: {
+    __LOCAL_SAMPLES__: JSON.stringify(hasLocalSamples()),
+    // Shown in the footer (src/main.ts). The dev server has no build to date.
+    __BUILD__: JSON.stringify({
+      commit: commitHash(),
+      time: command === "build" ? new Date().toISOString() : null,
+    }),
+  },
   build: { target: "es2022" },
   test: { include: ["src/**/*.test.ts"] },
-});
+}));
