@@ -54,7 +54,9 @@ main.ts          controls, mixer, section timeline, chord display, visualiser
   chorus to fade), and the bounce bass vs the pulse bass.
 - **The mix is matched by measurement.** `scripts/compare_mix.py` compares loudness, crest factor,
   stereo width and band energy with the recordings. That's how two bugs were found: Tone.Channel
-  defaults to mono, which collapsed the stereo field, and the bass sat too low and thin.
+  defaults to mono, which collapsed the stereo field, and the bass sat too low and thin. A third
+  hid in the bus EQ: a Tone.EQ3-style band split (2nd-order bands summed) notched the mix by 20–25
+  dB near 120 Hz and 3.3 kHz, so it is now two shelves and a gain, flat when all gains are 0.
 - **UI timing uses timers, not Tone.Draw.** Draw rides requestAnimationFrame and drops callbacks
   more than 0.25 s late, so the display froze in background tabs.
 - **Gated reverb** is built from a reverb return whose gain is opened and closed on each

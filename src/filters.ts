@@ -30,13 +30,17 @@ export class FixedFilter extends Tone.ToneAudioNode {
 }
 
 /**
- * Tone.EQ3 rebuilt from fixed biquads: the same band split (12 dB/octave, Q 1) and band gains in
- * dB, without its signal-driven filters.
+ * Three-band bus EQ in dB, built from shelves: an overall `mid` gain, a low shelf at
+ * `lowFrequency` to bring the lows to `low`, and a high shelf at `highFrequency` to bring the highs
+ * to `high`. With all gains at 0 it is flat. It replaces a Tone.EQ3-style band split (2nd-order,
+ * Q 1, lowpass + bandpass + highpass summed): at each corner the summed bands cancel, so that split
+ * notched the whole mix by about 20 dB near 120 Hz and 25 dB near 3.3 kHz, on the bass and the
+ * lead harmonics.
  */
 export class FixedEQ3 extends Tone.ToneAudioNode {
   readonly name = "FixedEQ3";
-  readonly input = new Tone.Gain();
-  readonly output = new Tone.Gain();
+  readonly input: Tone.Gain;
+  readonly output: FixedFilter;
 
   constructor({
     low,
@@ -52,10 +56,9 @@ export class FixedEQ3 extends Tone.ToneAudioNode {
     highFrequency: number;
   }) {
     super();
-    const band = (db: number, ...filters: FixedFilter[]) =>
-      this.input.chain(...filters, new Tone.Gain(Tone.dbToGain(db)), this.output);
-    band(low, new FixedFilter("lowpass", lowFrequency));
-    band(mid, new FixedFilter("highpass", lowFrequency), new FixedFilter("lowpass", highFrequency));
-    band(high, new FixedFilter("highpass", highFrequency));
+    this.input = new Tone.Gain(Tone.dbToGain(mid));
+    const lowShelf = new FixedFilter("lowshelf", lowFrequency, { gain: low - mid });
+    this.output = new FixedFilter("highshelf", highFrequency, { gain: high - mid });
+    this.input.chain(lowShelf, this.output);
   }
 }

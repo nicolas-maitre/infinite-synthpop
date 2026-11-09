@@ -137,24 +137,15 @@ export class Instruments {
 
   private constructor(reverb: Tone.Reverb, gatedVerb: Tone.Reverb, lite: boolean) {
     this.ready = Promise.all([reverb.ready, gatedVerb.ready]).then(() => undefined);
-    // Bus glue, matched to the references' level and band balance (scripts/compare_mix.py).
-    // Lite: about the same curve from two shelves, which cost Firefox a fraction of the band split
-    // in a real mix (5% of real time against under 1%, on a desktop).
-    const eq = lite
-      ? [
-          new Tone.Gain(Tone.dbToGain(1.5)),
-          new FixedFilter("lowshelf", 150, { gain: -3 }),
-          new FixedFilter("highshelf", 3500, { gain: 1 }),
-        ]
-      : [
-          new FixedEQ3({
-            low: -1.5,
-            mid: 1.5,
-            high: 2.5,
-            lowFrequency: 150,
-            highFrequency: 3500,
-          }),
-        ];
+    // Bus glue, matched to the references' level and band balance (scripts/compare_mix.py). Two
+    // shelves and a gain, cheap enough for lite mode too.
+    const eq = new FixedEQ3({
+      low: -2.5,
+      mid: 1.5,
+      high: 2.5,
+      lowFrequency: 150,
+      highFrequency: 3500,
+    });
     const comp = new Tone.Compressor({ threshold: -20, ratio: 2.5, attack: 0.02, release: 0.25 });
     const limiter = new Tone.Limiter(-1);
     // Tone's Limiter is a fast compressor, so drum transients overshoot it and clipped (245
@@ -170,16 +161,8 @@ export class Instruments {
     }, 4096);
     // Headroom trim: without it the bus compressor and limiter squashed TF-style songs to a crest
     // factor of 11 dB (the records: 15–18).
-    const trim = new Tone.Gain(Tone.dbToGain(-4));
-    this.master.chain(
-      trim,
-      ...eq,
-      comp,
-      limiter,
-      new Tone.Gain(0.5),
-      softClip,
-      Tone.getDestination(),
-    );
+    const trim = new Tone.Gain(Tone.dbToGain(-5.5));
+    this.master.chain(trim, eq, comp, limiter, new Tone.Gain(0.5), softClip, Tone.getDestination());
     softClip.fan(this.fft, this.waveform);
 
     const delay = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.32, wet: 1 });
