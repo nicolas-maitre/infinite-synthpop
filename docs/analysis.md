@@ -233,9 +233,12 @@ TF     (G1)  G1   G1   -    G1   -    G1   -    G1   -    G1   -    G1   A1   - 
   (and their last pickup bars), A4–E6 but mostly F5–C6, so it sits above the sung chorus: held
   notes of 6–8 16ths on chord tones, stepping between them, in a 4-bar call and response that
   loops with the chorus chords. On the record (Demucs "other" stem of chorus 1, not the vocal
-  stem), it is a soft electric-piano tone, not a synth lead. Its held C6s put the harmonics about
-  10, 17, 18 and 29 dB under the fundamental. The noise between those harmonics is other parts
-  bleeding into the stem, not breath: a breathy voice built from that reading sounded wrong. Sound On Sound names the
+  stem), it is a plucked electric-piano tone, not a synth lead: held notes strike hard and fade
+  about 11 dB over 0.75 s, with harmonics about 5, 11, 17, 22 and 25 dB under the fundamental
+  (medians over chorus 1's long notes). The noise between those harmonics is other parts bleeding
+  into the stem, not breath: a breathy voice built from that reading sounded wrong. Separated the
+  same way, our render with the MIDI's parts puts the line's fundamental a few dB higher against
+  the whole mix than the record does, so it isn't quieter there. Sound On Sound names the
   session's samplers as an Akai S900 and an Emulator II, not a Fairlight. The generator writes its
   own line in this shape for every chorus, in most TF-leaning songs.
 

@@ -308,16 +308,19 @@ export class Instruments {
     this.lead = new Tone.MonoSynth(leadOptions).connect(vibrato);
     this.leadOct = new Tone.MonoSynth(leadOptions).connect(vibrato);
 
-    // TF's chorus counter-line (MIDI "Synth Lead"): an electric-piano tone, a 1:1 FM pair whose
-    // brightness fades after the strike. On a Demucs "other" stem of the record, its held C6s put
-    // the harmonics about 10, 17, 18 and 29 dB under the fundamental. It sits well under the sung
-    // line: the whole "other" stem is 4 dB under the vocal in chorus 1.
+    // TF's chorus counter-line (MIDI "Synth Lead"): a plucked electric-piano tone. Measured on
+    // Demucs "other" stems of chorus 1 (record and our render alike), its held notes strike hard
+    // and fade about 11 dB over 0.75 s, and its harmonics fall about 5, 11, 17, 22 and 25 dB under
+    // the fundamental, early and late in the note alike. The carrier plays those harmonics; a
+    // 1:1 FM strike brightens only the first tenth of a second.
     this.counter = new NativeFMSynth({
       harmonicity: 1,
-      modulationIndex: 7,
+      modulationIndex: 1.6,
+      oscillator: { type: "sine", partials: [1, 0.56, 0.28, 0.14, 0.08, 0.056, 0.018, 0.016] },
       modulation: { type: "sine" },
-      envelope: { attack: 0.004, decay: 1.2, sustain: 0.45, release: 0.35 },
-      modulationEnvelope: { attack: 0.002, decay: 0.35, sustain: 0.5, release: 0.3 },
+      // A 7.3 s decay to 0.15 falls with a 0.4 s time constant: -11 dB at 0.75 s.
+      envelope: { attack: 0.003, decay: 7.3, sustain: 0.15, release: 0.35 },
+      modulationEnvelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 0.2 },
       volume: 0,
       maxPolyphony: lite ? 2 : 4,
     }).connect(this.channels.counter);

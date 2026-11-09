@@ -192,6 +192,25 @@ export interface OscillatorSpec {
   count?: number;
   /** Fat oscillator: detune spread in cents. */
   spread?: number;
+  /** Harmonic amplitudes, the fundamental first: a custom wave in place of `type` (plain only). */
+  partials?: readonly number[];
+}
+
+/** A periodic wave from harmonic amplitudes (1 = the fundamental), cached per context. */
+const partialWaves = new WeakMap<BaseAudioContext, Map<string, PeriodicWave>>();
+function partialsWave(context: BaseAudioContext, partials: readonly number[]): PeriodicWave {
+  let cache = partialWaves.get(context);
+  if (!cache) partialWaves.set(context, (cache = new Map()));
+  const key = partials.join(",");
+  let wave = cache.get(key);
+  if (!wave) {
+    const real = new Float32Array(partials.length + 1);
+    const imag = new Float32Array(partials.length + 1);
+    partials.forEach((a, i) => (imag[i + 1] = a));
+    wave = context.createPeriodicWave(real, imag);
+    cache.set(key, wave);
+  }
+  return wave;
 }
 
 /**
@@ -250,7 +269,8 @@ abstract class NativePoly extends Tone.ToneAudioNode {
     return Array.from({ length: count }, (_, i) => {
       const osc = this.raw.createOscillator();
       const phase = count > 1 ? ((i / count) * 360 * Math.PI) / 180 : 0;
-      if (phase === 0) osc.type = spec.type;
+      if (spec.partials) osc.setPeriodicWave(partialsWave(this.raw, spec.partials));
+      else if (phase === 0) osc.type = spec.type;
       else osc.setPeriodicWave(phasedWave(this.raw, spec.type, phase));
       osc.frequency.value = frequency;
       if (count > 1) osc.detune.value = -spread / 2 + (spread / (count - 1)) * i;
