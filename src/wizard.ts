@@ -13,6 +13,8 @@ import { chord, chordName, keyName, type Key } from "./theory";
 export interface WizardChoices {
   title: string;
   style: number;
+  /** The generator picks the style per song (the slider keeps the last fixed one). */
+  styleAuto: boolean;
   tonic: number;
   /** null = the generator picks (115–120 BPM). */
   bpm: number | null;
@@ -30,6 +32,7 @@ function defaults(): WizardChoices {
   return {
     title: "",
     style: 0.5,
+    styleAuto: true,
     tonic: 2,
     bpm: null,
     kit: "auto",
@@ -62,7 +65,7 @@ function save(c: WizardChoices): void {
 export function generateFromChoices(c: WizardChoices, seed = randomSeed()): Creation {
   const song: Song = compose({
     seed,
-    style: c.style,
+    style: c.styleAuto ? null : c.style,
     key: { tonic: c.tonic, mode: "minor" },
     bpm: c.bpm,
     kit: c.kit,
@@ -103,14 +106,24 @@ export function mountWizard(
     style.max = "1";
     style.step = "0.05";
     style.value = String(c.style);
+    style.disabled = c.styleAuto;
     const styleOut = el("output");
-    styleOut.value = styleName(c.style);
+    styleOut.value = c.styleAuto ? "" : styleName(c.style);
     style.addEventListener("input", () => {
       choices.style = Number(style.value);
       styleOut.value = styleName(choices.style);
     });
     // Re-rank the presets for the new style.
     style.addEventListener("change", render);
+    const styleAuto = el("label", "wizard-radios");
+    const styleAutoBox = el("input");
+    styleAutoBox.type = "checkbox";
+    styleAutoBox.checked = c.styleAuto;
+    styleAutoBox.addEventListener("change", () => {
+      choices.styleAuto = styleAutoBox.checked;
+      render();
+    });
+    styleAuto.append(styleAutoBox, " Auto (varies per song)");
 
     const tonic = select(
       Array.from({ length: 12 }, (_, t) => [String(t), keyName({ tonic: t, mode: "minor" })]),
@@ -186,7 +199,7 @@ export function mountWizard(
     form.append(
       heading,
       title,
-      field("Style", style, styleOut),
+      row(field("Style", style, styleOut), styleAuto),
       row(field("Key", tonic), field("Tempo", bpm), field("Drums", kit), field("Bass", bass)),
       progressionPicker("Verse chords", "verse", key),
       progressionPicker("Chorus chords", "chorus", key),
@@ -196,12 +209,15 @@ export function mountWizard(
     dialog.replaceChildren(form);
   }
 
-  /** A preset select (ranked by closeness to the style) over editable per-bar chord pickers. */
+  /** A preset select (ranked by closeness to the style, unless it's auto) over editable per-bar
+   * chord pickers. */
   function progressionPicker(label: string, kind: "verse" | "chorus", key: Key): HTMLElement {
     const current = choices[kind];
-    const presets = [...BANK[kind]].sort(
-      (a, b) => Math.abs(a.style - choices.style) - Math.abs(b.style - choices.style),
-    );
+    const presets = choices.styleAuto
+      ? [...BANK[kind]]
+      : [...BANK[kind]].sort(
+          (a, b) => Math.abs(a.style - choices.style) - Math.abs(b.style - choices.style),
+        );
     const match = presets.findIndex((p) => same(p.bars, current));
     const preset = select(
       [

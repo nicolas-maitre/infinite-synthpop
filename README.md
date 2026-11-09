@@ -49,9 +49,9 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   an original too. Click a song to play it, ⤴ to copy its link, × to delete it (with undo).
 - **⤴ Share** copies a link to what's playing. A generated song goes as its full song (its seed
   alone would sound different with someone else's generator settings), so it plays as a creation.
-- **✚ Create…** is a new-song wizard. Pick the style, key, tempo, drum machine and bass figure.
-  Choose the verse and chorus chords from the measured presets (closest to the style first), or
-  set them bar by bar. Then set the length (short, standard, long) and the ending (lift to the
+- **✚ Create…** is a new-song wizard. Pick the style (or leave it to vary per song), key, tempo,
+  drum machine and bass figure. Choose the verse and chorus chords from the measured presets
+  (closest to a fixed style first), or set them bar by bar. Then set the length (short, standard, long) and the ending (lift to the
   major IV, or chorus to fade), and generate. The result is a creation, so you can keep editing it.
 - **Piano roll:** the whole current section under the timeline, one lane per instrument, with
   each bar's chords and a playhead. Click a bar to jump there.
