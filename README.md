@@ -104,7 +104,7 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   the high 16th sequencer, modulating outro) to _The Different Story_ (minor iv choruses, major
   V, Dorian turnaround, chorus fade). Both share the sequenced bass figure. Auto (a new style
   each song) or fixed.
-- **Tempo:** auto (115–120 BPM; both originals measure 117.45) or fixed.
+- **Tempo:** auto (116–121 BPM; the originals measure 117 and 119.8) or fixed.
 - **Key:** auto or a fixed minor key.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.
 - **Mixer:** per-track volume, mute and solo, plus a master fader.

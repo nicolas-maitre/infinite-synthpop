@@ -16,7 +16,7 @@ export interface WizardChoices {
   /** The generator picks the style per song (the slider keeps the last fixed one). */
   styleAuto: boolean;
   tonic: number;
-  /** null = the generator picks (115–120 BPM). */
+  /** null = the generator picks (116–121 BPM). */
   bpm: number | null;
   kit: KitName | "auto";
   bassStyle: BassStyle | "auto";
@@ -140,7 +140,7 @@ export function mountWizard(
     bpm.step = "0.5";
     bpm.placeholder = "auto";
     bpm.value = c.bpm === null ? "" : String(c.bpm);
-    bpm.title = "Leave empty for 115–120 BPM (both originals: 117.45)";
+    bpm.title = "Leave empty for 116–121 BPM (the originals: 117 and 119.8)";
     bpm.addEventListener("change", () => {
       const v = Number(bpm.value);
       choices.bpm = bpm.value && Number.isFinite(v) ? Math.min(160, Math.max(60, v)) : null;

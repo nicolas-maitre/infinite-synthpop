@@ -28,13 +28,16 @@ sequences. Timestamps are accurate to about a bar.
 |                    | True Faith                                                  | The Different Story (single / long)                                          |
 | ------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | Length             | 5:55, 167 bars                                              | 3:50, 112 bars / 6:41, 199 bars                                              |
-| Tempo              | **117.45 BPM**, beat jitter 6.8 ms                          | **117.45 BPM**, beat jitter 11.5 ms                                          |
+| Tempo              | **117.0 BPM**, beat jitter 7.0 ms                           | **119.8 BPM** / 120.0 BPM, beat jitter 7.9 ms                                |
 | Tonal centre       | D minor; the outro sits in **G major**                      | E minor                                                                      |
 | Whole-song key fit | "G major". The long G outro and the Dorian IV pull it there | "D major" / "A major". The Dorian ii–IV turnaround and the VII pull it there |
 | Kick               | On every beat (onset peaks on 16ths 1, 5, 9, 13)            | On every beat (same peaks)                                                   |
 | Bass               | The **shared figure** (§3), TF articulation, A1–F2          | The **shared figure** (§3), DS articulation, A1–B2                           |
 
-The two songs run at **the same tempo**, within the beat tracker's resolution (about ±0.5 BPM).
+The Different Story runs about **3 BPM faster** than True Faith. The tempo is a line fitted
+through all the beat times; an earlier version took the median gap between beats, which snaps to
+the 23 ms frame grid, and read both songs as 117.45. The beat jitter is mostly that snapping
+(about 7 ms on its own).
 
 ## 2. Form (measured)
 
@@ -94,7 +97,7 @@ All chords below are Roman numerals in the minor key: D minor for TF, E minor fo
 
 ### Shared DNA
 
-1. **The same tempo and the same minor engine.** The verse climbs **i → VI → VII → v** in both
+1. **Nearly the same tempo (117 and 119.8 BPM) and the same minor engine.** The verse climbs **i → VI → VII → v** in both
    songs, the "epic minor" climb through the two major chords ♭VI and ♭VII. Both verses sit on
    the **minor v**, the melancholy, unresolved dominant.
 2. **The same chorus shape, i … VII → IV/iv.** It opens on the tonic, swings through ♭VII and
@@ -172,7 +175,7 @@ TF     (G1)  G1   G1   -    G1   -    G1   -    G1   -    G1   -    G1   A1   - 
 | TF chorus ends on **Gm** (Hooktheory)       | **G major**: B♮ outweighs B♭ in chorus 2's chroma (0.76 vs 0.49), the same chord that becomes the outro's tonic |
 | DS chorus is Em–G–D–**C** (tab site)        | Em–G–D–**Am**, with C only as a passing second half of bar 4                                                    |
 | DS verse has **B** in bar 4 (tab site)      | **Bm** in bar 4; B major only in bar 8                                                                          |
-| TF tempo 117–118, DS ~119 (automated sites) | Both 117.45                                                                                                     |
+| TF tempo 117–118, DS ~119 (automated sites) | Close: TF 117.0, DS 119.8                                                                                       |
 
 ## 4. From the written sources
 
@@ -193,7 +196,7 @@ TF     (G1)  G1   G1   -    G1   -    G1   -    G1   -    G1   -    G1   A1   - 
 
 ## 5. Generator rules
 
-- **Tempo:** 115–120 BPM, centred on **117.5**.
+- **Tempo:** 116–121 BPM, centred on **118.5**, between the two originals.
 - **Keys:** minor, weighted toward D minor and E minor.
 - **Progression bank:** contains the measured progressions above, each tagged on the style axis
   (0 = TF, 1 = DS). They are varied with the substitutions the songs demonstrate:

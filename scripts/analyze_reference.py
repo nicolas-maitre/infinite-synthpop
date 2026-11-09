@@ -71,8 +71,15 @@ def analyse(path):
 
     tempo, beats = librosa.beat.beat_track(y=y, sr=SR, hop_length=HOP, start_bpm=118, tightness=400)
     beat_times = librosa.frames_to_time(beats, sr=SR, hop_length=HOP)
-    ibi = np.diff(beat_times)
-    bpm = float(60 / np.median(ibi))
+    # Each beat is snapped to a 23 ms frame, so the median beat gap can only take a few values
+    # (112.3, 117.45, 123.0 BPM near this range). A line fitted through all the beat times
+    # averages the snapping out; the first and last tenth (count-ins, fades) are left out.
+    trim = len(beat_times) // 10
+    core = beat_times[trim : len(beat_times) - trim]
+    slope, intercept = np.polyfit(np.arange(len(core)), core, 1)
+    bpm = float(60 / slope)
+    # Scatter of the beats around that line; about 7 ms is the frame snapping alone.
+    jitter = np.std(core - (slope * np.arange(len(core)) + intercept))
 
     chroma = librosa.feature.chroma_cqt(y=y_harm, sr=SR, hop_length=HOP)
     key = estimate_key(chroma.mean(axis=1))
@@ -173,7 +180,7 @@ def analyse(path):
         "duration_s": round(duration, 1),
         "bpm": round(bpm, 2),
         "bpm_librosa": round(float(np.atleast_1d(tempo)[0]), 2),
-        "tempo_stability_ms": round(float(np.std(ibi) * 1000), 1),
+        "tempo_stability_ms": round(float(jitter * 1000), 1),
         "key": key,
         "downbeat_phase": phase,
         "n_bars": len(bars),

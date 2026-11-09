@@ -276,8 +276,8 @@ describe("references", () => {
     const ds = compose({ seed: 1989, style: 0.5, reference: "different-story" });
     expect(tf.key).toEqual({ tonic: 2, mode: "minor" });
     expect(ds.key).toEqual({ tonic: 4, mode: "minor" });
-    expect(tf.bpm).toBe(117.45);
-    expect(ds.bpm).toBe(117.45);
+    expect(tf.bpm).toBe(117);
+    expect(ds.bpm).toBe(119.8);
     // TF: the MIDI transcription's ~173 bars; DS: 112 measured, rounded to whole phrases.
     expect(Math.abs(tf.totalBars - 173)).toBeLessThanOrEqual(2);
     expect(Math.abs(ds.totalBars - 112)).toBeLessThanOrEqual(2);
@@ -311,7 +311,7 @@ describe("references", () => {
       kit: "dmx",
       reference: "true-faith",
     });
-    expect([song.key.tonic, song.bpm, song.kit, song.bassStyle]).toEqual([2, 117.45, "sp12", "tf"]);
+    expect([song.key.tonic, song.bpm, song.kit, song.bassStyle]).toEqual([2, 117, "sp12", "tf"]);
     for (let bar = 0; bar < song.totalBars; bar++) {
       const ev = arrangeBar(song, bar);
       for (const track of MELODIC_TRACKS) {

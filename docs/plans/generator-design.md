@@ -62,7 +62,7 @@ main.ts          controls, mixer, section timeline, chord display, visualiser
 - **Gated reverb** is built from a reverb return whose gain is opened and closed on each
   snare/clap hit. That's the 80s gate, keyed to the drum hit.
 - **Infinite play.** When a song ends, the engine composes the next one from the next seed. The
-  key, the tempo (115–120 BPM, centred on the measured 117.5, unless locked) and the drum kit (when set to "Auto") change
+  key, the tempo (116–121 BPM, centred on 118.5 between the measured 117.0 and 119.8, unless locked) and the drum kit (when set to "Auto") change
   between songs.
 
 ## Controls

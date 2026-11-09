@@ -2,9 +2,9 @@
  {
   "file": "The Different Story (World of Lust and Crime) - Single Version.mp3",
   "duration_s": 230.0,
-  "bpm": 117.45,
+  "bpm": 119.82,
   "bpm_librosa": 117.45,
-  "tempo_stability_ms": 11.5,
+  "tempo_stability_ms": 7.9,
   "key": {
    "tonic": 2,
    "mode": "major",
@@ -2111,9 +2111,9 @@
  {
   "file": "The Different Story (\u2026World of Lust and Crime) [Long Version] - 2023 Remaster.mp3",
   "duration_s": 400.8,
-  "bpm": 117.45,
+  "bpm": 120.01,
   "bpm_librosa": 117.45,
-  "tempo_stability_ms": 11.6,
+  "tempo_stability_ms": 8.9,
   "key": {
    "tonic": 9,
    "mode": "major",
@@ -5787,9 +5787,9 @@
  {
   "file": "True Faith.mp3",
   "duration_s": 355.1,
-  "bpm": 117.45,
+  "bpm": 116.98,
   "bpm_librosa": 117.45,
-  "tempo_stability_ms": 6.8,
+  "tempo_stability_ms": 7.0,
   "key": {
    "tonic": 7,
    "mode": "major",
@@ -8881,6 +8881,6172 @@
      }
     ],
     "rms_db": -32.8
+   }
+  ]
+ },
+ {
+  "file": "You Came - 12 Version.mp3",
+  "duration_s": 404.7,
+  "bpm": 119.0,
+  "bpm_librosa": 117.45,
+  "tempo_stability_ms": 9.7,
+  "key": {
+   "tonic": 4,
+   "mode": "major",
+   "name": "E major",
+   "r": 0.5406789228876956
+  },
+  "downbeat_phase": 0,
+  "n_bars": 198,
+  "segments": [
+   {
+    "start_bar": 0,
+    "bars": 1,
+    "time": 0.79,
+    "rms_db": -25.9,
+    "chords": [
+     "A"
+    ]
+   },
+   {
+    "start_bar": 1,
+    "bars": 1,
+    "time": 2.81,
+    "rms_db": -24.7,
+    "chords": [
+     "A"
+    ]
+   },
+   {
+    "start_bar": 2,
+    "bars": 3,
+    "time": 4.83,
+    "rms_db": -20.2,
+    "chords": [
+     "A / F#m",
+     "B / E",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 5,
+    "bars": 1,
+    "time": 10.89,
+    "rms_db": -17.7,
+    "chords": [
+     "Abm / E"
+    ]
+   },
+   {
+    "start_bar": 6,
+    "bars": 7,
+    "time": 12.91,
+    "rms_db": -17.7,
+    "chords": [
+     "A",
+     "B",
+     "A",
+     "B / Abm",
+     "A",
+     "B",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 13,
+    "bars": 1,
+    "time": 27.03,
+    "rms_db": -16.3,
+    "chords": [
+     "Abm / Ab"
+    ]
+   },
+   {
+    "start_bar": 14,
+    "bars": 7,
+    "time": 29.02,
+    "rms_db": -17.5,
+    "chords": [
+     "A",
+     "B",
+     "A",
+     "B / Ab",
+     "A",
+     "B",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 21,
+    "bars": 9,
+    "time": 43.17,
+    "rms_db": -15.4,
+    "chords": [
+     "B / Ab",
+     "A",
+     "B",
+     "A",
+     "B / E",
+     "A",
+     "B",
+     "A",
+     "B / Abm"
+    ]
+   },
+   {
+    "start_bar": 30,
+    "bars": 7,
+    "time": 61.3,
+    "rms_db": -15.4,
+    "chords": [
+     "A",
+     "B / Abm",
+     "A",
+     "B / Abm",
+     "A",
+     "B",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 37,
+    "bars": 41,
+    "time": 75.42,
+    "rms_db": -14.5,
+    "chords": [
+     "B / E",
+     "C#",
+     "F#m",
+     "E",
+     "Bm / Abm",
+     "F#m",
+     "E",
+     "Ab",
+     "Ab / Abm",
+     "A",
+     "B",
+     "A",
+     "Abm",
+     "A / F#m",
+     "B",
+     "A",
+     "B / Abm",
+     "A",
+     "B / Abm",
+     "A",
+     "B / Abm",
+     "A",
+     "B",
+     "A",
+     "B / E",
+     "C#",
+     "F#m",
+     "E",
+     "Bm",
+     "F#m",
+     "E",
+     "Ab",
+     "Ab",
+     "A / F#m",
+     "B / E",
+     "A",
+     "Abm",
+     "A / F#m",
+     "B / Abm",
+     "A",
+     "B / Abm"
+    ]
+   },
+   {
+    "start_bar": 78,
+    "bars": 4,
+    "time": 158.1,
+    "rms_db": -14.8,
+    "chords": [
+     "A / F#m",
+     "B",
+     "A",
+     "B / E"
+    ]
+   },
+   {
+    "start_bar": 82,
+    "bars": 3,
+    "time": 166.16,
+    "rms_db": -13.7,
+    "chords": [
+     "A / F#m",
+     "B",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 85,
+    "bars": 17,
+    "time": 172.22,
+    "rms_db": -17.1,
+    "chords": [
+     "B / E",
+     "A",
+     "B",
+     "A",
+     "Abm",
+     "A",
+     "B",
+     "A",
+     "Abm",
+     "A",
+     "Abm / B",
+     "A",
+     "Abm / B",
+     "A",
+     "B / Abm",
+     "A",
+     "Abm"
+    ]
+   },
+   {
+    "start_bar": 102,
+    "bars": 7,
+    "time": 206.5,
+    "rms_db": -18.4,
+    "chords": [
+     "Am",
+     "Am",
+     "E / Abm",
+     "E / A",
+     "A",
+     "Abm / Am",
+     "Am / Abm"
+    ]
+   },
+   {
+    "start_bar": 109,
+    "bars": 25,
+    "time": 220.61,
+    "rms_db": -15.4,
+    "chords": [
+     "E / Am",
+     "A",
+     "B",
+     "A",
+     "B / Abm",
+     "A",
+     "B",
+     "A",
+     "Abm / Ab",
+     "A",
+     "B / Abm",
+     "A",
+     "B",
+     "A",
+     "B",
+     "A",
+     "Abm",
+     "A",
+     "B / E",
+     "A",
+     "B / Abm",
+     "A",
+     "B / E",
+     "A",
+     "B / Abm"
+    ]
+   },
+   {
+    "start_bar": 134,
+    "bars": 3,
+    "time": 271.05,
+    "rms_db": -17.7,
+    "chords": [
+     "A / Ebm",
+     "B / Abm",
+     "A / Am"
+    ]
+   },
+   {
+    "start_bar": 137,
+    "bars": 1,
+    "time": 277.11,
+    "rms_db": -15.5,
+    "chords": [
+     "B"
+    ]
+   },
+   {
+    "start_bar": 138,
+    "bars": 6,
+    "time": 279.1,
+    "rms_db": -16.0,
+    "chords": [
+     "A",
+     "B",
+     "A / F#m",
+     "B / Abm",
+     "A / E",
+     "B"
+    ]
+   },
+   {
+    "start_bar": 144,
+    "bars": 4,
+    "time": 291.22,
+    "rms_db": -15.0,
+    "chords": [
+     "E / A",
+     "B",
+     "A / F#m",
+     "B / Abm"
+    ]
+   },
+   {
+    "start_bar": 148,
+    "bars": 14,
+    "time": 299.28,
+    "rms_db": -14.0,
+    "chords": [
+     "A",
+     "B",
+     "A",
+     "B / E",
+     "A",
+     "Abm",
+     "A / F#m",
+     "B / E",
+     "A",
+     "B",
+     "A / F#m",
+     "B / E",
+     "A",
+     "Abm"
+    ]
+   },
+   {
+    "start_bar": 162,
+    "bars": 8,
+    "time": 327.52,
+    "rms_db": -16.9,
+    "chords": [
+     "A / F#m",
+     "B",
+     "A",
+     "B",
+     "A",
+     "B",
+     "A",
+     "B / Ab"
+    ]
+   },
+   {
+    "start_bar": 170,
+    "bars": 15,
+    "time": 343.66,
+    "rms_db": -15.5,
+    "chords": [
+     "A",
+     "B",
+     "A",
+     "B",
+     "A",
+     "B",
+     "A",
+     "Abm / Ab",
+     "A",
+     "B / E",
+     "A",
+     "B",
+     "A",
+     "B / E",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 185,
+    "bars": 9,
+    "time": 373.91,
+    "rms_db": -13.8,
+    "chords": [
+     "Abm / E",
+     "A",
+     "B",
+     "A / F#m",
+     "B / Abm",
+     "A",
+     "B / E",
+     "A",
+     "Abm / E"
+    ]
+   },
+   {
+    "start_bar": 194,
+    "bars": 1,
+    "time": 392.05,
+    "rms_db": -17.4,
+    "chords": [
+     "A / F#m"
+    ]
+   },
+   {
+    "start_bar": 195,
+    "bars": 3,
+    "time": 394.07,
+    "rms_db": -29.7,
+    "chords": [
+     "A",
+     "A",
+     "A"
+    ]
+   }
+  ],
+  "drum_profiles": {
+   "kick (40\u2013120 Hz)": [
+    1.0,
+    0.4,
+    0.66,
+    0.39,
+    0.88,
+    0.4,
+    0.61,
+    0.42,
+    0.85,
+    0.41,
+    0.63,
+    0.61,
+    0.84,
+    0.41,
+    0.57,
+    0.4
+   ],
+   "snare (150\u2013400 Hz + 1\u20134 kHz)": [
+    1.0,
+    0.67,
+    0.89,
+    0.65,
+    0.73,
+    0.72,
+    0.66,
+    0.85,
+    0.71,
+    0.66,
+    0.66,
+    0.73,
+    0.66,
+    0.65,
+    0.61,
+    0.7
+   ],
+   "hats (7\u201311 kHz)": [
+    1.0,
+    0.62,
+    0.96,
+    0.68,
+    0.72,
+    0.77,
+    0.79,
+    0.76,
+    0.75,
+    0.61,
+    0.68,
+    0.75,
+    0.57,
+    0.72,
+    0.61,
+    0.78
+   ]
+  },
+  "bass_octave_up_profile": [
+   0.4,
+   0.12,
+   0.23,
+   0.26,
+   0.34,
+   0.2,
+   0.24,
+   0.24,
+   0.41,
+   0.29,
+   0.31,
+   0.49,
+   0.48,
+   0.12,
+   0.27,
+   0.28
+  ],
+  "bars": [
+   {
+    "time": 0.79,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.788211648501673
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8202453251345074
+     }
+    ],
+    "rms_db": -25.9
+   },
+   {
+    "time": 2.81,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7937123499712286
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7829586943848689
+     }
+    ],
+    "rms_db": -24.7
+   },
+   {
+    "time": 4.83,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.942495555942855
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7431623224651377
+     }
+    ],
+    "rms_db": -20.2
+   },
+   {
+    "time": 6.85,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.9345116268496915
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.813663164705317
+     }
+    ],
+    "rms_db": -20.1
+   },
+   {
+    "time": 8.87,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.9572545185819374
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7923210286319178
+     }
+    ],
+    "rms_db": -20.2
+   },
+   {
+    "time": 10.89,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.8507373088714698
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.8041623391376622
+     }
+    ],
+    "rms_db": -17.7
+   },
+   {
+    "time": 12.91,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7180198885334719
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6808299193447974
+     }
+    ],
+    "rms_db": -17.7
+   },
+   {
+    "time": 14.91,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6518770900697713
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6825628893685621
+     }
+    ],
+    "rms_db": -18.2
+   },
+   {
+    "time": 16.93,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6763263067810674
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6546335219192219
+     }
+    ],
+    "rms_db": -17.4
+   },
+   {
+    "time": 18.95,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6003244470314966
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6021908238598808
+     }
+    ],
+    "rms_db": -17.2
+   },
+   {
+    "time": 20.97,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6714851350538205
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.685276065455052
+     }
+    ],
+    "rms_db": -17.6
+   },
+   {
+    "time": 22.96,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6717630803706289
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6936825889048059
+     }
+    ],
+    "rms_db": -18.1
+   },
+   {
+    "time": 25.01,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6801648985028569
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6864805320037528
+     }
+    ],
+    "rms_db": -17.4
+   },
+   {
+    "time": 27.03,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7044312749436131
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.681426247287756
+     }
+    ],
+    "rms_db": -16.3
+   },
+   {
+    "time": 29.02,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6894070579238345
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6997112690900729
+     }
+    ],
+    "rms_db": -17.3
+   },
+   {
+    "time": 31.05,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6614337241770077
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6178909763213979
+     }
+    ],
+    "rms_db": -17.9
+   },
+   {
+    "time": 33.07,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.668873368033808
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7006446114534123
+     }
+    ],
+    "rms_db": -17.4
+   },
+   {
+    "time": 35.09,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6698867560588845
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6446634830352611
+     }
+    ],
+    "rms_db": -17.6
+   },
+   {
+    "time": 37.11,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6727960002003349
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6638593943099043
+     }
+    ],
+    "rms_db": -17.6
+   },
+   {
+    "time": 39.1,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7052797755371666
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.639590290206052
+     }
+    ],
+    "rms_db": -17.9
+   },
+   {
+    "time": 41.12,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6381238969466839
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.736923272743873
+     }
+    ],
+    "rms_db": -16.7
+   },
+   {
+    "time": 43.17,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6404021232706639
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6785323506920614
+     }
+    ],
+    "rms_db": -15.7
+   },
+   {
+    "time": 45.16,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7917798223784993
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6686764552322448
+     }
+    ],
+    "rms_db": -15.8
+   },
+   {
+    "time": 47.18,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7511650767758189
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7214486992046183
+     }
+    ],
+    "rms_db": -15.7
+   },
+   {
+    "time": 49.2,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8056246270864371
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7359486167452768
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 51.22,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7105685998052779
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7972472039729258
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 53.24,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7764845088052574
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6762717298346635
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 55.26,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7582530849906648
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6981077110879271
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 57.28,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8139729103895655
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7087821896903502
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 59.28,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7307905150402432
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6950529810549202
+     }
+    ],
+    "rms_db": -14.8
+   },
+   {
+    "time": 61.3,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7513930162516723
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7540464679638608
+     }
+    ],
+    "rms_db": -14.6
+   },
+   {
+    "time": 63.32,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7350689197386298
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6512676014484304
+     }
+    ],
+    "rms_db": -16.3
+   },
+   {
+    "time": 65.32,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.686280816538227
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7185993768081709
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 67.34,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7523819934683761
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7231510609799804
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 69.36,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6484842719197671
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7070976228574435
+     }
+    ],
+    "rms_db": -16.0
+   },
+   {
+    "time": 71.38,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6445098102070024
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6664016473688164
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 73.4,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6797478384207392
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6071692708574982
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 75.42,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7108320423229333
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7224999350354319
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 77.44,
+    "chords": [
+     {
+      "name": "C#",
+      "numeral": "VI",
+      "score": 0.8134753309560268
+     },
+     {
+      "name": "C#",
+      "numeral": "VI",
+      "score": 0.7985356162284274
+     }
+    ],
+    "rms_db": -15.1
+   },
+   {
+    "time": 79.46,
+    "chords": [
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7467783787208835
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6992337346249877
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 81.46,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.8203871818722888
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7773464108694489
+     }
+    ],
+    "rms_db": -14.8
+   },
+   {
+    "time": 83.48,
+    "chords": [
+     {
+      "name": "Bm",
+      "numeral": "v",
+      "score": 0.7467115253168406
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6138499414709866
+     }
+    ],
+    "rms_db": -14.8
+   },
+   {
+    "time": 85.5,
+    "chords": [
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7799686385366458
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7312153357383475
+     }
+    ],
+    "rms_db": -15.1
+   },
+   {
+    "time": 87.52,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7184083772328274
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6876432822809653
+     }
+    ],
+    "rms_db": -15.1
+   },
+   {
+    "time": 89.54,
+    "chords": [
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.7263625191397067
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.7213544902213349
+     }
+    ],
+    "rms_db": -14.6
+   },
+   {
+    "time": 91.56,
+    "chords": [
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.730603178665121
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6607302239430851
+     }
+    ],
+    "rms_db": -14.0
+   },
+   {
+    "time": 93.58,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7740443042938959
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6445018759047985
+     }
+    ],
+    "rms_db": -14.8
+   },
+   {
+    "time": 95.57,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7433542496827787
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6848544974261099
+     }
+    ],
+    "rms_db": -14.4
+   },
+   {
+    "time": 97.59,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7659285473617259
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6929152984601291
+     }
+    ],
+    "rms_db": -14.4
+   },
+   {
+    "time": 99.61,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6951045540192459
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6980030809315998
+     }
+    ],
+    "rms_db": -13.9
+   },
+   {
+    "time": 101.63,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7393904617775562
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6388129220133519
+     }
+    ],
+    "rms_db": -14.9
+   },
+   {
+    "time": 103.65,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7572707473243625
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6512146666262638
+     }
+    ],
+    "rms_db": -14.3
+   },
+   {
+    "time": 105.67,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7405769123286157
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7026839244905303
+     }
+    ],
+    "rms_db": -14.0
+   },
+   {
+    "time": 107.69,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.737573964472878
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7050951944570387
+     }
+    ],
+    "rms_db": -14.2
+   },
+   {
+    "time": 109.69,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6921008679970843
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6773466896238083
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 111.71,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7302949251033763
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7205559244152839
+     }
+    ],
+    "rms_db": -16.1
+   },
+   {
+    "time": 113.73,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7031974356871016
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7390942162492963
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 115.75,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7488172891217703
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7543199684924693
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 117.75,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6218527352558081
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6832158153339092
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 119.79,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6389215587949216
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6783819068484808
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 121.79,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.746994689114999
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6750702712154549
+     }
+    ],
+    "rms_db": -14.6
+   },
+   {
+    "time": 123.81,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.721887470063911
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6624674887533166
+     }
+    ],
+    "rms_db": -14.9
+   },
+   {
+    "time": 125.83,
+    "chords": [
+     {
+      "name": "C#",
+      "numeral": "VI",
+      "score": 0.8459641668776473
+     },
+     {
+      "name": "C#",
+      "numeral": "VI",
+      "score": 0.8233358212057765
+     }
+    ],
+    "rms_db": -13.6
+   },
+   {
+    "time": 127.85,
+    "chords": [
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7432701934483852
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7423643882453319
+     }
+    ],
+    "rms_db": -14.7
+   },
+   {
+    "time": 129.87,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.8646326404790149
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.8079004218033735
+     }
+    ],
+    "rms_db": -13.7
+   },
+   {
+    "time": 131.89,
+    "chords": [
+     {
+      "name": "Bm",
+      "numeral": "v",
+      "score": 0.756615523964049
+     },
+     {
+      "name": "Bm",
+      "numeral": "v",
+      "score": 0.6382904225550302
+     }
+    ],
+    "rms_db": -14.4
+   },
+   {
+    "time": 133.91,
+    "chords": [
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7600322950223983
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7378904839196054
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 135.93,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7713089121612349
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7222138580457179
+     }
+    ],
+    "rms_db": -14.4
+   },
+   {
+    "time": 137.93,
+    "chords": [
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.7730376031881891
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.7671764354647765
+     }
+    ],
+    "rms_db": -14.2
+   },
+   {
+    "time": 139.95,
+    "chords": [
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6899959331491011
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6880739135725245
+     }
+    ],
+    "rms_db": -13.5
+   },
+   {
+    "time": 141.97,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7727324917680138
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6816158889526728
+     }
+    ],
+    "rms_db": -14.2
+   },
+   {
+    "time": 143.99,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7643062312481009
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6680001724180715
+     }
+    ],
+    "rms_db": -13.9
+   },
+   {
+    "time": 146.01,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8017894143510589
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7119482446938826
+     }
+    ],
+    "rms_db": -13.8
+   },
+   {
+    "time": 148.0,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7216786123874874
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7202086427710066
+     }
+    ],
+    "rms_db": -14.0
+   },
+   {
+    "time": 150.02,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7619500513918206
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6449335572084901
+     }
+    ],
+    "rms_db": -14.6
+   },
+   {
+    "time": 152.04,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7929109222900047
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6803355452114523
+     }
+    ],
+    "rms_db": -14.2
+   },
+   {
+    "time": 154.06,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7706264832234141
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6928135814953572
+     }
+    ],
+    "rms_db": -13.9
+   },
+   {
+    "time": 156.08,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.749009046600608
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7105781683368909
+     }
+    ],
+    "rms_db": -13.9
+   },
+   {
+    "time": 158.1,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8002378753710245
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6768228401498877
+     }
+    ],
+    "rms_db": -14.4
+   },
+   {
+    "time": 160.12,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7551912180330881
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7155747655442267
+     }
+    ],
+    "rms_db": -15.6
+   },
+   {
+    "time": 162.12,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8113066532662578
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7385021120393515
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 164.14,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7095134165604324
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7818787606073305
+     }
+    ],
+    "rms_db": -14.4
+   },
+   {
+    "time": 166.16,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7982186151971881
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6744246163867545
+     }
+    ],
+    "rms_db": -13.9
+   },
+   {
+    "time": 168.18,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7948101652876177
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6909770076429133
+     }
+    ],
+    "rms_db": -13.5
+   },
+   {
+    "time": 170.2,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8274812691047435
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.690427006551032
+     }
+    ],
+    "rms_db": -13.7
+   },
+   {
+    "time": 172.22,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7486561951551318
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7213382426651799
+     }
+    ],
+    "rms_db": -14.5
+   },
+   {
+    "time": 174.22,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6418832245947145
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6520035494256946
+     }
+    ],
+    "rms_db": -17.3
+   },
+   {
+    "time": 176.24,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6272952481418342
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6526565543393222
+     }
+    ],
+    "rms_db": -17.7
+   },
+   {
+    "time": 178.26,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6447586709772244
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6721467216455533
+     }
+    ],
+    "rms_db": -17.0
+   },
+   {
+    "time": 180.28,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.5854419974392567
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.583738948813853
+     }
+    ],
+    "rms_db": -16.8
+   },
+   {
+    "time": 182.3,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6490519890058233
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6757381184058422
+     }
+    ],
+    "rms_db": -17.2
+   },
+   {
+    "time": 184.3,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6334383164909152
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6678781854822462
+     }
+    ],
+    "rms_db": -17.8
+   },
+   {
+    "time": 186.32,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6610317274268355
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7102227984412623
+     }
+    ],
+    "rms_db": -17.4
+   },
+   {
+    "time": 188.34,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6663500270355223
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6858538326572333
+     }
+    ],
+    "rms_db": -16.3
+   },
+   {
+    "time": 190.36,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6907311942763238
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6938835596479939
+     }
+    ],
+    "rms_db": -17.5
+   },
+   {
+    "time": 192.38,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6077594526768094
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6298281774088033
+     }
+    ],
+    "rms_db": -17.7
+   },
+   {
+    "time": 194.4,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6818048437675478
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6725206364923033
+     }
+    ],
+    "rms_db": -18.0
+   },
+   {
+    "time": 196.39,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.5947884830656812
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6217734790768773
+     }
+    ],
+    "rms_db": -17.3
+   },
+   {
+    "time": 198.44,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6523711641996498
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6702799895499062
+     }
+    ],
+    "rms_db": -17.9
+   },
+   {
+    "time": 200.43,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6313295131771809
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.5854906335275427
+     }
+    ],
+    "rms_db": -17.5
+   },
+   {
+    "time": 202.45,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6660277483117225
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6325074136294476
+     }
+    ],
+    "rms_db": -17.3
+   },
+   {
+    "time": 204.5,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6299304351692975
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6236486033747559
+     }
+    ],
+    "rms_db": -16.1
+   },
+   {
+    "time": 206.5,
+    "chords": [
+     {
+      "name": "Am",
+      "numeral": "iv",
+      "score": 0.5963785172273539
+     },
+     {
+      "name": "Am",
+      "numeral": "iv",
+      "score": 0.5736012869404451
+     }
+    ],
+    "rms_db": -19.0
+   },
+   {
+    "time": 208.52,
+    "chords": [
+     {
+      "name": "Am",
+      "numeral": "iv",
+      "score": 0.5067654607322484
+     },
+     {
+      "name": "Am",
+      "numeral": "iv",
+      "score": 0.5668143361515641
+     }
+    ],
+    "rms_db": -18.4
+   },
+   {
+    "time": 210.54,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.5646782167327296
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.5635346745721959
+     }
+    ],
+    "rms_db": -19.6
+   },
+   {
+    "time": 212.53,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.5308195886679278
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.5821859453432129
+     }
+    ],
+    "rms_db": -17.2
+   },
+   {
+    "time": 214.58,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6958526639791421
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.5584818740838752
+     }
+    ],
+    "rms_db": -17.2
+   },
+   {
+    "time": 216.57,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.5186227306329234
+     },
+     {
+      "name": "Am",
+      "numeral": "iv",
+      "score": 0.5900911156316135
+     }
+    ],
+    "rms_db": -18.2
+   },
+   {
+    "time": 218.59,
+    "chords": [
+     {
+      "name": "Am",
+      "numeral": "iv",
+      "score": 0.5491298462881499
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.5780124905416901
+     }
+    ],
+    "rms_db": -19.4
+   },
+   {
+    "time": 220.61,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.5511759903252501
+     },
+     {
+      "name": "Am",
+      "numeral": "iv",
+      "score": 0.5903832479544523
+     }
+    ],
+    "rms_db": -15.1
+   },
+   {
+    "time": 222.63,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6980791239155089
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6428039747072923
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 224.65,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6556853419673122
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6632699980259854
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 226.67,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6716161813048488
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6752787578349595
+     }
+    ],
+    "rms_db": -16.4
+   },
+   {
+    "time": 228.67,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6321382277847076
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6145354493917522
+     }
+    ],
+    "rms_db": -15.8
+   },
+   {
+    "time": 230.69,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6635142403217901
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6434250608310587
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 232.71,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7212329177639829
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6367258255293785
+     }
+    ],
+    "rms_db": -15.3
+   },
+   {
+    "time": 234.73,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6932494154786103
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6606866681766581
+     }
+    ],
+    "rms_db": -16.2
+   },
+   {
+    "time": 236.75,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6932899277888189
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6744250900764384
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 238.77,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6786744023334106
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6263876823921226
+     }
+    ],
+    "rms_db": -15.5
+   },
+   {
+    "time": 240.79,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6457985224659702
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6432475614117039
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 242.81,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7451028830454218
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6783923359163528
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 244.81,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6853827245821918
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6692732489700594
+     }
+    ],
+    "rms_db": -14.9
+   },
+   {
+    "time": 246.83,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6944417792558895
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6724547699417684
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 248.85,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7070713251851637
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6203749497595443
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 250.87,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6665817441866041
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.680131669171537
+     }
+    ],
+    "rms_db": -15.9
+   },
+   {
+    "time": 252.89,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6901943657050666
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6486491238245639
+     }
+    ],
+    "rms_db": -14.9
+   },
+   {
+    "time": 254.91,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.726366277077865
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6399527259727975
+     }
+    ],
+    "rms_db": -15.5
+   },
+   {
+    "time": 256.91,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6647250385225979
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6633434416377544
+     }
+    ],
+    "rms_db": -15.5
+   },
+   {
+    "time": 258.93,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7392286493815639
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6606159147275517
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 260.95,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6842382824112588
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6805299316680353
+     }
+    ],
+    "rms_db": -14.8
+   },
+   {
+    "time": 262.97,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7552206104779691
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6350955198497532
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 264.99,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6852209911344801
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6947625836205484
+     }
+    ],
+    "rms_db": -15.5
+   },
+   {
+    "time": 267.01,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7126685609115808
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7056943566432724
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 269.03,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7041365886438957
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6933647115476517
+     }
+    ],
+    "rms_db": -15.1
+   },
+   {
+    "time": 271.05,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8213655958090433
+     },
+     {
+      "name": "Ebm",
+      "numeral": "vii",
+      "score": 0.5878238749608842
+     }
+    ],
+    "rms_db": -16.5
+   },
+   {
+    "time": 273.07,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6855286052151517
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.85417478806383
+     }
+    ],
+    "rms_db": -18.4
+   },
+   {
+    "time": 275.06,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.9131500537095998
+     },
+     {
+      "name": "Am",
+      "numeral": "iv",
+      "score": 0.7470063655657051
+     }
+    ],
+    "rms_db": -18.1
+   },
+   {
+    "time": 277.11,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7529241865753025
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7522455747868504
+     }
+    ],
+    "rms_db": -15.5
+   },
+   {
+    "time": 279.1,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6343760089045176
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7299265840052394
+     }
+    ],
+    "rms_db": -15.8
+   },
+   {
+    "time": 281.12,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6207669279729039
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7049575323400931
+     }
+    ],
+    "rms_db": -15.8
+   },
+   {
+    "time": 283.14,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7973736633288493
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6424418271017712
+     }
+    ],
+    "rms_db": -15.7
+   },
+   {
+    "time": 285.16,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7417471311131764
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6996059994526724
+     }
+    ],
+    "rms_db": -15.4
+   },
+   {
+    "time": 287.18,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.654113611964505
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.631095048625933
+     }
+    ],
+    "rms_db": -16.8
+   },
+   {
+    "time": 289.2,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.8304056476315917
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7594850729099953
+     }
+    ],
+    "rms_db": -16.7
+   },
+   {
+    "time": 291.22,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6143540222954358
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6033179408306281
+     }
+    ],
+    "rms_db": -17.1
+   },
+   {
+    "time": 293.22,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.797572139306369
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7142771084450628
+     }
+    ],
+    "rms_db": -14.9
+   },
+   {
+    "time": 295.24,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6793624602836407
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6295656230593049
+     }
+    ],
+    "rms_db": -13.9
+   },
+   {
+    "time": 297.26,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7435314254141829
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6917710970814521
+     }
+    ],
+    "rms_db": -14.0
+   },
+   {
+    "time": 299.28,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7561012074950153
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7251109520467782
+     }
+    ],
+    "rms_db": -13.2
+   },
+   {
+    "time": 301.3,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7659715820695008
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6755931456781097
+     }
+    ],
+    "rms_db": -13.4
+   },
+   {
+    "time": 303.32,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.744202233165094
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6840159008943624
+     }
+    ],
+    "rms_db": -14.3
+   },
+   {
+    "time": 305.32,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7830520662696641
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7090719259328717
+     }
+    ],
+    "rms_db": -13.8
+   },
+   {
+    "time": 307.34,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7733274618005457
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7356276209310373
+     }
+    ],
+    "rms_db": -14.0
+   },
+   {
+    "time": 309.36,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7338187421354405
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7228264651241438
+     }
+    ],
+    "rms_db": -14.0
+   },
+   {
+    "time": 311.38,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7941826132996673
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7058781206086957
+     }
+    ],
+    "rms_db": -14.2
+   },
+   {
+    "time": 313.4,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7683943311160135
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7010774532968291
+     }
+    ],
+    "rms_db": -13.9
+   },
+   {
+    "time": 315.42,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7614525430117344
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7062171758421306
+     }
+    ],
+    "rms_db": -13.8
+   },
+   {
+    "time": 317.44,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.734724184176403
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6862614189456746
+     }
+    ],
+    "rms_db": -14.0
+   },
+   {
+    "time": 319.44,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7284964674808236
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6633138537958788
+     }
+    ],
+    "rms_db": -14.4
+   },
+   {
+    "time": 321.46,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7932792633881418
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6672279240213707
+     }
+    ],
+    "rms_db": -14.1
+   },
+   {
+    "time": 323.48,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7615900946010872
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6808714303507559
+     }
+    ],
+    "rms_db": -14.0
+   },
+   {
+    "time": 325.5,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.739320339914695
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6652225390078561
+     }
+    ],
+    "rms_db": -14.3
+   },
+   {
+    "time": 327.52,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7346603387018523
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6778433808891899
+     }
+    ],
+    "rms_db": -16.3
+   },
+   {
+    "time": 329.51,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7305914785299308
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6953635478012875
+     }
+    ],
+    "rms_db": -17.8
+   },
+   {
+    "time": 331.53,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.718462677860249
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6813772835641054
+     }
+    ],
+    "rms_db": -17.5
+   },
+   {
+    "time": 333.55,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6285346729892007
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6380453513022788
+     }
+    ],
+    "rms_db": -16.7
+   },
+   {
+    "time": 335.57,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7182364041931171
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7010017813698393
+     }
+    ],
+    "rms_db": -17.0
+   },
+   {
+    "time": 337.59,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7248048853524072
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7194705474005092
+     }
+    ],
+    "rms_db": -17.2
+   },
+   {
+    "time": 339.62,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7331905427715888
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7232273644932155
+     }
+    ],
+    "rms_db": -17.2
+   },
+   {
+    "time": 341.64,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6773733030892108
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6268248663909747
+     }
+    ],
+    "rms_db": -15.3
+   },
+   {
+    "time": 343.66,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7156243450644663
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.706191422912987
+     }
+    ],
+    "rms_db": -16.1
+   },
+   {
+    "time": 345.65,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6998784341794924
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7077306143819299
+     }
+    ],
+    "rms_db": -16.4
+   },
+   {
+    "time": 347.67,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7019074365711594
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7238809536241197
+     }
+    ],
+    "rms_db": -15.9
+   },
+   {
+    "time": 349.69,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6676830648066535
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6746606006924047
+     }
+    ],
+    "rms_db": -15.3
+   },
+   {
+    "time": 351.71,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7348292169689616
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6735964726073632
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 353.73,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.710670861513186
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6918156594384574
+     }
+    ],
+    "rms_db": -16.8
+   },
+   {
+    "time": 355.73,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7208630924381698
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7009899075484316
+     }
+    ],
+    "rms_db": -16.0
+   },
+   {
+    "time": 357.77,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7037142863959438
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.7148233989677542
+     }
+    ],
+    "rms_db": -14.8
+   },
+   {
+    "time": 359.77,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7477388319237932
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.659058628312687
+     }
+    ],
+    "rms_db": -15.5
+   },
+   {
+    "time": 361.79,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7300830358129764
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7231037946443634
+     }
+    ],
+    "rms_db": -15.3
+   },
+   {
+    "time": 363.81,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7923748318851714
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6754613336287592
+     }
+    ],
+    "rms_db": -15.0
+   },
+   {
+    "time": 365.83,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7625444924708721
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6986110221666402
+     }
+    ],
+    "rms_db": -14.9
+   },
+   {
+    "time": 367.85,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7476759890924067
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7031963619904849
+     }
+    ],
+    "rms_db": -15.2
+   },
+   {
+    "time": 369.87,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7578406591726203
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7236850553079628
+     }
+    ],
+    "rms_db": -15.1
+   },
+   {
+    "time": 371.89,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7535757388405664
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7125712650505245
+     }
+    ],
+    "rms_db": -14.7
+   },
+   {
+    "time": 373.91,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7406383380383648
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7146856381654578
+     }
+    ],
+    "rms_db": -14.0
+   },
+   {
+    "time": 375.91,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7652879689074703
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6444927415887288
+     }
+    ],
+    "rms_db": -14.2
+   },
+   {
+    "time": 377.93,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.8059238252803929
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6992193581430838
+     }
+    ],
+    "rms_db": -13.8
+   },
+   {
+    "time": 379.95,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7943033568000726
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7346869482198408
+     }
+    ],
+    "rms_db": -13.7
+   },
+   {
+    "time": 381.97,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7783631384067964
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6904130169157032
+     }
+    ],
+    "rms_db": -13.4
+   },
+   {
+    "time": 383.99,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7913234381577966
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.664768728501102
+     }
+    ],
+    "rms_db": -14.1
+   },
+   {
+    "time": 386.01,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7868891974482618
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6958662470308257
+     }
+    ],
+    "rms_db": -13.9
+   },
+   {
+    "time": 388.01,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7830928193721287
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7232241039292252
+     }
+    ],
+    "rms_db": -13.9
+   },
+   {
+    "time": 390.03,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7292971254163115
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6699442817235702
+     }
+    ],
+    "rms_db": -13.2
+   },
+   {
+    "time": 392.05,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.763568459565554
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.756047573980565
+     }
+    ],
+    "rms_db": -17.4
+   },
+   {
+    "time": 394.07,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8427828669611239
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.809923285966221
+     }
+    ],
+    "rms_db": -23.3
+   },
+   {
+    "time": 396.09,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8046954216130032
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8064131072496368
+     }
+    ],
+    "rms_db": -32.9
+   },
+   {
+    "time": 398.11,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7984282070926214
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7297522109377977
+     }
+    ],
+    "rms_db": -32.9
+   }
+  ]
+ },
+ {
+  "file": "You Came.mp3",
+  "duration_s": 274.7,
+  "bpm": 119.02,
+  "bpm_librosa": 117.45,
+  "tempo_stability_ms": 8.1,
+  "key": {
+   "tonic": 4,
+   "mode": "major",
+   "name": "E major",
+   "r": 0.6565739911344264
+  },
+  "downbeat_phase": 1,
+  "n_bars": 134,
+  "segments": [
+   {
+    "start_bar": 0,
+    "bars": 2,
+    "time": 1.16,
+    "rms_db": -34.0,
+    "chords": [
+     "Am / A",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 2,
+    "bars": 3,
+    "time": 5.2,
+    "rms_db": -28.4,
+    "chords": [
+     "A / F#m",
+     "B / E",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 5,
+    "bars": 1,
+    "time": 11.26,
+    "rms_db": -25.2,
+    "chords": [
+     "B / E"
+    ]
+   },
+   {
+    "start_bar": 6,
+    "bars": 8,
+    "time": 13.28,
+    "rms_db": -23.2,
+    "chords": [
+     "A",
+     "B",
+     "A",
+     "B",
+     "A",
+     "B / Abm",
+     "A",
+     "Abm"
+    ]
+   },
+   {
+    "start_bar": 14,
+    "bars": 7,
+    "time": 29.4,
+    "rms_db": -22.9,
+    "chords": [
+     "A",
+     "B / Abm",
+     "A",
+     "B / Abm",
+     "A",
+     "B",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 21,
+    "bars": 42,
+    "time": 43.51,
+    "rms_db": -21.6,
+    "chords": [
+     "B / E",
+     "C#",
+     "F#m",
+     "E",
+     "Bm",
+     "F#m",
+     "E",
+     "Ab",
+     "Ab",
+     "A / F#m",
+     "B",
+     "A",
+     "Abm",
+     "A / F#m",
+     "B",
+     "A",
+     "B / Abm",
+     "A",
+     "B / Abm",
+     "A",
+     "B / Abm",
+     "A",
+     "B",
+     "A",
+     "B / E",
+     "C#",
+     "F#m",
+     "E",
+     "Bm / E",
+     "F#m",
+     "E",
+     "Ab",
+     "Ab",
+     "A / F#m",
+     "B / E",
+     "A",
+     "Abm",
+     "A / F#m",
+     "B / E",
+     "A",
+     "B / Abm",
+     "A / F#m"
+    ]
+   },
+   {
+    "start_bar": 63,
+    "bars": 3,
+    "time": 128.22,
+    "rms_db": -21.2,
+    "chords": [
+     "B",
+     "A",
+     "B / E"
+    ]
+   },
+   {
+    "start_bar": 66,
+    "bars": 4,
+    "time": 134.28,
+    "rms_db": -19.8,
+    "chords": [
+     "A / F#m",
+     "B",
+     "A",
+     "B / E"
+    ]
+   },
+   {
+    "start_bar": 70,
+    "bars": 3,
+    "time": 142.34,
+    "rms_db": -25.5,
+    "chords": [
+     "A / Ebm",
+     "B / Abm",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 73,
+    "bars": 5,
+    "time": 148.4,
+    "rms_db": -23.3,
+    "chords": [
+     "B",
+     "A",
+     "B",
+     "A / F#m",
+     "B / Abm"
+    ]
+   },
+   {
+    "start_bar": 78,
+    "bars": 3,
+    "time": 158.48,
+    "rms_db": -23.5,
+    "chords": [
+     "E",
+     "B",
+     "E / A"
+    ]
+   },
+   {
+    "start_bar": 81,
+    "bars": 3,
+    "time": 164.51,
+    "rms_db": -20.9,
+    "chords": [
+     "B",
+     "A / F#m",
+     "B / E"
+    ]
+   },
+   {
+    "start_bar": 84,
+    "bars": 15,
+    "time": 170.57,
+    "rms_db": -20.5,
+    "chords": [
+     "A",
+     "B",
+     "A / F#m",
+     "B",
+     "A",
+     "Abm",
+     "A / F#m",
+     "B / E",
+     "A",
+     "B",
+     "A / F#m",
+     "B",
+     "A",
+     "Abm / E",
+     "A / F#m"
+    ]
+   },
+   {
+    "start_bar": 99,
+    "bars": 22,
+    "time": 200.81,
+    "rms_db": -24.0,
+    "chords": [
+     "B",
+     "A",
+     "B",
+     "A",
+     "B",
+     "A",
+     "Abm / Ab",
+     "A",
+     "B",
+     "A",
+     "B",
+     "A",
+     "B",
+     "A",
+     "Abm / Ab",
+     "A",
+     "B / E",
+     "A",
+     "B",
+     "A",
+     "B / E",
+     "A"
+    ]
+   },
+   {
+    "start_bar": 121,
+    "bars": 9,
+    "time": 245.18,
+    "rms_db": -19.8,
+    "chords": [
+     "Abm / E",
+     "A",
+     "B",
+     "A / F#m",
+     "B / Abm",
+     "A / F#m",
+     "B / E",
+     "A",
+     "Abm / E"
+    ]
+   },
+   {
+    "start_bar": 130,
+    "bars": 1,
+    "time": 263.34,
+    "rms_db": -23.8,
+    "chords": [
+     "A"
+    ]
+   },
+   {
+    "start_bar": 131,
+    "bars": 3,
+    "time": 265.33,
+    "rms_db": -40.6,
+    "chords": [
+     "A",
+     "A",
+     "A"
+    ]
+   }
+  ],
+  "drum_profiles": {
+   "kick (40\u2013120 Hz)": [
+    1.0,
+    0.44,
+    0.72,
+    0.45,
+    0.87,
+    0.4,
+    0.61,
+    0.46,
+    0.86,
+    0.39,
+    0.62,
+    0.66,
+    0.89,
+    0.36,
+    0.48,
+    0.45
+   ],
+   "snare (150\u2013400 Hz + 1\u20134 kHz)": [
+    1.0,
+    0.63,
+    0.92,
+    0.67,
+    0.72,
+    0.81,
+    0.67,
+    0.86,
+    0.67,
+    0.63,
+    0.66,
+    0.77,
+    0.67,
+    0.66,
+    0.62,
+    0.76
+   ],
+   "hats (7\u201311 kHz)": [
+    1.0,
+    0.48,
+    0.81,
+    0.57,
+    0.71,
+    0.68,
+    0.64,
+    0.7,
+    0.63,
+    0.48,
+    0.56,
+    0.66,
+    0.5,
+    0.63,
+    0.51,
+    0.65
+   ]
+  },
+  "bass_octave_up_profile": [
+   0.2,
+   0.12,
+   0.22,
+   0.28,
+   0.18,
+   0.18,
+   0.23,
+   0.25,
+   0.28,
+   0.2,
+   0.23,
+   0.42,
+   0.26,
+   0.09,
+   0.22,
+   0.32
+  ],
+  "bars": [
+   {
+    "time": 1.16,
+    "chords": [
+     {
+      "name": "Am",
+      "numeral": "iv",
+      "score": 0.794203920700471
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8181740417444322
+     }
+    ],
+    "rms_db": -34.8
+   },
+   {
+    "time": 3.18,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8013305970430323
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8013442469540409
+     }
+    ],
+    "rms_db": -33.1
+   },
+   {
+    "time": 5.2,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.9482072745710229
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6982948027233793
+     }
+    ],
+    "rms_db": -28.7
+   },
+   {
+    "time": 7.22,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.9378203019221936
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.816777717797976
+     }
+    ],
+    "rms_db": -28.3
+   },
+   {
+    "time": 9.24,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.9427771091960884
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7703728855563539
+     }
+    ],
+    "rms_db": -28.3
+   },
+   {
+    "time": 11.26,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.8664040267361374
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7904900995815394
+     }
+    ],
+    "rms_db": -25.2
+   },
+   {
+    "time": 13.28,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.76871917171152
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7179196873756881
+     }
+    ],
+    "rms_db": -23.7
+   },
+   {
+    "time": 15.28,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7083980194619456
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6978230709569208
+     }
+    ],
+    "rms_db": -23.4
+   },
+   {
+    "time": 17.3,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7435011408537308
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6704264149260025
+     }
+    ],
+    "rms_db": -23.6
+   },
+   {
+    "time": 19.32,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6736458152827609
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6240475685109519
+     }
+    ],
+    "rms_db": -22.9
+   },
+   {
+    "time": 21.34,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7393507271079118
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6793003911454043
+     }
+    ],
+    "rms_db": -23.2
+   },
+   {
+    "time": 23.36,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7552536661230717
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7045481026092988
+     }
+    ],
+    "rms_db": -23.6
+   },
+   {
+    "time": 25.38,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7129862408980335
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.695997178806847
+     }
+    ],
+    "rms_db": -23.1
+   },
+   {
+    "time": 27.4,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7227418957259262
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7138107846358279
+     }
+    ],
+    "rms_db": -21.8
+   },
+   {
+    "time": 29.4,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7448186218661625
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.73880712872159
+     }
+    ],
+    "rms_db": -22.1
+   },
+   {
+    "time": 31.42,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7297365160196072
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6465555259496801
+     }
+    ],
+    "rms_db": -23.8
+   },
+   {
+    "time": 33.44,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6941312756681466
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7022006978544113
+     }
+    ],
+    "rms_db": -22.9
+   },
+   {
+    "time": 35.46,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7457951410441819
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.730609999796568
+     }
+    ],
+    "rms_db": -22.6
+   },
+   {
+    "time": 37.48,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6286629323659225
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7102207299963098
+     }
+    ],
+    "rms_db": -23.5
+   },
+   {
+    "time": 39.5,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6435845047786318
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6720277781659465
+     }
+    ],
+    "rms_db": -23.0
+   },
+   {
+    "time": 41.49,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6633894862487285
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.5838428881727249
+     }
+    ],
+    "rms_db": -22.4
+   },
+   {
+    "time": 43.51,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7094118417025657
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7192625739448287
+     }
+    ],
+    "rms_db": -22.0
+   },
+   {
+    "time": 45.56,
+    "chords": [
+     {
+      "name": "C#",
+      "numeral": "VI",
+      "score": 0.7929308172567251
+     },
+     {
+      "name": "C#",
+      "numeral": "VI",
+      "score": 0.7805544900427641
+     }
+    ],
+    "rms_db": -22.4
+   },
+   {
+    "time": 47.55,
+    "chords": [
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.743263348632454
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6907765658532056
+     }
+    ],
+    "rms_db": -22.6
+   },
+   {
+    "time": 49.57,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.8000733234696942
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7705327795091268
+     }
+    ],
+    "rms_db": -22.0
+   },
+   {
+    "time": 51.59,
+    "chords": [
+     {
+      "name": "Bm",
+      "numeral": "v",
+      "score": 0.7481711290240738
+     },
+     {
+      "name": "Bm",
+      "numeral": "v",
+      "score": 0.6052738055351135
+     }
+    ],
+    "rms_db": -22.1
+   },
+   {
+    "time": 53.61,
+    "chords": [
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.76518991514292
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7178334600635772
+     }
+    ],
+    "rms_db": -22.3
+   },
+   {
+    "time": 55.64,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6963360879859628
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6563501733333792
+     }
+    ],
+    "rms_db": -22.4
+   },
+   {
+    "time": 57.63,
+    "chords": [
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.7225138378276519
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.7275436248921672
+     }
+    ],
+    "rms_db": -21.7
+   },
+   {
+    "time": 59.65,
+    "chords": [
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.715586355151824
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6546431062404912
+     }
+    ],
+    "rms_db": -20.6
+   },
+   {
+    "time": 61.67,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7820546731662446
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6554828869964483
+     }
+    ],
+    "rms_db": -21.3
+   },
+   {
+    "time": 63.69,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7412402357825225
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6829258146146475
+     }
+    ],
+    "rms_db": -20.7
+   },
+   {
+    "time": 65.71,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7650770980498905
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6958138293198971
+     }
+    ],
+    "rms_db": -21.0
+   },
+   {
+    "time": 67.73,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6960781363212256
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6966397704422587
+     }
+    ],
+    "rms_db": -20.6
+   },
+   {
+    "time": 69.75,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7469735072913042
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6441110503363361
+     }
+    ],
+    "rms_db": -22.0
+   },
+   {
+    "time": 71.75,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7756606440226766
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6584431396220178
+     }
+    ],
+    "rms_db": -21.0
+   },
+   {
+    "time": 73.77,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7226789265772906
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6800292258825833
+     }
+    ],
+    "rms_db": -20.9
+   },
+   {
+    "time": 75.79,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7444898891204207
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7230133909682066
+     }
+    ],
+    "rms_db": -20.9
+   },
+   {
+    "time": 77.81,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7004004796852004
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6832175127219429
+     }
+    ],
+    "rms_db": -22.3
+   },
+   {
+    "time": 79.83,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7166927995152866
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7134403356185979
+     }
+    ],
+    "rms_db": -23.4
+   },
+   {
+    "time": 81.83,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7033640639282127
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7375845001209289
+     }
+    ],
+    "rms_db": -22.5
+   },
+   {
+    "time": 83.85,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7414534277195529
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7500516849636603
+     }
+    ],
+    "rms_db": -22.5
+   },
+   {
+    "time": 85.87,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6096689707931473
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6608056906045455
+     }
+    ],
+    "rms_db": -22.9
+   },
+   {
+    "time": 87.89,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.657385303714943
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6819382347825111
+     }
+    ],
+    "rms_db": -22.4
+   },
+   {
+    "time": 89.91,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7497960504309598
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6703588115132937
+     }
+    ],
+    "rms_db": -22.1
+   },
+   {
+    "time": 91.93,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7221776918383584
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6385941681699506
+     }
+    ],
+    "rms_db": -22.0
+   },
+   {
+    "time": 93.95,
+    "chords": [
+     {
+      "name": "C#",
+      "numeral": "VI",
+      "score": 0.7925517707717338
+     },
+     {
+      "name": "C#",
+      "numeral": "VI",
+      "score": 0.7929571544031454
+     }
+    ],
+    "rms_db": -20.9
+   },
+   {
+    "time": 95.97,
+    "chords": [
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7116467727894445
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6851784932750136
+     }
+    ],
+    "rms_db": -22.2
+   },
+   {
+    "time": 97.96,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.8436006606209239
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7325991333065138
+     }
+    ],
+    "rms_db": -21.2
+   },
+   {
+    "time": 99.99,
+    "chords": [
+     {
+      "name": "Bm",
+      "numeral": "v",
+      "score": 0.7056250755795999
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6055540541680096
+     }
+    ],
+    "rms_db": -21.9
+   },
+   {
+    "time": 102.01,
+    "chords": [
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7221601653200571
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7008203898002491
+     }
+    ],
+    "rms_db": -22.3
+   },
+   {
+    "time": 104.03,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7221588310941144
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6404998296627794
+     }
+    ],
+    "rms_db": -21.9
+   },
+   {
+    "time": 106.05,
+    "chords": [
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.7664130766444754
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.7607305530904866
+     }
+    ],
+    "rms_db": -21.5
+   },
+   {
+    "time": 108.07,
+    "chords": [
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6876795195417774
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.69271294612203
+     }
+    ],
+    "rms_db": -20.4
+   },
+   {
+    "time": 110.06,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7667926994519154
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6768446693494837
+     }
+    ],
+    "rms_db": -21.3
+   },
+   {
+    "time": 112.08,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7723165685411373
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.646258388305849
+     }
+    ],
+    "rms_db": -20.7
+   },
+   {
+    "time": 114.1,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8114640129792223
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7187374889303162
+     }
+    ],
+    "rms_db": -20.6
+   },
+   {
+    "time": 116.12,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7109899744109324
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7267255391237288
+     }
+    ],
+    "rms_db": -20.6
+   },
+   {
+    "time": 118.14,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7571133402424297
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6555911566685131
+     }
+    ],
+    "rms_db": -21.8
+   },
+   {
+    "time": 120.16,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.772712533642669
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.677861621889431
+     }
+    ],
+    "rms_db": -20.8
+   },
+   {
+    "time": 122.16,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7726853043806775
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6686239151514812
+     }
+    ],
+    "rms_db": -20.9
+   },
+   {
+    "time": 124.18,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7483457942001537
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7061031271559233
+     }
+    ],
+    "rms_db": -20.4
+   },
+   {
+    "time": 126.2,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8069857901825449
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6988728620341988
+     }
+    ],
+    "rms_db": -21.0
+   },
+   {
+    "time": 128.22,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7674229672607198
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7246131436632257
+     }
+    ],
+    "rms_db": -21.8
+   },
+   {
+    "time": 130.24,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7843110702906285
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7649545703183429
+     }
+    ],
+    "rms_db": -21.6
+   },
+   {
+    "time": 132.26,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6973082729033752
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7831759677012949
+     }
+    ],
+    "rms_db": -20.3
+   },
+   {
+    "time": 134.28,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7747301122181279
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6970833729363264
+     }
+    ],
+    "rms_db": -19.9
+   },
+   {
+    "time": 136.28,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.8338281266506311
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6969636794480536
+     }
+    ],
+    "rms_db": -19.3
+   },
+   {
+    "time": 138.3,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8179519195232949
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7161512932584018
+     }
+    ],
+    "rms_db": -19.5
+   },
+   {
+    "time": 140.32,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7586222866250607
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7464259457012946
+     }
+    ],
+    "rms_db": -20.6
+   },
+   {
+    "time": 142.34,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8080361417926155
+     },
+     {
+      "name": "Ebm",
+      "numeral": "vii",
+      "score": 0.5937952702737214
+     }
+    ],
+    "rms_db": -24.5
+   },
+   {
+    "time": 144.36,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7052759544403837
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.8417968581997721
+     }
+    ],
+    "rms_db": -26.1
+   },
+   {
+    "time": 146.38,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8979491307006867
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7675285447964147
+     }
+    ],
+    "rms_db": -25.8
+   },
+   {
+    "time": 148.4,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7772602861901028
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7896024287985481
+     }
+    ],
+    "rms_db": -23.3
+   },
+   {
+    "time": 150.4,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6092865216372606
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7564531470878502
+     }
+    ],
+    "rms_db": -23.5
+   },
+   {
+    "time": 152.42,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6687237057782056
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7359977936292851
+     }
+    ],
+    "rms_db": -23.4
+   },
+   {
+    "time": 154.44,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7907992531536834
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6697766232073968
+     }
+    ],
+    "rms_db": -23.2
+   },
+   {
+    "time": 156.46,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7529597606705573
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6859316203981443
+     }
+    ],
+    "rms_db": -23.2
+   },
+   {
+    "time": 158.48,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6854153381169228
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6966929539515094
+     }
+    ],
+    "rms_db": -23.6
+   },
+   {
+    "time": 160.5,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.8346194726364179
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.8110920955239723
+     }
+    ],
+    "rms_db": -23.6
+   },
+   {
+    "time": 162.52,
+    "chords": [
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6479582395258869
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6490061674237418
+     }
+    ],
+    "rms_db": -23.4
+   },
+   {
+    "time": 164.51,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7845569231313582
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7602121549953441
+     }
+    ],
+    "rms_db": -21.0
+   },
+   {
+    "time": 166.53,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6686480417460438
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6397439432972405
+     }
+    ],
+    "rms_db": -20.7
+   },
+   {
+    "time": 168.55,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7422158233708304
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6930676094305468
+     }
+    ],
+    "rms_db": -20.9
+   },
+   {
+    "time": 170.57,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7381002416064282
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7181547085123146
+     }
+    ],
+    "rms_db": -19.9
+   },
+   {
+    "time": 172.59,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7563164915614826
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6799405827530847
+     }
+    ],
+    "rms_db": -19.5
+   },
+   {
+    "time": 174.61,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7393298531825117
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.699789692364643
+     }
+    ],
+    "rms_db": -21.0
+   },
+   {
+    "time": 176.61,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7796526480433987
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6912998192676074
+     }
+    ],
+    "rms_db": -19.9
+   },
+   {
+    "time": 178.63,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7547348732865258
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7476465966475258
+     }
+    ],
+    "rms_db": -20.3
+   },
+   {
+    "time": 180.65,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7293053439323257
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7421879704174218
+     }
+    ],
+    "rms_db": -20.3
+   },
+   {
+    "time": 182.67,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8126135552090843
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7222283490026288
+     }
+    ],
+    "rms_db": -20.8
+   },
+   {
+    "time": 184.69,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.783204641716822
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6881343524287656
+     }
+    ],
+    "rms_db": -20.0
+   },
+   {
+    "time": 186.69,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7526671783425188
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6866261363177305
+     }
+    ],
+    "rms_db": -20.2
+   },
+   {
+    "time": 188.73,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7599346912630476
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6956104190748374
+     }
+    ],
+    "rms_db": -20.0
+   },
+   {
+    "time": 190.73,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.736532241909881
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6936844718212991
+     }
+    ],
+    "rms_db": -20.9
+   },
+   {
+    "time": 192.75,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.8109119039682479
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6579834948373248
+     }
+    ],
+    "rms_db": -20.1
+   },
+   {
+    "time": 194.77,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.754909956888493
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6553558513180764
+     }
+    ],
+    "rms_db": -20.4
+   },
+   {
+    "time": 196.79,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7271201542096617
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6739345607243603
+     }
+    ],
+    "rms_db": -20.6
+   },
+   {
+    "time": 198.81,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.731233391210129
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7248625807558963
+     }
+    ],
+    "rms_db": -23.8
+   },
+   {
+    "time": 200.81,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7222867667828856
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6922721620815809
+     }
+    ],
+    "rms_db": -27.5
+   },
+   {
+    "time": 202.83,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7076115840592144
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6486629950374716
+     }
+    ],
+    "rms_db": -26.8
+   },
+   {
+    "time": 204.85,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6116897941429404
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6133597358068592
+     }
+    ],
+    "rms_db": -24.8
+   },
+   {
+    "time": 206.87,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.710664269331753
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6417983394033743
+     }
+    ],
+    "rms_db": -26.0
+   },
+   {
+    "time": 208.86,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6729577731221869
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6925012778868158
+     }
+    ],
+    "rms_db": -26.2
+   },
+   {
+    "time": 210.88,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6947935017409526
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7014750052588017
+     }
+    ],
+    "rms_db": -26.1
+   },
+   {
+    "time": 212.9,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6645144676684845
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6298863859761163
+     }
+    ],
+    "rms_db": -22.8
+   },
+   {
+    "time": 214.92,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.709105332897823
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6926379057812851
+     }
+    ],
+    "rms_db": -24.0
+   },
+   {
+    "time": 216.94,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6705185633591613
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6795802785899164
+     }
+    ],
+    "rms_db": -24.7
+   },
+   {
+    "time": 218.96,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.677976010053245
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7087498051056332
+     }
+    ],
+    "rms_db": -24.1
+   },
+   {
+    "time": 220.98,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.629537087203269
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6388164312644261
+     }
+    ],
+    "rms_db": -22.8
+   },
+   {
+    "time": 223.0,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7127599830205578
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6772399831277002
+     }
+    ],
+    "rms_db": -22.4
+   },
+   {
+    "time": 225.0,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.674841021198143
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.653423078985677
+     }
+    ],
+    "rms_db": -24.8
+   },
+   {
+    "time": 227.02,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6960408766801792
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6750750949554019
+     }
+    ],
+    "rms_db": -24.2
+   },
+   {
+    "time": 229.04,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6874485208200494
+     },
+     {
+      "name": "Ab",
+      "numeral": "III",
+      "score": 0.6919218922448817
+     }
+    ],
+    "rms_db": -22.1
+   },
+   {
+    "time": 231.06,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7485129592895733
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6254243002080012
+     }
+    ],
+    "rms_db": -23.1
+   },
+   {
+    "time": 233.08,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7387720914746436
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7310558996856023
+     }
+    ],
+    "rms_db": -23.2
+   },
+   {
+    "time": 235.1,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7650503661620671
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6473112188919314
+     }
+    ],
+    "rms_db": -22.7
+   },
+   {
+    "time": 237.12,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7542025013457105
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.6684191943649631
+     }
+    ],
+    "rms_db": -22.2
+   },
+   {
+    "time": 239.12,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.730954624831202
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6535464988327959
+     }
+    ],
+    "rms_db": -22.7
+   },
+   {
+    "time": 241.14,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7566576033976282
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.719057414995353
+     }
+    ],
+    "rms_db": -22.6
+   },
+   {
+    "time": 243.16,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7623663377807881
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6964604394227931
+     }
+    ],
+    "rms_db": -21.7
+   },
+   {
+    "time": 245.18,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7428069683591653
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.7158026813355958
+     }
+    ],
+    "rms_db": -20.4
+   },
+   {
+    "time": 247.2,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7646746828738309
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.6624979312103301
+     }
+    ],
+    "rms_db": -20.5
+   },
+   {
+    "time": 249.22,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7976168240332092
+     },
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.684406150140376
+     }
+    ],
+    "rms_db": -19.7
+   },
+   {
+    "time": 251.24,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8124333399688757
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.7455670870933216
+     }
+    ],
+    "rms_db": -19.7
+   },
+   {
+    "time": 253.26,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7759041126253312
+     },
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.6925092042941917
+     }
+    ],
+    "rms_db": -19.1
+   },
+   {
+    "time": 255.26,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.785175569753253
+     },
+     {
+      "name": "F#m",
+      "numeral": "ii",
+      "score": 0.6447594288807186
+     }
+    ],
+    "rms_db": -20.2
+   },
+   {
+    "time": 257.28,
+    "chords": [
+     {
+      "name": "B",
+      "numeral": "V",
+      "score": 0.7853784747293164
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6990519404191663
+     }
+    ],
+    "rms_db": -19.6
+   },
+   {
+    "time": 259.3,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7863668361494313
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.7170604300788981
+     }
+    ],
+    "rms_db": -19.9
+   },
+   {
+    "time": 261.32,
+    "chords": [
+     {
+      "name": "Abm",
+      "numeral": "iii",
+      "score": 0.7166171986417493
+     },
+     {
+      "name": "E",
+      "numeral": "I",
+      "score": 0.6994982824185721
+     }
+    ],
+    "rms_db": -18.7
+   },
+   {
+    "time": 263.34,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.788877391473668
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8200735677222887
+     }
+    ],
+    "rms_db": -23.8
+   },
+   {
+    "time": 265.33,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.930283117464667
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8721590484962345
+     }
+    ],
+    "rms_db": -33.8
+   },
+   {
+    "time": 267.35,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8385726972616914
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8377412534441694
+     }
+    ],
+    "rms_db": -44.0
+   },
+   {
+    "time": 269.37,
+    "chords": [
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8354460690295087
+     },
+     {
+      "name": "A",
+      "numeral": "IV",
+      "score": 0.8398395803210632
+     }
+    ],
+    "rms_db": -44.0
    }
   ]
  }

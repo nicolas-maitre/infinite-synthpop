@@ -172,9 +172,9 @@ export interface ComposeOptions {
 
 export type SongForm = "short" | "standard" | "long";
 
-/** Both recordings measure 117.45 BPM. */
-export const BPM_RANGE = [115, 120] as const;
-export const BPM_CENTER = 117.5;
+/** True Faith measures 117.0 BPM, The Different Story 119.8: centred between them. */
+export const BPM_RANGE = [116, 121] as const;
+export const BPM_CENTER = 118.5;
 export const LEAD_RANGES: Record<MelodyKind, readonly [number, number]> = {
   verse: [57, 70],
   chorus: [62, 74],
