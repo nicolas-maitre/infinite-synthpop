@@ -5,3 +5,4 @@ inspiration
 .venv
 docs/reference-data.json
 renders
+.claude/worktrees
