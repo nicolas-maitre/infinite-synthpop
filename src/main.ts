@@ -607,6 +607,9 @@ const BASS_LABELS: Record<BassStyle, string> = {
   night: "The Night root-8ths bass",
   faces: "Faces staccato bass",
   sc: "Self Control staccato quarters",
+  innocent: "Innocent Love pedal and slurred riff",
+  heaven: "Heaven Can Wait riff bass",
+  juliet: "Crazy Juliet syncopated bass",
 };
 
 function renderSong(song: Song): void {

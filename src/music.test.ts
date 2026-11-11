@@ -14,7 +14,7 @@ import {
 import { REFERENCES, type ReferenceId } from "./references";
 import { resolveQuality } from "./quality";
 import { barAtSeconds, barSeconds, silentWav, songSeconds } from "./mediasession";
-import { italoTitle, synthpopTitle } from "./titles";
+import { euroTitle, italoTitle, synthpopTitle } from "./titles";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
 import { Library, LIBRARY_KEY } from "./library";
@@ -1481,5 +1481,225 @@ describe("my songs", () => {
     expect(library.list()).toHaveLength(1);
     expect(store.getItem("old")).toBeNull();
     expect(JSON.parse(store.getItem(LIBRARY_KEY) ?? "[]")).toHaveLength(1);
+  });
+});
+
+describe("euro-disco genre", () => {
+  const euro = GENRES.euro;
+  // Innocent Love, Heaven Can Wait, Crazy Juliet.
+  const corners = [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+  ] as const;
+  const at = (weights: readonly number[], seed: number, extra = {}) =>
+    compose({ seed, genre: "euro", weights, ...extra });
+  const steps = (hits: readonly { step: number }[]) => hits.map((h) => Math.round(h.step));
+  const voice = (hits: readonly { voice: string; step: number }[], v: string) =>
+    steps(hits.filter((h) => h.voice === v));
+  const sectionAt = (song: ReturnType<typeof compose>, label: string) => {
+    const s = song.sections.find((x) => x.label === label);
+    if (!s) throw new Error(`no ${label}`);
+    return s;
+  };
+
+  it("writes verse, pre-chorus and chorus blocks over a backbeat kit, never four-on-the-floor", () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const song = compose({ seed, genre: "euro", weights: "auto" });
+      expect(song.genre).toBe("euro");
+      expect(song.bpm).toBeGreaterThanOrEqual(113);
+      expect(song.bpm).toBeLessThanOrEqual(125);
+      expect(["innocent", "heaven", "juliet"]).toContain(song.bassStyle);
+      expect(song.sections.at(-1)?.label).toBe("Outro · chorus to fade");
+      // Every sung chorus but the last comes after a pre-chorus.
+      song.sections.forEach((s, i) => {
+        if (s.label === "Chorus" && song.sections[i - 1]?.kind === "verse")
+          throw new Error("no pre");
+      });
+      expect(song.sections.filter((s) => s.kind === "prechorus").length).toBeGreaterThanOrEqual(2);
+      for (let bar = 0; bar < song.totalBars; bar++) {
+        const ev = arrangeBar(song, bar);
+        const kicks = voice(ev.drums, "kick");
+        // The kick never lands on 2 and 4 together, except in Innocent Love's link.
+        if (ev.section.layers.drums !== "groove")
+          expect(kicks.includes(4) && kicks.includes(12)).toBe(false);
+      }
+    }
+  });
+
+  it("follows each record's tempo, key, intro, form and bass at its corner", () => {
+    const tempo = (w: readonly number[]) =>
+      Array.from({ length: 20 }, (_, i) => at(w, i + 1).bpm).reduce((a, b) => a + b) / 20;
+    expect(tempo(corners[0])).toBeLessThan(117);
+    expect(tempo(corners[2])).toBeGreaterThan(121);
+    const songs = corners.map((w) => at(w, 3));
+    expect(songs.map((s) => s.sections[0]?.label)).toEqual(["Intro", "Intro · motif", "Intro"]);
+    expect(songs.map((s) => s.bassStyle)).toEqual(["innocent", "heaven", "juliet"]);
+    expect(songs.map((s) => s.key.mode)).toEqual(["minor", "minor", "major"]);
+    expect(songs.map((s) => sectionAt(s, "Verse 1").bars)).toEqual([8, 8, 16]);
+    // Choruses as long as the records': 14 bars (Innocent Love, Heaven Can Wait), 10 (Crazy Juliet).
+    expect(songs.map((s) => sectionAt(s, "Chorus").bars)).toEqual([14, 14, 10]);
+    // Heaven Can Wait's verse: drums, bass and voice alone.
+    const hcw = songs[1];
+    if (!hcw) throw new Error("no song");
+    expect(arrangeBar(hcw, sectionAt(hcw, "Verse 1").startBar).notes.pad).toEqual([]);
+    expect(hcw.sections.map((s) => s.label)).toContain("Tag");
+    expect(hcw.sections.map((s) => s.label)).toContain("Break");
+    // Crazy Juliet's second half: instrumental choruses with the lead synth.
+    const cj = songs[2];
+    if (!cj) throw new Error("no song");
+    const instrumental = sectionAt(cj, "Instrumental chorus");
+    const ev = arrangeBar(cj, instrumental.startBar + 1);
+    expect(ev.notes.lead).toEqual([]);
+    expect(cj.sections.filter((s) => s.label === "Instrumental chorus")).toHaveLength(2);
+  });
+
+  it("plays each record's kick and hats from its pattern table", () => {
+    const [il, hcw, cj] = corners.map((w) => at(w, 4));
+    if (!il || !hcw || !cj) throw new Error("no song");
+    const bar = (song: typeof il, label: string, i = 0) =>
+      arrangeBar(song, sectionAt(song, label).startBar + i).drums;
+    // Innocent Love: 1, 2a, 3, 3& (verse), and 4& in the chorus; no running hats.
+    expect(voice(bar(il, "Verse 1", 1), "kick")).toEqual([0, 7, 8, 10]);
+    expect(voice(bar(il, "Chorus", 1), "kick")).toEqual([0, 7, 8, 10, 14]);
+    expect(voice(bar(il, "Verse 1", 1), "hat")).toEqual([0, 4, 8, 10, 12]);
+    expect(voice(bar(il, "Verse 1", 1), "snare")).toEqual([4, 12]);
+    // Heaven Can Wait: 1, 2& and 3 with a 4-bar extra; the 2-bar chorus kick.
+    expect(voice(bar(hcw, "Verse 1", 0), "kick")).toEqual([0, 6, 8]);
+    expect(voice(bar(hcw, "Verse 1", 2), "kick")).toEqual([0, 6, 8, 15]);
+    expect(voice(bar(hcw, "Chorus", 2), "kick").filter((s) => s !== 9)).toEqual([0, 3, 7, 8, 13]);
+    const hats = [
+      ...voice(bar(hcw, "Chorus", 2), "hat"),
+      ...voice(bar(hcw, "Chorus", 2), "openhat"),
+    ];
+    expect(hats).not.toContain(5);
+    expect(hats).not.toContain(13);
+    // Crazy Juliet: the kick on 1 and 3 with its syncopated cycle, a crash on the phrase start.
+    expect(voice(bar(cj, "Verse 1", 1), "kick")).toEqual([0, 6, 8, 14]);
+    expect(voice(bar(cj, "Verse 1", 8), "crash")).toEqual([0]);
+    expect(voice(bar(cj, "Verse 1", 8), "hat").filter((s) => s >= 1 && s <= 3)).toEqual([]);
+    expect(voice(bar(cj, "Chorus", 2), "hat")).not.toContain(5);
+    // The chorus's last bar: the snare run.
+    const runBar = bar(cj, "Chorus", sectionAt(cj, "Chorus").bars - 1);
+    expect(voice(runBar, "snare")).toEqual([4, 5, 8, 9, 12, 14, 15]);
+  });
+
+  it("stops the band at the pre-chorus's end, each record its way", () => {
+    const il = at(corners[0], 4);
+    const pre = sectionAt(il, "Pre-chorus");
+    expect(pre.layers.stop).toBe(true);
+    const stop = arrangeBar(il, pre.startBar + pre.bars - 1);
+    expect(stop.drums.map((h) => `${h.voice}@${h.step}`)).toEqual(["kick@4", "snare@4"]);
+    expect(stop.notes.bass.every((n) => n.step + n.dur <= 6)).toBe(true);
+    const cj = at(corners[2], 4);
+    const cjPre = sectionAt(cj, "Pre-chorus");
+    const cjStop = arrangeBar(cj, cjPre.startBar + cjPre.bars - 1);
+    expect(Math.max(...steps(cjStop.drums))).toBe(12);
+    expect(voice(cjStop.drums, "openhat")).toEqual([11]);
+    expect(cjStop.notes.bass.every((n) => n.step + n.dur <= 10)).toBe(true);
+    // Heaven Can Wait doesn't stop; Innocent Love also stops after the chorus, holding ♭VII.
+    expect(sectionAt(at(corners[1], 4), "Pre-chorus").layers.stop).toBeUndefined();
+    const after = sectionAt(il, "Stop");
+    expect(after.progression).toEqual([["VII"]]);
+    expect(voice(arrangeBar(il, after.startBar).drums, "kick")).toEqual([]);
+    expect(arrangeBar(il, after.startBar).notes.bass).toEqual([]);
+  });
+
+  it("plays each record's riff bass, resting where its snare is", () => {
+    const onsets = (song: ReturnType<typeof compose>, label: string, i: number) =>
+      steps(arrangeBar(song, sectionAt(song, label).startBar + i).notes.bass);
+    const il = at(corners[0], 6, { bassStyle: "innocent" });
+    expect(onsets(il, "Verse 1", 0)).toEqual([0, 7, 8, 10, 14]);
+    expect(onsets(il, "Verse 1", 3)).toEqual([0, 7, 8, 10, 12, 14]);
+    expect(onsets(il, "Chorus", 0)).toEqual([0, 2, 5, 6, 8, 10, 12, 14]);
+    const hcw = at(corners[1], 6, { bassStyle: "heaven" });
+    for (const s of hcw.sections.filter((x) => x.layers.bass)) {
+      for (let i = 0; i < s.bars; i++) expect(onsets(hcw, s.label, i)).not.toContain(4);
+    }
+    expect(onsets(hcw, "Verse 1", 0)).toEqual([0, 2, 6, 8, 12, 14, 15]);
+    const cj = at(corners[2], 6, { bassStyle: "juliet" });
+    expect(onsets(cj, "Verse 1", 0)).toEqual([0, 2, 6, 7, 9, 10, 14]);
+    // The chorus line sits an octave under the verse.
+    const low = (label: string) =>
+      Math.min(...arrangeBar(cj, sectionAt(cj, label).startBar).notes.bass.map((n) => n.midi));
+    expect(low("Verse 1") - low("Chorus")).toBeGreaterThanOrEqual(5);
+    expect(low("Chorus")).toBeLessThan(39);
+  });
+
+  it("stabs on the bass's rhythm in Innocent Love's choruses", () => {
+    const il = at(corners[0], 2);
+    const chorus = sectionAt(il, "Chorus");
+    expect(chorus.layers.stabs).toBe(true);
+    expect([...new Set(steps(arrangeBar(il, chorus.startBar).notes.stab))]).toEqual([
+      0, 2, 5, 6, 10, 13,
+    ]);
+    expect(arrangeBar(il, sectionAt(il, "Verse 1").startBar).notes.stab).toEqual([]);
+  });
+
+  it("names the Sandra records' chords", () => {
+    const eFlatMinor = { tonic: 3, mode: "minor" as const };
+    expect(
+      ["IV7", "III/IV", "VII/IV", "ii7/v", "I/v", "viø7", "VII9sus4", "IVsus4"].map((n) =>
+        chordName(eFlatMinor, chord(n)),
+      ),
+    ).toEqual(["A♭7", "G♭/A♭", "D♭/A♭", "Fm7/B♭", "E♭/B♭", "Cm7♭5", "D♭9sus4", "A♭sus4"]);
+    // C♯ major is spelled as D♭ major.
+    const cSharpMajor = { tonic: 1, mode: "major" as const };
+    expect(
+      ["III", "IV", "v", "ii7", "Vsus4", "IV/V", "IV7sus4"].map((n) =>
+        chordName(cSharpMajor, chord(n)),
+      ),
+    ).toEqual(["E", "G♭", "A♭m", "E♭m7", "A♭sus4", "G♭/A♭", "G♭7sus4"]);
+  });
+
+  it("names its references, and keeps a bank for every kind in both modes", () => {
+    expect(euro.references.map(styleName)).toEqual([
+      "Innocent Love",
+      "Heaven Can Wait",
+      "Crazy Juliet",
+    ]);
+    for (const kind of Object.keys(euro.bank) as (keyof typeof euro.bank)[]) {
+      expect(euro.bank[kind].length).toBeGreaterThan(0);
+      for (const e of euro.bank[kind]) for (const bar of e.bars) for (const n of bar) chord(n);
+    }
+    for (const kind of [
+      "verse",
+      "chorus",
+      "prechorus",
+      "interlude",
+      "turnaround",
+      "bridge",
+    ] as const)
+      for (const mode of ["minor", "major"] as const)
+        expect(euro.bank[kind].some((e) => (e.mode ?? "minor") === mode)).toBe(true);
+  });
+
+  it("travels in links, with its own weights", () => {
+    const song = at([0.5, 0.2, 0.3], 9);
+    const spec = songToSpec(song);
+    expect(spec.genre).toBe("euro");
+    const back = decodeCreation(encodeCreation({ seed: 9, spec }));
+    expect(back?.spec.genre).toBe("euro");
+    expect(back?.spec.weights).toEqual([0.5, 0.2, 0.3]);
+    const again = compose({ seed: 9, custom: back?.spec });
+    expect(again.genre).toBe("euro");
+    const flags = (x: typeof song) =>
+      x.sections.map((s) => [s.label, !!s.layers.stop, !!s.layers.leadSynth]);
+    expect(flags(again)).toEqual(flags(song));
+  });
+
+  it("titles its songs in Sandra's patterns, apart from the other genres", () => {
+    const titles = new Set(
+      Array.from({ length: 400 }, (_, seed) => euroTitle(createRng(seed).fork("title"))),
+    );
+    expect(titles.size).toBeGreaterThan(200);
+    const others = new Set(
+      Array.from({ length: 400 }, (_, seed) => [
+        italoTitle(createRng(seed).fork("title")),
+        synthpopTitle(createRng(seed).fork("title")),
+      ]).flat(),
+    );
+    expect([...titles].filter((t) => others.has(t)).length).toBeLessThan(5);
+    expect(at(corners[0], 42).title).toBe(euroTitle(createRng(42).fork("title")));
   });
 });

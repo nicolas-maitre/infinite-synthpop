@@ -212,6 +212,10 @@ interface CompactSection {
   h?: 1;
   /** Self Control's title line (`titleLine`). */
   tl?: 1;
+  /** The lead synth's line (`leadSynth`: The Night's, the Euro-disco instrumentals'). */
+  ly?: 1;
+  /** A stop bar at the end (`stop`, Euro-disco). */
+  sp?: 1;
   st?: 1;
   /** Drum fill at the end: 1 on, 0 off, absent = default. */
   f?: 0 | 1;
@@ -292,6 +296,8 @@ export function encodeCreation({ seed, spec }: Creation): string {
         ...(L.leadStack ? { ls: 1 as const } : {}),
         ...(L.held ? { h: 1 as const } : {}),
         ...(L.titleLine ? { tl: 1 as const } : {}),
+        ...(L.leadSynth ? { ly: 1 as const } : {}),
+        ...(L.stop ? { sp: 1 as const } : {}),
         ...(L.bassShort ? { st: 1 as const } : {}),
         ...(s.fill === undefined ? {} : { f: s.fill ? (1 as const) : (0 as const) }),
         ...(s.melody ? { ml: s.melody } : {}),
@@ -325,6 +331,8 @@ export function decodeCreation(encoded: string): Creation | null {
         ...(s.ls === 1 ? { leadStack: true } : {}),
         ...(s.h === 1 ? { held: true } : {}),
         ...(s.tl === 1 ? { titleLine: true } : {}),
+        ...(s.ly === 1 ? { leadSynth: true } : {}),
+        ...(s.sp === 1 ? { stop: true } : {}),
         bassShort: s.st === 1,
       };
       for (const i of SECTION_INSTRUMENTS) layers[i] = s.on.includes(i);

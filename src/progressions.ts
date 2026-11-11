@@ -5,8 +5,7 @@
  * that reference instead (You Came). The banks and the substitutions live in the genre profiles
  * (genres.ts).
  */
-import { genreAt, weightOf, type Genre } from "./genres";
-import type { ReferenceId } from "./references";
+import { genreAt, weightOf, type Genre, type StyleId } from "./genres";
 import type { Rng } from "./rng";
 import type { Mode } from "./theory";
 
@@ -25,7 +24,7 @@ export interface BankEntry {
   mode?: Mode;
   /** The reference it comes from or leans to: among entries without one, it weighs in with that
    * reference's weight, so at weight 0 it is never picked. */
-  ref?: ReferenceId;
+  ref?: StyleId;
   /** Relative weight among its peers; 1 by default. */
   weight?: number;
 }

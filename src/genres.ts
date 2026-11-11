@@ -19,19 +19,35 @@ import type { Track } from "./instruments";
 import type { Mode } from "./theory";
 import { polygonVertices, quantize, randomPoint, weightsAt, type Point } from "./polygon";
 import type { Rng } from "./rng";
-import { italoTitle, synthpopTitle } from "./titles";
+import { euroTitle, italoTitle, synthpopTitle } from "./titles";
 
-export type GenreId = "synthpop" | "italo";
+export type GenreId = "synthpop" | "italo" | "euro";
+
+/** The records a genre blends between: the playable originals (references.ts), and the Sandra
+ * records measured in docs/references/, which don't play as originals (yet). */
+export type StyleId = ReferenceId | EuroStyleId;
+/** The Euro-disco references (docs/plans/euro-disco-genre.md). */
+export type EuroStyleId = "innocent-love" | "heaven-can-wait" | "crazy-juliet";
+
+const MEASURED_TITLES: Record<EuroStyleId, string> = {
+  "innocent-love": "Innocent Love",
+  "heaven-can-wait": "Heaven Can Wait",
+  "crazy-juliet": "Crazy Juliet",
+};
+
+export function isReferenceId(id: unknown): id is ReferenceId {
+  return typeof id === "string" && Object.hasOwn(REFERENCES, id);
+}
 
 /** A reference's title, for the style pad and the wizard. */
-export function styleName(id: ReferenceId): string {
-  return REFERENCES[id].title;
+export function styleName(id: StyleId): string {
+  return isReferenceId(id) ? REFERENCES[id].title : MEASURED_TITLES[id];
 }
 
 /** A number that varies with the references' weights: `base + Σ by[ref] × weight(ref)`. */
 export interface Blend {
   base?: number;
-  by?: Partial<Record<ReferenceId, number>>;
+  by?: Partial<Record<StyleId, number>>;
 }
 
 /** Drum details a reference has that the genre doesn't by default. They apply while that
@@ -75,12 +91,55 @@ export interface DrumTraits {
   /** Big sections' claps: with the snare on 2 and 4 (unset), or Self Control's: one on 4, and every
    * other bar a syncopated one on 3e with an open hat on 4a; in the outro, on 2 alone. */
   bigClaps?: "4-and-3e";
+  /** A backbeat kit played from a pattern table instead of the four-on-the-floor kick and the hat
+   * loop (the Euro-disco references). Unset everywhere else. */
+  groove?: Grooves;
+}
+
+/**
+ * One drum pattern, read from an analysis's grid: a string per bar, one character per 16th.
+ * - Kick and snare: "X" a full hit, "x" about 3 dB under, "g" a ghost about 6 dB under, "?" a
+ *   ghost in about half the bars, "." none.
+ * - Hats: "x" closed, "o" open, "?" closed in about half the bars, "%" open in about a third of the
+ *   bars and closed in the others, "." none.
+ */
+export interface Groove {
+  /** The kick's cycle, one string per bar (2- and 4-bar cycles), from the section's first bar. */
+  kick: readonly string[];
+  hats: string;
+  /** Unset: the snare on 2 and 4. */
+  snare?: string;
+  /** A low drum (Innocent Love's intro: on 2 and 4, under the 16th hats). */
+  tom?: string;
+}
+
+/** A backbeat kit (`DrumTraits.groove`): a pattern per kind of section, and its own fills and stops. */
+export interface Grooves {
+  /** Verses, intros and instrumentals ("full"). */
+  verse: Groove;
+  /** Pre-choruses; unset, the verse's. */
+  prechorus?: Groove;
+  /** Choruses and the outro ("big"). */
+  chorus: Groove;
+  /** The intro before the kick ("hats16"). Unset: 16th hats alone. */
+  intro?: Groove;
+  /** A crash on every section start and 8-bar phrase, the hats skipping 1e–1a there (Crazy Juliet).
+   * Otherwise no crashes. */
+  phraseCrash: boolean;
+  /** Phrase ends: Crazy Juliet's snare run (2, 2e, 3, 3e, 4, 4&, 4a) in a chorus's last bar and a
+   * 4e–4& pickup closing every 8 bars; Heaven Can Wait's 3e and 4e snare pickups; or nothing
+   * (Innocent Love stops instead). */
+  fills: "run" | "pickup" | "none";
+  /** A stop bar (`Layers.stop`): one kick-and-snare hit on 2, then silence (Innocent Love); or the
+   * bar played to the snare on 4, an open hat on 3a, the kick on 1 and 3 only (Crazy Juliet). */
+  stop: "hit2" | "beat4";
 }
 
 /** How a genre plays some parts. Unset: synthpop's way. */
 export interface PartStyle {
-  /** Stabs: one chord hit every 4 bars (synthpop), or gated 8th-note chords (Faces). */
-  stabs: "hit" | "gated8";
+  /** Stabs: one chord hit every 4 bars (synthpop), gated 8th-note chords (Faces), or chords on the
+   * bass's chorus rhythm, 1, 1&, 2e, 2&, 3& and 4e (Innocent Love). */
+  stabs: "hit" | "gated8" | "follow";
 }
 
 /** The parts and sounds a reference brings while it outweighs the others (like `DrumTraits`). */
@@ -166,6 +225,43 @@ export interface ItaloForm {
   vampOutro: Blend;
 }
 
+/** The Euro-disco planner's odds (composer.ts `planEuro`). */
+export interface EuroForm {
+  /** The opening, one drawn per song in proportion to these: Crazy Juliet's staggered entries over
+   * the verse chords, Heaven Can Wait's solo motif then drums and bass alone, or Innocent Love's
+   * pads on i–v over 16th hats, then ♭VI–♭VII and the bass's link. */
+  staggeredIntro: Blend;
+  motifIntro: Blend;
+  padIntro: Blend;
+  /** 16-bar verses (Crazy Juliet) rather than 8. */
+  longVerse: Blend;
+  /** Verses of drums, bass and voice alone (Heaven Can Wait). */
+  bareVerse: Blend;
+  /** The pre-chorus ends on a stop bar (Innocent Love's turn, Crazy Juliet's 5th bar). */
+  stop: Blend;
+  /** After the first and the last chorus, one of: a 2-bar tag on i (Heaven Can Wait), a 2-bar stop
+   * on ♭VII without drums or bass (Innocent Love), or straight on (in proportion to `straight`). */
+  tag: Blend;
+  chorusStop: Blend;
+  straight: Blend;
+  /** The second half, one drawn per song: instrumental choruses with the lead synth between the
+   * sung ones (Crazy Juliet), an instrumental chorus ending in a 2-bar break without bass on V
+   * (Heaven Can Wait), or a 4-bar link, a verse without voice and the pre-chorus (Innocent Love). */
+  leadChoruses: Blend;
+  instrumentalChorus: Blend;
+  instrumentalBlock: Blend;
+  /** A 10-bar Aeolian bridge before the last choruses (Innocent Love). */
+  bridge: Blend;
+  /** The 16th part in the verses (Crazy Juliet) and in the choruses (Heaven Can Wait's pulse). */
+  verseArp: Blend;
+  chorusArp: Blend;
+  /** The riff over the choruses (Crazy Juliet). */
+  chorusRiff: Blend;
+  /** Chord stabs on the bass's rhythm in the choruses, and stacked chorus voices (Innocent Love). */
+  stabs: Blend;
+  stack: Blend;
+}
+
 /** The bass's tone controls (instruments.ts `setBassTone`). */
 export interface BassTone {
   /** The tone shelf's corner, Hz. */
@@ -227,15 +323,16 @@ export interface Genre {
    * first two on its bottom edge, left to right (the legacy `style` runs from the first, 0, to the
    * second, 1), the others round from there. List similar references next to each other, so they
    * get neighbouring vertices. */
-  references: readonly ReferenceId[];
+  references: readonly StyleId[];
   /** Auto tempos fall in `range`, around `center`; `note` says where the records sit. With a
    * `floor`, they don't fall under it (rounded down to a half BPM, and never under the range):
    * a reference can open the range's low end without moving the others' tempos. */
   tempo: { range: readonly [number, number]; center: Blend; note: string; floor?: Blend };
   /** The section planner: synthpop's (True Faith's, The Different Story's and You Came's blocks,
    * drawn with `form`'s odds) or Italo's (`italo`'s odds). */
-  planner: "synthpop" | "italo";
+  planner: "synthpop" | "italo" | "euro";
   italo?: ItaloForm;
+  euro?: EuroForm;
   parts?: PartStyle;
   /** Its songs' fader levels (dB) on auto, where they differ from instruments.ts
    * `DEFAULT_VOLUMES`. Each voice's own gain makes it as loud as the voice it replaces at the
@@ -244,7 +341,7 @@ export interface Genre {
   /** The parts and sounds when no reference outweighs the others, and per reference while it
    * does. Unset: `SYNTHPOP_VOICES`. */
   voices?: Voices;
-  voiceTraits?: Partial<Record<ReferenceId, Voices>>;
+  voiceTraits?: Partial<Record<StyleId, Voices>>;
   /** Where generated verse and chorus melodies sit, when not composer.ts `LEAD_RANGES`. */
   leadRanges?: Record<"verse" | "chorus", readonly [number, number]>;
   /** Key tonic (pitch class) → weight, for minor keys. */
@@ -310,7 +407,7 @@ export interface Genre {
   /** Drum details when no reference outweighs the others. */
   drums: DrumTraits;
   /** Per reference, the drum details it brings while it outweighs the others. */
-  drumTraits: Partial<Record<ReferenceId, DrumTraits>>;
+  drumTraits: Partial<Record<StyleId, DrumTraits>>;
   bassTone: {
     frequency: Blend;
     presence: Blend;
@@ -637,6 +734,276 @@ const ITALO_DRUMS: DrumTraits = {
   gatedSnare: false,
   crashes: false,
   fills: "snare",
+};
+
+const IL = "innocent-love";
+const HCW = "heaven-can-wait";
+const CJ = "crazy-juliet";
+
+/** Crazy Juliet's chorus (sandra-crazy-juliet.md §4): (♭III–IV │ v) three times, then the tag
+ * ♭III │ ii⁷ │ V sus4 │ V¹¹ (F♯ over G♯). In a minor key, the same bars read from its minor v:
+ * the VI–VII climb landing on i, then VI │ v⁷ │ i sus4 │ ♭VII over the tonic. */
+const CJ_CHORUS: Progression = [
+  ["III", "IV"],
+  ["v"],
+  ["III", "IV"],
+  ["v"],
+  ["III", "IV"],
+  ["v"],
+  ["III"],
+  ["ii7"],
+  ["Vsus4"],
+  ["IV/V"],
+];
+const CJ_CHORUS_MINOR: Progression = [
+  ["VI", "VII"],
+  ["i"],
+  ["VI", "VII"],
+  ["i"],
+  ["VI", "VII"],
+  ["i"],
+  ["VI"],
+  ["v7"],
+  ["Isus4"],
+  ["VII/i"],
+];
+/** Innocent Love's chorus loop (§4.2): i │ IV sus4 → IV │ ♭VII9sus4 │ ♭III, a chain of falling
+ * fifths, 3½ times round. */
+const IL_LOOP: Progression = [["i"], ["IVsus4", "IV"], ["VII9sus4"], ["III"]];
+/** Heaven Can Wait's chorus (§4): 14 bars, i–VII twice, then iv VI i i and the harmonic-minor
+ * V sus4 → V. */
+const HCW_CHORUS: Progression = [
+  ["i"],
+  ["i"],
+  ["VII"],
+  ["VII"],
+  ["i"],
+  ["i"],
+  ["VII"],
+  ["VII"],
+  ["iv"],
+  ["VI"],
+  ["i"],
+  ["i"],
+  ["Vsus4"],
+  ["V"],
+];
+
+/** Measured from the three Sandra records (docs/references/sandra-*.md §4), in their own keys'
+ * terms: Heaven Can Wait and Innocent Love in E♭ minor, Crazy Juliet in C♯ (major) and, for minor
+ * songs, read from its chorus's G♯ minor. Choruses keep their measured lengths (10 and 14 bars):
+ * the planner plays a chorus for as long as its progression. Entries without a `ref` are
+ * genre-wide loops that make each pool weigh the measured ones by their reference. */
+const EURO_BANK: Record<ProgressionKind, readonly BankEntry[]> = {
+  verse: [
+    // Heaven Can Wait: no chord instrument, a riff on the Dorian IV⁷ (A♭7 in E♭ minor).
+    { name: "HCW verse vamp on IV⁷ (measured)", bars: [["IV7"], ["IV7"]], ref: HCW, weight: 2 },
+    // Innocent Love: a pedal on the minor v under v │ ii⁷ │ v │ I (B♭m │ Fm7/B♭ │ B♭m │ E♭/B♭).
+    {
+      name: "IL verse on the v pedal (measured)",
+      bars: [["v"], ["ii7/v"], ["v"], ["I/v"]],
+      ref: IL,
+      weight: 2,
+    },
+    { name: "IL verse, plain v pedal", bars: [["v"], ["v"], ["v"], ["I/v"]], ref: IL },
+    // Crazy Juliet: I I I I │ ii │ ♭VII │ I I, Mixolydian; in minor, the same from its v.
+    {
+      name: "CJ verse (measured)",
+      bars: [["I"], ["I"], ["I"], ["I"], ["ii"], ["VII"], ["I"], ["I"]],
+      mode: "major",
+      ref: CJ,
+      weight: 2,
+    },
+    {
+      name: "CJ verse, read from the v",
+      bars: [["IV"], ["IV"], ["IV"], ["IV"], ["v"], ["III"], ["IV"], ["IV"]],
+      ref: CJ,
+    },
+    { name: "minor vamp", bars: [["i"], ["i"], ["VII"], ["VII"]], weight: 0.5 },
+  ],
+  prechorus: [
+    // Heaven Can Wait: over the IV pedal, the upper chord steps down by fifths, twice.
+    {
+      name: "HCW pre-chorus over the IV pedal (measured)",
+      bars: [["III/IV"], ["VII/IV"], ["IV"], ["IV"], ["III/IV"], ["VII/IV"], ["IV"], ["IV"]],
+      ref: HCW,
+      weight: 2,
+    },
+    // Innocent Love: i │ viø7 twice (the Dorian 6th), then the turn ♭VI │ V.
+    {
+      name: "IL pre-chorus and turn (measured)",
+      bars: [["i"], ["viø7"], ["i"], ["viø7"], ["VI"], ["V"]],
+      ref: IL,
+      weight: 2,
+    },
+    // Crazy Juliet: iv │ ♭III(add9) │ ♭VII │ IV⁷sus4 │ IV⁷, the 5th a stop bar.
+    {
+      name: "CJ pre-chorus (measured)",
+      bars: [["iv"], ["IIIadd9"], ["VII"], ["IV7sus4"], ["IV7"]],
+      mode: "major",
+      ref: CJ,
+      weight: 2,
+    },
+    {
+      name: "CJ pre-chorus, read from the v",
+      bars: [["vii"], ["VIadd9"], ["III"], ["VII7sus4"], ["VII7"]],
+      ref: CJ,
+    },
+    { name: "minor build", bars: [["iv"], ["VI"], ["VII"], ["Vsus4", "V"]], weight: 0.5 },
+  ],
+  chorus: [
+    { name: "HCW chorus (measured)", bars: HCW_CHORUS, ref: HCW, weight: 2 },
+    {
+      name: "IL chorus loop, 14 bars (measured)",
+      bars: [...IL_LOOP, ...IL_LOOP, ...IL_LOOP, ["i"], ["IVsus4", "IV"]],
+      ref: IL,
+      weight: 2,
+    },
+    { name: "CJ chorus (measured)", bars: CJ_CHORUS, mode: "major", ref: CJ, weight: 2 },
+    { name: "CJ chorus, read from the v", bars: CJ_CHORUS_MINOR, ref: CJ },
+    {
+      name: "climb to i, 14 bars",
+      bars: [
+        ["i"],
+        ["i"],
+        ["VII"],
+        ["VII"],
+        ["VI"],
+        ["VI"],
+        ["VII"],
+        ["VII"],
+        ["iv"],
+        ["VI"],
+        ["i"],
+        ["i"],
+        ["Vsus4"],
+        ["V"],
+      ],
+      weight: 0.5,
+    },
+  ],
+  // The instrumental blocks run on the verse or chorus chords; these are for the wizard and the
+  // breaks: Heaven Can Wait's break on V, Innocent Love's intro on i and v.
+  interlude: [
+    { name: "HCW break on V (measured)", bars: [["V"], ["V"]], ref: HCW },
+    { name: "IL intro, i–v (measured)", bars: [["i"], ["i"], ["v"], ["v"]], ref: IL },
+    { name: "CJ chorus loop", bars: [["III", "IV"], ["v"]], mode: "major", ref: CJ },
+    { name: "climb", bars: [["VI"], ["VII"], ["i"], ["i"]], weight: 0.5 },
+  ],
+  turnaround: [
+    { name: "IL turn ♭VI–V (measured)", bars: [["VI"], ["V"]], ref: IL },
+    { name: "HCW tag on i (measured)", bars: [["i"], ["i"]], ref: HCW },
+    { name: "CJ tag (measured)", bars: [["Vsus4"], ["IV/V"]], mode: "major", ref: CJ },
+    { name: "VI–VII", bars: [["VI"], ["VII"]], weight: 0.5 },
+  ],
+  bridge: [
+    // Innocent Love's late bridge (§4.4), all Aeolian: the chorus's IV turns minor.
+    {
+      name: "IL bridge (measured)",
+      bars: [
+        ["VI"],
+        ["VI", "VII"],
+        ["i"],
+        ["III"],
+        ["VII"],
+        ["iv"],
+        ["III"],
+        ["i"],
+        ["VI"],
+        ["VI"],
+      ],
+      ref: IL,
+      weight: 2,
+    },
+    { name: "subdominant", bars: [["iv"], ["VI"], ["VII"], ["i"]] },
+    { name: "CJ verse turn", bars: [["ii"], ["VII"], ["I"], ["I"]], mode: "major", ref: CJ },
+  ],
+  lift: [{ name: "lift I–IV–V", bars: [["I"], ["IV"], ["I"], ["V"]] }],
+};
+
+const EURO_NO_DRUM_TRAITS: Omit<DrumTraits, "groove"> = {
+  introLowTom: false,
+  openHatBeat3: false,
+  bigKick14: false,
+  bigPercussion: "none",
+  hats: "16ths",
+  phraseFills: false,
+  snarePickup: false,
+  // All three snares ring out: Innocent Love's tail about 400 ms with no gate, Heaven Can Wait's
+  // longer in the chorus, Crazy Juliet's within 11–14 dB for 130 ms.
+  gatedSnare: false,
+};
+
+/** Innocent Love (§6): kick 1, 3, 3& and a soft 2a (verse), 1, 2a, 3, 3&, 4& (chorus); no running
+ * hats, only the beats and 3& (an open 1& in the chorus); 16th hats and a low drum on 2 and 4 in
+ * the intro, without kick; stops instead of fills. */
+const IL_GROOVE: Grooves = {
+  verse: { kick: ["X......gX.x....."], hats: "x...x...x.x.x..." },
+  prechorus: { kick: ["X.....x.?......."], hats: "x...x...x.x.x..." },
+  chorus: { kick: ["X......xX.x...x."], hats: "x.o.x..xx.x.x.?." },
+  intro: {
+    kick: ["................"],
+    snare: "................",
+    tom: "....x.......x...",
+    hats: "xxxxxxxxxxxxxxxx",
+  },
+  phraseCrash: false,
+  fills: "none",
+  stop: "hit2",
+};
+
+/** Heaven Can Wait (§6, ear-checked hit by hit): kick 1, 2& and 3 with one extra per bar in a
+ * fixed 4-bar order (the pre-chorus pushes each 4-bar group on 4a); a 2-bar chorus kick
+ * 1, 2a, 3, 4e │ 1, 3, 3e, 3& with ghosts on 1a and 2a; sparse 1e/3e/3a hats in the verse, every
+ * 16th but the "e" after each snare in the chorus, open on the "&"s in some bars. */
+const HCW_GROOVE: Grooves = {
+  verse: {
+    kick: ["X.....x.X.......", "X.....x.X..g....", "X.....x.X......g", "X.g...x.X..g...."],
+    hats: ".?.......x.x....",
+  },
+  prechorus: {
+    kick: ["X.....x.X.......", "X.....x.X..g....", "X.....x.X......g", "X.g...x.X..g...g"],
+    hats: ".?.......x.x....",
+  },
+  chorus: { kick: ["X..g...XX?...X..", "X..g...gXXx...?."], hats: "xx%x..%xxxxx..%x" },
+  phraseCrash: false,
+  fills: "pickup",
+  stop: "hit2",
+};
+
+/** Crazy Juliet (§6): the kick on 1 and 3 only, with a 4-bar cycle of syncopated kicks (2a │
+ * 2& + 4& │ 2a │ 3& + 4&; the chorus adds 2& + 2a in its odd bars); 16th hats skipping the "e"
+ * after each backbeat (in the verse, only some bars); a quieter snare on 1 in some chorus bars; a
+ * crash on every section and 8-bar phrase; the chorus's snare run and the 4e–4& phrase pickups. */
+const CJ_GROOVE: Grooves = {
+  verse: {
+    kick: ["X......xX.......", "X.....x.X.....x.", "X......xX.......", "X.........x...x."],
+    hats: "xxxxx?xxxxxxx?xx",
+  },
+  prechorus: { kick: ["X.......X.?...?."], hats: "x?x?x?x?x?x?x?x?" },
+  chorus: {
+    kick: ["X.....xxX.......", "X.....x.X.....x.", "X.....xxX.......", "X.........x...x."],
+    hats: "xxxxx.xxxxxxx.xx",
+    snare: "?...X.......X...",
+  },
+  intro: { kick: ["...............x"], hats: "xxxxxxxxxxxxxxxx" },
+  phraseCrash: true,
+  fills: "run",
+  stop: "beat4",
+};
+
+/** The Euro-disco parts and sounds (measured in each analysis's §12). */
+const EURO_VOICES: Voices = SYNTHPOP_VOICES;
+const EURO_VOICE_TRAITS: Partial<Record<StyleId, Voices>> = {};
+
+/** The voice's mix at each corner (compare_voice.py against each record's vocal stem). */
+const EURO_LEAD_TONE: Genre["leadTone"] = {
+  level: {},
+  low: {},
+  mid: {},
+  high: {},
+  air: {},
+  width: {},
 };
 
 export const GENRES: Record<GenreId, Genre> = {
@@ -988,6 +1355,124 @@ export const GENRES: Record<GenreId, Genre> = {
       lowCut: { by: { [SC]: 65 } },
     },
   },
+  euro: {
+    id: "euro",
+    name: "Euro-disco",
+    title: euroTitle,
+    // The two E♭-minor records share the bottom edge; Crazy Juliet, the fastest and the one in a
+    // major key, the top.
+    references: [IL, HCW, CJ],
+    // 115.2 (Innocent Love), 117.9 and 119.1 (Heaven Can Wait's verse and chorus clocks), 123.0
+    // (Crazy Juliet).
+    tempo: {
+      range: [113, 125],
+      center: { by: { [IL]: 115.2, [HCW]: 118.5, [CJ]: 123 } },
+      note: "Innocent Love runs at 115, Heaven Can Wait at 118–119, Crazy Juliet at 123",
+    },
+    planner: "euro",
+    // E♭ minor (Innocent Love, Heaven Can Wait, a sharp E♭ near E), G♯ minor (Crazy Juliet's
+    // chorus), and the synthpop keys next to them.
+    keyWeights: [
+      [3, 3],
+      [4, 2.5],
+      [2, 1.5],
+      [8, 1.5],
+      [1, 1],
+      [6, 1],
+      [9, 1],
+      [11, 1],
+      [5, 0.5],
+      [7, 0.5],
+      [0, 0.5],
+    ],
+    // Crazy Juliet rests on C♯ major (its verse; ear-checked as the ending, §10 item 1).
+    major: { by: { [CJ]: 1 } },
+    majorKeyWeights: [
+      [1, 3],
+      [0, 1.5],
+      [2, 1.5],
+      [3, 1],
+      [11, 1],
+      [4, 1],
+      [6, 0.5],
+    ],
+    bank: EURO_BANK,
+    substitutions: [
+      // Heaven Can Wait's chorus delays its V with a sus4; Crazy Juliet turns iv into IV⁷ on the
+      // same root; Innocent Love's ♭VII hangs without its third.
+      { from: "V", to: ["Vsus4", "V"], chance: { by: { [HCW]: 0.8 } }, lastBar: true },
+      { from: "iv", to: "IV7", chance: { by: { [CJ]: 0.5 } }, kinds: ["prechorus"] },
+      { from: "VII", to: "VII9sus4", chance: { by: { [IL]: 0.6 } }, kinds: ["chorus"] },
+      // The verse's Dorian IV, the chorus's or bridge's Aeolian iv (Heaven Can Wait, Innocent Love).
+      {
+        from: "IV",
+        to: "iv",
+        chance: { by: { [HCW]: 0.4, [IL]: 0.4 } },
+        kinds: ["chorus", "bridge"],
+        mode: "minor",
+      },
+    ],
+    // Innocent Love's Linn 9000 (credited on Mirrors); short, pitched sample kicks in all three.
+    kits: [
+      ["linndrum", { base: 0.6, by: { [IL]: 1, [HCW]: 0.4 } }],
+      ["sp12", { base: 0.3, by: { [HCW]: 0.5, [CJ]: 0.6 } }],
+      ["dmx", { base: 0.1, by: { [CJ]: 0.4 } }],
+    ],
+    bassFigures: [
+      ["innocent", { by: { [IL]: 2 } }],
+      ["heaven", { by: { [HCW]: 2 } }],
+      ["juliet", { by: { [CJ]: 2 } }],
+    ],
+    liftEnding: {},
+    counter: {},
+    // The pre-chorus is picked in every key (compose's `preChorus` check); the rest is planEuro's.
+    form: { ...NO_FORM, preChorus: { base: 1 } },
+    euro: {
+      staggeredIntro: { by: { [CJ]: 1 } },
+      motifIntro: { by: { [HCW]: 1 } },
+      padIntro: { by: { [IL]: 1 } },
+      longVerse: { by: { [CJ]: 1 } },
+      bareVerse: { by: { [HCW]: 1 } },
+      stop: { by: { [IL]: 1, [CJ]: 1 } },
+      tag: { by: { [HCW]: 1 } },
+      chorusStop: { by: { [IL]: 1 } },
+      straight: { by: { [CJ]: 1 } },
+      leadChoruses: { by: { [CJ]: 1 } },
+      instrumentalChorus: { by: { [HCW]: 1 } },
+      instrumentalBlock: { by: { [IL]: 1 } },
+      bridge: { by: { [IL]: 0.8 } },
+      verseArp: { by: { [CJ]: 0.9 } },
+      chorusArp: { by: { [HCW]: 1, [CJ]: 0.2 } },
+      chorusRiff: { by: { [CJ]: 1 } },
+      stabs: { by: { [IL]: 1 } },
+      stack: { by: { [IL]: 0.8 } },
+    },
+    parts: { stabs: "follow" },
+    voices: EURO_VOICES,
+    voiceTraits: EURO_VOICE_TRAITS,
+    // Innocent Love's verse sits low (A3–F4) and its chorus a 4th up, centred on A♭4; Heaven Can
+    // Wait's verse spans D4–C♯5 and its hook A♭4–B♭4; Crazy Juliet's verse C♯4–G♯4, chorus C♯4–B4.
+    leadRanges: { verse: [57, 69], chorus: [61, 73] },
+    drums: { ...EURO_NO_DRUM_TRAITS, groove: HCW_GROOVE },
+    drumTraits: {
+      [IL]: { ...EURO_NO_DRUM_TRAITS, groove: IL_GROOVE },
+      [HCW]: { ...EURO_NO_DRUM_TRAITS, groove: HCW_GROOVE },
+      [CJ]: { ...EURO_NO_DRUM_TRAITS, groove: CJ_GROOVE },
+    },
+    leadTone: EURO_LEAD_TONE,
+    // All three basses are octave-layered and dark: harmonics within 22 dB of the fundamental up to
+    // 310–420 Hz (Crazy Juliet, Heaven Can Wait). Innocent Love's is a little brighter, its 8th
+    // harmonic only 11 dB down on B♭1, with a weak fundamental. Notes fill their 8ths and 16ths
+    // and stop at the rests.
+    bassTone: {
+      frequency: { base: 170, by: { [IL]: 70 } },
+      presence: { base: 1, by: { [IL]: 2 } },
+      sawCutoff: { base: 480, by: { [IL]: 520 } },
+      octave: { base: 1 },
+      sustain: { base: 0.45 },
+      lowCut: {},
+    },
+  },
 };
 
 /** Every genre, in the order the genre select lists them. */
@@ -1049,12 +1534,12 @@ export function specWeights(genre: Genre, spec: { style: number; weights?: reado
 }
 
 /** All the weight on one reference (an original playing). */
-export function soloWeights(genre: Genre, ref: ReferenceId): readonly number[] {
+export function soloWeights(genre: Genre, ref: StyleId): readonly number[] {
   return genre.references.map((r) => (r === ref ? 1 : 0));
 }
 
 /** A reference's weight (0 when the genre doesn't have it). */
-export function weightOf(genre: Genre, weights: readonly number[], ref: ReferenceId): number {
+export function weightOf(genre: Genre, weights: readonly number[], ref: StyleId): number {
   const i = genre.references.indexOf(ref);
   return i >= 0 ? (weights[i] ?? 0) : 0;
 }
@@ -1098,7 +1583,7 @@ export function genreAt(genre: Genre, at: number | readonly number[]): GenreAt {
 }
 
 /** The reference that outweighs every other one, if any. */
-function dominantReference(genre: Genre, weights: readonly number[]): ReferenceId | undefined {
+function dominantReference(genre: Genre, weights: readonly number[]): StyleId | undefined {
   const i = weights.findIndex((w, i) => weights.every((o, j) => j === i || w > o));
   return i >= 0 ? genre.references[i] : undefined;
 }
