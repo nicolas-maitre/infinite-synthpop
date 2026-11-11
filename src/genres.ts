@@ -1049,15 +1049,17 @@ const EURO_VOICE_TRAITS: Partial<Record<StyleId, Voices>> = {
 const EURO_VOICES: Voices = EURO_VOICE_TRAITS["heaven-can-wait"] ?? SYNTHPOP_VOICES;
 
 /** The voice's mix at each corner, matched with scripts/compare_voice.py to each record's vocal
- * stem over three rounds: all three sit forward in the presence band (Innocent Love the most) and
- * wider than a mono lead, Crazy Juliet the narrowest, Heaven Can Wait the furthest back. */
+ * stem: level and width within 0.5 dB; the high shelf and breath held at the caps (+9, +6), which
+ * leaves the 1–2.5 kHz band 1–3.5 dB and the presence and air bands 1–4 dB short of the records. All
+ * three sit forward and wider than a mono lead, Crazy Juliet the narrowest, Heaven Can Wait the
+ * furthest back. */
 const EURO_LEAD_TONE: Genre["leadTone"] = {
-  level: { by: { "innocent-love": 0.4, "heaven-can-wait": -2.4, "crazy-juliet": -0.6 } },
+  level: { by: { "innocent-love": 1.8, "heaven-can-wait": -1.7, "crazy-juliet": 0.4 } },
   low: { by: { "innocent-love": 4, "heaven-can-wait": 1, "crazy-juliet": 6 } },
-  mid: { by: { "innocent-love": 17, "heaven-can-wait": 11.5, "crazy-juliet": 10 } },
-  high: { by: { "innocent-love": 11, "heaven-can-wait": 13, "crazy-juliet": 12 } },
-  air: { by: { "innocent-love": 8.5, "heaven-can-wait": 7, "crazy-juliet": 8 } },
-  width: { by: { "innocent-love": 0.5, "heaven-can-wait": 0.45, "crazy-juliet": 0.25 } },
+  mid: { by: { "innocent-love": 12, "heaven-can-wait": 9, "crazy-juliet": 8 } },
+  high: { by: { "innocent-love": 9, "heaven-can-wait": 9, "crazy-juliet": 9 } },
+  air: { by: { "innocent-love": 6, "heaven-can-wait": 6, "crazy-juliet": 6 } },
+  width: { by: { "innocent-love": 0.5, "heaven-can-wait": 0.45, "crazy-juliet": 0.3 } },
 };
 
 export const GENRES: Record<GenreId, Genre> = {
