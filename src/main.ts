@@ -606,6 +606,9 @@ const BASS_LABELS: Record<BassStyle, string> = {
   italo: "Get Closer root-8ths bass",
   night: "The Night root-8ths bass",
   faces: "Faces staccato bass",
+  innocent: "Innocent Love pedal and slurred riff",
+  heaven: "Heaven Can Wait riff bass",
+  juliet: "Crazy Juliet syncopated bass",
 };
 
 function renderSong(song: Song): void {

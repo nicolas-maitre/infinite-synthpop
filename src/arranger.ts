@@ -5,6 +5,7 @@
 import {
   chordAt,
   type BassStyle,
+  type EuroBassStyle,
   type DrumMode,
   type Motif,
   type Note,
@@ -12,7 +13,7 @@ import {
   type SectionKind,
   type Song,
 } from "./composer";
-import { GENRES, genreAt, type DrumTraits } from "./genres";
+import { GENRES, genreAt, type DrumTraits, type Grooves } from "./genres";
 import { createRng, type Rng } from "./rng";
 import {
   chordName,
@@ -150,7 +151,16 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
                 barInSection,
                 section.kind === "chorus" || !!L.bassHeld,
               )
-            : bassLine(song.bassStyle, figureContext("bass")),
+            : isEuroBass(song.bassStyle)
+              ? euroBassLine(song.bassStyle, figureContext("bass"), {
+                  figure: euroFigure(section.kind),
+                  barInSection,
+                  sameChord:
+                    barInSection > 0 &&
+                    section.progression[(barInSection - 1) % section.progression.length]?.at(-1) ===
+                      section.progression[barInSection % section.progression.length]?.[0],
+                })
+              : bassLine(song.bassStyle, figureContext("bass")),
     hook: L.hook
       ? motifNotes(
           song.hook,
@@ -194,9 +204,11 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
         ? voices.stabPatch === "pluck"
           ? pluckedStabs(key, slots, section.kind === "chorus" || section.kind === "outro")
           : gatedStabs(key, slots)
-        : barInSection % 4 === 0
-          ? stabChord(key, slots)
-          : [],
+        : parts?.stabs === "follow"
+          ? followStabs(key, slots)
+          : barInSection % 4 === 0
+            ? stabChord(key, slots)
+            : [],
     seq: L.seq ? sequenceLine(song, key) : [],
     guitar: L.guitar ? guitarStrums(key, slots) : [],
     synth: [],
@@ -241,6 +253,15 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   }
 
   const isLastBar = barInSection === section.bars - 1;
+  // A stop bar: the bass cuts off where the backbeat kit stops (Innocent Love after its hit on 2,
+  // Crazy Juliet from 3&).
+  const stop = profile.drums.groove?.stop;
+  if (L.stop && isLastBar && stop && !song.imported?.notes?.bass) {
+    const cut = stop === "hit2" ? 6 : 10;
+    notes.bass = notes.bass
+      .filter((n) => n.step < cut)
+      .map((n) => ({ ...n, dur: Math.min(n.dur, cut - n.step - 0.05) }));
+  }
   const importedDrums = song.imported?.drums;
   const drums = importedDrums
     ? (importedDrums[bar] ?? []).map((h) => ({ ...h }))
@@ -252,6 +273,7 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
         intro: section.kind === "intro",
         fill: section.fill && isLastBar,
         intoChorus: song.sections[sectionIndex + 1]?.kind === "chorus",
+        stop: !!L.stop && isLastBar,
       });
 
   // Both songs end on a fade: ramp everything down over the final section's last 8 bars.
@@ -516,6 +538,216 @@ function facesBassLine(ctx: FigureContext, barInSection: number, sustained: bool
   }
   if (ctx.short) for (const n of out) n.dur = Math.min(0.95, n.dur);
   return out;
+}
+
+// ── The Euro-disco riff basses ────────────────────────────────────────────────────────────────
+
+const EURO_BASSES: readonly EuroBassStyle[] = ["innocent", "heaven", "juliet"];
+
+function isEuroBass(style: BassStyle): style is EuroBassStyle {
+  return (EURO_BASSES as readonly BassStyle[]).includes(style);
+}
+
+/** Which of a Euro-disco bass's figures a section plays: the chorus's in choruses, their tags,
+ * breaks, bridges and the outro; the pre-chorus's; the verse's everywhere else. */
+type EuroFigure = "verse" | "pre" | "chorus";
+
+function euroFigure(kind: SectionKind): EuroFigure {
+  if (kind === "prechorus") return "pre";
+  return kind === "chorus" || kind === "outro" || kind === "bridge" || kind === "break"
+    ? "chorus"
+    : "verse";
+}
+
+/** The chord's bass note (a slash chord's own) in [lo, hi]. */
+function rootIn(key: Key, c: Chord, lo: number, hi: number): number {
+  let root = nearestWithPc(mod12(key.tonic + (c.bass ?? c.root)), (lo + hi) / 2);
+  while (root > hi) root -= 12;
+  while (root < lo) root += 12;
+  return root;
+}
+
+/** The scale note next to `from`, below (−1) or above (+1), in the scale over `c`. */
+function scaleStep(key: Key, c: Chord, from: number, dir: 1 | -1): number {
+  const scale = scaleForChord(key, c);
+  for (let d = 1; d <= 3; d++) if (scale.includes(mod12(from + dir * d))) return from + dir * d;
+  return from + dir * 2;
+}
+
+/** A Euro-disco bass's onset: its 16th, length, pitch and level. */
+type EuroHit = readonly [step: number, dur: number, midi: number, vel: number];
+
+interface EuroBassContext {
+  figure: EuroFigure;
+  barInSection: number;
+  /** This bar's first chord is the one the bar before ended on (a chord's second bar). */
+  sameChord: boolean;
+}
+
+/**
+ * The Euro-disco riff basses (docs/references/sandra-*.md §5). They leave rests, usually on 2 and 4
+ * where the snare is, and change figure between the verse and the chorus.
+ *
+ * Crazy Juliet ("juliet", A♯1–A2, the chorus an octave down in D♯1–D2): a held root re-struck on
+ * 1, &, 2&, 2a and 3&, a lower neighbour on 3e and the bar's loudest note, a pickup on 4& into the
+ * next root (verse); long notes on 1, 2&–2a and 4& (pre-chorus); a legato line, 1 – 2& – 4& with
+ * the second chord gliding in on 3, or 1 – 3& – 4& on one chord (chorus).
+ *
+ *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *   verse    R  -  R  -  -  -  R  R  -  N  R  -  .  .  P  -
+ *   chorus   R  -  -  .  .  .  R  -  R2 -  -  .  .  .  P  -   (two chords)
+ *            R  -  -  .  .  .  .  .  .  .  R  -  -  -  P  -   (one chord)
+ *
+ * Heaven Can Wait ("heaven", the verse's root in E1–D♯2 and its riff up an octave and a 7th, the
+ * chorus in G♯1–G2): a two-bar verse riff, the root on 1 and 1&, the 5th on 2&,
+ * the ♭7 below on 3 and above on 4, the next root a 16th early on 4a and held over; then the 5th,
+ * ♭7 and 5th, and a chromatic approach on 4 and 4&. The chorus: the root on 1 and 1&, a lower
+ * neighbour on 2&, the root on 3; a chord's first bar rests until a pickup on 4&–4a, its second
+ * fills 2e and 3& and climbs the key's 3rd and 4th; into i the bass walks up chromatically. Beat 2
+ * is always empty.
+ *
+ *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *   verse A  R  -  R  -  .  .  5  -  ♭7 -  .  .  ♭7 -  ♭7 N→
+ *   verse B  ~  -  R  -  .  .  5  -  ♭7 -  5  -  A  -  A  -
+ *   chorus   R  -  R  -  .  .  N  -  R  -  .  .  .  .  P  P   (a chord's first bar)
+ *            R  -  R  -  .  R  N  -  R  -  R  -  3  -  4  -   (its second)
+ *
+ * Innocent Love ("innocent", the verse on a pedal around B♭1, the chorus in D♭1–C2): the pedal on
+ * 1, 2a, 3 and 3&, a step down on 4& (a 4th down every 4th bar; verse and pre-chorus). The chorus
+ * is struck on 1, 1&, 2e (the loudest) and 3&, slurring down to the pentatonic neighbour on 2& and
+ * back on 3, and reaching the next root through two notes on 4 and 4&, the leading tone into i.
+ * The slurred notes play softer (the synth can't glide).
+ *
+ *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *   verse    R  -  .  .  .  .  .  R  R  .  R  -  .  .  S  -
+ *   chorus   R  -  R  -  .  R  N~ -  R~ .  R  -  A~ -  A~ -
+ */
+function euroBassLine(style: EuroBassStyle, ctx: FigureContext, e: EuroBassContext): Note[] {
+  const { key, slots } = ctx;
+  const chordAtStep = (step: number) => slotAt(slots, step)?.chord;
+  const first = slots[0]?.chord;
+  if (!first) return [];
+  const hits: EuroHit[] = [];
+  const [lo, hi] =
+    style === "juliet"
+      ? e.figure === "chorus"
+        ? [27, 38]
+        : [34, 45]
+      : style === "heaven"
+        ? e.figure === "chorus"
+          ? [32, 43]
+          : [28, 39]
+        : e.figure === "chorus"
+          ? [25, 36]
+          : [30, 41];
+  const root = (step: number) => rootIn(key, chordAtStep(step) ?? first, lo, hi);
+  const next = ctx.next ? rootIn(key, ctx.next.chord, lo, hi) : undefined;
+  const tonicChord = { numeral: "i", root: 0, quality: "min" as const };
+  const tonic = rootIn(key, tonicChord, lo, hi);
+  const intoTonic = !!ctx.next && ctx.next.chord.root === 0 && ctx.next.chord.bass === undefined;
+
+  if (style === "juliet") {
+    // The pickup leans into the next root from the side it comes from.
+    const pickup = (from: number): number => {
+      const to = next ?? from;
+      const c = ctx.next?.chord ?? chordAtStep(14) ?? first;
+      if (to > from) return scaleStep(key, c, to, -1);
+      if (to < from) return scaleStep(key, c, to, 1);
+      // Back to the same root: the whole step under it (the verse's Mixolydian ♭7).
+      return from - 2;
+    };
+    if (e.figure === "verse") {
+      const r = root(0);
+      hits.push([0, 2, r, 0.95], [2, 4, r, 0.8], [6, 1, root(6), 0.8], [7, 2, root(7), 0.8]);
+      hits.push([9, 1, scaleStep(key, chordAtStep(9) ?? first, root(9), -1), 0.6]);
+      hits.push([10, 2, root(10), 0.8], [14, 2, pickup(root(14)), 1]);
+    } else if (e.figure === "pre") {
+      hits.push([0, 3, root(0), 0.95], [6, 1, root(6), 0.8], [7, 3, root(7), 0.8]);
+      hits.push([14, 2, pickup(root(14)), 0.9]);
+    } else if (slots.length > 1) {
+      hits.push([0, 6, root(0), 0.95], [6, 2, root(6), 0.85], [8, 6, root(8), 0.6]);
+      hits.push([14, 2, pickup(root(14)), 0.9]);
+    } else {
+      hits.push([0, 10, root(0), 0.95], [10, 4, root(10), 0.85], [14, 2, pickup(root(14)), 0.9]);
+    }
+  } else if (style === "heaven") {
+    const r = root(0);
+    if (e.figure !== "chorus") {
+      if (e.barInSection % 2 === 0) {
+        // The next root a 16th early on 4a, held over (an octave up while the chord stays).
+        const to = next === undefined ? r : mod12(next - r) === 0 ? r + 12 : next;
+        hits.push([0, 2, r, 0.95], [2, 2, r, 0.85], [6, 2, r + 7, 0.85], [8, 2, r - 2, 0.9]);
+        hits.push([12, 2, r + 10, 0.85], [14, 1, r + 10, 0.8], [15, 2, to, 0.9]);
+      } else {
+        const to = next ?? r;
+        if (!ctx.heldIn) hits.push([0, 2, r, 0.95]);
+        hits.push([2, 2, r, 0.85], [6, 2, r + 7, 0.85], [8, 2, r + 10, 0.85], [10, 2, r + 7, 0.8]);
+        hits.push([12, 2, to - 2, 0.85], [14, 2, to - 1, 0.9]);
+      }
+    } else {
+      const c = chordAtStep(0) ?? first;
+      const n = scaleStep(key, c, r, -1);
+      hits.push([0, 2, r, 1], [2, 2, r, 0.85]);
+      if (!e.sameChord) {
+        hits.push([6, 2, n, 0.85], [8, 2, root(8), 0.95]);
+        // The tonic's pickup climbs to its 3rd and 4th; other chords' fall to the neighbour.
+        if (!intoTonic || r === tonic) {
+          const up = (c.root === 0 ? [3, 5] : [n - r, 0]).map((i) => root(14) + i);
+          hits.push([14, 1, up[0] ?? r, 0.8], [15, 2, up[1] ?? r, 0.85]);
+        }
+      } else {
+        const scale = scaleForChord(key, tonicChord);
+        const degree = (i: number) => nearestWithPc(scale[i] ?? key.tonic, 31);
+        hits.push([5, 1, r, 0.9], [6, 2, n, 0.85], [8, 2, root(8), 0.95], [10, 2, root(10), 0.85]);
+        if (!intoTonic || r === tonic) hits.push([12, 2, degree(2), 0.85], [14, 2, degree(3), 0.9]);
+      }
+      // Into i: a chromatic walk up, B♭–B–C♯–D → E♭ in E♭ minor.
+      if (intoTonic && r !== tonic) {
+        for (const [step, by] of [
+          [12, -5],
+          [13, -4],
+          [14, -2],
+          [15, -1],
+        ] as const)
+          hits.push([step, 1, tonic + by, 0.85]);
+      }
+    }
+  } else {
+    const r = root(0);
+    if (e.figure !== "chorus") {
+      const s = scaleStep(key, chordAtStep(12) ?? first, root(12), -1);
+      hits.push(
+        [0, 2, r, 0.95],
+        [7, 1, root(7), 0.75],
+        [8, 2, root(8), 0.9],
+        [10, 2, root(10), 0.85],
+      );
+      if (e.barInSection % 4 === 3) hits.push([12, 2, s, 0.85], [14, 2, root(14) - 5, 0.9]);
+      else hits.push([14, 2, s, 0.9]);
+    } else {
+      const pent = (key.mode === "minor" ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9]).map((i) =>
+        mod12(key.tonic + i),
+      );
+      const pentStep = (from: number, dir: 1 | -1) => {
+        for (let d = 1; d <= 4; d++)
+          if (pent.includes(mod12(from + dir * d))) return from + dir * d;
+        return from + dir * 2;
+      };
+      const r14 = root(14);
+      // Two notes into the next root: the tonic, or the leading tone when the next root is it.
+      const a2 = next === undefined ? r14 : intoTonic ? tonic - 1 : tonic;
+      const toward = pentStep(r14, a2 < r14 ? -1 : 1);
+      const a1 = next === undefined ? pentStep(r14, -1) : toward === a2 ? r14 : toward;
+      hits.push([0, 2, r, 0.9], [2, 3, r, 0.8], [5, 1, r, 1], [6, 2, pentStep(r, -1), 0.6]);
+      hits.push([8, 2, root(8), 0.6], [10, 2, root(10), 0.85], [12, 2, a1, 0.6], [14, 2, a2, 0.65]);
+    }
+  }
+  return hits.map(([step, dur, midi, vel]) => ({
+    step,
+    dur: (ctx.short ? Math.min(1, dur) : dur) - 0.05,
+    midi,
+    vel,
+  }));
 }
 
 /** The Night's two-note riff (`generatePair`): the tonic around F4 (idx 1) and the 7th below it
@@ -845,6 +1077,27 @@ function gatedStabs(key: Key, slots: readonly ChordSlot[]): Note[] {
   return out;
 }
 
+/**
+ * Innocent Love's chorus stabs (§7): close chords that follow the bass figure's rhythm, on 1, 1&,
+ * 2e, 2& and 3&, and 4e, the 2e push a little louder, as the bass's is.
+ */
+function followStabs(key: Key, slots: readonly ChordSlot[]): Note[] {
+  const out: Note[] = [];
+  for (const step of [0, 2, 5, 6, 10, 13]) {
+    const slot = slotAt(slots, step);
+    if (!slot) continue;
+    for (const midi of voiceChord(chordPitchClasses(key, slot.chord), 66)) {
+      out.push({
+        step,
+        dur: step === 5 || step === 13 ? 0.9 : 1.6,
+        midi,
+        vel: step === 5 ? 0.7 : 0.55,
+      });
+    }
+  }
+  return out;
+}
+
 function stabChord(key: Key, slots: readonly ChordSlot[]): Note[] {
   const slot = slots[0];
   if (!slot) return [];
@@ -862,10 +1115,13 @@ interface DrumBarContext {
   intro: boolean;
   fill: boolean;
   intoChorus: boolean;
+  /** The bar stops (a stop bar, `Layers.stop`). */
+  stop: boolean;
 }
 
 function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarContext): DrumHit[] {
   if (mode === "off") return [];
+  if (traits.groove) return grooveBar(mode, rng, traits.groove, ctx);
   const { barInSection, sectionStart, intoChorus } = ctx;
   const hits: DrumHit[] = [];
   const hit = (voice: DrumVoice, step: number, vel: number) => hits.push({ voice, step, vel });
@@ -1024,4 +1280,109 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
       return true;
     })
     .sort((a, b) => a.step - b.step);
+}
+
+/** A pattern character's level: "X" a full hit, "x" a little under, "g" a ghost, "?" a ghost in
+ * about half the bars (genres.ts `Groove`). */
+function patternLevel(c: string | undefined, rng: Rng): number {
+  if (c === "X") return 1;
+  if (c === "x") return 0.75;
+  if (c === "g") return 0.5;
+  if (c === "?") return rng.chance(0.5) ? 0.6 : 0;
+  return 0;
+}
+
+/**
+ * A backbeat kit played from the song's pattern table (genres.ts `Grooves`, the Euro-disco
+ * references): the kick's 2- or 4-bar cycle from the section's first bar, the snare on 2 and 4,
+ * the hats as written, plus the reference's fills, crashes and stop bars.
+ */
+function grooveBar(mode: DrumMode, rng: Rng, grooves: Grooves, ctx: DrumBarContext): DrumHit[] {
+  const hits: DrumHit[] = [];
+  const hit = (voice: DrumVoice, step: number, vel: number) => hits.push({ voice, step, vel });
+  const humanise = (s: number) => (s === 0 ? 0 : (rng.next() - 0.5) * 0.08);
+  const sorted = () => hits.sort((a, b) => a.step - b.step);
+  // Innocent Love's chorus stop: a hat on each beat over the held chord.
+  if (mode === "half") {
+    for (const s of [0, 4, 8, 12]) hit("hat", s, s === 0 ? 0.6 : 0.45);
+    return sorted();
+  }
+  // Innocent Love's instrumental link: the song's only four-on-the-floor, open hats on the "&"s,
+  // the snare on 4 of every other bar.
+  if (mode === "groove") {
+    for (const s of [0, 4, 8, 12]) hit("kick", s, 1);
+    for (const s of [2, 6, 10, 14]) hit("openhat", s + humanise(s), 0.5 + rng.next() * 0.1);
+    if (ctx.barInSection % 2 === 1) hit("snare", 12, 1);
+    return sorted();
+  }
+  const stopBar = ctx.stop;
+  if (stopBar && grooves.stop === "hit2") {
+    hit("kick", 4, 1);
+    hit("snare", 4, 1);
+    return sorted();
+  }
+  const intro = mode === "hats16";
+  const pattern = intro
+    ? (grooves.intro ?? { kick: ["................"], hats: "xxxxxxxxxxxxxxxx", snare: "" })
+    : mode === "big"
+      ? grooves.chorus
+      : ctx.kind === "prechorus"
+        ? (grooves.prechorus ?? grooves.verse)
+        : grooves.verse;
+  const kit = mode === "full" || mode === "big";
+  const kick = pattern.kick[ctx.barInSection % pattern.kick.length] ?? "";
+  const snare = mode === "breakdown" ? "" : (pattern.snare ?? "....X.......X...");
+  const phraseStart = ctx.sectionStart || (ctx.barInSection > 0 && ctx.barInSection % 8 === 0);
+  const crash = grooves.phraseCrash && kit && phraseStart && !intro;
+  // Crazy Juliet: a snare run through the chorus's last bar, a 4e–4& pickup closing 8 bars.
+  const run = grooves.fills === "run" && mode === "big" && ctx.lastBar && ctx.fill;
+  const phraseEnd = ctx.barInSection % 8 === 7 || (ctx.fill && ctx.lastBar);
+  const runPickup = grooves.fills === "run" && kit && !run && !stopBar && phraseEnd;
+  // Heaven Can Wait: 3e and 4e into a chorus; 3e, 4, 4& and 4a into a verse.
+  const pickup =
+    grooves.fills === "pickup" &&
+    kit &&
+    (ctx.fill && ctx.lastBar ? true : mode === "big" && phraseEnd);
+  const open = rng.chance(1 / 3);
+  // Crazy Juliet's stop bar: played to the snare on 4, the kick on 1 and 3 only, an open hat on 3a.
+  const last = stopBar ? 12 : 15;
+  for (let s = 0; s <= last; s++) {
+    const k = stopBar ? (s === 0 || s === 8 ? 1 : 0) : patternLevel(kick[s], rng);
+    if (k > 0) hit("kick", s, k);
+    const sn = patternLevel(snare[s], rng);
+    if (sn > 0 && mode !== "kick") hit("snare", s, sn);
+    if (pattern.tom?.[s] === "x") hit("toml", s, 0.85);
+    if (mode === "kick" || mode === "breakdown") continue;
+    if (crash && s >= 1 && s <= 3) continue;
+    if (run && s > 10) continue;
+    if (stopBar && s >= 11) {
+      if (s === 11) hit("openhat", s, 0.6);
+      continue;
+    }
+    const h = pattern.hats[s];
+    const vel = (s % 4 === 0 ? 0.5 : s % 2 === 0 ? 0.65 : 0.4) + rng.next() * 0.1;
+    if (h === "x" || (h === "?" && rng.chance(0.5))) hit("hat", s + humanise(s), vel);
+    else if (h === "o" || (h === "%" && open)) hit("openhat", s + humanise(s), 0.55);
+    else if (h === "%") hit("hat", s + humanise(s), vel);
+  }
+  if (crash) hit("crash", 0, 0.8);
+  if (run) {
+    hit("kick", 5, 0.7);
+    [4, 5, 8, 9, 12, 14, 15].forEach((s, i) => hit("snare", s, 0.6 + i * 0.06));
+  } else if (runPickup) {
+    hit("snare", 13, 0.6);
+    hit("snare", 14, 0.75);
+  } else if (pickup) {
+    hit("snare", 9, 0.7);
+    if (ctx.intoChorus || !ctx.lastBar) hit("snare", 13, 0.65);
+    else for (const s of [14, 15]) hit("snare", s, 0.75);
+  }
+  // One hit per voice per step.
+  const seen = new Set<string>();
+  return sorted().filter((h) => {
+    const k = `${h.voice}@${Math.round(h.step * 100)}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }

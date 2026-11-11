@@ -181,3 +181,66 @@ export function italoTitle(rng: Rng): string {
     title += rng.pick([" (Extended Version)", " (Maxi Version)", " (Vocal)", " (Remix)"]);
   return title;
 }
+
+const CAN_WAIT = ["Heaven", "Paradise", "Tomorrow", "Forever", "Midnight", "Romance", "Destiny"];
+const SECRET_ADJECTIVES = [
+  "Innocent",
+  "Everlasting",
+  "Secret",
+  "Silent",
+  "Hidden",
+  "Forbidden",
+  "Fragile",
+  "Precious",
+  "Stolen",
+];
+const SECRET_NOUNS = ["Love", "Land", "Heart", "Dreams", "Mirrors", "Island", "Desire", "Promise"];
+const SANDRA_ADJECTIVES = ["Crazy", "Little", "Lonely", "Poor", "Dancing", "Pretty", "Silly"];
+const SANDRA_NAMES = [
+  "Loreen",
+  "Magdalena",
+  "Isabel",
+  "Carmen",
+  "Angelina",
+  "Marlene",
+  "Josephine",
+  "Rosalie",
+];
+const AROUND = ["Around", "Into", "Beyond", "Behind", "Under"];
+const AROUND_WHAT = [
+  "My Heart",
+  "Your Heart",
+  "a Secret Land",
+  "the Mirror",
+  "the Silence",
+  "a Distant Sky",
+  "Your Eyes",
+];
+const PLEAS = ["Stop", "Wait", "Listen", "Hold On", "Come Back", "Stay"];
+const PLEA_ENDS = ["for a Minute", "to Your Heart", "Tonight", "to Me", "Forever", "a Little Longer"];
+const PAIRS_A = ["Sisters", "Angels", "Lovers", "Strangers", "Shadows", "Heroes"];
+const PAIRS_B = ["Brothers", "Saints", "Fools", "Dreamers", "Liars", "Thieves"];
+
+/** Euro-disco, Sandra's way: "Heaven Can Wait", an adjective and a noun ("Innocent Love"), an
+ * adjective and a name ("Crazy Juliet"), "Around My Heart", pleas ("Stop for a Minute") and pairs
+ * ("Sisters and Brothers"). A list of its own, so Italo's titles stay as they were. */
+export function euroTitle(rng: Rng): string {
+  const pattern = rng.weighted<number>([
+    [0, 2], // Heaven Can Wait
+    [1, 3], // Innocent Love, Everlasting Love, Secret Land
+    [2, 2], // Crazy Juliet, Little Girl
+    [3, 2], // Around My Heart, Into a Secret Land
+    [4, 1.5], // Stop for a Minute
+    [5, 1], // Sisters and Brothers
+  ]);
+  let title: string;
+  if (pattern === 0) title = `${rng.pick(CAN_WAIT)} Can Wait`;
+  else if (pattern === 1) title = `${rng.pick(SECRET_ADJECTIVES)} ${rng.pick(SECRET_NOUNS)}`;
+  else if (pattern === 2) title = `${rng.pick(SANDRA_ADJECTIVES)} ${rng.pick(SANDRA_NAMES)}`;
+  else if (pattern === 3) title = `${rng.pick(AROUND)} ${rng.pick(AROUND_WHAT)}`;
+  else if (pattern === 4) title = `${rng.pick(PLEAS)} ${rng.pick(PLEA_ENDS)}`;
+  else title = `${rng.pick(PAIRS_A)} and ${rng.pick(PAIRS_B)}`;
+  // The singles came as 7″ and 12″ cuts, named on the sleeve.
+  if (rng.chance(0.2)) title += rng.pick([" (Extended Version)", " (Single Version)", " (Dub Mix)"]);
+  return title;
+}

@@ -9,7 +9,17 @@ export interface Key {
 
 /** Triads, plus the colours You Came uses: sus4, dominant 7th, major 7th and added 9th. */
 export type Quality =
-  "maj" | "min" | "dim" | "sus4" | "dom7" | "maj7" | "add9" | "min7" | "dom7sus4";
+  | "maj"
+  | "min"
+  | "dim"
+  | "sus4"
+  | "dom7"
+  | "maj7"
+  | "add9"
+  | "min7"
+  | "dom7sus4"
+  | "hdim7"
+  | "9sus4";
 export interface Chord {
   numeral: string;
   /** Semitones above the key's tonic. */
@@ -72,6 +82,24 @@ const NUMERALS: Record<string, { root: number; quality: Quality; bass?: number }
   VII7: { root: 10, quality: "dom7" },
   VII7sus4: { root: 10, quality: "dom7sus4" },
   V7sus4: { root: 7, quality: "dom7sus4" },
+  // The Euro-disco references (docs/references/sandra-*.md). Heaven Can Wait's Dorian IV⁷ vamp and
+  // its pre-chorus over the IV pedal (G♭/A♭, D♭/A♭ in E♭ minor); Innocent Love's verse over the v
+  // pedal (Fm7/B♭, E♭/B♭), its half-diminished vi, its sus4 → major IV and its ♭VII with no third
+  // (D♭9sus4: D♭ G♭ C♭ E♭); Crazy Juliet's ii⁷, IV⁷sus4 → IV⁷, and the sus chords on its tonic as
+  // read from the minor v (G♯sus4 in G♯ minor).
+  IV7: { root: 5, quality: "dom7" },
+  IVsus4: { root: 5, quality: "sus4" },
+  IV7sus4: { root: 5, quality: "dom7sus4" },
+  "III/IV": { root: 3, quality: "maj", bass: 5 },
+  "VII/IV": { root: 10, quality: "maj", bass: 5 },
+  "ii7/v": { root: 2, quality: "min7", bass: 7 },
+  "I/v": { root: 0, quality: "maj", bass: 7 },
+  viø7: { root: 9, quality: "hdim7" },
+  VII9sus4: { root: 10, quality: "9sus4" },
+  ii7: { root: 2, quality: "min7" },
+  vii: { root: 10, quality: "min" },
+  VIadd9: { root: 8, quality: "add9" },
+  Isus4: { root: 0, quality: "sus4" },
 };
 
 const QUALITY_INTERVALS: Record<Quality, readonly number[]> = {
@@ -84,6 +112,8 @@ const QUALITY_INTERVALS: Record<Quality, readonly number[]> = {
   add9: [0, 4, 7, 2],
   min7: [0, 3, 7, 10],
   dom7sus4: [0, 5, 7, 10],
+  hdim7: [0, 3, 6, 10],
+  "9sus4": [0, 5, 10, 2],
 };
 
 const QUALITY_SUFFIXES: Record<Quality, string> = {
@@ -96,6 +126,8 @@ const QUALITY_SUFFIXES: Record<Quality, string> = {
   add9: "add9",
   min7: "m7",
   dom7sus4: "7sus4",
+  hdim7: "m7♭5",
+  "9sus4": "9sus4",
 };
 
 const SCALES: Record<Mode, readonly number[]> = {
