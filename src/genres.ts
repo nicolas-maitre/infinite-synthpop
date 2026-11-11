@@ -22,29 +22,15 @@ import { italoTitle, synthpopTitle } from "./titles";
 
 export type GenreId = "synthpop" | "italo";
 
-/** The records a genre blends between: the playable originals (references.ts), and the Italo
- * records measured in docs/italo/, which don't play as originals (yet). */
-export type StyleId = ReferenceId | "the-night" | "get-closer" | "faces";
-
-const MEASURED_TITLES: Record<Exclude<StyleId, ReferenceId>, string> = {
-  "the-night": "The Night",
-  "get-closer": "Get Closer",
-  faces: "Faces",
-};
-
-export function isReferenceId(id: unknown): id is ReferenceId {
-  return typeof id === "string" && Object.hasOwn(REFERENCES, id);
-}
-
 /** A reference's title, for the style pad and the wizard. */
-export function styleName(id: StyleId): string {
-  return isReferenceId(id) ? REFERENCES[id].title : MEASURED_TITLES[id];
+export function styleName(id: ReferenceId): string {
+  return REFERENCES[id].title;
 }
 
 /** A number that varies with the references' weights: `base + Σ by[ref] × weight(ref)`. */
 export interface Blend {
   base?: number;
-  by?: Partial<Record<StyleId, number>>;
+  by?: Partial<Record<ReferenceId, number>>;
 }
 
 /** Drum details a reference has that the genre doesn't by default. They apply while that
@@ -207,7 +193,7 @@ export interface Genre {
    * first two on its bottom edge, left to right (the legacy `style` runs from the first, 0, to the
    * second, 1), the others round from there. List similar references next to each other, so they
    * get neighbouring vertices. */
-  references: readonly StyleId[];
+  references: readonly ReferenceId[];
   /** Auto tempos fall in `range`, around `center`; `note` says where the records sit. */
   tempo: { range: readonly [number, number]; center: Blend; note: string };
   /** The section planner: synthpop's (True Faith's, The Different Story's and You Came's blocks,
@@ -218,7 +204,7 @@ export interface Genre {
   /** The parts and sounds when no reference outweighs the others, and per reference while it
    * does. Unset: `SYNTHPOP_VOICES`. */
   voices?: Voices;
-  voiceTraits?: Partial<Record<StyleId, Voices>>;
+  voiceTraits?: Partial<Record<ReferenceId, Voices>>;
   /** Where generated verse and chorus melodies sit, when not composer.ts `LEAD_RANGES`. */
   leadRanges?: Record<"verse" | "chorus", readonly [number, number]>;
   /** Key tonic (pitch class) → weight, for minor keys. */
@@ -284,7 +270,7 @@ export interface Genre {
   /** Drum details when no reference outweighs the others. */
   drums: DrumTraits;
   /** Per reference, the drum details it brings while it outweighs the others. */
-  drumTraits: Partial<Record<StyleId, DrumTraits>>;
+  drumTraits: Partial<Record<ReferenceId, DrumTraits>>;
   bassTone: { frequency: Blend; presence: Blend; sawCutoff: Blend; octave: Blend; sustain: Blend };
   leadTone: { level: Blend; low: Blend; mid: Blend; high: Blend; air: Blend; width: Blend };
 }
@@ -926,7 +912,7 @@ export function isGenreId(id: unknown): id is GenreId {
 }
 
 /** The genre an original belongs to. */
-export function genreOfReference(ref: StyleId): GenreId {
+export function genreOfReference(ref: ReferenceId): GenreId {
   return GENRE_IDS.find((id) => GENRES[id].references.includes(ref)) ?? DEFAULT_GENRE;
 }
 
@@ -973,12 +959,12 @@ export function specWeights(genre: Genre, spec: { style: number; weights?: reado
 }
 
 /** All the weight on one reference (an original playing). */
-export function soloWeights(genre: Genre, ref: StyleId): readonly number[] {
+export function soloWeights(genre: Genre, ref: ReferenceId): readonly number[] {
   return genre.references.map((r) => (r === ref ? 1 : 0));
 }
 
 /** A reference's weight (0 when the genre doesn't have it). */
-export function weightOf(genre: Genre, weights: readonly number[], ref: StyleId): number {
+export function weightOf(genre: Genre, weights: readonly number[], ref: ReferenceId): number {
   const i = genre.references.indexOf(ref);
   return i >= 0 ? (weights[i] ?? 0) : 0;
 }
@@ -1022,7 +1008,7 @@ export function genreAt(genre: Genre, at: number | readonly number[]): GenreAt {
 }
 
 /** The reference that outweighs every other one, if any. */
-function dominantReference(genre: Genre, weights: readonly number[]): StyleId | undefined {
+function dominantReference(genre: Genre, weights: readonly number[]): ReferenceId | undefined {
   const i = weights.findIndex((w, i) => weights.every((o, j) => j === i || w > o));
   return i >= 0 ? genre.references[i] : undefined;
 }

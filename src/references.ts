@@ -1,7 +1,7 @@
 /**
  * The originals as songs for the same engine: the measured form, chords per section, key, tempo,
- * drum machine and bass figure (docs/analysis.md §1–§3 and, for You Came, §2 and §6; section
- * lengths rounded to whole phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
+ * drum machine and bass figure (docs/analysis.md §1–§3 and, for You Came, §2 and §6; the Italo
+ * records from docs/italo/; section lengths rounded to whole phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
  * the copyrighted compositions, while harmony, form and groove are what the generator studies.
  */
 import type { BassStyle, CustomMelody, KitName, Layers, SectionKind } from "./composer";
@@ -9,7 +9,8 @@ import type { GenreId } from "./genres";
 import type { Progression } from "./progressions";
 import type { Key } from "./theory";
 
-export type ReferenceId = "true-faith" | "different-story" | "you-came";
+export type ReferenceId =
+  "true-faith" | "different-story" | "you-came" | "the-night" | "get-closer" | "faces";
 
 export interface ReferenceSection {
   kind: SectionKind;
@@ -27,9 +28,9 @@ export interface ReferenceSection {
 
 export interface ReferenceSong {
   title: string;
-  /** Where the song sits on the style axis (0 = True Faith … 1 = The Different Story). An
-   * original plays with all the weight on itself whatever this says (You Came sits off the axis,
-   * at 0.5). */
+  /** Where the song sits on its genre's style axis (0 = the genre's first reference … 1 = its
+   * second). An original plays with all the weight on itself whatever this says (You Came and
+   * Faces sit off the axis, at 0.5). */
   style: number;
   /** The genre's references' weights a creation plays with (genres.ts), in `references` order.
    * Unset: its `style`'s, `[1 − style, style, 0]` (creations from before the weights). An
@@ -112,6 +113,48 @@ const YC_PRECHORUS: Progression = [
   ["Vsus4/vi"],
   ["V7/vi"],
 ];
+
+// The Night, in F minor (the-night.md §4): the Dorian verse loop over an F pedal in its bar 2, the
+// chorus in the relative major, and the intro's pedal.
+const TN_VERSE: Progression = [["i"], ["VII/i"], ["v7"], ["IV"]];
+const TN_CHORUS: Progression = [["IIIadd9"], ["VI/3"], ["II"], ["VII7sus4", "VII7"]];
+const TN_PEDAL: Progression = [["i"], ["VII/i"]];
+
+// Get Closer, in E minor (get-closer.md §4): pads i │ ♭VII │ IV │ ♭VI over a bass i │ i │ IV │ ♭VII.
+// Verse 1 puts C♯ under the A in its 7th and 15th bars (IV⁶), so the bass climbs E–C♯–D.
+const GC_LOOP: Progression = [["i"], ["VII/i"], ["IV"], ["VI/VII"]];
+const GC_VERSE1: Progression = [...GC_LOOP, ["i"], ["VII/i"], ["IV/3"], ["VI/VII"]];
+const GC_CHORUS: Progression = [["i"], ["VI/3"], ["VII"], ["IV/V", "V"]];
+
+// Faces, in A minor (faces.md §4): the royal-road loop, which the intro plays with the Em held
+// through its second bar; the A major chorus, 8 + 8 bars; the breakdown on its turnaround.
+const FC_LOOP: Progression = [
+  ["VImaj7", "VIIsus4"],
+  ["v7", "i7"],
+];
+const FC_INTRO: Progression = [["VImaj7", "VIIsus4"], ["v7"]];
+const FC_TURN: Progression = [
+  ["I", "vi7"],
+  ["VII", "V7sus4"],
+];
+const FC_CHORUS_A: Progression = [
+  ["I"],
+  ["v7", "IVmaj7"],
+  ["I"],
+  ["v7", "IVmaj7"],
+  ["I"],
+  ["v7", "IVmaj7"],
+  ...FC_TURN,
+];
+const FC_CHORUS_B: Progression = [
+  ["I"],
+  ["v7", "IVmaj7"],
+  ["I"],
+  ["v7", "IVmaj7"],
+  ...FC_TURN,
+  ...FC_TURN,
+];
+const FC_CHORUS: Progression = [...FC_CHORUS_A, ...FC_CHORUS_B];
 
 const band = { drums: "full", bass: true, pad: true } as const;
 
@@ -542,6 +585,299 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         bars: 5,
         progression: [["IV"]],
         layers: { pad: true },
+      },
+    ],
+  },
+  // Original Mix, 5:46 at 110.3 BPM, 152 bars (the-night.md §2): the second half repeats the
+  // first with a longer pedal block, then the last chorus fades. Chorus 3 and the fade run 25 bars,
+  // rounded to 24 (six loops). The layers are the Italo planner's (composer.ts `planItalo`): pads
+  // leave for the riff bars, the bass for the drops, the lead synth opens each half before the
+  // voice, and the plucked countervoice plays in every chorus. No fills (the drum traits).
+  "the-night": {
+    title: "The Night",
+    style: 0,
+    key: { tonic: 5, mode: "minor" },
+    bpm: 110.3,
+    kit: "synth",
+    bassStyle: "night",
+    verse: TN_VERSE,
+    chorus: TN_CHORUS,
+    sections: [
+      { kind: "intro", label: "Intro · pedal", bars: 2, progression: TN_PEDAL, layers: band },
+      {
+        kind: "intro",
+        label: "Intro · riff",
+        bars: 2,
+        progression: TN_PEDAL,
+        layers: { drums: "full", bass: true, riff: true },
+      },
+      {
+        kind: "intro",
+        label: "Intro · bass drop",
+        bars: 2,
+        progression: TN_PEDAL,
+        layers: { drums: "full", riff: true },
+      },
+      { kind: "intro", label: "Intro · loop", bars: 4, progression: TN_VERSE, layers: band },
+      {
+        kind: "interlude",
+        label: "Lead synth",
+        bars: 12,
+        progression: TN_VERSE,
+        layers: { ...band, leadSynth: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 1",
+        bars: 16,
+        progression: TN_VERSE,
+        layers: { ...band, lead: "verse" },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 1",
+        bars: 16,
+        progression: TN_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", counter: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 2",
+        bars: 16,
+        progression: TN_VERSE,
+        layers: { ...band, lead: "verse" },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 2",
+        bars: 16,
+        progression: TN_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", counter: true },
+      },
+      // Bars 87–96: the pedal and riff blocks twice, then the drop.
+      { kind: "intro", label: "Reprise · pedal", bars: 2, progression: TN_PEDAL, layers: band },
+      {
+        kind: "intro",
+        label: "Reprise · riff",
+        bars: 2,
+        progression: TN_PEDAL,
+        layers: { drums: "full", bass: true, riff: true },
+      },
+      { kind: "intro", label: "Reprise · pedal", bars: 2, progression: TN_PEDAL, layers: band },
+      {
+        kind: "intro",
+        label: "Reprise · riff",
+        bars: 2,
+        progression: TN_PEDAL,
+        layers: { drums: "full", bass: true, riff: true },
+      },
+      {
+        kind: "intro",
+        label: "Reprise · bass drop",
+        bars: 2,
+        progression: TN_PEDAL,
+        layers: { drums: "full", riff: true },
+      },
+      { kind: "intro", label: "Reprise · loop", bars: 4, progression: TN_VERSE, layers: band },
+      {
+        kind: "interlude",
+        label: "Lead synth",
+        bars: 12,
+        progression: TN_VERSE,
+        layers: { ...band, leadSynth: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 3",
+        bars: 16,
+        progression: TN_VERSE,
+        layers: { ...band, lead: "verse" },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 3 · fade",
+        bars: 24,
+        progression: TN_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", counter: true },
+      },
+    ],
+  },
+  // The single, 3:36 at 112.3 BPM (get-closer.md §3): 16-bar blocks after an 8-bar intro, 96
+  // bars. The outro's 8 bars and its 2-bar fade on Em are rounded to 8, the fade over them. The
+  // 16th-line hook plays only in the hook, the countervoice in the choruses and the outro (a chorus
+  // without the voice). Snare fills close every verse and chorus, none the hook. The kit is the
+  // closer of the two sample machines the drums suggest (§6: a DMX or a LinnDrum).
+  "get-closer": {
+    title: "Get Closer",
+    style: 1,
+    key: { tonic: 4, mode: "minor" },
+    bpm: 112.3,
+    kit: "dmx",
+    bassStyle: "italo",
+    verse: GC_LOOP,
+    chorus: GC_CHORUS,
+    sections: [
+      { kind: "intro", label: "Intro", bars: 8, progression: GC_LOOP, layers: band },
+      {
+        kind: "intro",
+        label: "Hook",
+        bars: 16,
+        progression: GC_LOOP,
+        layers: { ...band, riff: true },
+        fill: false,
+      },
+      {
+        kind: "verse",
+        label: "Verse 1",
+        bars: 16,
+        progression: GC_VERSE1,
+        layers: { ...band, lead: "verse" },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 1",
+        bars: 16,
+        progression: GC_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", counter: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 2",
+        bars: 16,
+        progression: GC_LOOP,
+        layers: { ...band, lead: "verse" },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 2",
+        bars: 16,
+        progression: GC_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", counter: true },
+        fill: true,
+      },
+      {
+        kind: "outro",
+        label: "Outro · chorus to fade",
+        bars: 8,
+        progression: GC_CHORUS,
+        layers: { ...band, drums: "big", counter: true },
+      },
+    ],
+  },
+  // The 12″ mix, 5:40 at 120.1 BPM, 168 bars to the end of the fade (faces.md §3), every section
+  // a multiple of 4 bars. The verse world is the Italo planner's: stabs instead of pads, the held
+  // line in an instrumental from its 9th bar; the chorus brings the open pads and the held bass.
+  // Instrumental 3's stab rest (bars 97–103) and its synth lead before bar 104 are left out: it
+  // plays the stabs throughout and the held line from its 9th bar. The breakdown's stabs come back
+  // in its second half, as on the record. The last chorus plays the chorus's second half, then its
+  // first, and fades.
+  faces: {
+    title: "Faces",
+    style: 0.5,
+    key: { tonic: 9, mode: "minor" },
+    bpm: 120.1,
+    kit: "synth",
+    bassStyle: "faces",
+    verse: FC_LOOP,
+    chorus: FC_CHORUS,
+    sections: [
+      {
+        kind: "intro",
+        label: "Intro · bass and kick",
+        bars: 4,
+        progression: FC_INTRO,
+        layers: { drums: "kick", bass: true },
+      },
+      {
+        kind: "intro",
+        label: "Intro · stabs",
+        bars: 4,
+        progression: FC_INTRO,
+        layers: { drums: "kick", bass: true, stabs: true },
+      },
+      {
+        kind: "interlude",
+        label: "Instrumental 1",
+        bars: 16,
+        progression: FC_LOOP,
+        layers: { drums: "full", bass: true, stabs: true, held: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 1",
+        bars: 16,
+        progression: FC_LOOP,
+        layers: {
+          drums: "full",
+          bass: true,
+          lead: "verse",
+          stabs: true,
+          held: true,
+          bassHeld: true,
+        },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 1",
+        bars: 16,
+        progression: FC_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", stabs: true },
+      },
+      {
+        kind: "interlude",
+        label: "Instrumental 2",
+        bars: 8,
+        progression: FC_LOOP,
+        layers: { drums: "full", bass: true, stabs: true, held: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 2",
+        bars: 16,
+        progression: FC_LOOP,
+        layers: { drums: "full", bass: true, lead: "verse", stabs: true, held: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 2",
+        bars: 16,
+        progression: FC_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", stabs: true },
+      },
+      {
+        kind: "interlude",
+        label: "Instrumental 3",
+        bars: 24,
+        progression: FC_LOOP,
+        layers: { drums: "full", bass: true, stabs: true, held: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 3",
+        bars: 16,
+        progression: FC_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", stabs: true },
+      },
+      {
+        kind: "break",
+        label: "Breakdown",
+        bars: 8,
+        progression: FC_TURN,
+        layers: { drums: "full", pad: true, arp: true },
+      },
+      {
+        kind: "break",
+        label: "Breakdown · stabs",
+        bars: 8,
+        progression: FC_TURN,
+        layers: { drums: "full", pad: true, arp: true, stabs: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 4 · fade",
+        bars: 16,
+        progression: [...FC_CHORUS_B, ...FC_CHORUS_A],
+        layers: { ...band, drums: "big", lead: "chorus", stabs: true },
       },
     ],
   },

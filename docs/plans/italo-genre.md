@@ -74,8 +74,10 @@ reference that has one.
 
 ## Later phases
 
-- **Phase 2, playable originals:** The Night, Get Closer and Faces as `REFERENCES` entries with
-  their measured forms, so the Originals row can play them.
+- **Phase 2, playable originals (done):** The Night, Get Closer and Faces as `REFERENCES` entries with
+  their measured forms, so the Originals row can play them. The style ids folded back into
+  `ReferenceId`. Rounded to whole phrases: The Night's last chorus and fade (25 bars → 24) and Get
+  Closer's outro and fade (10 → 8).
 - **Phase 3, Get Closer's ear check:** fold the answered chords into its bank entries.
 - **Phase 4, 12″ mode (issue #2):** the maxi blocks all three analyses describe: The Night's
   bass-less break, Get Closer's stop, hook and fill blocks, and Faces' 24-bar build.

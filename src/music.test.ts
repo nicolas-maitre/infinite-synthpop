@@ -375,6 +375,87 @@ describe("references", () => {
     }
   });
 
+  it.each([
+    // id, key, bpm, kit, bass style, bars, weights in Italo's order (The Night, Get Closer, Faces)
+    ["the-night", { tonic: 5, mode: "minor" }, 110.3, "synth", "night", 152, [1, 0, 0]],
+    ["get-closer", { tonic: 4, mode: "minor" }, 112.3, "dmx", "italo", 96, [0, 1, 0]],
+    ["faces", { tonic: 9, mode: "minor" }, 120.1, "synth", "faces", 168, [0, 0, 1]],
+  ] as const)(
+    "plays %s in Italo at its measured key, tempo, kit, bass and length",
+    (id, key, bpm, kit, bassStyle, bars, weights) => {
+      const song = compose({ seed: 1984, reference: id, genre: "synthpop", bpm: 130, kit: "sp12" });
+      expect(song.genre).toBe("italo");
+      expect(song.reference).toBe(id);
+      expect(song.title).toBe(REFERENCES[id].title);
+      expect(song.key).toEqual(key);
+      expect([song.bpm, song.kit, song.bassStyle, song.totalBars]).toEqual([
+        bpm,
+        kit,
+        bassStyle,
+        bars,
+      ]);
+      expect(song.weights).toEqual(weights);
+      expect(song.sections.at(-1)?.fade).toBe(true);
+      // Every bar arranges, chords and all, and the kick never stops.
+      for (let bar = 0; bar < song.totalBars; bar++) {
+        const ev = arrangeBar(song, bar);
+        expect(ev.chords.length).toBeGreaterThan(0);
+        expect(ev.drums.some((h) => h.voice === "kick")).toBe(true);
+        for (const track of MELODIC_TRACKS) {
+          for (const n of ev.notes[track]) expect(Number.isFinite(n.midi)).toBe(true);
+        }
+      }
+    },
+  );
+
+  it("lays out the Italo originals' measured sections and parts", () => {
+    const layout = (id: ReferenceId) =>
+      compose({ seed: 1, reference: id }).sections.map((s) => [s.label, s.bars] as const);
+    const night = compose({ seed: 1, reference: "the-night" });
+    // Two lead-synth sections, one per half, and the countervoice in every chorus only.
+    expect(night.sections.filter((s) => s.layers.leadSynth).map((s) => s.startBar)).toEqual([
+      10, 100,
+    ]);
+    for (const s of night.sections) expect(s.layers.counter).toBe(s.kind === "chorus");
+    expect(night.sections.filter((s) => !s.layers.bass).map((s) => s.label)).toEqual([
+      "Intro · bass drop",
+      "Reprise · bass drop",
+    ]);
+    expect(layout("get-closer")).toEqual([
+      ["Intro", 8],
+      ["Hook", 16],
+      ["Verse 1", 16],
+      ["Chorus 1", 16],
+      ["Verse 2", 16],
+      ["Chorus 2", 16],
+      ["Outro · chorus to fade", 8],
+    ]);
+    // Chorus bar 2 is C/E; verse 1's 7th bar puts C♯ under the A.
+    const gc = compose({ seed: 1, reference: "get-closer" });
+    const chorus = gc.sections.find((s) => s.label === "Chorus 1");
+    expect(chorus?.progression[1]).toEqual(["VI/3"]);
+    expect(gc.sections[2]?.progression[6]).toEqual(["IV/3"]);
+    expect(gc.sections.filter((s) => s.layers.riff).map((s) => s.label)).toEqual(["Hook"]);
+    expect(gc.sections.filter((s) => s.layers.counter).map((s) => s.label)).toEqual([
+      "Chorus 1",
+      "Chorus 2",
+      "Outro · chorus to fade",
+    ]);
+    const faces = compose({ seed: 1, reference: "faces" });
+    expect(faces.sections.filter((s) => s.layers.bassHeld).map((s) => s.label)).toEqual([
+      "Verse 1",
+    ]);
+    // No bass in the breakdown; the held line in the instrumentals from their 9th bar.
+    for (const s of faces.sections.filter((s) => s.kind === "break")) {
+      expect(s.layers.bass).toBe(false);
+      expect(arrangeBar(faces, s.startBar).notes.bass).toEqual([]);
+    }
+    const instrumental = faces.sections.find((s) => s.label === "Instrumental 1");
+    if (!instrumental) throw new Error("no Instrumental 1");
+    expect(arrangeBar(faces, instrumental.startBar + 7).notes.synth).toEqual([]);
+    expect(arrangeBar(faces, instrumental.startBar + 8).notes.synth.length).toBeGreaterThan(0);
+  });
+
   it("plays You Came's bass: the pushed tonic, the ii's octaves and the v's walk", () => {
     const yc = compose({ seed: 1988, reference: "you-came" });
     const pre = yc.sections.find((s) => s.label === "Pre-chorus 1");
