@@ -217,7 +217,14 @@ const AROUND_WHAT = [
   "Your Eyes",
 ];
 const PLEAS = ["Stop", "Wait", "Listen", "Hold On", "Come Back", "Stay"];
-const PLEA_ENDS = ["for a Minute", "to Your Heart", "Tonight", "to Me", "Forever", "a Little Longer"];
+const PLEA_ENDS = [
+  "for a Minute",
+  "to Your Heart",
+  "Tonight",
+  "to Me",
+  "Forever",
+  "a Little Longer",
+];
 const PAIRS_A = ["Sisters", "Angels", "Lovers", "Strangers", "Shadows", "Heroes"];
 const PAIRS_B = ["Brothers", "Saints", "Fools", "Dreamers", "Liars", "Thieves"];
 
@@ -241,6 +248,7 @@ export function euroTitle(rng: Rng): string {
   else if (pattern === 4) title = `${rng.pick(PLEAS)} ${rng.pick(PLEA_ENDS)}`;
   else title = `${rng.pick(PAIRS_A)} and ${rng.pick(PAIRS_B)}`;
   // The singles came as 7″ and 12″ cuts, named on the sleeve.
-  if (rng.chance(0.2)) title += rng.pick([" (Extended Version)", " (Single Version)", " (Dub Mix)"]);
+  if (rng.chance(0.2))
+    title += rng.pick([" (Extended Version)", " (Single Version)", " (Dub Mix)"]);
   return title;
 }
