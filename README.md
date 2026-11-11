@@ -105,10 +105,12 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
 - **Export:** **MIDI** (every instrument on its own track, drums on channel 10, sections as
   markers) or the whole song's audio with the current mixer as **MP3** (256 kbps, encoded in the
   page) or **WAV**. Audio exports stop playback while they render.
-- **Originals:** play _True Faith_, _The Different Story_ or _You Came_ (album version, E major)
-  through the same engine, at their measured form, chords, key, tempo, drum machine and bass
-  figure. The melodies and riffs stay generated. Links: `#ref=true-faith`,
-  `#ref=different-story`, `#ref=you-came`. Generated songs follow when one ends.
+- **Originals:** play _True Faith_, _The Different Story_ or _You Came_ (album version, E major),
+  or the Italo records _The Night_ (Original Mix), _Get Closer_ (the single) and _Faces_ (the 12″
+  mix), through the same engine, at their measured form, chords, key, tempo, drum machine and bass
+  figure, with their genre's parts and sounds. The melodies and riffs stay generated. Links:
+  `#ref=true-faith`, `#ref=different-story`, `#ref=you-came`, `#ref=the-night`,
+  `#ref=get-closer`, `#ref=faces`. Generated songs follow when one ends.
 - **Follow MIDI…:** pick a MIDI file to drive the current original. Each mixer row then gets a
   **MIDI** switch (generated ↔ MIDI) and a select for which of the file's tracks it follows.
   Tracks are matched by name ("Sequence Bass" → Seq bass, "Lead" → Lead, both drum tracks →
@@ -125,7 +127,7 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   not one fill), _Get Closer_ (112 BPM, a 16th-line hook, plucked root 8ths under slash-chord pads)
   and _Faces_ (120 BPM, a build from bass and kick, gated stabs, a staccato on-beat/off-beat bass,
   a parallel-major chorus with galloping hats, a breakdown). Its songs keep the kick going from the
-  first bar to the fade. The three records aren't playable as originals yet.
+  first bar to the fade. The three records also play as originals.
 - **Style:** a point in a triangle whose corners are the three references: _True Faith_ (Dorian
   IV choruses, minor v, a brighter, lower bass, the high 16th sequencer, modulating outro), _The
   Different Story_ (minor iv choruses, major V, Dorian turnaround, chorus fade) and _You Came_
@@ -216,8 +218,8 @@ The code is under the [MIT License](LICENSE). It does not cover these:
 - **MP3 encoder.** [@breezystack/lamejs](https://www.npmjs.com/package/@breezystack/lamejs) (a
   JavaScript port of LAME) stays under LGPL-3.0. It's installed as a dependency and loaded as its
   own file, only when you export an MP3.
-- **The three songs.** "True Faith", "The Different Story" and "You Came" belong to their
-  writers and publishers. The app uses only what the analysis measured: chord progressions, form,
+- **The six songs.** "True Faith", "The Different Story", "You Came", "The Night", "Get Closer"
+  and "Faces" belong to their writers and publishers. The app uses only what the analysis measured: chord progressions, form,
   tempo and groove. It contains none of their recordings, melodies or lyrics. A MIDI file you load is read in
   your browser and never stored.
 - **Music you make with it.** The songs you generate, create or export are yours.
