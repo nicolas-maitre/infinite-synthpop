@@ -68,6 +68,7 @@ export const MELODIC_TRACKS = [
   "stab",
   "seq",
   "guitar",
+  "synth",
 ] as const;
 export type MelodicTrack = (typeof MELODIC_TRACKS)[number];
 
@@ -134,6 +135,8 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     };
   };
   const parts = GENRES[song.genre].parts;
+  const profile = genreAt(GENRES[song.genre], song.weights);
+  const voices = profile.voices;
   const notes: Record<MelodicTrack, Note[]> = {
     bass: !L.bass
       ? []
@@ -169,9 +172,11 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
       : [],
     riff: !L.riff
       ? []
-      : parts?.riff === "line16"
+      : voices.riff === "line16"
         ? motifNotes(song.riff, barInSection, key, slots, "chord", 72, 0.95)
-        : motifNotes(song.riff, barInSection, key, slots, "chord", song.riffHigh ? 79 : 67, 0.85),
+        : voices.riff === "pair"
+          ? pairNotes(song.riff, barInSection, key)
+          : motifNotes(song.riff, barInSection, key, slots, "chord", song.riffHigh ? 79 : 67, 0.85),
     lead: [],
     leadOct: [],
     counter: [],
@@ -185,7 +190,12 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
           : [],
     seq: L.seq ? sequenceLine(song, key) : [],
     guitar: L.guitar ? guitarStrums(key, slots) : [],
+    synth: [],
   };
+  if (L.leadSynth) {
+    const melody = song.sectionMelodies[sectionIndex];
+    notes.synth = (melody?.bars[barInSection % melody.bars.length] ?? []).map((n) => ({ ...n }));
+  }
 
   if (L.held && !L.lead) notes.lead = heldLine(key, slots);
   if (L.lead) {
@@ -201,7 +211,12 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     } else if (L.leadDouble)
       notes.leadOct = lead.map((n) => ({ ...n, midi: n.midi + 12, vel: n.vel * 0.55 }));
   }
-  const counter = L.counter ? (song.sectionCounters[sectionIndex] ?? song.counter) : null;
+  const counter =
+    L.counter && voices.countervoice === "none"
+      ? (song.sectionCounters[sectionIndex] ?? song.counter)
+      : null;
+  if (L.counter && voices.countervoice === "pluck8")
+    notes.counter = pluckedCountervoice(key, slots, rng.fork("counter"));
   if (counter)
     notes.counter = (counter.bars[barInSection % counter.bars.length] ?? []).map((n) => ({ ...n }));
   // Parts from a MIDI file replace the generated ones (midi.ts).
@@ -214,7 +229,7 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   const importedDrums = song.imported?.drums;
   const drums = importedDrums
     ? (importedDrums[bar] ?? []).map((h) => ({ ...h }))
-    : drumBar(L.drums, rng.fork("drums"), genreAt(GENRES[song.genre], song.weights).drums, {
+    : drumBar(L.drums, rng.fork("drums"), profile.drums, {
         kind: section.kind,
         barInSection,
         sectionStart: barInSection === 0 && sectionIndex > 0,
@@ -485,6 +500,52 @@ function facesBassLine(ctx: FigureContext, barInSection: number, sustained: bool
     });
   }
   if (ctx.short) for (const n of out) n.dur = Math.min(0.95, n.dur);
+  return out;
+}
+
+/** The Night's two-note riff (`generatePair`): the tonic around F4 (idx 1) and the 7th below it
+ * (idx 0), whatever the chord. */
+function pairNotes(motif: Motif, barInSection: number, key: Key): Note[] {
+  const offset = (barInSection % motif.bars) * 16;
+  const tonic = nearestWithPc(key.tonic, 65);
+  return motif.notes
+    .filter((n) => n.step >= offset && n.step < offset + 16)
+    .map((n) => ({
+      step: n.step - offset,
+      dur: n.dur,
+      midi: n.idx === 1 ? tonic : tonic - 2,
+      vel: n.vel * 0.9,
+    }));
+}
+
+/**
+ * The Night's chorus countervoice (the-night.md §10.2): a plucked note on every off-beat 8th and on
+ * some beats, in the voice's register (A♭4–E♭5 on the record), stepping down through the chord's
+ * tones (its added 9th, 4th or 7th included) over the bar.
+ *
+ *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *            ?  -  x  -  ?  -  x  -  ?  -  x  -  ?  -  x  -   (x always, ? some bars)
+ */
+function pluckedCountervoice(key: Key, slots: readonly ChordSlot[], rng: Rng): Note[] {
+  const out: Note[] = [];
+  const beats = [0, 4, 8, 12].filter((s) => rng.chance(s === 0 || s === 12 ? 0.5 : 0.3));
+  const steps = [...beats, 2, 6, 10, 14].sort((a, b) => a - b);
+  let i = 0;
+  let current: ChordSlot | undefined;
+  for (const step of steps) {
+    const slot = slotAt(slots, step);
+    if (!slot) continue;
+    if (slot !== current) {
+      current = slot;
+      i = 0;
+    }
+    const tones = notesInRange(chordPitchClasses(key, slot.chord), 67, 76).reverse();
+    const midi = tones[Math.min(i, tones.length - 1)] ?? tones[0];
+    if (midi === undefined) continue;
+    out.push({ step, dur: 1.6, midi, vel: step % 4 === 2 ? 0.8 : 0.6 });
+    // Down through the tones, once per off-beat; a beat repeats its neighbour.
+    if (step % 4 === 2) i = (i + 1) % Math.max(1, tones.length);
+  }
   return out;
 }
 

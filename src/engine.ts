@@ -337,7 +337,9 @@ export class Engine {
     inst.drums.use(this.effectiveKit());
     const genre = GENRES[this.song.genre];
     inst.setBassTone(bassTone(genre, this.song.weights));
-    inst.setSnareGate(genreAt(genre, this.song.weights).drums.gatedSnare);
+    const profile = genreAt(genre, this.song.weights);
+    inst.setSnareGate(profile.drums.gatedSnare);
+    inst.setVoices(profile.voices);
     inst.setActiveTracks(usedTracks(this.song));
   }
 

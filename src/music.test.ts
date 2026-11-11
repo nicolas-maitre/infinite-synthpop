@@ -771,7 +771,7 @@ describe("italo genre", () => {
     [0, 0, 1],
   ] as const;
 
-  it("writes songs in 8- and 16-bar blocks that never drop the kick", () => {
+  it("writes songs in 4-, 8-, 12- and 16-bar blocks (The Night's 2-bar drop) that never drop the kick", () => {
     for (let seed = 1; seed <= 30; seed++) {
       const song = compose({ seed, genre: "italo", weights: "auto" });
       expect(song.genre).toBe("italo");
@@ -781,7 +781,7 @@ describe("italo genre", () => {
       expect(["italo", "night", "faces"]).toContain(song.bassStyle);
       for (const s of song.sections) {
         expect(s.layers.drums).not.toBe("off");
-        expect([4, 8, 16]).toContain(s.bars);
+        expect([2, 4, 8, 12, 16]).toContain(s.bars);
       }
       expect(song.sections.at(-1)?.label).toBe("Outro · chorus to fade");
       // Every bar arranges, chords and all.
@@ -844,7 +844,7 @@ describe("italo genre", () => {
     expect(bar(0).notes.bass.map((n) => n.step)).toEqual([0, 2, 4, 6, 8, 10, 12, 14]);
   });
 
-  it("gives Get Closer its 16th hook line and The Night its lead synth before each chorus", () => {
+  it("gives Get Closer its 16th hook line, and The Night its lead synth, riff and countervoice", () => {
     const gc = compose({ seed: 7, genre: "italo", weights: corners[1] });
     const hook = gc.sections.find((s) => s.label === "Hook");
     if (!hook) throw new Error("no hook");
@@ -855,21 +855,36 @@ describe("italo genre", () => {
     expect(Math.min(...line.map((n) => n.midi))).toBeGreaterThanOrEqual(60);
 
     const tn = compose({ seed: 7, genre: "italo", weights: corners[0] });
-    const kinds = tn.sections.map((s) => s.label);
-    expect(kinds.slice(0, 7)).toEqual([
-      "Intro · pedal",
-      "Intro · riff",
-      "Intro · lead synth",
-      "Verse 1",
-      "Lead synth",
-      "Chorus",
-      "Lead synth",
+    expect(tn.sections.slice(0, 6).map((s) => [s.label, s.bars])).toEqual([
+      ["Intro · pedal", 4],
+      ["Intro · riff", 4],
+      ["Intro · bass drop", 2],
+      ["Lead synth", 12],
+      ["Verse 1", 16],
+      ["Chorus", 16],
     ]);
-    const synth = tn.sections.findIndex((s) => s.label === "Lead synth");
-    const melody = tn.sectionMelodies[synth];
-    expect(melody).not.toBe(tn.melodies.verse);
-    const pitches = melody?.bars.flat().map((n) => n.midi) ?? [];
-    expect(Math.max(...pitches)).toBeLessThanOrEqual(65);
+    // The lead synth plays on its own track, in E♭4–C5-ish phrases with rests, never under the voice.
+    const synth = tn.sections.find((s) => s.label === "Lead synth");
+    if (!synth) throw new Error("no lead synth");
+    const bars = Array.from({ length: synth.bars }, (_, i) => arrangeBar(tn, synth.startBar + i));
+    expect(bars.every((b) => b.notes.lead.length === 0)).toBe(true);
+    const played = bars.flatMap((b) => b.notes.synth);
+    expect(played.length).toBeGreaterThan(0);
+    expect(played.every((n) => n.midi >= 62 && n.midi <= 74)).toBe(true);
+    expect(bars.filter((b) => b.notes.synth.length === 0).length).toBeGreaterThanOrEqual(3);
+    // The two-note riff: the tonic and the 7th below it.
+    const riff = tn.sections.find((s) => s.label === "Intro · riff");
+    const pcs = new Set(
+      arrangeBar(tn, riff?.startBar ?? 0).notes.riff.map((n) => mod12(n.midi - tn.key.tonic)),
+    );
+    expect(pcs).toEqual(new Set([0, 10]));
+    // The plucked countervoice in every chorus, on all the off-beat 8ths, and nowhere else.
+    for (const s of tn.sections) {
+      const counter = arrangeBar(tn, s.startBar).notes.counter;
+      if (s.kind !== "chorus") expect(counter).toEqual([]);
+      else
+        expect(counter.filter((n) => n.step % 4 === 2).map((n) => n.step)).toEqual([2, 6, 10, 14]);
+    }
   });
 
   it("keeps Faces' verses to stabs, and brings pads in for the chorus", () => {

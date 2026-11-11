@@ -29,6 +29,8 @@ const MIDI_PARTS: {
   // Channel index 9 is the drums' (GM channel 10). Program 4 is GM 5, Electric
   // Piano 1.
   { name: "Counter line", tracks: ["counter"], channel: 10, program: 4 },
+  // Program 79 is GM 80, Ocarina: the nearest GM sound to The Night's nearly pure lead synth.
+  { name: "Lead synth", tracks: ["synth"], channel: 11, program: 79 },
 ];
 
 /** The drum machine's voices as General MIDI percussion keys. */

@@ -8,7 +8,7 @@ import type { DrumHit, MelodicTrack } from "./arranger";
 import type { Note } from "./composer";
 import { DrumKit } from "./drums";
 import { FixedEQ3, FixedFilter } from "./filters";
-import type { BassTone } from "./genres";
+import type { BassTone, Voices } from "./genres";
 import { NativeFMSynth, NativeMonoSynth, NativeSynth } from "./voices";
 import { midiToFreq } from "./theory";
 
@@ -24,6 +24,7 @@ export const TRACKS = [
   "counter",
   "arp",
   "stab",
+  "synth",
 ] as const;
 export type Track = (typeof TRACKS)[number];
 
@@ -39,6 +40,7 @@ export const TRACK_LABELS: Record<Track, string> = {
   counter: "Counter line",
   arp: "Arp",
   stab: "Stabs",
+  synth: "Lead synth",
 };
 
 export const DEFAULT_VOLUMES: Record<Track, number> = {
@@ -53,6 +55,7 @@ export const DEFAULT_VOLUMES: Record<Track, number> = {
   counter: -9,
   arp: -9,
   stab: -5,
+  synth: -8,
 };
 
 /**
@@ -78,6 +81,7 @@ const PANS: Record<Track, number> = {
   counter: -0.2,
   arp: 0.35,
   stab: 0.1,
+  synth: 0,
 };
 
 /** Post-fader send levels (gain) to the reverb and delay buses. */
@@ -93,6 +97,8 @@ const SENDS: Record<Track, { reverb: number; delay: number }> = {
   counter: { reverb: 0.45, delay: 0.15 },
   arp: { reverb: 0.4, delay: 0.3 },
   stab: { reverb: 0.5, delay: 0.1 },
+  // The Night's lead synth: a short room only; its dotted-8th echo is its own (see the constructor).
+  synth: { reverb: 0.15, delay: 0 },
 };
 
 export interface InstrumentOptions {
@@ -131,6 +137,13 @@ export class Instruments {
   private readonly lead: Tone.MonoSynth;
   private readonly leadOct: Tone.MonoSynth;
   private readonly counter: NativeFMSynth;
+  /** The Night's plucked chorus countervoice, on the counter track (see setVoices). */
+  private readonly counterPluck: NativeMonoSynth;
+  /** The Night's bright saw for its two-note riff, on the riff track (see setVoices). */
+  private readonly riffPlain: NativeSynth;
+  /** The Night's lead synth. */
+  private readonly synth: NativeFMSynth;
+  private voices: Voices = { riff: "motif", riffPatch: "fm", countervoice: "none" };
   private readonly arp: NativeFMSynth;
   private readonly stab: NativeSynth;
   private readonly stabNoise: Tone.NoiseSynth;
@@ -305,6 +318,12 @@ export class Instruments {
       envelope: { attack: 0.001, decay: 0.4, sustain: 0.08, release: 0.3 },
       modulationEnvelope: { attack: 0.001, decay: 0.18, sustain: 0.1, release: 0.2 },
     }).connect(this.channels.riff);
+    // The Night's riff: a nearly unfiltered saw (h2 −9 dB, h3 −14, h4 −17; the-night.md §10.3).
+    this.riffPlain = new NativeSynth({
+      oscillator: { type: "sawtooth" },
+      envelope: { attack: 0.002, decay: 0.2, sustain: 0.5, release: 0.08 },
+      volume: -4,
+    }).chain(new FixedFilter("lowpass", 6000), this.channels.riff);
     const riffFilter = new FixedFilter("lowpass", 3200);
     this.riffSaw = new NativeSynth({
       volume: -6,
@@ -350,6 +369,42 @@ export class Instruments {
       volume: 3,
       maxPolyphony: lite ? 2 : 4,
     }).connect(this.channels.counter);
+
+    // The Night's chorus countervoice (the-night.md §10.2): a saw darkened above about 2 kHz (h2
+    // −3 dB … h5 −19), plucked: −13 dB at 120 ms, gone within the 8th. Heavy reverb, no delay: an
+    // extra send of its own, on top of the counter track's.
+    this.counterPluck = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -24, Q: 2 },
+      envelope: { attack: 0.002, decay: 0.5, sustain: 0, release: 0.15 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.12,
+        sustain: 0.3,
+        release: 0.15,
+        baseFrequency: 1500,
+        octaves: 1,
+      },
+      volume: -2,
+    });
+    this.counterPluck.fan(this.channels.counter, new Tone.Gain(0.35).connect(reverb));
+
+    // The Night's lead synth (the-night.md §10.1): a nearly pure tone (h2 −10 dB, h3 −19.5) struck
+    // hard: a 1:1 FM whose index falls from about 2.4 to 0.6, a 3 Hz vibrato of ±18 cents, and a
+    // dotted-8th echo about 8.5 dB down. The shared delay is high-passed at 600 Hz, which would
+    // take most of a tone whose fundamental sits at 310–520 Hz, so it has its own.
+    const synthVibrato = new Tone.Vibrato({ frequency: 3, depth: 0.22 });
+    const synthEcho = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.25, wet: 0.3 });
+    synthVibrato.chain(synthEcho, this.channels.synth);
+    this.synth = new NativeFMSynth({
+      harmonicity: 1,
+      modulationIndex: 7.5,
+      oscillator: { type: "sine" },
+      modulation: { type: "sine" },
+      envelope: { attack: 0.004, decay: 0.15, sustain: 0.35, release: 0.1 },
+      modulationEnvelope: { attack: 0.002, decay: 0.08, sustain: 0.25, release: 0.1 },
+      maxPolyphony: 2,
+    }).connect(synthVibrato);
 
     const arpOptions = {
       harmonicity: 4,
@@ -498,15 +553,24 @@ export class Instruments {
           this.leadOct.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         }
         break;
-      case "counter":
-        for (const n of notes)
-          this.counter.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+      case "counter": {
+        const voice = this.voices.countervoice === "pluck8" ? this.counterPluck : this.counter;
+        for (const n of notes) voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
+      }
       case "riff":
         for (const n of notes) {
+          if (this.voices.riffPatch === "saw") {
+            this.riffPlain.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+            continue;
+          }
           this.riffFm.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
           this.riffSaw.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         }
+        break;
+      case "synth":
+        for (const n of notes)
+          this.synth.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
       case "arp":
         for (const n of notes)
@@ -581,6 +645,12 @@ export class Instruments {
     this.bassOct.envelope.sustain = tone.sustain;
   }
 
+  /** The sounds the song's dominant reference brings (genres.ts `dominantVoices`): which patch
+   * plays the riff and the counter track. */
+  setVoices(voices: Voices): void {
+    this.voices = voices;
+  }
+
   /** Gated reverb on the snare and clap (TF, DS), or an open, untreated tail (You Came's long,
    * smooth snare: −10 dB at 80 ms, −20 dB at 220 ms, no gate cut-off). */
   setSnareGate(gated: boolean): void {
@@ -603,6 +673,9 @@ export class Instruments {
       this.riffSaw,
       this.arp,
       this.counter,
+      this.counterPluck,
+      this.riffPlain,
+      this.synth,
     ];
     for (const s of synths) s.releaseAll(time);
   }

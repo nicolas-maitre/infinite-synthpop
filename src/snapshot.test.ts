@@ -8,7 +8,7 @@
  * next to a readable summary of the song.
  */
 import { describe, expect, it } from "vitest";
-import { arrangeBar } from "./arranger";
+import { arrangeBar, type MelodicTrack } from "./arranger";
 import { compose, type ComposeOptions, type Song } from "./composer";
 import { GENRES } from "./genres";
 import { decodeCreation, encodeCreation, songToSpec } from "./spec";
@@ -31,10 +31,30 @@ function digest(value: unknown): string {
   return a.toString(16).padStart(8, "0") + b.toString(16).padStart(8, "0") + text.length;
 }
 
+/** The tracks the snapshot was made with, in their order. A track added since must stay silent in
+ * these songs, and stays out of the digest. */
+const LOCKED_TRACKS = [
+  "bass",
+  "hook",
+  "pad",
+  "riff",
+  "lead",
+  "leadOct",
+  "counter",
+  "arp",
+  "stab",
+  "seq",
+  "guitar",
+] as const satisfies readonly MelodicTrack[];
+
 function summarise(song: Song) {
   const bars = Array.from({ length: song.totalBars }, (_, bar) => {
     const e = arrangeBar(song, bar);
-    return { chords: e.chords, drums: e.drums, notes: e.notes, key: e.key };
+    for (const [track, notes] of Object.entries(e.notes)) {
+      if (!(LOCKED_TRACKS as readonly string[]).includes(track)) expect(notes).toEqual([]);
+    }
+    const notes = Object.fromEntries(LOCKED_TRACKS.map((t) => [t, e.notes[t]]));
+    return { chords: e.chords, drums: e.drums, notes, key: e.key };
   });
   return {
     title: song.title,

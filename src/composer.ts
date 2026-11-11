@@ -93,6 +93,9 @@ export interface Layers {
   /** Faces' verse world (faces.md §7): where nothing sings, a sustained synth line that follows
    * the chords. Only set when on, so older sections are unchanged. */
   held?: boolean;
+  /** The Night's lead synth (the-night.md §10.1): an instrumental line of its own, on the synth
+   * track, in its 12 bars after each intro block. Only set when on. */
+  leadSynth?: boolean;
 }
 
 export interface Section {
@@ -245,8 +248,27 @@ export const LEAD_RANGES: Record<MelodyKind, readonly [number, number]> = {
   verse: [57, 70],
   chorus: [62, 74],
 };
-/** The Night's lead synth, in its instrumentals: F3–C4 on the record, a little room either side. */
-export const LEAD_SYNTH_RANGE = [52, 65] as const;
+/** The Night's lead synth (the-night.md §10.1): E♭4–C5 on the record, a little room either side. */
+export const LEAD_SYNTH_RANGE = [62, 74] as const;
+
+/**
+ * The lead synth's phrasing (the-night.md §10.1): phrases of a bar or two with rests between, about
+ * 40% of the time, in 16ths and 8ths with the phrase's last note held. Bars 2 and 5–6 of every 8
+ * rest; the rest keep their notes, cut to an 8th at most except each phrase's last.
+ */
+function sparsePhrases(melody: Melody): Melody {
+  const rests = new Set([2, 5, 7]);
+  return {
+    bars: melody.bars.map((bar, i) => {
+      if (rests.has(i % 8)) return [];
+      const endsPhrase = rests.has((i + 1) % 8);
+      return bar.map((n, j) => ({
+        ...n,
+        dur: endsPhrase && j === bar.length - 1 ? Math.min(n.dur, 8) : Math.min(n.dur, 2),
+      }));
+    }),
+  };
+}
 /** The counter-line sits above the sung chorus: TF's MIDI keeps it to F5–C6, reaching to A4 and
  * E6. */
 export const COUNTER_RANGE = [74, 86] as const;
@@ -385,7 +407,12 @@ export function compose(opts: ComposeOptions): Song {
     progressions,
     sections,
     totalBars,
-    riff: genre.parts?.riff === "line16" ? generateLine16(rngMotif) : generateRiff(rngMotif),
+    riff:
+      g.voices.riff === "line16"
+        ? generateLine16(rngMotif)
+        : g.voices.riff === "pair"
+          ? generatePair(rngMotif)
+          : generateRiff(rngMotif),
     riffHigh,
     hook: generateHook(rngMotif),
     arp: generateArp(rngMotif),
@@ -756,20 +783,23 @@ function planItalo(
   const reprise = !short && chance(odds.reprise);
   const breakdown = !short && chance(odds.breakdown);
 
-  // The Night's opening (bars 1–10): pads on the pedal, then the riff alone without pads, then
-  // the verse loop with its 16th arpeggio (and here the lead synth, as the maxi has it).
+  // The Night's opening (bars 1–6, again at 87–96): pads on the pedal, then the riff alone without
+  // pads, then the riff again with the bass dropped out.
   const pedalBlock = (label: string) => {
     add("intro", label, 4, pedal, { drums: "full", bass: true, pad: true });
     add("intro", "Intro · riff", 4, pedal, { drums: "full", bass: true, riff: true });
+    add("intro", "Intro · bass drop", 2, pedal, { drums: "full", riff: true });
   };
+  // The Night's lead synth: 12 bars over the verse loop after each intro block, before the voice.
   const leadSynth = (label: string, bars: number) =>
     add("interlude", label, bars, p.verse, {
       drums: "full",
       bass: true,
       pad: true,
-      arp: true,
-      lead: "verse",
+      leadSynth: true,
     });
+  // The Night's plucked countervoice plays in every chorus and nowhere else.
+  const countervoice = g.voices.countervoice !== "none";
   // Faces' verse world: stabs instead of pads, which the chorus brings in.
   const verseWorld: Partial<Layers> = stabs ? { pad: false, held: true } : {};
   const verse = (label: string, bars: number, extra: Partial<Layers> = {}) =>
@@ -791,6 +821,7 @@ function planItalo(
       lead: "chorus",
       stabs,
       arp: !stabs && rng.chance(0.5),
+      counter: countervoice,
       ...extra,
     });
   // Faces' instrumentals keep the verse world, its sustained line on top; the others play the
@@ -806,11 +837,14 @@ function planItalo(
       ...verseWorld,
     });
 
+  // After the pedal block, The Night's lead synth (bars 7–22), else 4 bars of the loop.
+  const afterPedal = () => {
+    if (leadSection) leadSynth("Lead synth", short ? 8 : 12);
+    else add("intro", "Intro · loop", 4, p.verse, { drums: "full", bass: true, pad: true });
+  };
   if (opening === "pedal") {
     pedalBlock("Intro · pedal");
-    if (leadSection) leadSynth("Intro · lead synth", 8);
-    else
-      add("intro", "Intro · loop", 4, p.verse, { drums: "full", bass: true, pad: true, arp: true });
+    afterPedal();
   } else if (opening === "build") {
     add("intro", "Intro · bass and kick", 4, p.verse, { drums: "kick", bass: true });
     add("intro", "Intro · stabs", 8, p.verse, {
@@ -831,17 +865,15 @@ function planItalo(
     add("intro", "Hook", block, p.verse, { drums: "full", bass: true, pad: true, riff: true });
   }
   verse("Verse 1", block, bareFirstVerse ? { bass: false } : {});
-  // The Night: the lead synth takes the 16 bars before every chorus, in place of a second verse.
-  if (leadSection) leadSynth("Lead synth", block);
   chorus("Chorus");
   if (afterChorus) instrumental("Instrumental", 8);
-  if (leadSection) leadSynth("Lead synth", block);
-  else verse("Verse 2", block);
+  verse("Verse 2", block);
   chorus("Chorus", { arp: !stabs });
   if (reprise) {
+    // The Night's second half: the pedal block and the lead synth again, a verse, a chorus.
     pedalBlock("Reprise · pedal");
-    verse("Verse 3", 8);
-    if (leadSection) leadSynth("Lead synth", 8);
+    afterPedal();
+    verse("Verse 3", block);
     chorus("Chorus");
   } else if (form === "long") {
     verse("Verse 3", block);
@@ -849,7 +881,7 @@ function planItalo(
   }
   if (breakdown) {
     add("break", "Breakdown", 16, p.interlude, { drums: "full", pad: true, arp: true });
-    leadSynth("Instrumental · lead synth", rng.pick([8, 16]));
+    instrumental("Instrumental", rng.pick([8, 16]));
   }
   chorus("Chorus · last", { leadDouble: true, arp: !stabs });
   if (ending === "hold") {
@@ -932,27 +964,28 @@ function sectionMelodies(
 ): (Melody | null)[] {
   const written = new Map<string, Melody>();
   return sections.map((section) => {
-    const kind = section.layers.lead;
-    if (!kind) return null;
-    const own = section.melody ? custom[section.melody] : undefined;
-    if (own) return customMelody(own, section.key);
     const progression = JSON.stringify(section.progression);
-    // An instrumental with the lead (The Night's lead synth): a line of its own, lower than the
-    // voice (F3–C4 on the record) and answering it rather than repeating the verse.
-    if (section.kind === "interlude") {
+    // The Night's lead synth: a line of its own, in sparse phrases.
+    if (section.layers.leadSynth) {
       const id = `synth|${section.key.tonic}${section.key.mode}|${progression}`;
       let melody = written.get(id);
       if (!melody) {
-        melody = generateMelody(
-          root.fork(`melody-${id}`),
-          section.key,
-          section.progression,
-          LEAD_SYNTH_RANGE,
+        melody = sparsePhrases(
+          generateMelody(
+            root.fork(`melody-${id}`),
+            section.key,
+            section.progression,
+            LEAD_SYNTH_RANGE,
+          ),
         );
         written.set(id, melody);
       }
       return melody;
     }
+    const kind = section.layers.lead;
+    if (!kind) return null;
+    const own = section.melody ? custom[section.melody] : undefined;
+    if (own) return customMelody(own, section.key);
     const sameKey = section.key.tonic === key.tonic && section.key.mode === key.mode;
     if (sameKey && progression === JSON.stringify(progressions[kind])) return melodies[kind];
     const id = `${kind}|${section.key.tonic}${section.key.mode}|${progression}`;
@@ -1117,6 +1150,28 @@ function generateLine16(rng: Rng): Motif {
     [0, 1],
   ]);
   return { bars: 2, notes: onsetsToNotes(onsets, 32, 2, (i) => contour[i] ?? 2) };
+}
+
+/**
+ * The Night's intro riff (the-night.md §2, §7): two notes, the tonic and the 7th below it, in 16ths
+ * in the first bar of two, silent in the second. `idx` 1 is the tonic, 0 the 7th (arranger.ts
+ * `pairNotes`). Each song draws its own rhythm, in groups of four 16ths.
+ */
+function generatePair(rng: Rng): Motif {
+  const groups = rng.pick([
+    [0, 1, 2, 3],
+    [0, 1, 2],
+    [0, 2, 3],
+    [1, 2, 3],
+  ]);
+  const notes: MotifNote[] = [];
+  for (const g of groups) {
+    for (let i = 0; i < 4; i++) {
+      const step = g * 4 + i;
+      notes.push({ step, dur: 0.9, idx: i % 2 === 0 ? 1 : 0, vel: i === 0 ? 1 : 0.8 });
+    }
+  }
+  return { bars: 2, notes };
 }
 
 /** Melodic high bass (Peter Hook style): 2 bars; pitches are scale steps above the chord root. */

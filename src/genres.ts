@@ -93,10 +93,24 @@ export interface PartStyle {
   /** Pads: one close voicing (synthpop), or the triad stacked an octave up too (The Night's pads
    * span C4–A♭6). */
   pad: "close" | "octaves";
-  /** The riff: synthpop's call-and-response motif, or Get Closer's hook, a 16th-note line through
-   * each bar's chord tones in C5–E6, busiest in beats 3–4 (composer.ts `generateLine16`). */
-  riff: "motif" | "line16";
 }
+
+/** The parts and sounds a reference brings while it outweighs the others (like `DrumTraits`). */
+export interface Voices {
+  /** The riff: synthpop's call-and-response motif; Get Closer's hook, a 16th-note line through
+   * each bar's chord tones, busiest in beats 3–4 (composer.ts `generateLine16`); or The Night's
+   * two-note figure, the tonic and the 7th below in 16ths, every other bar (the-night.md §7). */
+  riff: "motif" | "line16" | "pair";
+  /** The riff's sound: the FM bell layered with a saw pluck (synthpop), or The Night's bright,
+   * nearly unfiltered saw (the-night.md §10.3). */
+  riffPatch: "fm" | "saw";
+  /** The chorus countervoice: none, or The Night's plucked saw on the off-beat 8ths, stepping down
+   * through each chord's tones in the voice's register (the-night.md §10.2). */
+  countervoice: "none" | "pluck8";
+}
+
+/** Synthpop's parts and sounds, for every genre that doesn't say otherwise. */
+export const SYNTHPOP_VOICES: Voices = { riff: "motif", riffPatch: "fm", countervoice: "none" };
 
 /** The Italo planner's odds (composer.ts `planItalo`). */
 export interface ItaloForm {
@@ -175,6 +189,10 @@ export interface Genre {
   planner: "synthpop" | "italo";
   italo?: ItaloForm;
   parts?: PartStyle;
+  /** The parts and sounds when no reference outweighs the others, and per reference while it
+   * does. Unset: `SYNTHPOP_VOICES`. */
+  voices?: Voices;
+  voiceTraits?: Partial<Record<StyleId, Voices>>;
   /** Where generated verse and chorus melodies sit, when not composer.ts `LEAD_RANGES`. */
   leadRanges?: Record<"verse" | "chorus", readonly [number, number]>;
   /** Key tonic (pitch class) → weight, for minor keys. */
@@ -777,15 +795,22 @@ export const GENRES: Record<GenreId, Genre> = {
       pedalIntro: { by: { [TN]: 1 } },
       buildIntro: { by: { [FC]: 1 } },
       hookIntro: { by: { [GC]: 1 } },
-      leadSection: { base: 0.1, by: { [TN]: 0.8 } },
+      leadSection: { by: { [TN]: 1 } },
       breakdown: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.5 } },
       reprise: { by: { [TN]: 0.7 } },
-      verseArp: { base: 0.2, by: { [TN]: 0.8 } },
+      // None measured: The Night's "arpeggio" was its lead synth (the-night.md §10.3).
+      verseArp: {},
       stabs: { base: 0.1, by: { [FC]: 0.9 } },
       bareFirstVerse: { by: { [FC]: 0.7 } },
       afterChorus: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.6 } },
     },
-    parts: { stabs: "gated8", pad: "octaves", riff: "line16" },
+    parts: { stabs: "gated8", pad: "octaves" },
+    voices: { riff: "line16", riffPatch: "fm", countervoice: "none" },
+    voiceTraits: {
+      // The two-note intro riff on a bright saw, and the plucked countervoice in every chorus
+      // (the-night.md §10).
+      [TN]: { riff: "pair", riffPatch: "saw", countervoice: "pluck8" },
+    },
     // The verses sit low (Faces C4–E4, Get Closer G3–A4), the choruses a 5th or so higher (Faces
     // C♯4–B4, Get Closer D4–B4, The Night A♭4–E♭5): the lift that sets the chorus apart.
     leadRanges: { verse: [55, 67], chorus: [63, 76] },
@@ -904,6 +929,7 @@ export interface GenreAt {
   weights: readonly number[];
   at: (b: Blend) => number;
   drums: DrumTraits;
+  voices: Voices;
 }
 
 /** The profile at a slider `style`, or at explicit per-reference weights. */
@@ -914,14 +940,26 @@ export function genreAt(genre: Genre, at: number | readonly number[]): GenreAt {
     weights,
     at: (b) => blend(genre, b, weights),
     drums: dominantDrums(genre, weights),
+    voices: dominantVoices(genre, weights),
   };
+}
+
+/** The reference that outweighs every other one, if any. */
+function dominantReference(genre: Genre, weights: readonly number[]): StyleId | undefined {
+  const i = weights.findIndex((w, i) => weights.every((o, j) => j === i || w > o));
+  return i >= 0 ? genre.references[i] : undefined;
+}
+
+/** A reference's parts and sounds apply while it outweighs every other reference. */
+export function dominantVoices(genre: Genre, weights: readonly number[]): Voices {
+  const ref = dominantReference(genre, weights);
+  return (ref && genre.voiceTraits?.[ref]) ?? genre.voices ?? SYNTHPOP_VOICES;
 }
 
 /** A reference's drum traits apply while it outweighs every other reference; on a tie, the
  * genre's own. (With two references: style < 0.5 is the first's, > 0.5 the second's.) */
 export function dominantDrums(genre: Genre, weights: readonly number[]): DrumTraits {
-  const i = weights.findIndex((w, i) => weights.every((o, j) => j === i || w > o));
-  const ref = i >= 0 ? genre.references[i] : undefined;
+  const ref = dominantReference(genre, weights);
   return (ref && genre.drumTraits[ref]) ?? genre.drums;
 }
 
