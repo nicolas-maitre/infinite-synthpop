@@ -30,12 +30,13 @@ the three Italo analyses.
 
 **Where to be careful.**
 
-- Chord qualities come from a stem that holds stabs, pads, a pedal and leads at once, so thirds
+- Chord qualities come from a stem that holds stabs, pads, leads and (in verse 1 and the
+  choruses) part of the bass at once, so thirds
   and sevenths are less certain than roots.
 - The whole record sits a quarter-tone off concert pitch (§2.1). Energy that falls between two
   semitones leaks into both neighbours, so the chroma always carries some F next to E and B♭
   next to A.
-- The points this left open were checked by ear against the record with A/B clips (§10). The
+- The points this left open were checked by ear against the record with A/B clips (§11). The
   answers are written into the sections below.
 
 ## 1. Fact sheet (measured)
@@ -47,7 +48,7 @@ the three Italo analyses.
 | Tuning             | **About 47 cents sharp** of A440 (A4 ≈ 452 Hz) on the bass, the synths and the voice alike                                                        |
 | Tonal centre       | **A**: the verse loop is the C major / A minor pair and lands on Am; the chorus turns to **A major**                                              |
 | Whole-song key fit | A minor (r 0.46), then A major (0.40). The chorus alone fits A major at 0.74; the verse alone fits nothing above 0.44                             |
-| Verse harmony      | **Fmaj7 – Gsus4 │ Em7 – Am7**, IV△7–Vsus4–iii7–vi7 in C (the "royal road"), under a held C/G pedal                                                |
+| Verse harmony      | **Fmaj7 – Gsus4 │ Em7 – Am7**, IV△7–Vsus4–iii7–vi7 in C (the "royal road"), voiced by 8th-note plucks whose common tones are C and G              |
 | Chorus harmony     | **A │ Em7 – Dmaj7** (I │ v7–IV△7), with an **A–F♯m7 │ G–E7sus4** turnaround (I–vi7 │ ♭VII–V7sus4)                                                 |
 | Bass               | Verse: a **2-bar staccato figure, on the beat in one bar and off it in the next**, bright. Chorus: a dark, sustained bass. **Not an octave bass** |
 | Kick               | On every beat; also on 3& in the 4th bar of each 4 in the choruses                                                                                |
@@ -116,20 +117,20 @@ automatic pass's "C major" (r 0.67) is the verse and the instrumentals outvoting
 
 Every section is a multiple of 8 bars. Bar _n_ starts at 0.15 + 1.9986·_n_ s.
 
-| Bars    | Time | Section          | Length | Harmony                              | What plays                                                                                                                                 |
-| ------- | ---- | ---------------- | ------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0–3     | 0:00 | Intro A          | 4      | F–G │ Em, twice                      | **Bass and kick only.** The kick is on every beat; a stray hat on 1 or 3                                                                   |
-| 4–7     | 0:08 | Intro B          | 4      | F–G │ Em, twice                      | Adds the **8th-note chord stabs**, the C/G pedal and **quarter-note hats**. A snare pickup on 4 and 4e of bar 7                            |
-| 8–23    | 0:16 | Instrumental 1   | 16     | the loop, now ending on **Am**       | Full groove: snare on 2 and 4, 8th hats with the open 3a. Stabs and pedal; no lead. A snare fill every 8 bars                              |
-| 24–39   | 0:48 | Verse 1          | 16     | loop                                 | **Voice** (from a pickup in bar 23). **The bass mostly sits out**: about 20 dB down, silent in bars 25, 33, 34 and 39, fragments elsewhere |
-| 40–55   | 1:20 | Chorus 1         | 16     | A major, 8 + 8                       | Voice up a register. **The bass changes sound** (dark, sustained) and **is silent in the first bar**. Chorus hat cell, kick on 3&          |
-| 56–63   | 1:52 | Instrumental 2   | 8      | loop                                 | As in instrumental 1, with vocal pickups from bar 61                                                                                       |
-| 64–79   | 2:08 | Verse 2          | 16     | loop                                 | Voice, **with the full bass this time**                                                                                                    |
-| 80–95   | 2:40 | Chorus 2         | 16     | as chorus 1                          | As chorus 1, the bass again absent in the first bar                                                                                        |
-| 96–119  | 3:12 | Instrumental 3   | 24     | loop                                 | No voice. A **synth lead** in the C4–A4 range with long held notes (from bar 100 at least), over stabs, pedal and bass                     |
-| 120–135 | 4:00 | Chorus 3         | 16     | as chorus 1                          | Voice; the bass plays from the first bar this time                                                                                         |
-| 136–151 | 4:32 | Breakdown        | 16     | **A–F♯m │ G–E**, 8 times             | **No bass, no voice.** Pads, an off-beat **16th arpeggio**, drums with chorus hats. Faint bass fragments in bars 146–149                   |
-| 152–163 | 5:04 | Chorus 4 / outro | 12+    | chorus's second half, then its start | Voice, bass from 1& of bar 152. Fades from about bar 161 (5:22) to silence at bar 168 (5:36)                                               |
+| Bars    | Time | Section          | Length | Harmony                              | What plays                                                                                                                               |
+| ------- | ---- | ---------------- | ------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 0–3     | 0:00 | Intro A          | 4      | F–G │ Em, twice                      | **Bass and kick only.** The kick is on every beat; a stray hat on 1 or 3                                                                 |
+| 4–7     | 0:08 | Intro B          | 4      | F–G │ Em, twice                      | Adds the **8th-note plucked chord stabs** (§10.1) and **quarter-note hats**. A snare pickup on 4 and 4e of bar 7                         |
+| 8–23    | 0:16 | Instrumental 1   | 16     | the loop, now ending on **Am**       | Full groove: snare on 2 and 4, 8th hats with the open 3a. Stabs; a held line from bar 16. A snare fill every 8 bars                      |
+| 24–39   | 0:48 | Verse 1          | 16     | loop                                 | **Voice** (from a pickup in bar 23). **The bass drops its figure** and holds long roots in E2–A2 (§5.1)                                  |
+| 40–55   | 1:20 | Chorus 1         | 16     | A major, 8 + 8                       | Voice up a register. **The bass changes sound** (dark, sustained), from the first bar. Chorus hat cell, kick on 3&                       |
+| 56–63   | 1:52 | Instrumental 2   | 8      | loop                                 | As in instrumental 1, with vocal pickups from bar 61                                                                                     |
+| 64–79   | 2:08 | Verse 2          | 16     | loop                                 | Voice, **with the full bass this time**                                                                                                  |
+| 80–95   | 2:40 | Chorus 2         | 16     | as chorus 1                          | As chorus 1                                                                                                                              |
+| 96–119  | 3:12 | Instrumental 3   | 24     | loop                                 | No voice. A **synth lead** in the C4–A4 range with long held notes (from bar 100 at least), over the bass; the stabs rest in bars 97–103 |
+| 120–135 | 4:00 | Chorus 3         | 16     | as chorus 1                          | Voice; the bass plays from the first bar this time                                                                                       |
+| 136–151 | 4:32 | Breakdown        | 16     | **A–F♯m │ G–E**, 8 times             | **No bass, no voice.** Pads, an off-beat **16th arpeggio**, drums with chorus hats. Faint bass fragments in bars 146–149                 |
+| 152–163 | 5:04 | Chorus 4 / outro | 12+    | chorus's second half, then its start | Voice, bass from 1& of bar 152. Fades from about bar 161 (5:22) to silence at bar 168 (5:36)                                             |
 
 **It is the 12″ mix, and it's the only mix:**
 
@@ -163,20 +164,21 @@ chorus in A major.
 
 ### 4.1 The verse loop (intro, instrumentals, verses), 2 bars
 
-| Bar (odd/even in the 2-bar cycle) | Beats 1–2                                                                                   | Beats 3–4                                     | C major      | A minor         |
-| --------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------ | --------------- |
-| 1 (bars 8, 10, …)                 | **Fmaj7**: F A C E all strong                                                               | **Gsus4**: G, C and D, with traces of B and F | IV△7 – Vsus4 | VI△7 – ♭VIIsus4 |
-| 2 (bars 9, 11, …)                 | **Em7**: E G B D, with the C pedal above. The E only from 1 to 2e: the A comes in on **2&** | **Am7**: A C E G                              | iii7 – vi7   | v7 – i7         |
+| Bar (odd/even in the 2-bar cycle) | Beats 1–2                                                                         | Beats 3–4                                     | C major      | A minor         |
+| --------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------- | ------------ | --------------- |
+| 1 (bars 8, 10, …)                 | **Fmaj7**: F A C E all strong                                                     | **Gsus4**: G, C and D, with traces of B and F | IV△7 – Vsus4 | VI△7 – ♭VIIsus4 |
+| 2 (bars 9, 11, …)                 | **Em7**: E G B D, with C above. The E only from 1 to 2e: the A comes in on **2&** | **Am7**: A C E G                              | iii7 – vi7   | v7 – i7         |
 
 - **The changes are pushed.** The bass moves to the next bar's root on **4&**: E under the last 8th
   of the F–G bar, and G under the last 8th of the Em–Am bar. The A of Am arrives on **2&**, an 8th
   before beat 3. Only F and G land on the beat.
 - **The intro withholds the Am** (bars 0–7). The second bar stays on **Em7** for the whole bar, so
   the loop is F–G │ Em until the snare comes in. Am first sounds in bar 9 (0:18).
-- **The pedal.** A synth holds C5 and G4 across the whole loop. It is the "C" that the top
-  register reads in every verse bar. Against the moving roots, the same two notes are the 5th
-  and 9th of F, the 4th and root of G, the ♭6 and 3rd of E, and the 3rd and 7th of A. That is
-  the loop's colour, and why F reads as Fmaj7(9), G as Gsus4, and Em as close to C/E.
+- **No pedal (corrected).** The first pass heard a synth holding C5 and G4 across the loop. It
+  isn't there: between the stab hits, every note falls by the same 9–13 dB, C5 and G4 included
+  (§10.2). C and G are the stab voicings' common tones (A–C–E, G–B–D, D–G–B, E–G–C), and the
+  stab's 300 ms echo carries each chord's notes into the next. That is why F reads as Fmaj7(9),
+  G as Gsus4 and Em as close to C/E.
 - **The G chord, by ear:** Gsus4, plain G and G11 (F over G) all fit the record when overlaid on
   bar 10. The user leans to Gsus4 or plain G, so the loop is written with **Gsus4**. The generator
   can treat G, Gsus4 and G11 as interchangeable here.
@@ -220,8 +222,8 @@ Chorus 1, bars 40–55:
   - The F♯ arrives on beat 3 or 4.
   - The G of the turnaround holds beats 1–2.
   - The E enters on beat 3 or 4 and runs into the next A.
-- **The first chorus bar has no bass** in choruses 1 and 2 (bars 40 and 80). The pads and the
-  voice bring the A major in alone.
+- **The first chorus bar has its bass after all (corrected).** In bars 40 and 80 the bass stem is
+  silent, but the sustained bass is there, separated into the "other" stem (clip 10c, §11).
 - Choruses 2 and 3 repeat this exactly. **Chorus 4** (bar 152) plays the second half (48–55),
   then the start of the first, and fades during it.
 
@@ -240,6 +242,9 @@ loop, with no bass.
 - The A chord's colour: plain A, or Amaj7 from a faint G♯.
 - In the breakdown, whether the E is the turnaround's E7sus4 (likely, by analogy; not checked by
   ear).
+- Whether the breakdown really has no bass. The bass stem is silent there, but the "other" stem
+  carries held roots in A2–E2 at the chorus level. In verse 1 and the chorus that same kind of
+  part is the bass (clips 10c and 11); the breakdown wasn't checked by ear.
 
 ## 5. The bass
 
@@ -285,9 +290,10 @@ Em–Am bar     .    .    E1   -    .    .    A1   -    .    .    A1   -    -   
   - That is a bright saw or pulse with a sub-oscillator (or two oscillators an octave apart),
     through a filter that opens on each note. It is much brighter than You Came's bass
     (harmonics within 22 dB only up to 250–740 Hz) and plucky rather than legato.
-- **Verse 1 has almost no bass.** It plays fragments in bars 27, 29–31 and 35–37, about 20 dB
-  under verse 2, and nothing in bars 25, 33, 34 and 39. Verse 2 has the full bass. This holding
-  back of the first verse is the record's main arrangement device after the breakdown.
+- **Verse 1 drops the figure, not the bass (corrected).** The bass stem is about 20 dB down in
+  verse 1. But the "other" stem carries **held roots**, F2, G2, E2 and A2, one per chord, dark
+  (2nd harmonic −9 dB, 3rd −21 dB). By ear that part is the bass (clip 11, §11): verse 1 holds
+  long roots an octave above the figure's register, and verse 2 brings the staccato figure back.
 
 ### 5.2 The chorus bass: dark and sustained
 
@@ -301,7 +307,8 @@ Em–Am bar     .    .    E1   -    .    .    A1   -    .    .    A1   -    -   
 - **Timbre:** the 2nd harmonic is 0–8 dB under the fundamental, the 3rd 19–22 dB under, the 4th
   15–26 dB under. A **different patch**: round and dark, close to You Came's bass.
 - **Register: D1–A1** (38–57 Hz), with D2 hops.
-- It is silent in the first chorus bar in choruses 1 and 2, and absent for the whole breakdown.
+- Demucs puts all of it into the "other" stem in bars 40 and 80, so the bass stem looks empty
+  there. By ear it is the bass (clip 10c). The breakdown is open (§4.4).
 
 So the record **switches bass sound with the key**: a bright pluck for the minor-side loop, a
 dark sustain for the A-major chorus. The extra rhythm in the chorus comes from the stabs (§7)
@@ -403,20 +410,21 @@ Roles and registers only. The melodies, the lead lines and the lyrics are the co
 | Section               | Bass                                  | Chords                                                                           | Riff, lead, sequence                                                                    | Voice                                                           |
 | --------------------- | ------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | Intro A (0:00)        | the 2-bar figure, alone with the kick | none                                                                             | none                                                                                    | none                                                            |
-| Intro B (0:08)        | same                                  | **8th-note stabs** (every 8th, gated 9–15 dB per 8th), mid register (C3–C5)      | a **held pedal**, C5 and G4                                                             | none                                                            |
-| Instrumental 1 (0:16) | same, now with the Am                 | stabs                                                                            | the pedal; sustained mid-register lines                                                 | none                                                            |
-| Verses                | verse 1: mostly out; verse 2: full    | stabs (the "&"s steady, the beats thinner)                                       | the pedal                                                                               | **lead alone, C4–E4**, a low, narrow line; about 6 onsets a bar |
-| Choruses              | the dark sustained bass               | **sustained pads** (strong in octave 2–3), the off-beat stabs still on every "&" | none clearly separable                                                                  | **C♯4–B4, median A4**, up about a fifth from the verse          |
+| Intro B (0:08)        | same                                  | **8th-note plucked stabs** (§10.1): close chords in D4–E5, a 300 ms echo         | none                                                                                    | none                                                            |
+| Instrumental 1 (0:16) | same, now with the Am                 | stabs                                                                            | from bar 16, a held line on chord tones, F4–B4                                          | none                                                            |
+| Verses                | verse 1: held roots; verse 2: figure  | stabs (the "&"s steady, the beats thinner)                                       | none                                                                                    | **lead alone, C4–E4**, a low, narrow line; about 6 onsets a bar |
+| Choruses              | the dark sustained bass               | **sustained pads** (open voicings, A3–A4), the off-beat stabs still on every "&" | none: no countervoice (§10.3)                                                           | **C♯4–B4, median A4**, up about a fifth from the verse          |
 | Instrumental 3 (3:12) | verse bass                            | stabs                                                                            | a **synth lead**, C4–A4 range, long held notes                                          | none                                                            |
 | Breakdown (4:32)      | none                                  | pads, held notes in C3–A3                                                        | an **off-beat 16th arpeggio**: hits on 1e, 2&, 2a, 3e, 3&, 4e and 4a, never on the beat | none                                                            |
 
-- **The stabs are the motor.** A chord synth hits every 8th, gated short, from bar 4 to the end
-  except in the breakdown. The "&" hits are present in every bar of every section (onset share
+- **The stabs are the motor.** A plucked chord synth hits every 8th from bar 4 to the end. It
+  rests twice: bars 97–103, where the instrumental's lead takes over, and bars 136–143, the
+  breakdown's first half. The "&" hits are present in every bar of every section (onset share
   1.00). The on-beat hits thin out in the vocal sections, probably masked by the kick in the
   separation. Against them, the bass's on-beat bar and off-beat bar take turns. The chorus keeps the
   off-beat stabs over sustained pads and bass.
-- **The pedal** (C5 and G4) is the loop's harmonic glue (§4.1). It belongs to the verse world, and
-  the chorus replaces it with pads on A, E and D.
+- **No pedal.** The held C5/G4 of the first pass is the stab voicings' common tones plus the
+  echo (§4.1, §10.2).
 - **The breakdown's arpeggio** avoids the beats, where the kick sits. Its strongest hits fall on 1e,
   2&, 3& and 4e.
 - **The voice** is a single, low, close line in the verses. The chorus lifts it about a fifth to
@@ -486,7 +494,7 @@ It differs on five axes, and each of them is a building block the Italo genre ne
 | Axis    | Synthpop (TF, DS, You Came)                                     | Faces                                                                                                          |
 | ------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Harmony | one key per song; minor (TF, DS) or major (You Came)            | **two modes on one root**: the minor-side royal-road loop, the **parallel-major chorus**, and back by V → ♭VI  |
-| Loop    | i–III–VII–iv/IV, or You Came's IV–V                             | **IV△7–Vsus4–iii7–vi7** (royal road) under a 1-and-5 pedal                                                     |
+| Loop    | i–III–VII–iv/IV, or You Came's IV–V                             | **IV△7–Vsus4–iii7–vi7** (royal road), voiced by 8th-note plucks                                                |
 | Bass    | root 8ths, legato (You Came) or the shared 16th figure (TF, DS) | **a staccato 2-bar figure, on-beat then off-beat**, next root on **4&**; a **second, dark bass** in the chorus |
 | Hats    | dense 16ths (TF, DS) or beat-&-a (You Came)                     | **8ths with an open 3a** in the verse, a **galloping 16th cell** in the chorus                                 |
 | Form    | album and 12″ forms with a bridge                               | a **DJ-oriented 12″**: a 24-bar build before the voice, long instrumentals, a 16-bar breakdown, a fade         |
@@ -497,8 +505,8 @@ It differs on five axes, and each of them is a building block the Italo genre ne
    - **The royal-road loop:** IV△7 – Vsus4 │ iii7 – vi7 in the relative major, i.e. VI△7 –
      ♭VIIsus4 │ v7 – i7 from the minor tonic. G, Gsus4 and G11 are interchangeable on the V.
      Two chords a bar, with the vi pushed in on 2& and the next bar's root on 4&.
-   - **A top pedal** on degrees 1 and 5 of the relative major (C and G here) held through the
-     whole loop.
+   - **No top pedal** (corrected): the colour comes from the plucks' voicings and their echo
+     (§10.1).
    - **An intro variant** that stays on iii for the second bar and only completes the loop when
      the snare enters.
    - **The major chorus** on the minor loop's tonic: I │ v7–IV△7, three times, then I–vi7 │
@@ -518,8 +526,8 @@ It differs on five axes, and each of them is a building block the Italo genre ne
      - Range E1–A1, with E2 and G2 hops.
    - **A sustained chorus bass:** whole and half notes on the root, dark (H2 ≈ H1, H3 about
      −20 dB), D1–A1.
-   - **A bass rule per section:** drop the bass from the first verse and the first chorus bar,
-     bring it back for the second verse.
+   - **A bass rule per section:** in the first verse, the bass holds the roots (E2–A2) instead of
+     playing the figure, and the second verse brings the figure back.
    - This song does **not** supply the alternating octave bass the genre is known for. If The Night
      or Get Closer has it, it comes from them.
 3. **Form blocks** (a 12″ mode for Italo):
@@ -539,8 +547,8 @@ It differs on five axes, and each of them is a building block the Italo genre ne
    - a deep, pitch-swept short kick (909-like);
    - the kick never stops.
 5. **Arrangement roles:**
-   - **gated 8th-note chord stabs** as the rhythmic layer under everything except the breakdown;
-   - a held two-note pedal on top in the verse world;
+   - **plucked 8th-note chord stabs with a 300 ms echo** as the rhythmic layer under everything
+     except bars 97–103 and the breakdown's first half (§10.1);
    - sustained pads only in the major chorus;
    - an off-beat 16th arpeggio for the breakdown;
    - a lead synth that plays in the long instrumental;
@@ -561,10 +569,10 @@ It differs on five axes, and each of them is a building block the Italo genre ne
 
 Specific to Faces, and better kept as choices with low weight:
 
-- the royal-road loop with its C/G pedal;
+- the royal-road loop;
 - the same-root lift from vi to I;
 - the dark second bass;
-- verse 1 without bass;
+- verse 1 on held bass roots;
 - the galloping hat cell (possibly generic too; the Valerie Dore analyses will tell);
 - the off-concert tuning.
 
@@ -582,9 +590,180 @@ synthetic, DJ-shaped record, with these traits to compare against The Night and 
   toms, percussion and fills.
 - **Form:** a long build before the voice, a long instrumental with a lead synth, a breakdown, no
   vocoder. Check them for vocoder or vocal-sample breaks.
-- **Timbre:** stabs and pedal in the verses, pads in the chorus, an arpeggio in the breakdown.
+- **Timbre:** echoed plucks in the verses, pads in the chorus, an arpeggio in the breakdown.
 
-## 10. Ear check
+## 10. Synth parts for the generator
+
+What the generator needs to play Faces' synths: the parts, what they play, and a patch for each in
+the generator's own voices (`NativeMonoSynth` and friends in `src/voices.ts`).
+
+**How this was measured:**
+
+- on the "other" stem, often its left and right channels apart;
+- then checked against Python recreations of each patch, played to the user next to the record
+  (clips 8–11, §11).
+
+The patch numbers are the recreation's, translated into voice options.
+
+### 10.1 The plucked stab: the intro's signature synth
+
+**It is the 8th-note stab of §7**, not a separate part. A polyphonic chord on every 8th.
+
+- **Where it plays:**
+  - Enters on **bar 4, beat 1 (0:08)**, with the quarter hats. The "other" stem is silent in
+    bars 0–3.
+  - Plays to the end, except **bars 97–103** (the long instrumental's lead takes over) and
+    **bars 136–143** (the breakdown's first half).
+- **Brightness is ridden by hand.** At its darkest in the verses, where the 8–14 kHz band runs
+  about 10 dB under the intro. At its brightest in intro B, bars 16–21 and bars 62–63.
+
+**What it plays over the verse loop.** 8ths are numbered 1–8 in each bar:
+
+| Chord (bass)          | 8ths                         | Notes                        | Top |
+| --------------------- | ---------------------------- | ---------------------------- | --- |
+| Fmaj7 (F)             | 1–5: beat 1 through beat 3   | A4 C5 E5, plus F4 from bar 8 | E5  |
+| Gsus4 (G)             | 6–8: **3&** through 4&       | G4 B4 D5                     | D5  |
+| Em7 (E)               | next bar's 1–4: 1 through 2& | D4 G4 B4                     | B4  |
+| Am7 (A; E in intro B) | 5–8: **beat 3** through 4&   | E4 G4 C5                     | C5  |
+
+- **Voicing:** close position, three notes, D4–E5. The chord tones leave out the root, except
+  the F4 that bar 8 adds. The top voice steps **E5 – D5 – B4 – C5**.
+- **The changes don't follow the bass:**
+  - G comes on **3&**, an 8th after the bass's G (confirmed by ear, clip 9a).
+  - Am's voicing comes on **beat 3**, an 8th after the bass's A on 2&.
+  - In intro B, where the bass holds E for the whole bar, the stab still moves to E–G–C on beat 3.
+- **Velocity:**
+  - In the intro, every hit is equally loud.
+  - In the verses the "&"s measure 3–4 dB stronger, partly because the kick masks the beats in
+    the separation.
+- **In the chorus** it keeps the "&"s over the pads, lower down. Low confidence: the pads share
+  this register.
+  - A3 E4 A4 on A.
+  - B3 D4 G4 on Em7.
+  - D4 F♯4 A4 on Dmaj7.
+
+**The sound.** Measured on the left channel's off-beat hits, where the echo is weakest:
+
+- **One sawtooth:**
+  - Harmonics 2–8 within 1–2 dB of a saw's 1/n.
+  - Around the attack, the 4–8 kHz partials sit about 5 dB above a saw.
+  - Against a plain filtered saw, about −5 dB around 1.4 kHz and +5 dB around 5.5 kHz.
+- **Filter, hold then drop:**
+  - Open (10 kHz and up, slightly resonant) for 40–50 ms.
+  - Then it shuts to 2–3 kHz by 80–100 ms.
+  - The 4–8 kHz band reads −1, −2 and −5 dB over 0–50 ms, then −14 dB at 50–70 ms and −27 dB at
+    70–100 ms.
+  - That is a **linear** filter decay, not an exponential one.
+- **Amplitude:**
+  - Attack under 5 ms.
+  - Then a near-linear fall to silence by about 230 ms: −1 dB at 40 ms, −3 at 60, −7 at 120, −12
+    at 160, −16 at 200.
+- **Why a detuned pair fails.** Tone's fat oscillator starts its two copies half a cycle apart.
+  At note-on the odd harmonics cancel, and the fundamental takes about 60 ms to grow. The
+  record's body is there at once.
+- **Stereo:**
+  - The dry sound leans left: +2.7 dB at the attack.
+  - Wide: L/R correlation 0.30 over intro B, with the attack as wide as the body. That points to
+    a chorus.
+- **The echo**, confirmed by ear (clip 8o):
+  - **One strong repeat about 300 ms later, in the right channel.**
+  - Fitted gain 0.8–1.0 of the dry hit, feedback about 0.35.
+  - Not tempo-synced: 300 ms falls between an 8th (250 ms) and a dotted 8th (375 ms), so the
+    repeat lands about 50 ms after the next pluck.
+  - That doubles each hit on the right and drags each chord's notes into the next. It is part of
+    why G sounds like Gsus4.
+- **How the echo was found.** Following the user's hint, from the first pluck (bar 4, beat 1),
+  which is dry. The second decays about 60 ms more slowly, and the echo builds from there.
+- **No long reverb.** When the stabs stop in bar 96, the stem falls 20 dB within 100 ms.
+  - The user first heard "a lot of reverb".
+  - The large-reverb recreations (clips 8d–8f) turned out to be the wrong answer: it's the echo.
+
+**Patch** (clip 8s, the version the user chose):
+
+```ts
+// Faces' plucked stab (faces.md §10.1). One saw: a detuned pair cancels its fundamental at note-on.
+const facesPluck = new NativeMonoSynth({
+  oscillator: { type: "sawtooth" },
+  filter: { type: "lowpass", rolloff: -24, Q: 3 }, // WebAudio's lowpass Q is in dB: ≈1.4 linear
+  envelope: { attack: 0.003, decay: 0.23, decayCurve: "linear", sustain: 0, release: 0.03 },
+  filterEnvelope: {
+    attack: 0.002,
+    decay: 0.08,
+    decayCurve: "linear",
+    sustain: 0,
+    release: 0.05,
+    baseFrequency: 1600,
+    octaves: 3, // 12.8 kHz at note-on, down to 1.6 kHz by 80 ms (exponent 2, the default)
+  },
+  maxPolyphony: 8,
+}).chain(
+  new FixedFilter("peaking", 1400, { Q: 1, gain: -5 }),
+  new FixedFilter("peaking", 5500, { Q: 0.8, gain: 5 }),
+  new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.6, wet: 0.5 }).start(),
+  stabChannel, // pan about −0.15
+);
+```
+
+- **New: the echo.** The shared delay bus is an `8n.` FeedbackDelay, centred and high-passed at
+  600 Hz, so Faces needs its own:
+  - a send from the stab channel into `new Tone.FeedbackDelay({ delayTime: 0.3, feedback: 0.35, wet: 1 })`;
+  - through `new Tone.Panner(1)` (hard right);
+  - returned at about −2 dB (gain 0.8) under the dry.
+  - The stab's send to the `8n.` bus goes.
+- **Reverb: little.** The recreation used a 2 s room at gain 0.25. The stab channel's current send
+  of 0.5 is too much for Faces.
+- **No noise burst.** The stab's orchestra-hit noise doesn't belong in this pluck.
+- **Chorus:** the setting above is the recreation's, not measured on its own.
+- **Notes:** 8ths of about 0.25 s; the envelope ends them.
+- **Brightness ride:** about one octave less `octaves` in the verses than in the intro and the
+  instrumentals.
+- **In the arranger:** `gatedStabs` voices each chord at 67 with `voiceChord()`. Faces wants:
+  - the close voicings of the table;
+  - the top line E5–D5–B4–C5;
+  - G on 3& and Am on beat 3.
+
+### 10.2 The pedal question
+
+**There is no held pedal.** The generator's `heldPedal` (C5 and G4, held through every bar)
+should go.
+
+- **The test.** Bars 4–7, each note measured on the hits and again in the gaps between them
+  (165–215 ms after each 8th).
+  - Every stab note falls 9–13 dB in the gaps, with C5 and G4 no different from the rest: C5 by
+    12 dB, G4 by 9 dB.
+  - A held part would keep its level.
+- **Why the first pass heard one:**
+  - G4 is in three of the four voicings, and C5 in two.
+  - The 300 ms echo puts each chord's notes about 50 ms after the next hit. Just after G–B–D
+    enters on 3&, C5 measures as strong as B4, then fades with the rest.
+- **The only held part in the verse world** is a line from **bar 16 (0:32)**, in instrumental 1's
+  second half. Not checked by ear.
+  - One note per chord: F4 over F, G4 over G and over Em, A4 or B4 over Am.
+  - Always the chord tone nearest the middle of the range. That is what the arranger's
+    `heldLine` already plays.
+  - It belongs in the instrumentals, from their 9th bar.
+
+### 10.3 The chorus
+
+| Layer        | The record                                                                                                                                                                            | Against the generator                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Bass         | Sustained roots, D1–A1, with a strong octave-2 component. It plays **from the first bar**: Demucs had put bars 40 and 80 into the "other" stem. Confirmed by ear (clip 10c)           | The `faces` chorus bass already holds roots. Start it on the chorus's first bar                                            |
+| Pads         | **Open voicings, held:** A3 E4 A4 on A (no C♯: the third is the singer's), E3 D4 G4 on Em7, D3 C♯4 A4 on Dmaj7. The root sits in octave 3, the 7th in the middle, the top at A4 or G4 | `padChords` voices close at 62 with no low root. Faces wants the open spread, with the 7ths of Em7 and Dmaj7 in the middle |
+| Stabs        | Continue on every "&", low (A3–A4)                                                                                                                                                    | Keep the pluck in the chorus, the "&"s only, with the low voicings of §10.1                                                |
+| Countervoice | **None.** The high held note is the singer; no synth holds more than a beat or two (clip 10a). A guessed line (A5, then G5–A5–C♯5) sounded new against the record (clip 10d)          | Don't add one                                                                                                              |
+| Voice        | C♯4–B4, median A4                                                                                                                                                                     | As planned                                                                                                                 |
+
+So the generated chorus (louder pads, no arpeggio) is on the right track. Four things separate it
+from the record:
+
+- open pad voicings rooted in octave 3;
+- the plucks still on the "&"s;
+- the bass from the first bar;
+- nothing on top of the voice.
+
+The pads' own timbre wasn't measured.
+
+## 11. Ear check
 
 Each uncertain point was checked by ear by the user, from clips rendered offline (local only, in
 `renders/ear-check-faces/`, named by the clip numbers below; nothing was played through
@@ -597,15 +776,30 @@ speakers):
 - **Bass:** the bass stem, then two plain-synth recreations of the same notes (same register, or
   jumping an octave on every other note).
 - **Drums:** the mix, then the drum stem, then the hits in question cut out one by one.
+- **Synth patch (clips 8–9):** four parts, played in this order:
+  - the synth stem;
+  - a Python recreation of the candidate patch;
+  - the mix;
+  - the record's drums and bass with the recreation.
+- **Layers (clips 10–11):** the mix, then the "other" stem band-passed around the part in question.
 
-| Clips             | Bars, time                     | Question                                          | Answer                                                                                                |
-| ----------------- | ------------------------------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| 1a–1c             | 41 (1:22), beats 1–2           | Chorus chord over E: Em7, E7sus4 or E?            | **1a, Em7**                                                                                           |
-| 2a–2c, then 7a–7f | 47 (1:34), beats 3–4           | Turnaround E: E7sus4, E or Em7?                   | Overlays 2a–2c didn't decide it; from the recreations 7a–7f, **7a: E7sus4**                           |
-| 3a–3b, then 7a–7f | 46 (1:32), beats 3–4           | F♯m7 or F♯m?                                      | Overlays 3a–3b didn't decide it; from the recreations, **7a: F♯m7**                                   |
-| 4a–4c             | 10 (0:20), beats 3–4           | Verse G: G11, Gsus4 or G?                         | All fit; the user leans to **4b (Gsus4) or 4c (plain G)**. Written as Gsus4                           |
-| 5a–5c             | 8–11 (0:16–0:24)               | Verse bass: same register or alternating octaves? | **5b, same register**, and not on every 8th: in 5a the first notes land on the beats (§5.1 rewritten) |
-| 6a–6b, then 6c–6e | 137–147 (4:34–4:56), breakdown | What are the extra hits in the drum stem?         | **6c** (the 1& hit in bars 138 and 146) is a **quiet tom**; **6d/6e** is a **clave** (or a rim click) |
+| Clips             | Bars, time                     | Question                                                      | Answer                                                                                                |
+| ----------------- | ------------------------------ | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 1a–1c             | 41 (1:22), beats 1–2           | Chorus chord over E: Em7, E7sus4 or E?                        | **1a, Em7**                                                                                           |
+| 2a–2c, then 7a–7f | 47 (1:34), beats 3–4           | Turnaround E: E7sus4, E or Em7?                               | Overlays 2a–2c didn't decide it; from the recreations 7a–7f, **7a: E7sus4**                           |
+| 3a–3b, then 7a–7f | 46 (1:32), beats 3–4           | F♯m7 or F♯m?                                                  | Overlays 3a–3b didn't decide it; from the recreations, **7a: F♯m7**                                   |
+| 4a–4c             | 10 (0:20), beats 3–4           | Verse G: G11, Gsus4 or G?                                     | All fit; the user leans to **4b (Gsus4) or 4c (plain G)**. Written as Gsus4                           |
+| 5a–5c             | 8–11 (0:16–0:24)               | Verse bass: same register or alternating octaves?             | **5b, same register**, and not on every 8th: in 5a the first notes land on the beats (§5.1 rewritten) |
+| 6a–6b, then 6c–6e | 137–147 (4:34–4:56), breakdown | What are the extra hits in the drum stem?                     | **6c** (the 1& hit in bars 138 and 146) is a **quiet tom**; **6d/6e** is a **clave** (or a rim click) |
+| 8-ref, 8a–8c      | 4–5 (0:08–0:12)                | Pluck: a saw, a square, or a saw with no filter sweep?        | **8a, saw**, "brighter, and with a lot of reverb"                                                     |
+| 8d–8f             | 4–5 (0:08–0:12)                | How much reverb?                                              | None of them: "not necessarily reverb, but more like an echo"                                         |
+| 8g–8n             | 4–5 (0:08–0:12)                | Which echo: slapback, 8th, dotted 8th, quarter, ping-pong?    | Between 8i and 8j. The user then pointed at the clean first pluck, which gave the 300 ms measurement  |
+| 8o–8r             | 4 (0:08)                       | 300 ms echo on the right: alone, plus left, more repeats?     | **8o, right only**; "the timbre of the hit is still pretty off"                                       |
+| 8s–8t             | 4–5 (0:08–0:12)                | Refitted single-saw timbre, with or without the EQ?           | **8s** (with the EQ), 8t close behind. The patch of §10.1                                             |
+| 9a–9b             | 4–5 (0:08–0:12)                | Does the stab's G come on 3& or on 3?                         | **9a, on 3&**                                                                                         |
+| 10a–10b, 10d      | 40–43 (1:20–1:28)              | Is there a synth countervoice over the chorus?                | **No.** The held high note is the singer; synth notes hold a beat or two at most. 10d's line is new   |
+| 10c               | 40–43 (1:20–1:28)              | The held low part in the "other" stem: bass or another synth? | **The bass**, so the first chorus bar has bass                                                        |
+| 11                | 24–27 (0:48–0:56)              | The same in verse 1?                                          | **The bass**: verse 1 holds long roots instead of the figure                                          |
 
 ## Sources
 
