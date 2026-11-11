@@ -1,7 +1,7 @@
 /**
  * The originals as songs for the same engine: the measured form, chords per section, key, tempo,
  * drum machine and bass figure (docs/analysis.md §1–§3 and, for You Came, §2 and §6; the Italo
- * records from docs/italo/; section lengths rounded to whole phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
+ * records from docs/italo/ and docs/references/branigan-self-control.md; section lengths rounded to whole phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
  * the copyrighted compositions, while harmony, form and groove are what the generator studies.
  */
 import type { BassStyle, CustomMelody, KitName, Layers, SectionKind } from "./composer";
@@ -10,7 +10,13 @@ import type { Progression } from "./progressions";
 import type { Key } from "./theory";
 
 export type ReferenceId =
-  "true-faith" | "different-story" | "you-came" | "the-night" | "get-closer" | "faces";
+  | "true-faith"
+  | "different-story"
+  | "you-came"
+  | "the-night"
+  | "get-closer"
+  | "faces"
+  | "self-control";
 
 export interface ReferenceSection {
   kind: SectionKind;
@@ -157,6 +163,12 @@ const FC_CHORUS_B: Progression = [
 const FC_CHORUS: Progression = [...FC_CHORUS_A, ...FC_CHORUS_B];
 
 const band = { drums: "full", bass: true, pad: true } as const;
+
+// Laura Branigan's Self Control (docs/references/branigan-self-control.md §2–§3), in F♯ minor: one
+// 8-bar Aeolian loop under the verse, the pre-chorus and the chorus; the intro riff, the breaks and
+// the outro on i–v.
+const SC_LOOP: Progression = [["i"], ["v"], ["i"], ["v"], ["VII"], ["iv"], ["VI"], ["III"]];
+const SC_VAMP: Progression = [["i"], ["v"]];
 
 export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
   // 5:55, about 173 bars (the MIDI transcription's layout; the audio beat count lost bars in the
@@ -878,6 +890,103 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         bars: 16,
         progression: [...FC_CHORUS_B, ...FC_CHORUS_A],
         layers: { ...band, drums: "big", lead: "chorus", stabs: true },
+      },
+    ],
+  },
+  // The single, 106 bars and a fade at 106.69 BPM, every section boundary exact to the bar (§2.1).
+  // The kit is the closest sample kit to the measured one (§5.1: a dead kick, a clean clap, most
+  // likely a LinnDrum). The sections differ by their drums and parts, not their chords: no hats in
+  // the verses, 16ths from the pre-chorus, claps and the bright high part in the choruses, one
+  // reverbed hit on beat 2 in the breaks. The verses play offbeat chops; the pre-chorus carries the
+  // title line; the voice is stacked in the choruses (its backing voices).
+  "self-control": {
+    title: "Self Control",
+    style: 0.5,
+    key: { tonic: 6, mode: "minor" },
+    bpm: 106.7,
+    kit: "linndrum",
+    bassStyle: "sc",
+    verse: SC_LOOP,
+    chorus: SC_LOOP,
+    sections: [
+      {
+        kind: "intro",
+        label: "Intro · pad",
+        bars: 4,
+        progression: [["i7"]],
+        layers: { drums: "half", pad: true },
+      },
+      {
+        kind: "intro",
+        label: "Intro · riff",
+        bars: 4,
+        progression: SC_VAMP,
+        layers: { drums: "full", bass: true, riff: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 1",
+        bars: 16,
+        progression: SC_LOOP,
+        layers: { ...band, stabs: true, lead: "verse" },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus · title line",
+        bars: 16,
+        progression: SC_LOOP,
+        layers: { ...band, stabs: true, lead: "verse", titleLine: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 1",
+        bars: 16,
+        progression: SC_LOOP,
+        layers: { ...band, drums: "big", counter: true, lead: "chorus", leadStack: true },
+      },
+      {
+        kind: "break",
+        label: "Break · stab on 2",
+        bars: 4,
+        progression: SC_VAMP,
+        layers: { drums: "stab", stabs: true, lead: "chorus" },
+        fill: true,
+      },
+      {
+        kind: "break",
+        label: "Drums and voice",
+        bars: 2,
+        progression: SC_VAMP,
+        layers: { drums: "full", lead: "chorus" },
+      },
+      {
+        kind: "verse",
+        label: "Verse 2",
+        bars: 8,
+        progression: SC_LOOP,
+        layers: { ...band, stabs: true, lead: "verse" },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 2",
+        bars: 16,
+        progression: SC_LOOP,
+        layers: { ...band, drums: "big", counter: true, lead: "chorus", leadStack: true },
+      },
+      {
+        kind: "break",
+        label: "Break · stab on 2",
+        bars: 4,
+        progression: SC_VAMP,
+        layers: { drums: "stab", stabs: true, lead: "chorus" },
+        fill: true,
+      },
+      {
+        kind: "outro",
+        label: "Outro · i–v vamp",
+        bars: 16,
+        progression: SC_VAMP,
+        layers: { ...band, drums: "big", counter: true, lead: "chorus" },
       },
     ],
   },

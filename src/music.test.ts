@@ -128,6 +128,7 @@ describe("genre profile", () => {
       sawCutoff: 2500,
       octave: 0,
       sustain: 0.2,
+      lowCut: 0,
     });
     expect(bassTone(SYNTHPOP, 1)).toEqual({
       frequency: 160,
@@ -135,6 +136,7 @@ describe("genre profile", () => {
       sawCutoff: 300,
       octave: 0,
       sustain: 0.2,
+      lowCut: 0,
     });
     expect(bassTone(SYNTHPOP, 0.35)).toEqual({
       frequency: 240 - 80 * 0.35,
@@ -142,6 +144,7 @@ describe("genre profile", () => {
       sawCutoff: 2500 - 2200 * 0.35,
       octave: 0,
       sustain: 0.2,
+      lowCut: 0,
     });
     // You Came's: darker than TF's, with the octave layer.
     expect(bassTone(SYNTHPOP, [0, 0, 1])).toEqual({
@@ -150,7 +153,26 @@ describe("genre profile", () => {
       sawCutoff: 600,
       octave: 1,
       sustain: 0.35,
+      lowCut: 0,
     });
+  });
+
+  it("gives Self Control's bass a dark saw with its fundamental cut, and nobody else's", () => {
+    const italo = GENRES.italo;
+    expect(bassTone(italo, [0, 0, 0, 1])).toEqual({
+      frequency: 80,
+      presence: 1,
+      sawCutoff: 120,
+      octave: 0,
+      sustain: 0.3,
+      lowCut: 65,
+    });
+    for (const w of [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+    ])
+      expect(bassTone(italo, [...w, 0]).lowCut).toBe(0);
   });
 });
 
@@ -376,10 +398,12 @@ describe("references", () => {
   });
 
   it.each([
-    // id, key, bpm, kit, bass style, bars, weights in Italo's order (The Night, Get Closer, Faces)
-    ["the-night", { tonic: 5, mode: "minor" }, 110.3, "synth", "night", 152, [1, 0, 0]],
-    ["get-closer", { tonic: 4, mode: "minor" }, 112.3, "dmx", "italo", 96, [0, 1, 0]],
-    ["faces", { tonic: 9, mode: "minor" }, 120.1, "synth", "faces", 168, [0, 0, 1]],
+    // id, key, bpm, kit, bass style, bars, weights in Italo's order (The Night, Get Closer, Faces,
+    // Self Control)
+    ["the-night", { tonic: 5, mode: "minor" }, 110.3, "synth", "night", 152, [1, 0, 0, 0]],
+    ["get-closer", { tonic: 4, mode: "minor" }, 112.3, "dmx", "italo", 96, [0, 1, 0, 0]],
+    ["faces", { tonic: 9, mode: "minor" }, 120.1, "synth", "faces", 168, [0, 0, 1, 0]],
+    ["self-control", { tonic: 6, mode: "minor" }, 106.7, "linndrum", "sc", 106, [0, 0, 0, 1]],
   ] as const)(
     "plays %s in Italo at its measured key, tempo, kit, bass and length",
     (id, key, bpm, kit, bassStyle, bars, weights) => {
@@ -861,9 +885,10 @@ describe("genre auto", () => {
 describe("italo genre", () => {
   const italo = GENRES.italo;
   const corners = [
-    [1, 0, 0],
-    [0, 1, 0],
-    [0, 0, 1],
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1],
   ] as const;
 
   it("writes songs in 4-, 8-, 12- and 16-bar blocks (The Night's 2-bar drop) that never drop the kick", () => {
@@ -871,14 +896,14 @@ describe("italo genre", () => {
       const song = compose({ seed, genre: "italo", weights: "auto" });
       expect(song.genre).toBe("italo");
       expect(song.key.mode).toBe("minor");
-      expect(song.bpm).toBeGreaterThanOrEqual(108);
+      expect(song.bpm).toBeGreaterThanOrEqual(106);
       expect(song.bpm).toBeLessThanOrEqual(122);
-      expect(["italo", "night", "faces"]).toContain(song.bassStyle);
+      expect(["italo", "night", "faces", "sc"]).toContain(song.bassStyle);
       for (const s of song.sections) {
         expect(s.layers.drums).not.toBe("off");
         expect([2, 4, 8, 12, 16]).toContain(s.bars);
       }
-      expect(song.sections.at(-1)?.label).toBe("Outro · chorus to fade");
+      expect(["Outro · chorus to fade", "Outro · i–v vamp"]).toContain(song.sections.at(-1)?.label);
       // Every bar arranges, chords and all.
       for (let bar = 0; bar < song.totalBars; bar++) {
         const ev = arrangeBar(song, bar);
@@ -894,9 +919,10 @@ describe("italo genre", () => {
       Array.from({ length: 20 }, (_, i) => at(w, i + 1).bpm).reduce((a, b) => a + b) / 20;
     expect(tempo(corners[0])).toBeLessThan(113);
     expect(tempo(corners[2])).toBeGreaterThan(118);
+    expect(tempo(corners[3])).toBeLessThan(108.5);
     const intros = corners.map((w) => at(w, 7).sections[0]?.label);
-    expect(intros).toEqual(["Intro · pedal", "Intro", "Intro · bass and kick"]);
-    expect(corners.map((w) => at(w, 3).bassStyle)).toEqual(["night", "italo", "faces"]);
+    expect(intros).toEqual(["Intro · pedal", "Intro", "Intro · bass and kick", "Intro · pad"]);
+    expect(corners.map((w) => at(w, 3).bassStyle)).toEqual(["night", "italo", "faces", "sc"]);
   });
 
   it("plays 8th hats, Faces' gallop in its choruses, and The Night without crashes or fills", () => {
@@ -1069,16 +1095,180 @@ describe("italo genre", () => {
     expect(spec.genre).toBe("italo");
     const back = decodeCreation(encodeCreation({ seed: 9, spec }));
     expect(back?.spec.genre).toBe("italo");
-    expect(back?.spec.weights).toEqual([0.2, 0.3, 0.5]);
+    // Links made before Self Control joined decode with its weight 0, and play as they did.
+    expect(back?.spec.weights).toEqual([0.2, 0.3, 0.5, 0]);
+    if (!back) throw new Error("no link");
+    const padded = compose({ seed: 9, custom: back.spec });
+    const three = compose({ seed: 9, custom: { ...back.spec, weights: [0.2, 0.3, 0.5] } });
+    expect(padded.totalBars).toBe(three.totalBars);
+    for (let bar = 0; bar < three.totalBars; bar++)
+      expect(arrangeBar(padded, bar)).toEqual(arrangeBar(three, bar));
     expect(compose({ seed: 9, custom: back?.spec }).genre).toBe("italo");
   });
 
   it("names its references and keeps a bank for every progression kind", () => {
-    expect(italo.references.map(styleName)).toEqual(["The Night", "Get Closer", "Faces"]);
+    expect(italo.references.map(styleName)).toEqual([
+      "The Night",
+      "Get Closer",
+      "Faces",
+      "Self Control",
+    ]);
     for (const kind of ["verse", "chorus", "interlude", "turnaround", "bridge", "lift"] as const) {
       expect(italo.bank[kind].length).toBeGreaterThan(0);
       for (const e of italo.bank[kind]) for (const bar of e.bars) for (const n of bar) chord(n);
     }
+  });
+});
+
+describe("self control in italo", () => {
+  const SC = [0, 0, 0, 1] as const;
+  const song = compose({ seed: 11, genre: "italo", weights: SC });
+  const find = (label: string) => {
+    const s = song.sections.find((x) => x.label === label);
+    if (!s) throw new Error(`no ${label}`);
+    return s;
+  };
+  const LOOP = [["i"], ["v"], ["i"], ["v"], ["VII"], ["iv"], ["VI"], ["III"]];
+
+  it("lays out its form at its corner: pad and riff intro, pre-chorus, stab breaks, i–v vamp", () => {
+    expect(song.sections.map((s) => [s.label, s.bars])).toEqual([
+      ["Intro · pad", 4],
+      ["Intro · riff", 4],
+      ["Verse 1", 16],
+      ["Pre-chorus · title line", 16],
+      ["Chorus", 16],
+      ["Break · stab on 2", 4],
+      ["Drums and voice", 2],
+      ["Verse 2", 8],
+      ["Chorus", 16],
+      ["Break · stab on 2", 4],
+      ["Outro · i–v vamp", 16],
+    ]);
+    // One loop under the verse, the pre-chorus and the chorus.
+    expect(song.progressions.verse).toEqual(LOOP);
+    expect(song.progressions.chorus).toEqual(LOOP);
+    expect(find("Outro · i–v vamp").progression).toEqual([["i"], ["v"]]);
+    // The pre-chorus sings a line of its own, between the verse's and the chorus's.
+    const pre = song.sections.indexOf(find("Pre-chorus · title line"));
+    const verse = song.sections.indexOf(find("Verse 1"));
+    expect(song.sectionMelodies[pre]).not.toEqual(song.sectionMelodies[verse]);
+    expect(song.bassStyle).toBe("sc");
+    // A link keeps the title line.
+    const back = decodeCreation(encodeCreation({ seed: 11, spec: songToSpec(song) }));
+    const again = compose({ seed: 11, custom: back?.spec });
+    expect(again.sectionMelodies[pre]).toEqual(song.sectionMelodies[pre]);
+  });
+
+  it("plays staccato root quarters, very low, and the riff in unison with the bass", () => {
+    const verse = find("Verse 1");
+    for (let i = 0; i < 8; i++) {
+      const bass = arrangeBar(song, verse.startBar + i).notes.bass;
+      expect(bass.map((n) => n.step)).toEqual([0, 4, 8, 12]);
+      for (const n of bass) {
+        expect(n.dur).toBeLessThanOrEqual(2);
+        expect(n.midi).toBeGreaterThanOrEqual(25);
+        expect(n.midi).toBeLessThanOrEqual(36);
+      }
+    }
+    const riff = find("Intro · riff");
+    for (let i = 0; i < riff.bars; i++) {
+      const ev = arrangeBar(song, riff.startBar + i);
+      expect(ev.notes.riff.map((n) => n.step)).toEqual(ev.notes.bass.map((n) => n.step));
+      expect(ev.notes.riff.map((n) => n.midi)).toEqual(ev.notes.bass.map((n) => n.midi + 48));
+      // 1, 1a and 2&: the push.
+      expect(ev.notes.bass.slice(0, 3).map((n) => n.step)).toEqual([0, 3, 6]);
+    }
+  });
+
+  it("drops the hats in the verse, runs 16ths from the pre-chorus, claps on 4 and 3e in the chorus", () => {
+    const hats = (bar: number) =>
+      arrangeBar(song, bar)
+        .drums.filter((h) => h.voice === "hat" || h.voice === "openhat")
+        .map((h) => Math.round(h.step));
+    const claps = (bar: number) =>
+      arrangeBar(song, bar)
+        .drums.filter((h) => h.voice === "clap")
+        .map((h) => h.step);
+    const kicks = (bar: number) =>
+      arrangeBar(song, bar)
+        .drums.filter((h) => h.voice === "kick")
+        .map((h) => h.step);
+    const verse = find("Verse 1").startBar;
+    expect(hats(verse + 1)).toEqual([]);
+    expect(kicks(verse + 1)).toEqual([0, 4, 8, 12]);
+    const pre = find("Pre-chorus · title line").startBar;
+    expect(hats(pre + 1)).toEqual([0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 14, 15]);
+    expect(claps(pre + 1)).toEqual([]);
+    const chorus = find("Chorus").startBar;
+    expect(claps(chorus + 2)).toEqual([12]);
+    expect(claps(chorus + 3)).toEqual([9, 12]);
+    expect(hats(chorus + 3)).toEqual([0, 1, 2, 3, 4, 6, 7, 8, 11, 12, 14, 15]);
+    const outro = find("Outro · i–v vamp").startBar;
+    expect(claps(outro + 1)).toEqual([4]);
+    // The break: kick and snare together on beat 2, one low chord with them, nothing else.
+    const brk = arrangeBar(song, find("Break · stab on 2").startBar);
+    expect(brk.drums.map((h) => [h.voice, h.step])).toEqual([
+      ["kick", 4],
+      ["snare", 4],
+    ]);
+    expect(new Set(brk.notes.stab.map((n) => n.step))).toEqual(new Set([4]));
+    expect(Math.min(...brk.notes.stab.map((n) => n.midi))).toBeLessThan(48);
+  });
+
+  it('chops on every "&" in the verse and plays its bright part in the chorus', () => {
+    const verse = arrangeBar(song, find("Verse 1").startBar);
+    expect(new Set(verse.notes.stab.map((n) => n.step))).toEqual(new Set([2, 6, 10, 14]));
+    expect(verse.notes.pad.length).toBeGreaterThan(0);
+    expect(verse.notes.counter).toEqual([]);
+    const chorus = arrangeBar(song, find("Chorus").startBar);
+    expect(chorus.notes.counter.map((n) => n.step)).toEqual([2, 4, 6, 8, 11, 15]);
+    for (const n of chorus.notes.counter) {
+      expect(n.midi).toBeGreaterThanOrEqual(73);
+      expect(n.midi).toBeLessThanOrEqual(92);
+    }
+    // Backing voices: a 3rd under the lead.
+    expect(chorus.section.layers.leadStack).toBe(true);
+  });
+
+  it("changes nothing about the other corners' songs while its weight is 0", () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const w = [((seed * 37) % 10) / 10, ((seed * 11) % 7) / 7, (seed % 3) / 3];
+      if (!w.some((x) => x > 0)) continue;
+      const a = compose({ seed, genre: "italo", weights: w });
+      const b = compose({ seed, genre: "italo", weights: [...w, 0] });
+      expect({ ...b, weights: a.weights }).toEqual(a);
+      expect(a.bpm).toBeGreaterThanOrEqual(108);
+      expect(a.bassStyle).not.toBe("sc");
+      for (const s of a.sections) {
+        expect(s.layers.drums).not.toBe("stab");
+        expect(s.kind).not.toBe("prechorus");
+      }
+    }
+  });
+
+  it("plays the single as an original: F♯ minor, 106.7 BPM, 106 bars", () => {
+    const sc = compose({ seed: 1984, reference: "self-control" });
+    expect(sc.genre).toBe("italo");
+    expect(sc.weights).toEqual([0, 0, 0, 1]);
+    expect(sc.key).toEqual({ tonic: 6, mode: "minor" });
+    expect([sc.bpm, sc.kit, sc.bassStyle, sc.totalBars]).toEqual([106.7, "linndrum", "sc", 106]);
+    expect(sc.sections.map((s) => s.bars)).toEqual([4, 4, 16, 16, 16, 4, 2, 8, 16, 4, 16]);
+    expect(sc.sections.at(-1)?.fade).toBe(true);
+    // F♯m, C♯m, E, Bm, D, A: the bass on the roots, C♯1–B1.
+    const verse = sc.sections.find((s) => s.label === "Verse 1");
+    if (!verse) throw new Error("no verse");
+    const roots = Array.from(
+      { length: 8 },
+      (_, i) => arrangeBar(sc, verse.startBar + i).notes.bass[0]?.midi,
+    );
+    expect(roots).toEqual([30, 25, 30, 25, 28, 35, 26, 33]);
+    for (let bar = 0; bar < sc.totalBars; bar++) {
+      const ev = arrangeBar(sc, bar);
+      expect(ev.drums.some((h) => h.voice === "kick")).toBe(true);
+      for (const track of MELODIC_TRACKS)
+        for (const n of ev.notes[track]) expect(Number.isFinite(n.midi)).toBe(true);
+    }
+    expect(styleName("self-control")).toBe("Self Control");
   });
 });
 

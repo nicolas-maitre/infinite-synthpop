@@ -500,6 +500,95 @@ Clip files are named after these numbers (e.g. `1B-intro-pad-0m04-F#m7.wav`). Ch
 - bars 60–61 (2:15–2:20), where the "other" stem holds a quiet E and G♯;
 - the intro riff's bass notes after beat 3 (0:09–0:18).
 
+## 11. Synth parts for the generator
+
+What the generator needed to play Self Control's corner of Italo (src/genres.ts, src/arranger.ts,
+src/instruments.ts), measured as for the other Italo records: on the single's Demucs stems, then
+on our own render of the original (`renderToDisk({ reference: "self-control" }, 60, [track])`),
+until the two read alike.
+
+**How the parts were measured.** None of them has a stem of its own: they share the "other" stem.
+So each part was read where it's alone in time:
+
+- **Where it plays:** the onset strength on each 16th, averaged over a section's bars, in three
+  bands (C3–C5, C5–C7, above).
+- **Its tone:** what each onset adds to the spectrum (the 15–90 ms after it minus the 60 ms
+  before), in octave bands, against the loudest band. Our solo stems were read the same way.
+- **Its decay:** the band level after its onsets, in 5 ms frames.
+
+### 11.1 The parts
+
+| Part             | Where, measured (onset strength, 1.00 = strongest 16th)                                             | What the generator plays                                                                                   |
+| ---------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Riff (bars 4–7)  | 2& 1.00, 1 0.91, 3& 0.87, 1a 0.74                                                                   | a 2-bar figure, the root on 1, 1a and 2&, then one of four shapes on 3–4; the bass plays it 4 octaves down |
+| Verse chop       | the "&"s: 1.00, 0.87, 0.73, 0.61–0.75; the beats 0.37–0.56                                          | a triad around F♯4 over its lowest note an octave down, a 16th long, on every "&"                          |
+| Chorus high part | beat 3 1.00, 4a 0.92–0.97, 2& 0.90, 2 0.80, 1& 0.75, 3a 0.71–0.74 (C5–C7)                           | chord tones in C♯5–G♯6 on 1&, 2, 2&, 3, 3a and 4a; the 4a takes the next chord's tone                      |
+| Break stab       | one onset, on beat 2; the "other" stem swells for 250 ms after it and holds for the rest of the bar | a low triad and its root an octave down on beat 2, held for most of the bar, into the reverb               |
+
+The chorus part's notes, read from a CQT of the "other" stem over chorus 1, are chord tones that
+leap between octaves (C♯5, C♯6, F♯5 over F♯m; G♯6 and E6 near the bar's end), and the last 16th
+already sounds the next chord (E6 and G♯6 before C♯m, B5 before E, D5 before D). The exact notes
+are the composition, so each song writes its own.
+
+### 11.2 Tone, record against render
+
+Octave bands, dB under each part's loudest band. The record's "other" stem holds the pads and the
+bass's bleed in its lowest bands and an MP3's cut above 16 kHz, so only the bands each part's notes
+fill are compared.
+
+| Part             | Record: 500 · 1k · 2k · 4k Hz | Render: 500 · 1k · 2k · 4k Hz | Patch                                                                      |
+| ---------------- | ----------------------------- | ----------------------------- | -------------------------------------------------------------------------- |
+| Riff             | −1.5 · −3.5 · 0 · −4.2        | −0.1 · −2.3 · 0 · −5.2        | a saw with +9 dB at 3.2 kHz, 3 dB down by 250 ms (riff patch "bright")     |
+| Verse chop       | −1.9 · −8.9 · −10.9 · −11.5   | −4.6 · −10.2 · −9.2 · −12.3   | a saw, −5 dB at 1.5 kHz, 6 dB down in 90 ms, 10 dB in 215 ms (stab "chop") |
+| Chorus high part | −4.9 · 0 · −6.2 · −4.9        | −27.9 · 0 · −5.4 · −5.4       | an open saw, 6 dB down in 40 ms, then held near −10 dB (counter "sync16")  |
+| Break stab       | −0.4 · −6.3 · −14.9 · −25.1   | −5.4 · −4.0 · −13.5 · −29.4   | a saw through a 12 dB low-pass at 1.8 kHz, a 120 ms swell, a long release  |
+
+The riff is the brightest part, as bright at 2–4 kHz as at its fundamentals: a plain saw read 6 dB
+darker there. The sources call it a guitar (§6); a bright synth stands in. The chop is the
+darkest: its 1 kHz band falls 7 dB under its fundamentals', though its upper harmonics hold.
+
+### 11.3 The bass
+
+Harmonic levels against the loudest, on the verse's F♯1, C♯1 and E1 notes (30–120 ms into each):
+
+| Note | Record: h1 … h6                          | Render, first try (h1 … h6)            | Render, now (h1 … h6)                    |
+| ---- | ---------------------------------------- | -------------------------------------- | ---------------------------------------- |
+| F♯1  | −4.2 · 0 · −4.6 · −10.8 · −16.7 · −25.9  | 0 · −2.0 · −14.1 · −4.7 · −22.5 · −8.7 | −6.5 · 0 · −5.8 · −13.0 · −18.2 · −22.7  |
+| C♯1  | −13.9 · −0.2 · 0 · −10.4 · −16.3 · −24.2 | 0 · −3.3 · −16.3 · −5.6 · −25.5 · −8.7 | −15.8 · 0 · −2.0 · −6.0 · −12.7 · −17.5  |
+| E1   | −9.1 · 0 · −2.3 · −12.3 · −18.8 · −29.0  | 0 · −2.5 · −14.9 · −4.9 · −23.8 · −8.6 | −10.7 · 0 · −4.4 · −10.2 · −17.5 · −21.1 |
+
+The record's 2nd harmonic is the loudest, its fundamental 4–14 dB under it (the lowest note the
+most), and the harmonics fall steeply above the 3rd. The first try, the Italo bass's octave layer,
+put the fundamental on top and the even harmonics far over the odd ones. The corner's bass tone
+now drops the octave layer, closes the saw's filter to 120 Hz and the tone's one-pole to 80 Hz,
+and adds a **low cut**: two high-passes at 65 Hz (a new `bassTone.lowCut`, switched out for every
+other reference). The fundamentals now sit within 2 dB of the record's, and the harmonics up to
+the 6th within 3 dB on F♯1. C♯1's 4th to 6th are still 4–7 dB too strong.
+
+### 11.4 The voice
+
+`scripts/compare_voice.py`, the single's vocal stem against our lead at the corner (the original,
+first 60 bars), over three rounds:
+
+| Voice stem      | vs mix | width | low 100–250 | mid 1–2.5k | pres 2.5–5k | air 5–10k | fill  |
+| --------------- | ------ | ----- | ----------- | ---------- | ----------- | --------- | ----- |
+| Branigan (stem) | −4.1   | −7.7  | −11.0       | −0.8       | −5.2        | −13.7     | −18.1 |
+| Round 1         | −3.0   | −10.1 | −26.1       | −7.4       | −9.7        | −15.3     | −9.8  |
+| Round 3         | −3.0   | −8.0  | −24.4       | −1.2       | −5.1        | −14.3     | −7.7  |
+| Round 4, capped | −5.7   | −8.2  | −18.1       | −5.4       | −8.7        | −16.9     | −4.2  |
+
+- **Rounds 1–3** brought level, width, mid, presence and air within about 1 dB, with boosts of up
+  to +15 dB (mid) and +14 (high shelf).
+- **Round 4** ran after the voice's compressor and the boost caps landed on main (high shelf
+  ≤ +9 dB, breath ≤ +6, mids no higher than The Night's +7), which stop the voice from driving the
+  master clipper. Within them the voice sits 3–5 dB under Branigan's in the 1–10 kHz bands. The
+  level then went up 1.5 dB and the breath to its cap, not re-measured.
+- **Low band:** Branigan sings low, a contralto (§6), and her stem carries 7–13 dB more under
+  250 Hz than our voice. A shelf can't give that to a melody that sits higher, so the low shelf
+  stops at +5 dB, the most in Italo.
+- **Fill:** her voice dips 18 dB between words, ours 4–8. That comes from the lead's legato and
+  reverb, which the genre doesn't set.
+
 ## Sources
 
 - The recordings in `inspiration/Laura Branigan/` (local only, not in the repo), measured with

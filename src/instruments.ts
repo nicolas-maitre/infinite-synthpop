@@ -232,6 +232,9 @@ export class Instruments {
   private snareGated = true;
   private readonly bassTone: Tone.OnePoleFilter;
   private readonly bassPresence: FixedFilter;
+  /** Self Control's low cut (setBassTone): two high-passes, switched in place of a straight path,
+   * so the other basses stay bit for bit what they were. */
+  private readonly bassLowCut: { filters: FixedFilter[]; cut: Tone.Gain; through: Tone.Gain };
   private readonly hook: Tone.MonoSynth;
   private readonly pad: NativeSynth;
   private readonly riffFm: NativeFMSynth;
@@ -272,6 +275,8 @@ export class Instruments {
   private readonly synth: NativeFMSynth;
   /** Get Closer's chorus countervoice, on the counter track (see setVoices). */
   private readonly counterSoft: NativeSynth;
+  /** Self Control's riff, on the riff track (see setVoices). */
+  private readonly riffBright: NativeSynth;
   /** Get Closer's hook: a gated narrow pulse into its own echo and chorus, on the riff track. */
   private readonly riffPulse: NativeMonoSynth;
   /** The echoes that follow the tempo (setTempo): The Night's lead synth's, Get Closer's hook's. */
@@ -282,6 +287,11 @@ export class Instruments {
   private readonly stabHeld: NativeMonoSynth;
   /** Faces' arpeggio, a softer copy of its pluck, on the arp track. */
   private readonly arpPluck: NativeMonoSynth;
+  /** Self Control's offbeat chop and its break's held stab, on the stab track (see setVoices). */
+  private readonly stabChop: NativeMonoSynth;
+  private readonly stabSwell: NativeMonoSynth;
+  /** Self Control's bright chorus part, on the counter track (see setVoices). */
+  private readonly counterBright: NativeMonoSynth;
   /** Each track's sends to the reverb and the shared delay, so a voice can change them. */
   private readonly sends = {} as Record<Track, { reverb?: Tone.Gain; delay?: Tone.Gain }>;
   private voices: Voices = SYNTHPOP_VOICES;
@@ -374,7 +384,12 @@ export class Instruments {
     // Presence, so the harmonics stay audible against the mid parts (strongest for TF).
     this.bassPresence = new FixedFilter("peaking", 700, { Q: 0.6, gain: 4 });
     this.bassTone = new Tone.OnePoleFilter(220, "lowpass");
-    this.bassTone.chain(bassDrive, bassEq, this.bassPresence, this.channels.bass);
+    this.bassTone.chain(bassDrive, bassEq, this.bassPresence);
+    const lowCuts = [new FixedFilter("highpass", 65), new FixedFilter("highpass", 65)];
+    this.bassLowCut = { filters: lowCuts, cut: new Tone.Gain(0), through: new Tone.Gain(1) };
+    this.bassPresence.fan(lowCuts[0]!, this.bassLowCut.through);
+    lowCuts[0]!.chain(lowCuts[1]!, this.bassLowCut.cut, this.channels.bass);
+    this.bassLowCut.through.connect(this.channels.bass);
     this.bassFm = new Tone.FMSynth({
       volume: -10,
       harmonicity: 1,
@@ -470,6 +485,18 @@ export class Instruments {
       envelope: { attack: 0.002, decay: 0.2, sustain: 0.5, release: 0.08 },
       volume: -4,
     }).chain(new FixedFilter("lowpass", 6000), this.channels.riff);
+    // Self Control's riff (branigan-self-control.md §11): its 2–4 kHz as loud as its
+    // fundamentals in C♯5–C♯6, about 6 dB over a plain saw's, and slow to fade: 3 dB down after
+    // about 250 ms, 6 dB after 500 ms. A guitar on the record, by the sources.
+    this.riffBright = new NativeSynth({
+      oscillator: { type: "sawtooth" },
+      envelope: { attack: 0.002, decay: 0.7, sustain: 0.45, release: 0.08 },
+      volume: -7,
+    }).chain(
+      new FixedFilter("peaking", 3200, { Q: 0.8, gain: 9 }),
+      new FixedFilter("lowpass", 8000),
+      this.channels.riff,
+    );
     // Get Closer's hook (get-closer.md §10): a 12% pulse (every harmonic within 3 dB up to 2 kHz)
     // through a fixed 12 dB low-pass at 3.5 kHz, gated at 70% of a 16th by the notes. Then a
     // dotted-8th echo whose repeats fall about 4 dB each and darken (a 2.5 kHz low-pass in the
@@ -651,6 +678,25 @@ export class Instruments {
       volume: -3,
     }).connect(this.channels.counter);
 
+    // Self Control's chorus part (branigan-self-control.md §11): chord tones in C♯5–G♯6 whose
+    // onsets are as bright as an open saw (the 2 and 4 kHz bands 5–6 dB under the fundamentals'),
+    // falling about 6 dB in 40 ms, then holding near −10 dB until the note ends.
+    this.counterBright = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
+      envelope: { attack: 0.003, decay: 0.06, sustain: 0.35, release: 0.15 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.1,
+        sustain: 1,
+        release: 0.1,
+        baseFrequency: 7000,
+        octaves: 0,
+      },
+      maxPolyphony: 3,
+      volume: -9,
+    }).connect(this.channels.counter);
+
     // The Night's lead synth (the-night.md §10.1): a nearly pure tone (h2 −10 dB, h3 −19.5) struck
     // hard: a 1:1 FM whose index falls from about 2.4 to 0.6, a 3 Hz vibrato of ±18 cents, and a
     // dotted-8th echo about 8.5 dB down. The shared delay is high-passed at 600 Hz, which would
@@ -765,6 +811,42 @@ export class Instruments {
       new Tone.Gain(0.8),
       arpBus,
     );
+    // Self Control's chop (branigan-self-control.md §11): a short triad around F♯4 over its lowest
+    // note an octave down, dark against a saw in the 1 kHz band (7 dB under the fundamentals') but
+    // with its upper harmonics kept, about 6 dB down in 90 ms and 10 dB in 215 ms. Its break stab is the same chord low and held,
+    // darker (−15 dB at 2 kHz, −25 at 4 kHz), swelling in over 250 ms into the reverb.
+    const chopBus = new Tone.Gain(1);
+    chopBus.chain(new FixedFilter("peaking", 1500, { Q: 0.9, gain: -5 }), this.channels.stab);
+    this.stabChop = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
+      envelope: { attack: 0.002, decay: 0.12, sustain: 0.25, release: 0.06 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.1,
+        sustain: 1,
+        release: 0.1,
+        baseFrequency: 5000,
+        octaves: 0,
+      },
+      maxPolyphony: lite ? 4 : 8,
+      volume: ARP_STAB_GAIN_DB - 2,
+    }).connect(chopBus);
+    this.stabSwell = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
+      envelope: { attack: 0.12, decay: 0.6, sustain: 0.7, release: 0.9 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.1,
+        sustain: 1,
+        release: 0.1,
+        baseFrequency: 1800,
+        octaves: 0,
+      },
+      maxPolyphony: 4,
+      volume: ARP_STAB_GAIN_DB,
+    }).connect(this.channels.stab);
     const stabNoiseFilter = new FixedFilter("bandpass", 2500);
     this.stabNoise = new Tone.NoiseSynth({
       noise: { type: "pink" },
@@ -907,7 +989,9 @@ export class Instruments {
             ? this.counterPluck
             : this.voices.countervoice === "arp8"
               ? this.counterSoft
-              : this.counter;
+              : this.voices.countervoice === "sync16"
+                ? this.counterBright
+                : this.counter;
         for (const n of notes) {
           voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
           if (voice === this.counterPluck)
@@ -919,6 +1003,10 @@ export class Instruments {
         for (const n of notes) {
           if (this.voices.riffPatch === "saw") {
             this.riffPlain.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+            continue;
+          }
+          if (this.voices.riffPatch === "bright") {
+            this.riffBright.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
             continue;
           }
           if (this.voices.riffPatch === "pulse") {
@@ -958,6 +1046,12 @@ export class Instruments {
           if (this.voices.stabPatch === "pluck") {
             const voice = first.alt ? this.stabHeld : this.stabPluck;
             voice.triggerAttackRelease(freqs, len(first), at(first), first.vel);
+            continue;
+          }
+          if (this.voices.stabPatch === "chop") {
+            // The break's stab (marked `alt`) swells and rings for most of the bar.
+            const synth = first.alt ? this.stabSwell : this.stabChop;
+            synth.triggerAttackRelease(freqs, len(first), at(first), first.vel);
             continue;
           }
           this.stab.triggerAttackRelease(freqs, len(first), at(first), first.vel);
@@ -1005,6 +1099,10 @@ export class Instruments {
     const type = this.bassOctOn ? "triangle" : "sawtooth";
     if (this.bassSaw.oscillator.type !== type) this.bassSaw.oscillator.type = type;
     this.bassSaw.envelope.sustain = tone.sustain;
+    const lowCut = this.bassLowCut;
+    lowCut.cut.gain.value = tone.lowCut > 0 ? 1 : 0;
+    lowCut.through.gain.value = tone.lowCut > 0 ? 0 : 1;
+    if (tone.lowCut > 0) for (const f of lowCut.filters) f.input.frequency.value = tone.lowCut;
     this.bassOct.envelope.sustain = tone.sustain;
   }
 
@@ -1012,12 +1110,14 @@ export class Instruments {
    * plays the riff and the counter track. */
   setVoices(voices: Voices): void {
     this.voices = voices;
-    // Faces' pluck has its own echo and little reverb (faces.md §10.1).
+    // Faces' pluck has its own echo and little reverb (faces.md §10.1). Self Control's chop is
+    // drier than the brass, and has no echo.
     const pluck = voices.stabPatch === "pluck";
+    const chop = voices.stabPatch === "chop";
     const stab = this.sends.stab;
-    if (stab.reverb) stab.reverb.gain.value = pluck ? 0.15 : SENDS.stab.reverb;
-    if (stab.delay) stab.delay.gain.value = pluck ? 0 : SENDS.stab.delay;
-    // Its arpeggio (§10.4) is centred on the record, and carries the same echo and little reverb.
+    if (stab.reverb) stab.reverb.gain.value = pluck ? 0.15 : chop ? 0.3 : SENDS.stab.reverb;
+    if (stab.delay) stab.delay.gain.value = pluck || chop ? 0 : SENDS.stab.delay;
+    // Faces' arpeggio (§10.4) is centred on the record, with the pluck's echo and little reverb.
     const arpPluck = voices.arpPatch === "pluck";
     const arp = this.sends.arp;
     if (arp.reverb) arp.reverb.gain.value = arpPluck ? 0.15 : SENDS.arp.reverb;
@@ -1121,10 +1221,14 @@ export class Instruments {
       this.counterSoft,
       this.riffPlain,
       this.riffPulse,
+      this.riffBright,
       this.synth,
       this.stabPluck,
       this.stabHeld,
       this.arpPluck,
+      this.stabChop,
+      this.stabSwell,
+      this.counterBright,
     ];
     for (const s of synths) s.releaseAll(time);
   }

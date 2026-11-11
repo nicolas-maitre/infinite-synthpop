@@ -48,8 +48,9 @@ export interface DrumTraits {
   bigPercussion: Extract<DrumVoice, "tamb" | "cabasa"> | "none";
   /** The hats: every 16th (TF, DS), or on the beat, the "&" and the "a" with the "a" open in about
    * a third of the bars (You Came, §6.4), or 8ths (The Night, Get Closer), with an open hat on 3a
-   * (Faces' verses). The breaks' `hats16` mode always plays 16ths. */
-  hats: "16ths" | "beat-and-a" | "8ths" | "8ths-open3a";
+   * (Faces' verses), or Self Control's: none in the verses, 16ths from the pre-chorus on but the
+   * "e" after the backbeat, 8ths in the intro. The breaks' `hats16` mode always plays 16ths. */
+  hats: "16ths" | "beat-and-a" | "8ths" | "8ths-open3a" | "verse-off";
   /** You Came's fill: snare on every 8th but the downbeats, hats down to 8ths, in the last bar of
    * every 8-bar phrase, then a crash on the next phrase's 1 (the hats skip it). Otherwise fills
    * come only at section ends, as one of the random snare, tom or flam fills. */
@@ -71,6 +72,9 @@ export interface DrumTraits {
    * Closer), none (The Night: not one in 5:46), or Faces' 3&–4–4& snare pickup closing every 8
    * bars. */
   fills?: "random" | "snare" | "none" | "pickup8";
+  /** Big sections' claps: with the snare on 2 and 4 (unset), or Self Control's: one on 4, and every
+   * other bar a syncopated one on 3e with an open hat on 4a; in the outro, on 2 alone. */
+  bigClaps?: "4-and-3e";
 }
 
 /** How a genre plays some parts. Unset: synthpop's way. */
@@ -83,24 +87,30 @@ export interface PartStyle {
 export interface Voices {
   /** The riff: synthpop's call-and-response motif; Get Closer's hook, short stepwise figures in
    * D4–B4 that a dotted-8th echo spins out (composer.ts `generateEchoHook`); or The Night's two-note
-   * figure, the tonic and the 7th below in 16ths, every other bar (the-night.md §7). */
-  riff: "motif" | "echo" | "pair";
+   * figure, the tonic and the 7th below in 16ths, every other bar (the-night.md §7); or Self
+   * Control's syncopated riff (1, 1a, 2&, then a step or two), played in unison by the bass
+   * (branigan-self-control.md §4.1). */
+  riff: "motif" | "echo" | "pair" | "unison";
   /** The riff's sound: the FM bell layered with a saw pluck (synthpop); The Night's bright, nearly
    * unfiltered saw (the-night.md §10.3); or Get Closer's gated 12% pulse with a darkening
-   * dotted-8th echo and a stereo chorus (get-closer.md §10). */
-  riffPatch: "fm" | "saw" | "pulse";
+   * dotted-8th echo and a stereo chorus (get-closer.md §10); or Self Control's saw with its 2–4
+   * kHz lifted, as bright there as at its fundamentals (branigan-self-control.md §11). */
+  riffPatch: "fm" | "saw" | "pulse" | "bright";
   /** The chorus countervoice: none; The Night's line on the off-beat 8ths, stepping down through
    * each chord's tones in the voice's register (the-night.md §10.2); or Get Closer's soft,
-   * near-sine 8th arpeggio up and down the chord from beat 2, in C6–B6 (get-closer.md §10). */
-  countervoice: "none" | "pluck8" | "arp8";
+   * near-sine 8th arpeggio up and down the chord from beat 2, in C6–B6 (get-closer.md §10); or
+   * Self Control's bright chorus part: chord tones in C♯5–G♯6 on the "&"s and beats 2 and 3,
+   * accented on 3a and 4a, the 4a taking the next chord (branigan-self-control.md §6, §11). */
+  countervoice: "none" | "pluck8" | "arp8" | "sync16";
   /** Pads: one close voicing (synthpop, Get Closer); the triad stacked an octave up too (The
    * Night's span C4–A♭6); or Faces' open voicings, the root in octave 3, the 7th in the middle
    * (faces.md §10.3). */
   pad: "close" | "octaves" | "open";
   /** The stabs' sound: the saw brass with a noise burst (synthpop), or Faces' plucked saw with its
    * 300 ms echo on the right, in close three-note voicings (faces.md §10.1), and its held, open
-   * chorus stab (§10.3). */
-  stabPatch: "brass" | "pluck";
+   * chorus stab (§10.3); or Self Control's short, dark chord chop on every "&"
+   * (branigan-self-control.md §6, §11). */
+  stabPatch: "brass" | "pluck" | "chop";
   /** The arpeggio's sound: the FM bell (synthpop), or a softer copy of Faces' pluck through its
    * echo (faces.md §10.4). */
   arpPatch: "bell" | "pluck";
@@ -140,6 +150,20 @@ export interface ItaloForm {
   /** A short instrumental on the verse loop after the first chorus (Faces' 8 bars, Get Closer's
    * hook reprise). */
   afterChorus: Blend;
+  // Self Control's (branigan-self-control.md §2.1), each drawn from its own random stream.
+  /** The opening: a pad on i7 over the percussion, then the riff and the bass in unison on i–v. */
+  riffIntro: Blend;
+  /** A pre-chorus on the verse loop before the first chorus, with 16th hats and the title line. */
+  preChorus: Blend;
+  /** A 4-bar break after the choruses (one stab on beat 2, the voice), with 2 bars of drums and
+   * voice after the first. */
+  stabBreak: Blend;
+  /** The second verse at half length. */
+  halfVerse: Blend;
+  /** Stacked voices in the choruses (its backing voices). */
+  backing: Blend;
+  /** A song to fade ends on the i–v vamp after its second chorus, not on a last chorus. */
+  vampOutro: Blend;
 }
 
 /** The bass's tone controls (instruments.ts `setBassTone`). */
@@ -159,6 +183,9 @@ export interface BassTone {
    * are: TF/DS fall to a fifth. You Came's record dips about 5 dB; 0.35 keeps the re-strikes
    * audible as onsets, which a 5 dB dip on this envelope didn't. */
   sustain: number;
+  /** A high-pass corner under the bass, Hz, 24 dB per octave (0 = none): Self Control's
+   * fundamental sits 4–14 dB under its 2nd harmonic, the lowest notes the most. */
+  lowCut: number;
 }
 
 /** The sung voice's mix (instruments.ts `setLeadTone`), matched to each record's vocal stem with
@@ -201,8 +228,10 @@ export interface Genre {
    * second, 1), the others round from there. List similar references next to each other, so they
    * get neighbouring vertices. */
   references: readonly ReferenceId[];
-  /** Auto tempos fall in `range`, around `center`; `note` says where the records sit. */
-  tempo: { range: readonly [number, number]; center: Blend; note: string };
+  /** Auto tempos fall in `range`, around `center`; `note` says where the records sit. With a
+   * `floor`, they don't fall under it (rounded down to a half BPM, and never under the range):
+   * a reference can open the range's low end without moving the others' tempos. */
+  tempo: { range: readonly [number, number]; center: Blend; note: string; floor?: Blend };
   /** The section planner: synthpop's (True Faith's, The Different Story's and You Came's blocks,
    * drawn with `form`'s odds) or Italo's (`italo`'s odds). */
   planner: "synthpop" | "italo";
@@ -282,7 +311,14 @@ export interface Genre {
   drums: DrumTraits;
   /** Per reference, the drum details it brings while it outweighs the others. */
   drumTraits: Partial<Record<ReferenceId, DrumTraits>>;
-  bassTone: { frequency: Blend; presence: Blend; sawCutoff: Blend; octave: Blend; sustain: Blend };
+  bassTone: {
+    frequency: Blend;
+    presence: Blend;
+    sawCutoff: Blend;
+    octave: Blend;
+    sustain: Blend;
+    lowCut: Blend;
+  };
   leadTone: { level: Blend; low: Blend; mid: Blend; high: Blend; air: Blend; width: Blend };
 }
 
@@ -447,6 +483,11 @@ const SYNTHPOP_BANK: Record<ProgressionKind, readonly BankEntry[]> = {
 const TN = "the-night";
 const GC = "get-closer";
 const FC = "faces";
+const SC = "self-control";
+
+/** Self Control's one loop, under its verse, pre-chorus and chorus (branigan-self-control.md §3.2):
+ * i–v–i–v–♭VII–iv–♭VI–♭III, pure Aeolian, the minor v throughout. */
+const SC_LOOP: Progression = [["i"], ["v"], ["i"], ["v"], ["VII"], ["iv"], ["VI"], ["III"]];
 
 /** Measured from the Italo records (docs/italo/the-night.md §4 and §9, get-closer.md §4 and §9,
  * faces.md §4 and §9), all written in the minor key: Faces' A major chorus is read from A minor
@@ -490,6 +531,7 @@ const ITALO_BANK: Record<ProgressionKind, readonly BankEntry[]> = {
       ],
       ref: FC,
     },
+    { name: "SC loop (measured)", bars: SC_LOOP, ref: SC, weight: 2 },
     { name: "aeolian loop", bars: [["i"], ["VI"], ["VII"], ["i"]], weight: 0.5 },
     { name: "i–VII–VI–VII", bars: [["i"], ["VII"], ["VI"], ["VII"]], weight: 0.5 },
   ],
@@ -531,6 +573,8 @@ const ITALO_BANK: Record<ProgressionKind, readonly BankEntry[]> = {
       bars: [["I"], ["v7", "IVmaj7"], ["I", "vi7"], ["VII", "V7sus4"]],
       ref: FC,
     },
+    // Self Control: the chorus is the verse's loop; the louder parts set it apart.
+    { name: "SC loop (measured)", bars: SC_LOOP, ref: SC, weight: 2 },
     { name: "relative-major lift", bars: [["III"], ["VII"], ["VI"], ["VII"]], weight: 0.5 },
   ],
   // The breakdowns and instrumentals that don't run on the verse loop.
@@ -545,6 +589,8 @@ const ITALO_BANK: Record<ProgressionKind, readonly BankEntry[]> = {
       ],
       ref: FC,
     },
+    // Self Control's breaks and outro.
+    { name: "SC i–v vamp (measured)", bars: [["i"], ["v"]], ref: SC },
     { name: "i–VII–VI–VII", bars: [["i"], ["VII"], ["VI"], ["VII"]], weight: 0.5 },
   ],
   // Not measured: Italo's turnarounds, bridges and lifts aren't played by its planner, but the
@@ -771,19 +817,23 @@ export const GENRES: Record<GenreId, Genre> = {
       sawCutoff: { base: 2500, by: { [DS]: -2200, [YC]: -1900 } },
       octave: { by: { [YC]: 1 } },
       sustain: { base: 0.2, by: { [YC]: 0.15 } },
+      lowCut: {},
     },
   },
   italo: {
     id: "italo",
     name: "Italo",
     title: italoTitle,
-    // The two Valerie Dore records share the bottom edge; Faces, the brighter DJ record, the top.
-    references: [TN, GC, FC],
-    // 110.3 (The Night), 111.8 (Get Closer), 120.1 (Faces): the centre follows the blend.
+    // The two Valerie Dore records share the bottom edge; Faces, the brighter DJ record, and Self
+    // Control, the slowest and glossiest, the top: Self Control between Faces and The Night.
+    references: [TN, GC, FC, SC],
+    // 110.3 (The Night), 111.8 (Get Closer), 120.1 (Faces), 106.7 (Self Control): the centre
+    // follows the blend. Only Self Control's weight opens the range below 108.
     tempo: {
-      range: [108, 122],
-      center: { by: { [TN]: 110.3, [GC]: 111.8, [FC]: 120.1 } },
-      note: "Valerie Dore runs at 110–112, Faces at 120",
+      range: [106, 122],
+      floor: { base: 108, by: { [SC]: -2 } },
+      center: { by: { [TN]: 110.3, [GC]: 111.8, [FC]: 120.1, [SC]: 106.7 } },
+      note: "Self Control runs at 106.7, Valerie Dore at 110–112, Faces at 120",
     },
     planner: "italo",
     // E minor (Get Closer), F minor (The Night), A minor (Faces).
@@ -798,46 +848,57 @@ export const GENRES: Record<GenreId, Genre> = {
       [1, 0.5],
       [6, 0.5],
     ],
-    // All three are minor songs; Faces' major chorus is written into its progressions.
+    // All four are minor songs; Faces' major chorus is written into its progressions.
     major: {},
     majorKeyWeights: [[9, 1]],
     bank: ITALO_BANK,
     substitutions: [
       // The Night's ♭VII over the tonic pedal and its v7; Get Closer's IV⁶ walk and its V11 into V.
       { from: "VII", to: "VII/i", chance: { by: { [TN]: 0.6 } }, kinds: ["verse", "interlude"] },
-      { from: "v", to: "v7", chance: { base: 0.2, by: { [TN]: 0.6 } } },
+      // Self Control's triads stay plain: pure Aeolian, no 7ths.
+      { from: "v", to: "v7", chance: { base: 0.2, by: { [TN]: 0.6, [SC]: -0.2 } } },
       { from: "IV", to: "IV/3", chance: { by: { [GC]: 0.5 } }, kinds: ["verse"] },
       { from: "VII7", to: ["VII7sus4", "VII7"], chance: { by: { [TN]: 1 } }, kinds: ["chorus"] },
       { from: "V", to: ["IV/V", "V"], chance: { by: { [GC]: 1 } }, lastBar: true },
     ],
     // The Night's deep, pitch-swept kick and burst clap, Faces' 909-like kick: synthesized kits,
-    // with the drier sample machines for Get Closer's short kick and long snare.
+    // with the drier sample machines for Get Closer's short kick and long snare, and Self Control's
+    // dead kick and clean clap (most likely a LinnDrum, branigan-self-control.md §5.1).
     kits: [
-      ["synth", { base: 0.8, by: { [TN]: 0.6, [FC]: 0.8 } }],
+      ["synth", { base: 0.8, by: { [TN]: 0.6, [FC]: 0.8, [SC]: -0.6 } }],
       ["dmx", { base: 0.3, by: { [GC]: 0.8, [TN]: 0.3 } }],
-      ["linndrum", { base: 0.3, by: { [GC]: 0.3 } }],
+      ["linndrum", { base: 0.3, by: { [GC]: 0.3, [SC]: 1.5 } }],
       ["sp12", { base: 0.1 }],
     ],
     bassFigures: [
       ["italo", { base: 0.3, by: { [GC]: 2 } }],
       ["night", { by: { [TN]: 2 } }],
       ["faces", { by: { [FC]: 2 } }],
+      ["sc", { by: { [SC]: 2 } }],
     ],
     liftEnding: {},
     counter: {},
-    form: NO_FORM,
+    // Self Control sings its verse on the chorus's loop.
+    form: { ...NO_FORM, verseOnLoop: { by: { [SC]: 1 } } },
     italo: {
       pedalIntro: { by: { [TN]: 1 } },
       buildIntro: { by: { [FC]: 1 } },
       hookIntro: { by: { [GC]: 1 } },
       leadSection: { by: { [TN]: 1 } },
-      breakdown: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.5 } },
+      breakdown: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.5, [SC]: -0.2 } },
       reprise: { by: { [TN]: 0.7 } },
       // None measured: The Night's "arpeggio" was its lead synth (the-night.md §10.3).
       verseArp: {},
-      stabs: { base: 0.1, by: { [FC]: 0.9 } },
+      // Faces' gated stabs, Self Control's offbeat chops.
+      stabs: { base: 0.1, by: { [FC]: 0.9, [SC]: 0.9 } },
       bareFirstVerse: { by: { [FC]: 0.7 } },
-      afterChorus: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.6 } },
+      afterChorus: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.6, [SC]: -0.2 } },
+      riffIntro: { by: { [SC]: 1 } },
+      preChorus: { by: { [SC]: 1 } },
+      stabBreak: { by: { [SC]: 1 } },
+      halfVerse: { by: { [SC]: 1 } },
+      backing: { by: { [SC]: 1 } },
+      vampOutro: { by: { [SC]: 1 } },
     },
     parts: { stabs: "gated8" },
     voices: {
@@ -878,6 +939,16 @@ export const GENRES: Record<GenreId, Genre> = {
         stabPatch: "pluck",
         arpPatch: "pluck",
       },
+      // The riff in unison with the bass, brighter than a saw, the dark offbeat chop, and the bright
+      // syncopated chorus part (branigan-self-control.md §11).
+      [SC]: {
+        riff: "unison",
+        riffPatch: "bright",
+        countervoice: "sync16",
+        pad: "close",
+        stabPatch: "chop",
+        arpPatch: "bell",
+      },
     },
     // The verses sit low (Faces C4–E4, Get Closer G3–A4), the choruses a 5th or so higher (Faces
     // C♯4–B4, Get Closer D4–B4, The Night A♭4–E♭5): the lift that sets the chorus apart.
@@ -892,25 +963,29 @@ export const GENRES: Record<GenreId, Genre> = {
       // 8ths with an open 3a, the galloping 16th cell in the choruses, the 3&–4–4& snare pickup
       // every 8 bars, no claps (faces.md §6).
       [FC]: { ...ITALO_DRUMS, hats: "8ths-open3a", bigHats: "gallop", fills: "pickup8" },
+      // No hats in the verses, 16ths from the pre-chorus, the clap on 4 and the syncopated one on
+      // 3e in the choruses, a few snare 16ths at the section ends (branigan-self-control.md §5).
+      [SC]: { ...ITALO_DRUMS, hats: "verse-off", bigClaps: "4-and-3e" },
     },
     // The Night's bass is dark and octave-layered, legato; Get Closer's plucked (16 dB down per
     // 8th) and dark; Faces' a bright, plucky saw with its octave partial above the fundamental.
     // The Night's voice is the brightest in the presence band and the widest (a long, wide
     // reverb); Get Closer's narrow and dark up top; Faces' thin low down and airy.
     leadTone: {
-      level: { by: { [TN]: -4, [FC]: 1 } },
-      low: { by: { [TN]: 1, [GC]: 1, [FC]: -3 } },
-      mid: { by: { [TN]: 7, [GC]: 5, [FC]: 4 } },
-      high: { by: { [TN]: 9, [GC]: 7, [FC]: 4 } },
-      air: { by: { [TN]: 4, [GC]: 4, [FC]: 6 } },
-      width: { by: { [TN]: 1.1, [GC]: 0.28, [FC]: 0.42 } },
+      level: { by: { [TN]: -4, [FC]: 1, [SC]: -2 } },
+      low: { by: { [TN]: 1, [GC]: 1, [FC]: -3, [SC]: 5 } },
+      mid: { by: { [TN]: 7, [GC]: 5, [FC]: 4, [SC]: 7 } },
+      high: { by: { [TN]: 9, [GC]: 7, [FC]: 4, [SC]: 9 } },
+      air: { by: { [TN]: 4, [GC]: 4, [FC]: 6, [SC]: 6 } },
+      width: { by: { [TN]: 1.1, [GC]: 0.28, [FC]: 0.42, [SC]: 0.79 } },
     },
     bassTone: {
-      frequency: { base: 160, by: { [FC]: 100 } },
+      frequency: { base: 160, by: { [FC]: 100, [SC]: -80 } },
       presence: { base: 1, by: { [FC]: 5 } },
-      sawCutoff: { base: 520, by: { [FC]: 1500 } },
+      sawCutoff: { base: 520, by: { [FC]: 1500, [SC]: -400 } },
       octave: { by: { [TN]: 1, [GC]: 0.3, [FC]: 1 } },
-      sustain: { by: { [TN]: 0.35, [GC]: 0.15, [FC]: 0.2 } },
+      sustain: { by: { [TN]: 0.35, [GC]: 0.15, [FC]: 0.2, [SC]: 0.3 } },
+      lowCut: { by: { [SC]: 65 } },
     },
   },
 };
@@ -1061,5 +1136,6 @@ export function bassTone(genre: Genre, at: number | readonly number[]): BassTone
     sawCutoff: g.at(genre.bassTone.sawCutoff),
     octave: g.at(genre.bassTone.octave),
     sustain: g.at(genre.bassTone.sustain),
+    lowCut: g.at(genre.bassTone.lowCut),
   };
 }

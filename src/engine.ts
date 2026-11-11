@@ -44,10 +44,12 @@ const REFERENCE_SEEDS: Record<ReferenceId, number> = {
   "true-faith": 1987,
   "different-story": 1989,
   "you-came": 1988,
-  // The records' years, but Get Closer (1984 too) takes 1986 to differ from The Night.
+  // The records' years, but Get Closer (1984 too) takes 1986 to differ from The Night, and Self
+  // Control (1984 too) 1983.
   "the-night": 1984,
   faces: 1985,
   "get-closer": 1986,
+  "self-control": 1983,
 };
 
 export function nextSeed(seed: number): number {

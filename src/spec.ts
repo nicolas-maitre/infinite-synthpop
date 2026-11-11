@@ -64,6 +64,7 @@ export const DRUM_MODES: readonly DrumMode[] = [
   "groove",
   "breakdown",
   "hats16",
+  "stab",
 ];
 export const KITS: readonly KitName[] = ["sp12", "linndrum", "dmx", "synth"];
 
@@ -209,6 +210,8 @@ interface CompactSection {
   ls?: 1;
   /** Faces' sustained line (`held`). */
   h?: 1;
+  /** Self Control's title line (`titleLine`). */
+  tl?: 1;
   st?: 1;
   /** Drum fill at the end: 1 on, 0 off, absent = default. */
   f?: 0 | 1;
@@ -288,6 +291,7 @@ export function encodeCreation({ seed, spec }: Creation): string {
         ...(L.leadDouble ? { x: 1 as const } : {}),
         ...(L.leadStack ? { ls: 1 as const } : {}),
         ...(L.held ? { h: 1 as const } : {}),
+        ...(L.titleLine ? { tl: 1 as const } : {}),
         ...(L.bassShort ? { st: 1 as const } : {}),
         ...(s.fill === undefined ? {} : { f: s.fill ? (1 as const) : (0 as const) }),
         ...(s.melody ? { ml: s.melody } : {}),
@@ -320,6 +324,7 @@ export function decodeCreation(encoded: string): Creation | null {
         // Only when set: old links have no `ls`, and decode as they did.
         ...(s.ls === 1 ? { leadStack: true } : {}),
         ...(s.h === 1 ? { held: true } : {}),
+        ...(s.tl === 1 ? { titleLine: true } : {}),
         bassShort: s.st === 1,
       };
       for (const i of SECTION_INSTRUMENTS) layers[i] = s.on.includes(i);

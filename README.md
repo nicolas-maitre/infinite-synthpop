@@ -5,8 +5,9 @@
 
 An endless generative 1987–89 synth-pop machine for the browser, in the style of New Order's
 "True Faith", Peter Schilling's "The Different Story (World of Lust and Crime)" and Kim Wilde's
-"You Came", with a second genre, Italo, after Valerie Dore's "The Night" and "Get Closer" and
-Clio's "Faces". Every song is composed from a seed. When it ends, the next one starts.
+"You Came", with a second genre, Italo, after Valerie Dore's "The Night" and "Get Closer",
+Clio's "Faces" and Laura Branigan's "Self Control". Every song is composed from a seed. When it
+ends, the next one starts.
 
 The musical rules come from an analysis of the songs, measured from the recordings and
 cross-checked against published sources: see [docs/analysis.md](docs/analysis.md). The design is
@@ -106,11 +107,12 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   markers) or the whole song's audio with the current mixer as **MP3** (256 kbps, encoded in the
   page) or **WAV**. Audio exports stop playback while they render.
 - **Originals:** play _True Faith_, _The Different Story_ or _You Came_ (album version, E major),
-  or the Italo records _The Night_ (Original Mix), _Get Closer_ (the single) and _Faces_ (the 12″
-  mix), through the same engine, at their measured form, chords, key, tempo, drum machine and bass
-  figure, with their genre's parts and sounds. The melodies and riffs stay generated. Links:
-  `#ref=true-faith`, `#ref=different-story`, `#ref=you-came`, `#ref=the-night`,
-  `#ref=get-closer`, `#ref=faces`. Generated songs follow when one ends.
+  or the Italo records _The Night_ (Original Mix), _Get Closer_ (the single), _Faces_ (the 12″
+  mix) and _Self Control_ (the single, F♯ minor), through the same engine, at their measured form,
+  chords, key, tempo, drum machine and bass figure, with their genre's parts and sounds. The
+  melodies and riffs stay generated. Links: `#ref=true-faith`, `#ref=different-story`,
+  `#ref=you-came`, `#ref=the-night`, `#ref=get-closer`, `#ref=faces`, `#ref=self-control`.
+  Generated songs follow when one ends.
 - **Follow MIDI…:** pick a MIDI file to drive the current original. Each mixer row then gets a
   **MIDI** switch (generated ↔ MIDI) and a select for which of the file's tracks it follows.
   Tracks are matched by name ("Sequence Bass" → Seq bass, "Lead" → Lead, both drum tracks →
@@ -124,10 +126,15 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   song, and a point in its style polygon per song too; the default, like every other auto setting,
   so a first visit just plays); the style control shows the genre's references. Italo ([docs/plans/italo-genre.md](docs/plans/italo-genre.md)) blends
   _The Night_ (110 BPM, a tonic-pedal intro, root 8ths with octave lifts, a relative-major chorus,
-  not one fill), _Get Closer_ (112 BPM, a 16th-line hook, plucked root 8ths under slash-chord pads)
-  and _Faces_ (120 BPM, a build from bass and kick, gated stabs, a staccato on-beat/off-beat bass,
-  a parallel-major chorus with galloping hats, a breakdown). Its songs keep the kick going from the
-  first bar to the fade. The three records also play as originals.
+  not one fill), _Get Closer_ (112 BPM, a 16th-line hook, plucked root 8ths under slash-chord pads),
+  _Faces_ (120 BPM, a build from bass and kick, gated stabs, a staccato on-beat/off-beat bass,
+  a parallel-major chorus with galloping hats, a breakdown) and _Self Control_ (107 BPM, the
+  glossiest: one Aeolian loop under every sung section, very low staccato root quarters, no hats
+  in the verse, offbeat chops, a pre-chorus on the title line, claps on 4 and 3e and a bright high
+  part in the chorus, 4-bar breaks on one stab, an i–v vamp to fade;
+  [docs/references/branigan-self-control.md](docs/references/branigan-self-control.md)). Its
+  songs keep the kick going from the first bar to the fade. All four records also play as
+  originals.
 - **Style:** a point in a triangle whose corners are the three references: _True Faith_ (Dorian
   IV choruses, minor v, a brighter, lower bass, the high 16th sequencer, modulating outro), _The
   Different Story_ (minor iv choruses, major V, Dorian turnaround, chorus fade) and _You Came_
@@ -135,9 +142,11 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   an edge a blend of two, the centre an equal mix; most of the triangle leans clearly to one or
   two of them. Drag the point (or tap where it should go), or focus it and use the arrow keys
   (Shift for bigger steps), Home or a double-click to centre it, and 1–3 to jump to a corner.
-  Auto (a new point each song) or fixed. Settings saved with the old slider carry over.
-- **Tempo:** auto (synthpop 116–121 BPM, the originals measure 117, 119.8 and 119.0; Italo 108–122,
-  centred on the blend: The Night 110.3, Get Closer 111.8, Faces 120.1) or fixed.
+  Italo's is a square, 1–4: The Night and Get Closer along the bottom, Faces and Self Control on
+  top. Auto (a new point each song) or fixed. Settings saved with the old slider carry over.
+- **Tempo:** auto (synthpop 116–121 BPM, the originals measure 117, 119.8 and 119.0; Italo 106–122,
+  centred on the blend: The Night 110.3, Get Closer 111.8, Faces 120.1, Self Control 106.7, which
+  alone reaches below 108) or fixed.
 - **Key:** auto or a fixed minor key.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.
 - **Mixer:** per-track volume, mute and solo, plus a master fader.
@@ -218,8 +227,8 @@ The code is under the [MIT License](LICENSE). It does not cover these:
 - **MP3 encoder.** [@breezystack/lamejs](https://www.npmjs.com/package/@breezystack/lamejs) (a
   JavaScript port of LAME) stays under LGPL-3.0. It's installed as a dependency and loaded as its
   own file, only when you export an MP3.
-- **The six songs.** "True Faith", "The Different Story", "You Came", "The Night", "Get Closer"
-  and "Faces" belong to their writers and publishers. The app uses only what the analysis measured: chord progressions, form,
+- **The seven songs.** "True Faith", "The Different Story", "You Came", "The Night", "Get Closer",
+  "Faces" and "Self Control" belong to their writers and publishers. The app uses only what the analysis measured: chord progressions, form,
   tempo and groove. It contains none of their recordings, melodies or lyrics. A MIDI file you load is read in
   your browser and never stored.
 - **Music you make with it.** The songs you generate, create or export are yours.

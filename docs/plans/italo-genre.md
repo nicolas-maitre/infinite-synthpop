@@ -3,12 +3,14 @@
 
 # Italo genre
 
-The second genre (issue #1), built from three measured references:
+The second genre (issue #1), built from three measured references, then a fourth (phase 5):
 
 - Valerie Dore, "The Night" (`docs/italo/the-night.md`): 110.3 BPM, F minor.
 - Valerie Dore, "Get Closer" (`docs/italo/get-closer.md`): 111.8 BPM, E minor. Merged once its ear
   check is answered.
 - Clio, "Faces" (`docs/italo/faces.md`): 120.1 BPM, A minor with an A major chorus.
+- Laura Branigan, "Self Control" (`docs/references/branigan-self-control.md`): 106.7 BPM,
+  F♯ minor, one Aeolian loop.
 
 The two Valerie Dore records are near-twins (same writers, producers and label). Faces is the
 brighter, DJ-shaped corner. In the style triangle, The Night and Get Closer share the bottom edge,
@@ -81,7 +83,8 @@ reference that has one.
 - **Phase 3, Get Closer's ear check:** fold the answered chords into its bank entries.
 - **Phase 4, 12″ mode (issue #2):** the maxi blocks all three analyses describe: The Night's
   bass-less break, Get Closer's stop, hook and fill blocks, and Faces' 24-bar build.
-- **Phase 5, placing Sandra and Laura Branigan** (decided 2026-11-11):
+- **Phase 5, placing Sandra and Laura Branigan** (decided 2026-11-11; Self Control built the same
+  day, see below):
   - **Self Control joins Italo** as its fourth reference, a square instead of a triangle: its
     slowest (106.7 BPM), most polished corner (docs/references/branigan-self-control.md §9). It's
     a Munich/LA production of Raf's Italo song, kept for that glossier sound: the kick on every beat
@@ -90,3 +93,46 @@ reference that has one.
   - **The three Sandra songs get a genre of their own, Euro-disco** (Crazy Juliet, Heaven Can
     Wait, Innocent Love): no four-on-the-floor kick, syncopated bass riffs with rests, pre-choruses
     and back-to-back choruses, 115–123 BPM. All three analyses reached that verdict.
+
+## Phase 5a: Self Control, the fourth corner (built)
+
+The style triangle is a square: The Night and Get Closer along the bottom, Faces top right, Self
+Control top left, between Faces and The Night. Every Self Control trait is a `Blend` on its
+weight, or applies while it outweighs the others, and its form devices draw from their own random
+stream (`planItalo`'s `self-control` fork). At its weight 0 every Italo song is what it was: 525
+songs (25 seeds × 7 points × 3 forms) checked byte for byte against the code before it, and a
+test keeps 40 more that way. Old Italo links decode with its weight 0.
+
+- **Profile** (`src/genres.ts`): the reference `self-control`, which is also a playable original
+  (`REFERENCES`, `#ref=self-control`).
+  - **Tempo:** the range reaches 106, but only Self Control's weight lowers the floor from 108
+    (`tempo.floor`), so the other corners' tempos draw as before. Its centre is 106.7.
+  - **Bank:** its loop i–v–i–v–♭VII–iv–♭VI–♭III as a verse and a chorus, and the i–v vamp as an
+    interlude; the verse is sung on the chorus's loop (`form.verseOnLoop`). The v → v7
+    substitution is off at its corner: pure Aeolian triads.
+  - **Kit:** LinnDrum. **Bass:** the new `sc` style.
+  - **Keys:** not changed: F♯ minor keeps its small weight, since the key weights don't blend.
+- **Form** (`planItalo`), each device drawn with its weight:
+  - its opening: 4 bars of pad on i7 over the percussion, then 4 bars of the riff and the bass in
+    unison on i–v;
+  - a 16-bar pre-chorus with the title line before the first chorus (`titleLine`: the lead
+    sings a line of its own, between the verse's and the chorus's registers);
+  - after each chorus, a 4-bar break on one stab (drum mode `stab`), and after the first, 2 bars
+    of drums and voice;
+  - a half-length second verse, stacked voices in the choruses;
+  - an i–v vamp to fade after the second chorus's break, in place of the last chorus.
+- **Bass** (`scBassLine`): staccato root quarters, an 8th long, C♯1–B1; some chorus and outro bars
+  add the octave on the "&"s. Its tone: a dark saw with its fundamental cut (`bassTone.lowCut`).
+- **Drums** (`hats: "verse-off"`, `bigClaps: "4-and-3e"`): no hats in the verses, 16ths from the
+  pre-chorus (not on the "e" after the backbeat), 8ths in the intro; in the chorus a clap on 4,
+  and every other bar one on 3e and an open hat on 4a; in the outro the clap moves to 2.
+- **Parts** (branigan-self-control.md §11): the riff in unison with the bass (`riff: "unison"`) on
+  a bright saw (`riffPatch: "bright"`), the offbeat chop on every "&" (`stabPatch: "chop"`), the
+  bright chorus part (`countervoice: "sync16"`), and the break's low held stab.
+- **Voice** (`leadTone`): matched to Branigan's vocal stem with `scripts/compare_voice.py`, within
+  the voice boost caps (high shelf +9 dB, breath +6).
+
+Not done: the 12″ mode's version of its form (§2.2: a longer intro and drums-only re-entry, a
+half-length second pre-chorus, a longer vamp), the intro's tom hits by ear, and the riff's
+instrument (a guitar by the sources; a bright synth here). The original's generated parts use
+seed 1983 (`REFERENCE_SEEDS`), apart from The Night's 1984.

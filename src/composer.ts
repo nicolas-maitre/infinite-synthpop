@@ -43,15 +43,18 @@ export type SectionKind =
   | "outro";
 /** "groove": TF's busy intro pattern (kick runs, ghost snares, toms). "breakdown": You Came's
  * breakdown and bridge, no snare and the kick on 1 for three bars. "hats16": the full kit with
- * 16th hats whatever the song's hat pattern (You Came's break and instrumental). */
-export type DrumMode = "off" | "kick" | "half" | "full" | "big" | "groove" | "breakdown" | "hats16";
+ * 16th hats whatever the song's hat pattern (You Came's break and instrumental). "stab": one hit on
+ * beat 2 of every bar, kick and snare together (Self Control's breaks). */
+export type DrumMode =
+  "off" | "kick" | "half" | "full" | "big" | "groove" | "breakdown" | "hats16" | "stab";
 export type KitName = "sp12" | "linndrum" | "dmx" | "synth";
 /** "ds" and "tf" play the songs' signature bass figure (arranger.ts `figure`), in DS's
  * articulation (16th pickups, approach notes) or TF's (dotted 8ths). "yc" is You Came's root 8ths
  * with a same-note 16th on 4a (arranger.ts `ycBassLine`). The Italo ones (arranger.ts
  * `italoBassLine`, `facesBassLine`): "italo" is Get Closer's plain plucked root 8ths, "night" The
- * Night's root 8ths with octave lifts, "faces" Faces' staccato on-beat/off-beat figure. */
-export type BassStyle = "ds" | "tf" | "yc" | "italo" | "night" | "faces";
+ * Night's root 8ths with octave lifts, "faces" Faces' staccato on-beat/off-beat figure. "sc" is
+ * Self Control's staccato root quarters, very low (arranger.ts `scBassLine`). */
+export type BassStyle = "ds" | "tf" | "yc" | "italo" | "night" | "faces" | "sc";
 
 /** Every bass style with the record it comes from, in the order the pickers list them. */
 export const BASS_STYLES: readonly (readonly [BassStyle, string])[] = [
@@ -61,6 +64,7 @@ export const BASS_STYLES: readonly (readonly [BassStyle, string])[] = [
   ["night", "The Night"],
   ["italo", "Get Closer"],
   ["faces", "Faces"],
+  ["sc", "Self Control"],
 ];
 
 export function isBassStyle(v: unknown): v is BassStyle {
@@ -101,6 +105,9 @@ export interface Layers {
   /** Faces' bass holds each root instead of its figure (its first verse; faces.md §11, clip 11).
    * Only set when on. */
   bassHeld?: boolean;
+  /** Self Control's pre-chorus (branigan-self-control.md §2, §6): the lead sings a line of its own,
+   * the title line, between the verse's register and the chorus's. Only set when on. */
+  titleLine?: boolean;
 }
 
 export interface Section {
@@ -155,7 +162,8 @@ export interface Note {
   dur: number;
   midi: number;
   vel: number;
-  /** Played by the track's other voice: Faces' chorus stab on the stab track. Only set then. */
+  /** Played by the track's other voice: Faces' chorus stab, or Self Control's break stab, on the stab
+   * track. Only set then. */
   alt?: true;
 }
 
@@ -329,7 +337,11 @@ export function compose(opts: ComposeOptions): Song {
       : { tonic, mode: "minor" };
   };
   const key: Key = ref?.key ?? opts.key ?? autoKey();
-  const [bpmLo, bpmHi] = genre.tempo.range;
+  const [rangeLo, bpmHi] = genre.tempo.range;
+  // A reference may take the range below its usual floor (Self Control): the grid only reaches
+  // down there with its weight, so the others' tempos draw as they did.
+  const floor = genre.tempo.floor;
+  const bpmLo = floor ? Math.max(rangeLo, Math.floor(g.at(floor) * 2) / 2) : rangeLo;
   const autoBpm = rngSetup.weighted(
     Array.from({ length: (bpmHi - bpmLo) * 2 + 1 }, (_, i) => {
       const bpm = bpmLo + i / 2;
@@ -425,7 +437,9 @@ export function compose(opts: ComposeOptions): Song {
         ? generateEchoHook(rngMotif)
         : g.voices.riff === "pair"
           ? generatePair(rngMotif)
-          : generateRiff(rngMotif),
+          : g.voices.riff === "unison"
+            ? generateUnison(rngMotif)
+            : generateRiff(rngMotif),
     riffHigh,
     hook: generateHook(rngMotif),
     arp: generateArp(rngMotif),
@@ -744,6 +758,12 @@ function placeSections(plan: readonly PlannedSection[], rng: Rng): Section[] {
  * - a breakdown without bass or voice and an instrumental with the lead synth (Faces, Get
  *   Closer's 12″);
  * - a last chorus, and the chorus to fade all three records end on.
+ * Self Control's devices (branigan-self-control.md §2.1) draw from their own random stream, so at
+ * its weight 0 a song is what it was: its opening (pad on i7, then the riff and the bass in unison
+ * on i–v), a pre-chorus with the title line before the first chorus, a 4-bar break after each
+ * chorus (one stab on beat 2, the voice) with 2 bars of drums and voice after the first, a
+ * half-length second verse, stacked voices in the choruses, and an i–v vamp to fade in place of the
+ * last chorus.
  * The kick never stops: every section has the drums.
  */
 function planItalo(
@@ -779,12 +799,22 @@ function planItalo(
   const block = short ? 8 : 16;
   const tonic = key.mode === "major" ? "I" : "i";
   const pedal: Progression = [[tonic], ["VII/i"]];
+  const vamp: Progression = [[tonic], [key.mode === "major" ? "V" : "v"]];
+  // Self Control's choices.
+  const rngSc = rng.fork("self-control");
+  const scChance = (b: Blend) => rngSc.chance(g.at(b));
+  const preChorus = scChance(odds.preChorus);
+  const stabBreak = scChance(odds.stabBreak);
+  const halfVerse = scChance(odds.halfVerse);
+  const backing = scChance(odds.backing);
+  const vampOutro = ending === "fade" && scChance(odds.vampOutro);
 
   const openings = (
     [
       ["pedal", g.at(odds.pedalIntro)],
       ["build", g.at(odds.buildIntro)],
       ["hook", g.at(odds.hookIntro)],
+      ["riff", g.at(odds.riffIntro)],
     ] as const
   ).filter(([, w]) => w > 0);
   const opening = openings.length ? rng.weighted(openings) : "hook";
@@ -813,8 +843,10 @@ function planItalo(
     });
   // The Night's plucked countervoice plays in every chorus and nowhere else.
   const countervoice = g.voices.countervoice !== "none";
-  // Faces' verse world: stabs instead of pads, which the chorus brings in.
-  const verseWorld: Partial<Layers> = stabs ? { pad: false, held: true } : {};
+  // Faces' verse world: stabs instead of pads, which the chorus brings in. Self Control's offbeat
+  // chops play over the pads.
+  const chops = g.voices.stabPatch === "chop";
+  const verseWorld: Partial<Layers> = stabs && !chops ? { pad: false, held: true } : {};
   const verse = (label: string, bars: number, extra: Partial<Layers> = {}) =>
     add("verse", label, bars, p.verse, {
       drums: "full",
@@ -836,8 +868,15 @@ function planItalo(
       // No 16th part in any of the three records' choruses: their motion is the countervoice's.
       arp: false,
       counter: countervoice,
+      ...(backing ? { leadStack: true } : {}),
       ...extra,
     });
+  // Self Control's break: the voice over one reverbed stab on beat 2 of each bar; after the first
+  // chorus, 2 bars of the kit and the voice.
+  const breakBlock = (first: boolean) => {
+    add("break", "Break · stab on 2", 4, vamp, { drums: "stab", stabs: true, lead: "chorus" });
+    if (first) add("break", "Drums and voice", 2, vamp, { drums: "full", lead: "chorus" });
+  };
   // Faces' instrumentals keep the verse world, its sustained line on top; the others play the
   // riff (Get Closer's 16th line).
   const instrumental = (label: string, bars: number) =>
@@ -868,15 +907,34 @@ function planItalo(
       stabs: true,
       held: true,
     });
+  } else if (opening === "riff") {
+    // Self Control: a pad on i7 over the percussion, then the riff in unison with the bass.
+    add("intro", "Intro · pad", 4, [[key.mode === "major" ? "I" : "i7"]], {
+      drums: "half",
+      pad: true,
+    });
+    add("intro", "Intro · riff", 4, vamp, { drums: "full", bass: true, riff: true });
   } else {
     // Get Closer: 8 bars of drums, bass and pads, then the hook with its 16th line.
     add("intro", "Intro", short ? 4 : 8, p.verse, { drums: "full", bass: true, pad: true });
     add("intro", "Hook", block, p.verse, { drums: "full", bass: true, pad: true, riff: true });
   }
   verse("Verse 1", block, bareFirstVerse ? { bassHeld: true } : {});
+  if (preChorus) {
+    add("prechorus", "Pre-chorus · title line", block, p.verse, {
+      drums: "full",
+      bass: true,
+      pad: true,
+      lead: "verse",
+      titleLine: true,
+      stabs,
+      ...verseWorld,
+    });
+  }
   chorus("Chorus");
+  if (stabBreak) breakBlock(true);
   if (afterChorus) instrumental("Instrumental", 8);
-  verse("Verse 2", block);
+  verse("Verse 2", halfVerse ? block / 2 : block);
   chorus("Chorus");
   if (reprise) {
     // The Night's second half: the pedal block and the lead synth again, a verse, a chorus.
@@ -892,8 +950,20 @@ function planItalo(
     add("break", "Breakdown", 16, p.interlude, { drums: "full", pad: true, arp: true });
     instrumental("Instrumental", rng.pick([8, 16]));
   }
-  chorus("Chorus · last", { leadDouble: true });
-  if (ending === "hold") {
+  // Self Control fades on the i–v vamp straight after its second chorus and break; after a
+  // breakdown the song still needs its last chorus.
+  if (!vampOutro || breakdown) chorus("Chorus · last", { leadDouble: true });
+  if (vampOutro) {
+    if (stabBreak) breakBlock(false);
+    add("outro", "Outro · i–v vamp", 16, vamp, {
+      drums: "big",
+      bass: true,
+      pad: true,
+      stabs,
+      lead: "chorus",
+      counter: countervoice,
+    });
+  } else if (ending === "hold") {
     add("outro", "Ending · IV held", 4, [["IV"]], { pad: true });
   } else if (ending === "lift") {
     add(
@@ -994,6 +1064,20 @@ function sectionMelodies(
     if (!kind) return null;
     const own = section.melody ? custom[section.melody] : undefined;
     if (own) return customMelody(own, section.key);
+    // Self Control's title line: its own melody, between the verse's register and the chorus's.
+    if (section.layers.titleLine) {
+      const id = `title|${section.key.tonic}${section.key.mode}|${progression}`;
+      let melody = written.get(id);
+      if (!melody) {
+        const range = [
+          Math.round((ranges.verse[0] + ranges.chorus[0]) / 2),
+          Math.round((ranges.verse[1] + ranges.chorus[1]) / 2),
+        ] as const;
+        melody = generateMelody(root.fork(`melody-${id}`), section.key, section.progression, range);
+        written.set(id, melody);
+      }
+      return melody;
+    }
     const sameKey = section.key.tonic === key.tonic && section.key.mode === key.mode;
     if (sameKey && progression === JSON.stringify(progressions[kind])) return melodies[kind];
     const id = `${kind}|${section.key.tonic}${section.key.mode}|${progression}`;
@@ -1182,6 +1266,48 @@ function generatePair(rng: Rng): Motif {
       const step = g * 4 + i;
       notes.push({ step, dur: 0.9, idx: i % 2 === 0 ? 1 : 0, vel: i === 0 ? 1 : 0.8 });
     }
+  }
+  return { bars: 2, notes };
+}
+
+/**
+ * Self Control's intro riff (branigan-self-control.md §4.1, §6), played by the riff and the bass in
+ * unison: a 2-bar figure on the scale ladder from each chord's root. Every bar pushes the root on 1,
+ * 1a and 2& (the record's signature syncopation), then steps to other scale tones around beats
+ * 3–4, one of a few shapes per bar (the record's notes there vary from bar to bar).
+ */
+function generateUnison(rng: Rng): Motif {
+  const tails: readonly (readonly [number, number][])[] = [
+    [
+      [10, 6],
+      [12, 2],
+      [15, 1],
+    ],
+    [
+      [11, 0],
+      [12, 2],
+    ],
+    [
+      [10, 4],
+      [12, 2],
+    ],
+    [
+      [10, 2],
+      [14, 4],
+    ],
+  ];
+  const notes: MotifNote[] = [];
+  for (let bar = 0; bar < 2; bar++) {
+    const hits: [number, number][] = [[0, 0], [3, 0], [6, 0], ...rng.pick(tails)];
+    hits.forEach(([step, idx], i) => {
+      const next = hits[i + 1]?.[0] ?? 16;
+      notes.push({
+        step: bar * 16 + step,
+        dur: Math.max(1, next - step) * 0.85,
+        idx,
+        vel: step % 4 === 0 ? 0.85 : 1,
+      });
+    });
   }
   return { bars: 2, notes };
 }

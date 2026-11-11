@@ -606,6 +606,7 @@ const BASS_LABELS: Record<BassStyle, string> = {
   italo: "Get Closer root-8ths bass",
   night: "The Night root-8ths bass",
   faces: "Faces staccato bass",
+  sc: "Self Control staccato quarters",
 };
 
 function renderSong(song: Song): void {
@@ -916,6 +917,7 @@ const DRUM_LABELS: Record<DrumMode, string> = {
   groove: "intro groove",
   breakdown: "breakdown drums (no snare)",
   hats16: "drums with 16th hats",
+  stab: "one stab on beat 2",
 };
 
 function renderSectionDetail(song: Song, index: number): void {
