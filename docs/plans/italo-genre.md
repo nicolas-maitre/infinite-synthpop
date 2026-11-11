@@ -79,5 +79,12 @@ reference that has one.
 - **Phase 3, Get Closer's ear check:** fold the answered chords into its bank entries.
 - **Phase 4, 12″ mode (issue #2):** the maxi blocks all three analyses describe: The Night's
   bass-less break, Get Closer's stop, hook and fill blocks, and Faces' 24-bar build.
-- **Phase 5, placing Sandra and Laura Branigan:** a separate Euro-disco genre, or part of Italo or
-  synthpop, decided from Crazy Juliet, Innocent Love, Heaven Can Wait and Self Control.
+- **Phase 5, placing Sandra and Laura Branigan** (decided 2026-11-11):
+  - **Self Control joins Italo** as its fourth reference, a square instead of a triangle: its
+    slowest (106.7 BPM), most polished corner (docs/references/branigan-self-control.md §9). It's
+    a Munich/LA production of Raf's Italo song, kept for that glossier sound: the kick on every beat
+    and one Aeolian loop, staccato root quarters in the bass, a pre-chorus on the title line, claps
+    on 4 and 3e in the chorus, and 4-bar stab breaks.
+  - **The three Sandra songs get a genre of their own, Euro-disco** (Crazy Juliet, Heaven Can
+    Wait, Innocent Love): no four-on-the-floor kick, syncopated bass riffs with rests, pre-choruses
+    and back-to-back choruses, 115–123 BPM. All three analyses reached that verdict.
