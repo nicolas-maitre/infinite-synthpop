@@ -7,9 +7,9 @@ import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./composer";
 import { bassTone, genreAt, leadTone, GENRES, isStyleWeights } from "./genres";
 import { scheduleBar } from "./schedule";
-import { Instruments, type LeadPatch, type Track } from "./instruments";
+import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
 
-/** Mixer levels (dB) to render with, and a progress callback (0–1). */
+/** Mixer levels (dB) to render with (over the genre's auto mix), and a progress callback (0–1). */
 export interface RenderOptions {
   volumes?: Partial<Record<Track, number>>;
   /** The sung lead's sound (the Lead setting); the voice by default. */
@@ -75,7 +75,9 @@ export async function renderSong(
   inst.setTempo(song.bpm);
   for (const track of solo) inst.channels[track].solo = true;
   for (const track of mute) inst.channels[track].mute = true;
-  for (const [track, db] of Object.entries(options.volumes ?? {}) as [Track, number][]) {
+  // The faders as on auto (the genre's mix), then any levels given.
+  const volumes = { ...autoVolumes(genre.mix), ...options.volumes };
+  for (const [track, db] of Object.entries(volumes) as [Track, number][]) {
     inst.channels[track].volume.value = db;
   }
   if (options.master !== undefined) inst.master.volume.value = options.master;

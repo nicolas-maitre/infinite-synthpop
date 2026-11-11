@@ -59,6 +59,14 @@ export const DEFAULT_VOLUMES: Record<Track, number> = {
 };
 
 /**
+ * The fader levels a song plays at while its faders are on auto: the defaults, with the genre's
+ * own mix (genres.ts `mix`) over them.
+ */
+export function autoVolumes(mix: Partial<Record<Track, number>> = {}): Record<Track, number> {
+  return { ...DEFAULT_VOLUMES, ...mix };
+}
+
+/**
  * Gain (dB) inside the arp and stab synths. Both used to sit about 30 dB under a chorus, too
  * quiet to hear; they now sit 16–18 dB under it, picked by ear from renders. The faders top
  * out at 0 dB, so the extra level lives here and leaves the faders room above.

@@ -215,6 +215,11 @@ select:focus-visible {
   border-color: var(--accent-3);
 }
 
+.btn.toggle[aria-pressed="true"].auto {
+  background: #123a4a;
+  border-color: var(--accent-2);
+}
+
 .chord-row {
   display: flex;
   gap: 24px;
@@ -555,11 +560,17 @@ input[type="checkbox"] {
 
 .mix-row {
   display: grid;
-  grid-template-columns: 96px 1fr auto auto;
+  grid-template-columns: 96px 1fr auto auto auto;
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;
   font-size: 13px;
+}
+
+/* A fader on auto follows the genre's mix: shown, not draggable. */
+.mix-row input[type="range"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* Generated ↔ MIDI per instrument, under its mixer row once a MIDI file is loaded. */

@@ -4,6 +4,7 @@ import type { BassStyle, DrumMode, ImportedTracks, KitName, Song } from "./compo
 import { KIT_LABELS } from "./drums";
 import { Engine, type EngineSettings } from "./engine";
 import {
+  autoVolumes,
   DEFAULT_VOLUMES,
   LEAD_PATCHES,
   PREVIOUS_DEFAULT_VOLUMES,
@@ -63,7 +64,10 @@ interface Prefs {
   bpmAuto: boolean;
   key: number | null;
   kit: KitName | "auto";
+  /** Each fader's level by hand, used for the tracks in `manual`. */
   volumes: Record<Track, number>;
+  /** Faders taken off auto. The others follow the playing song's genre (genres.ts `mix`). */
+  manual: Track[];
   muted: Track[];
   master: number;
   /** Start playing as soon as the page loads (or at the first interaction, if the browser asks). */
@@ -101,6 +105,7 @@ const defaults: Prefs = {
   key: null,
   kit: "auto",
   volumes: { ...DEFAULT_VOLUMES },
+  manual: [],
   muted: [],
   master: 0,
   autoplay: false,
@@ -129,7 +134,11 @@ function loadPrefs(): Prefs {
       if (volumes[t] === old) volumes[t] = DEFAULT_VOLUMES[t];
     }
     const lead = LEAD_PATCHES.find((l) => l === p.lead) ?? defaults.lead;
-    return { ...defaults, ...p, volumes, genre, weights, lead };
+    // Saved before auto levels: a fader moved off its default stays where it was put, by hand.
+    const manual = Array.isArray(p.manual)
+      ? TRACKS.filter((t) => p.manual!.includes(t))
+      : TRACKS.filter((t) => volumes[t] !== DEFAULT_VOLUMES[t]);
+    return { ...defaults, ...p, volumes, manual, genre, weights, lead };
   } catch {
     return defaults;
   }
@@ -153,6 +162,11 @@ function el<T extends HTMLElement>(id: string): T {
   if (!node) throw new Error(`#${id} missing`);
   return node as T;
 }
+
+// The mixer's faders and auto buttons (built under Mixer below), declared first: a song can arrive
+// and re-apply the mix before the mixer is built.
+const sliders = new Map<Track | "master", HTMLInputElement>();
+const autoButtons = new Map<Track, HTMLButtonElement>();
 
 const ui = {
   play: el<HTMLButtonElement>("play"),
@@ -595,6 +609,8 @@ const BASS_LABELS: Record<BassStyle, string> = {
 };
 
 function renderSong(song: Song): void {
+  // A new song may be in another genre, with its own mix for the auto faders.
+  applyMixer();
   media.setSong(song, GENRES[song.genre].name);
   media.setPosition(song, engine.currentBar);
   // While editing the title, don't overwrite what's being typed.
@@ -1191,12 +1207,29 @@ document.addEventListener("keydown", (e) => {
 
 // ── Mixer ─────────────────────────────────────────────────────────────────────────────────────
 
+/** Each track's level now: by hand, or the playing song's genre mix while on auto. */
+function trackVolumes(): Record<Track, number> {
+  const auto = autoVolumes(GENRES[engine.song.genre].mix);
+  return Object.fromEntries(
+    TRACKS.map((t) => [t, prefs.manual.includes(t) ? prefs.volumes[t] : auto[t]]),
+  ) as Record<Track, number>;
+}
+
 function applyMixer(): void {
+  const volumes = trackVolumes();
+  // The auto faders show the level they follow, and can't be dragged.
+  for (const t of TRACKS) {
+    const slider = sliders.get(t);
+    if (!slider) continue;
+    const auto = !prefs.manual.includes(t);
+    slider.disabled = auto;
+    if (auto) slider.value = String(volumes[t]);
+  }
   const inst = engine.instruments;
   if (!inst) return;
   for (const t of TRACKS) {
     const ch = inst.channels[t];
-    ch.volume.value = prefs.volumes[t];
+    ch.volume.value = volumes[t];
     ch.mute = prefs.muted.includes(t);
     ch.solo = soloed.has(t);
   }
@@ -1246,11 +1279,28 @@ function toggle(
   return b;
 }
 
-const sliders = new Map<Track | "master", HTMLInputElement>();
 const muteButtons = new Map<Track, HTMLButtonElement>();
 const soloButtons: HTMLButtonElement[] = [];
 
 for (const t of TRACKS) {
+  // On auto, the fader follows the genre's mix; off, it stays where it's put, starting from the
+  // level it was following.
+  const auto = toggle(
+    "A",
+    "auto",
+    !prefs.manual.includes(t),
+    `${TRACK_LABELS[t]}: auto level (the genre's mix). Off to set it by hand`,
+    (on) => {
+      if (on) prefs.manual = prefs.manual.filter((m) => m !== t);
+      else {
+        prefs.volumes[t] = trackVolumes()[t];
+        prefs.manual = [...prefs.manual, t];
+      }
+      savePrefs();
+      applyMixer();
+    },
+  );
+  autoButtons.set(t, auto);
   const mute = toggle("M", "mute", prefs.muted.includes(t), `Mute ${TRACK_LABELS[t]}`, (on) => {
     prefs.muted = on ? [...prefs.muted, t] : prefs.muted.filter((m) => m !== t);
     savePrefs();
@@ -1271,7 +1321,7 @@ for (const t of TRACKS) {
       savePrefs();
       applyMixer();
     },
-    [mute, solo],
+    [auto, mute, solo],
   );
   sliders.set(t, row.querySelector("input")!);
   ui.mixer.append(row, midiLine(t));
@@ -1287,12 +1337,13 @@ ui.mixer.append(master);
 
 ui.mixerReset.addEventListener("click", () => {
   prefs.volumes = { ...DEFAULT_VOLUMES };
+  prefs.manual = [];
   prefs.master = 0;
   prefs.muted = [];
   soloed.clear();
   savePrefs();
   for (const t of TRACKS) {
-    sliders.get(t)!.value = String(prefs.volumes[t]);
+    autoButtons.get(t)!.setAttribute("aria-pressed", "true");
     muteButtons.get(t)!.setAttribute("aria-pressed", "false");
   }
   sliders.get("master")!.value = "0";

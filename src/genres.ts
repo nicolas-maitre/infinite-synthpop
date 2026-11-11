@@ -15,6 +15,7 @@ import type { BassStyle, KitName } from "./composer";
 import type { DrumVoice } from "./arranger";
 import type { BankEntry, Progression, ProgressionKind } from "./progressions";
 import { REFERENCES, type ReferenceId } from "./references";
+import type { Track } from "./instruments";
 import type { Mode } from "./theory";
 import { polygonVertices, quantize, randomPoint, weightsAt, type Point } from "./polygon";
 import type { Rng } from "./rng";
@@ -207,6 +208,10 @@ export interface Genre {
   planner: "synthpop" | "italo";
   italo?: ItaloForm;
   parts?: PartStyle;
+  /** Its songs' fader levels (dB) on auto, where they differ from instruments.ts
+   * `DEFAULT_VOLUMES`. Each voice's own gain makes it as loud as the voice it replaces at the
+   * same fader; this is the balance between the tracks that suits the genre. */
+  mix?: Partial<Record<Track, number>>;
   /** The parts and sounds when no reference outweighs the others, and per reference while it
    * does. Unset: `SYNTHPOP_VOICES`. */
   voices?: Voices;
