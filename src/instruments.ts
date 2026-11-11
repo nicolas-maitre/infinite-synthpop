@@ -36,7 +36,7 @@ export const TRACK_LABELS: Record<Track, string> = {
   hook: "Melodic bass",
   pad: "Pad",
   riff: "Riff",
-  lead: "Lead",
+  lead: "Voice",
   counter: "Counter line",
   arp: "Arp",
   stab: "Stabs",
@@ -86,6 +86,9 @@ const PANS: Record<Track, number> = {
 
 /** The lead's reverb send on its own track (SENDS.lead), which the synth lead keeps. */
 const SENDS_LEAD_REVERB = 0.35;
+
+/** The voice compressor's makeup gain (see applyLeadTone). */
+const LEAD_COMP_MAKEUP_DB = 6;
 
 /** Post-fader send levels (gain) to the reverb and delay buses. */
 const SENDS: Record<Track, { reverb: number; delay: number }> = {
@@ -236,6 +239,8 @@ export class Instruments {
     width: Tone.Gain;
     cutoff: Tone.Filter;
     air: Tone.Gain;
+    comp: Tone.Compressor;
+    makeup: Tone.Gain;
   };
   private leadTone: LeadTone = { level: 0, low: 0, mid: 0, high: 0, air: 0, width: 0 };
   /** The sung lead's voice: vibrato, formants and breath (setLeadPatch). */
@@ -303,6 +308,9 @@ export class Instruments {
       const y = v <= knee ? v : knee + (ceiling - knee) * Math.tanh((v - knee) / (ceiling - knee));
       return Math.sign(x) * y;
     }, 4096);
+    // Oversampled, so rounding off bright peaks (the voice's air, the hats) doesn't alias into
+    // harsh distortion; lite skips it for CPU.
+    if (!lite) softClip.oversample = "2x";
     // Headroom trim: without it the bus compressor and limiter squashed TF-style songs to a crest
     // factor of 11 dB (the records: 15–18).
     const trim = new Tone.Gain(Tone.dbToGain(-5.5));
@@ -501,7 +509,28 @@ export class Instruments {
     const leadMid = new Tone.Filter({ type: "peaking", frequency: 1800, Q: 0.9, gain: 0 });
     const leadHigh = new Tone.Filter({ type: "highshelf", frequency: 3000, gain: 0 });
     const leadLevel = new Tone.Gain(1);
-    vibrato.chain(leadCutoff, leadLow, leadMid, leadHigh, leadLevel, this.channels.lead);
+    // A singer's compressor: the shelves above lift the voice's peaks along with its tone, and
+    // uncompressed they drove the master limiter into audible clipping (twice the samples near
+    // full scale in a You Came-style song). It holds the voice's level and keeps its peaks off the
+    // bus; the synth lead bypasses it (threshold 0 dB).
+    const leadComp = new Tone.Compressor({
+      threshold: 0,
+      ratio: 4,
+      knee: 6,
+      attack: 0.002,
+      release: 0.09,
+    });
+    const leadMakeup = new Tone.Gain(1);
+    vibrato.chain(
+      leadCutoff,
+      leadLow,
+      leadMid,
+      leadHigh,
+      leadComp,
+      leadMakeup,
+      leadLevel,
+      this.channels.lead,
+    );
     const leadWidth = new Tone.Gain(0);
     leadLevel.chain(new Tone.Delay(0.014), new Tone.Panner(1), leadWidth, this.channels.lead);
     // Sibilance: the breath's own path above 5 kHz, past the formants.
@@ -531,6 +560,8 @@ export class Instruments {
       width: leadWidth,
       cutoff: leadCutoff,
       air: leadAir,
+      comp: leadComp,
+      makeup: leadMakeup,
     };
     const leadOptions: ConstructorParameters<typeof Tone.MonoSynth>[0] = {
       portamento: 0.045,
@@ -962,6 +993,11 @@ export class Instruments {
       : { level: 0, low: 0, mid: 0, high: 0, air: 0, width: 0 };
     const m = this.leadMix;
     m.level.gain.value = Tone.dbToGain(t.level);
+    // The voice compresses from 30 dB under full scale; the makeup gives back about what 4:1 takes
+    // off the body of a phrase, so the measured levels hold.
+    const mixed = this.leadSettings.mixed;
+    m.comp.threshold.value = mixed ? -30 : 0;
+    m.makeup.gain.value = mixed ? Tone.dbToGain(LEAD_COMP_MAKEUP_DB) : 1;
     m.low.gain.value = t.low;
     m.mid.gain.value = t.mid;
     m.air.gain.value = this.leadSettings.air * Tone.dbToGain(t.air);

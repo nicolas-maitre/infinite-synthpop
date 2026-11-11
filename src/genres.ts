@@ -170,7 +170,8 @@ export interface BassTone {
 }
 
 /** The sung voice's mix (instruments.ts `setLeadTone`), matched to each record's vocal stem with
- * scripts/compare_voice.py: its level, a low shelf at 220 Hz, a presence peak at 1.8 kHz and a
+ * scripts/compare_voice.py, the boosts capped (high shelf +9 dB, breath +6) where matching the
+ * stems' air band, which carries hat bleed, drove the master clipper into distortion: its level, a low shelf at 220 Hz, a presence peak at 1.8 kHz and a
  * high shelf at 3 kHz (dB), its breath above 5 kHz (dB over the voice's own), and its width (the level of a 14 ms copy on the right; 0 = mono). The
  * records' low band is mostly their singers' lower range, which EQ can't give a melody that sits
  * higher, so the low shelves stay small. */
@@ -761,11 +762,11 @@ export const GENRES: Record<GenreId, Genre> = {
     // The records' vocal stems against our voice at each corner (compare_voice.py): True Faith's
     // is the fullest low down, You Came's the most forward, all of them wider than a mono lead.
     leadTone: {
-      level: { by: { [TF]: 0.5, [DS]: 1.5, [YC]: 3 } },
+      level: { by: { [TF]: 0.5, [DS]: 1.5, [YC]: 2 } },
       low: { by: { [TF]: 3, [DS]: 2, [YC]: 1 } },
-      mid: { by: { [TF]: 2, [DS]: 5, [YC]: 7 } },
-      high: { by: { [TF]: 8, [DS]: 6, [YC]: 13 } },
-      air: { by: { [TF]: 12, [DS]: 13, [YC]: 7 } },
+      mid: { by: { [TF]: 2, [DS]: 4, [YC]: 5 } },
+      high: { by: { [TF]: 7, [DS]: 6, [YC]: 8 } },
+      air: { by: { [TF]: 6, [DS]: 6, [YC]: 5 } },
       width: { by: { [TF]: 0.45, [DS]: 0.55, [YC]: 0.58 } },
     },
     bassTone: {
@@ -899,9 +900,9 @@ export const GENRES: Record<GenreId, Genre> = {
     leadTone: {
       level: { by: { [TN]: -4, [FC]: 1 } },
       low: { by: { [TN]: 1, [GC]: 1, [FC]: -3 } },
-      mid: { by: { [TN]: 11, [GC]: 5, [FC]: 4.5 } },
-      high: { by: { [TN]: 17, [GC]: 11, [FC]: 4 } },
-      air: { by: { [TN]: 6, [GC]: 4, [FC]: 14 } },
+      mid: { by: { [TN]: 7, [GC]: 5, [FC]: 4 } },
+      high: { by: { [TN]: 9, [GC]: 7, [FC]: 4 } },
+      air: { by: { [TN]: 4, [GC]: 4, [FC]: 6 } },
       width: { by: { [TN]: 1.1, [GC]: 0.28, [FC]: 0.42 } },
     },
     bassTone: {
