@@ -166,9 +166,7 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
             : 0.55,
           parts?.pad === "octaves",
         )
-      : L.held
-        ? heldPedal(key)
-        : [],
+      : [],
     riff: !L.riff
       ? []
       : parts?.riff === "line16"
@@ -594,18 +592,6 @@ function padChords(key: Key, slots: readonly ChordSlot[], vel: number, octaves =
     }
   }
   return out;
-}
-
-/** Faces' held pedal (§7): the relative major's 1 and 5 above the minor tonic (C5 and G4 in A
- * minor), held through the bar on the pad track. */
-function heldPedal(key: Key): Note[] {
-  const pcs = key.mode === "minor" ? [3, 10] : [0, 7];
-  return pcs.map((i) => ({
-    step: 0,
-    dur: 15.9,
-    midi: nearestWithPc(mod12(key.tonic + i), i === 3 || i === 0 ? 72 : 67),
-    vel: 0.45,
-  }));
 }
 
 /** Faces' sustained line in its instrumentals: for each chord, the chord tone nearest the middle

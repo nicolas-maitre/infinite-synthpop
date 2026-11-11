@@ -207,7 +207,7 @@ interface CompactSection {
   x?: 1;
   /** A second voice a 3rd under the lead (You Came's choruses). */
   ls?: 1;
-  /** Faces' held pedal and line (`held`). */
+  /** Faces' sustained line (`held`). */
   h?: 1;
   st?: 1;
   /** Drum fill at the end: 1 on, 0 off, absent = default. */

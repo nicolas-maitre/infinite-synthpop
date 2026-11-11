@@ -428,7 +428,7 @@ const ITALO_BANK: Record<ProgressionKind, readonly BankEntry[]> = {
       weight: 2,
     },
     { name: "GC loop, IV⁶ walk", bars: [["i"], ["VII/i"], ["IV/3"], ["VI/VII"]], ref: GC },
-    // Faces' royal road, VI△7–♭VIIsus4 │ v7–i7, under a held pedal.
+    // Faces' royal road, VI△7–♭VIIsus4 │ v7–i7 (the record holds a C/G pedal over it; not played yet).
     {
       name: "FC royal road (measured)",
       bars: [

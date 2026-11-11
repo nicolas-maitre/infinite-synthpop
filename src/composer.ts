@@ -90,9 +90,8 @@ export interface Layers {
   /** TF's chorus counter-line: a high, sparse electric-piano line above the vocal (MIDI "Synth
    * Lead"). */
   counter: boolean;
-  /** Faces' verse world (faces.md §7): the held two-note pedal on the relative major's 1 and 5
-   * (C5 and G4 in A minor) where no pads play, and, where nothing sings, a sustained synth line
-   * that follows the chords. Only set when on, so older sections are unchanged. */
+  /** Faces' verse world (faces.md §7): where nothing sings, a sustained synth line that follows
+   * the chords. Only set when on, so older sections are unchanged. */
   held?: boolean;
 }
 
@@ -771,7 +770,7 @@ function planItalo(
       arp: true,
       lead: "verse",
     });
-  // Faces' verse world: stabs and the held pedal instead of pads, which the chorus brings in.
+  // Faces' verse world: stabs instead of pads, which the chorus brings in.
   const verseWorld: Partial<Layers> = stabs ? { pad: false, held: true } : {};
   const verse = (label: string, bars: number, extra: Partial<Layers> = {}) =>
     add("verse", label, bars, p.verse, {

@@ -872,15 +872,13 @@ describe("italo genre", () => {
     expect(Math.max(...pitches)).toBeLessThanOrEqual(65);
   });
 
-  it("keeps Faces' verses to stabs and the held pedal, and brings pads in for the chorus", () => {
+  it("keeps Faces' verses to stabs, and brings pads in for the chorus", () => {
     const song = compose({ seed: 5, genre: "italo", weights: corners[2] });
     const verse = song.sections.find((s) => s.kind === "verse");
     const chorus = song.sections.find((s) => s.kind === "chorus");
     if (!verse || !chorus) throw new Error("no verse or chorus");
     const v = arrangeBar(song, verse.startBar);
-    expect(v.notes.pad.map((n) => mod12(n.midi)).sort()).toEqual(
-      [3, 10].map((i) => mod12(song.key.tonic + i)).sort(),
-    );
+    expect(v.notes.pad).toEqual([]);
     expect(arrangeBar(song, chorus.startBar).notes.pad.length).toBeGreaterThan(2);
     const intro = song.sections.find((s) => s.label === "Intro · groove");
     if (!intro) throw new Error("no groove intro");
