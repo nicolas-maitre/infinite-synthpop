@@ -559,18 +559,36 @@ maxi, a few fragments over the backing-only replays.
 else: by ear it is absent from the verse loop, the sung verse and the maxi's break (clips 18, 19,
 15). It enters on the chorus's first bar and stops with it.
 
-**What it plays:** by ear, "a note every 8th (with some skipped)", in the voice's register
-(about A♭4–E♭5), on the chord tones (clips 13a, 13b). **The exact line is not transcribed.**
-Three readings from the "other" stem (the pitch rising at each 8th, summed over 12 chorus loops;
-the part that decays within each 8th, per loop; the same per 16th over C4–C6) disagree with each
-other, and lines built from the first two both sounded "completely off" or "still off" by ear
-(clips 20a–20f, 23). The pads, the open hat on the same off-beats and the reverb of the previous
-notes all leak into those readings. What they agree on: notes on most 8ths, beats included (beat 4
-of the A♭ bar reads A♭4 in all four maxi loops), all inside A♭4–E♭5. The generator's own line
-(chord tones from the top down on the off-beats, a few beats; `pluckedCountervoice`) was judged
-"alright" in the v3 render, so keep it until the line is transcribed by ear.
+**What it plays:** the line comes from the user's MIDI transcription
+(`inspiration/Valerie Dore/the night chorus countervoice.mid`, local only, written in C at 90 BPM).
+Transposed **up 8 semitones**, with its bar 1 on the chorus's A♭ bar, it fits the record far
+better than any other placement: the record's struck-note salience at its notes is 3.68, against
+2.90 an octave higher, 1.97 an octave lower and at most 2.61 with the bars rotated (maxi 33–48).
+By ear the user hears it as right (clips 24a, 24b). In A♭, one 4-bar loop, repeated through the
+whole chorus:
 
-**Its sound,** found by ear in three rounds against the maxi's voiceless chorus (maxi 1:10.0),
+| Chord    | 1   | &   | 2   | &   | 3   | &   | 4   | &   |
+| -------- | --- | --- | --- | --- | --- | --- | --- | --- |
+| A♭(add9) | –   | E♭4 | E♭5 | D♭5 | C5  | B♭4 | A♭4 | A♭4 |
+| D♭/F     | –   | E♭4 | C5  | D♭5 | –   | A♭4 | C5  | B♭4 |
+| G♭       | –   | E♭4 | D♭5 | C5  | B♭4 | A♭4 | –   | A♭4 |
+| E♭7sus4  | –   | E♭4 | A♭4 | B♭4 | –   | E♭4 | B♭4 | C5  |
+
+- **Every bar starts the same way:** nothing on beat 1, a low E♭4 on its "&" (the only note held
+  for two 16ths), then a run from beat 2 on the 8ths.
+- **The runs step through the A♭ major scale,** mostly downwards from the top of the range: a
+  full descent E♭5 to A♭4 in the A♭ bar, D♭5 to A♭4 in the G♭ bar. The D♭/F and E♭ bars turn
+  around inside A♭4–D♭5.
+- **The notes are short** (16ths), on 8ths, with one or two skipped a bar. The range is E♭4–E♭5,
+  the voice's register, as heard (clips 13a, 13b).
+- The same loop plays in every chorus. The note E♭ (the chorus's dominant) on the "&" of 1 of
+  every bar is the hook: it repeats under all four chords.
+
+My own readings from the stems were wrong (clips 20a–20f and 23: "completely off", "still off"),
+because the pads, the open hat on the same off-beats and the reverb of earlier notes all leak into
+them. Only the first bar of my first reading (E♭5 D♭5 … B♭4 A♭4 A♭4) matched.
+
+**Its sound,** found by ear in four rounds against the maxi's voiceless chorus (maxi 1:10.0),
 each candidate level-matched and played alone after the record:
 
 1. Six different sounds (clips 20a–20f: the saw pluck then on main, an FM mallet, an FM electric
@@ -580,6 +598,8 @@ each candidate level-matched and played alone after the record:
    more reverb (21c), and the electric piano (20c)**, were the closest.
 3. The two alone and layered (clips 22a–22d): **the two layered at equal loudness (22c)** was the
    closest. On a re-transcribed line (clip 23), the user added: "a softer attack might help".
+4. On the user's MIDI line (clips 24a, 24b): the 12 ms attack (24a) beat the 2 ms one, and the
+   layer is "close, keep it".
 
 What the stems measure agrees with a bright, quickly decaying pluck: the fundamental falls about
 15 dB in the first 70 ms of a note, the onset is centred (left and right within about 1 dB), and
@@ -593,7 +613,7 @@ measured under the pads; by ear it is heavy.
 new NativeMonoSynth({
   oscillator: { type: "sawtooth" },
   filter: { type: "lowpass", rolloff: -12, Q: 0.8 },
-  // The attack softened from the 2 ms the clips used, as asked after clip 23 (not yet re-checked).
+  // 12 ms: softer than a 2 ms pluck, which sounded too hard (clips 24a, 24b).
   envelope: { attack: 0.012, decay: 1.4, sustain: 0.05, release: 0.35 },
   filterEnvelope: {
     attack: 0.002,
@@ -620,11 +640,15 @@ new NativeFMSynth({
   volumes by meter, not by the option values, since the voices' gain staging differs.
 - **Reverb:** heavy. The clips used a 2.8 s tail about 4 dB under the dry signal, so a send of
   about 0.6–0.7 to the shared 3.2 s reverb. No delay.
-- **Not re-checked:** the softer attack (12 ms) was added after the last round.
 
 **Role:** the chorus's signature second line, following the chords bar by bar under and between
 the long vocal notes, in the voice's register. In the generator it should play in every chorus of
 a song in The Night's style (it isn't a chance draw on the record), and never outside the chorus.
+For a generated line in the same shape: rest on beat 1; the chorus key's 5th, low, on its "&";
+then 8ths from beat 2 stepping down the scale from about an octave above that 5th, landing on
+chord tones, with one or two rests a bar. The generator's current line (`pluckedCountervoice`:
+chord tones from the top down, on the off-beats and a few beats) has the range and the 8ths but
+not the low pickup or the scale runs.
 
 ### 10.3 Anything else the generator lacks
 
@@ -671,6 +695,7 @@ patch resynthesised on the record's own pitch line.
 | 21a–e  | maxi 1:10.0                 | Variants of the saw pluck          | Current, brighter, open + long, pulse, detuned                 | **21c** (open saw, long notes, more reverb) and the e-piano (20c)     |
 | 22a–d  | maxi 1:10.0                 | Saw, e-piano, or a layer           | Saw, e-piano, equal layer, e-piano + quiet saw                 | **22c**, the equal layer                                              |
 | 23     | maxi 1:10.0                 | 22c on a re-transcribed line       | Line right, partly, off                                        | **Line still off**; the sound may want a softer attack                |
+| 24a, b | maxi 1:10.0                 | 22c on the user's MIDI line        | 12 ms or 2 ms attack                                           | **24a** (12 ms); the layer is close, keep it                          |
 
 ## Sources
 
