@@ -149,6 +149,10 @@ export class Instruments {
   private readonly riffPulse: NativeMonoSynth;
   /** The echoes that follow the tempo (setTempo): The Night's lead synth's, Get Closer's hook's. */
   private readonly echoTimes: Tone.Param<"time">[] = [];
+  /** Faces' plucked stab, on the stab track (see setVoices). */
+  private readonly stabPluck: NativeMonoSynth;
+  /** Each track's sends to the reverb and the shared delay, so a voice can change them. */
+  private readonly sends = {} as Record<Track, { reverb?: Tone.Gain; delay?: Tone.Gain }>;
   private voices: Voices = SYNTHPOP_VOICES;
   private readonly arp: NativeFMSynth;
   private readonly stab: NativeSynth;
@@ -206,8 +210,10 @@ export class Instruments {
         });
         const { reverb: rv, delay: dl } = SENDS[t];
         const routes: Tone.InputNode[] = [this.master];
-        if (rv > 0) routes.push(new Tone.Gain(rv).connect(reverb));
-        if (dl > 0) routes.push(new Tone.Gain(dl).connect(delay));
+        const sends: { reverb?: Tone.Gain; delay?: Tone.Gain } = {};
+        if (rv > 0) routes.push((sends.reverb = new Tone.Gain(rv).connect(reverb)));
+        if (dl > 0) routes.push((sends.delay = new Tone.Gain(dl).connect(delay)));
+        this.sends[t] = sends;
         ch.fan(...routes);
         this.routes[t] = routes;
         return [t, ch];
@@ -472,6 +478,40 @@ export class Instruments {
       envelope: { attack: 0.002, decay: 0.35, sustain: 0, release: 0.25 },
       volume: ARP_STAB_GAIN_DB,
     }).connect(this.channels.stab);
+    // Faces' plucked stab (faces.md §10.1): one saw (a detuned pair cancels its fundamental at
+    // note-on), its filter open for 40–50 ms then shut to about 1.6 kHz by 80 ms, linearly; the
+    // level falls to silence by 230 ms. EQ'd (−5 dB at 1.4 kHz, +5 at 5.5) and chorused, with one
+    // strong repeat 300 ms later on the right (not tempo-synced), about 2 dB under the dry hit.
+    const pluckBus = new Tone.Gain(1);
+    const pluckChorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.6, wet: 0.5 });
+    pluckBus.chain(
+      new FixedFilter("peaking", 1400, { Q: 1, gain: -5 }),
+      new FixedFilter("peaking", 5500, { Q: 0.8, gain: 5 }),
+      pluckChorus.start(),
+      this.channels.stab,
+    );
+    pluckChorus.chain(
+      new Tone.FeedbackDelay({ delayTime: 0.3, feedback: 0.35, wet: 1 }),
+      new Tone.Panner(1),
+      new Tone.Gain(0.8),
+      this.channels.stab,
+    );
+    this.stabPluck = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -24, Q: 3 },
+      envelope: { attack: 0.003, decay: 0.23, decayCurve: "linear", sustain: 0, release: 0.03 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.08,
+        decayCurve: "linear",
+        sustain: 0,
+        release: 0.05,
+        baseFrequency: 1600,
+        octaves: 3,
+      },
+      maxPolyphony: lite ? 6 : 8,
+      volume: ARP_STAB_GAIN_DB - 2,
+    }).connect(pluckBus);
     const stabNoiseFilter = new FixedFilter("bandpass", 2500);
     this.stabNoise = new Tone.NoiseSynth({
       noise: { type: "pink" },
@@ -652,12 +692,12 @@ export class Instruments {
         for (const group of byOnset(notes)) {
           const [first] = group;
           if (!first) continue;
-          this.stab.triggerAttackRelease(
-            group.map((n) => midiToFreq(n.midi)),
-            len(first),
-            at(first),
-            first.vel,
-          );
+          const freqs = group.map((n) => midiToFreq(n.midi));
+          if (this.voices.stabPatch === "pluck") {
+            this.stabPluck.triggerAttackRelease(freqs, len(first), at(first), first.vel);
+            continue;
+          }
+          this.stab.triggerAttackRelease(freqs, len(first), at(first), first.vel);
           this.stabNoise.triggerAttackRelease(0.1, at(first), 0.5);
         }
         break;
@@ -709,6 +749,11 @@ export class Instruments {
    * plays the riff and the counter track. */
   setVoices(voices: Voices): void {
     this.voices = voices;
+    // Faces' pluck has its own echo and little reverb (faces.md §10.1).
+    const pluck = voices.stabPatch === "pluck";
+    const stab = this.sends.stab;
+    if (stab.reverb) stab.reverb.gain.value = pluck ? 0.15 : SENDS.stab.reverb;
+    if (stab.delay) stab.delay.gain.value = pluck ? 0 : SENDS.stab.delay;
   }
 
   /** Sets the dotted-8th echoes to the song's tempo. */
@@ -743,6 +788,7 @@ export class Instruments {
       this.riffPlain,
       this.riffPulse,
       this.synth,
+      this.stabPluck,
     ];
     for (const s of synths) s.releaseAll(time);
   }

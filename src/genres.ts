@@ -106,9 +106,13 @@ export interface Voices {
    * each chord's tones in the voice's register (the-night.md §10.2); or Get Closer's soft,
    * near-sine 8th arpeggio up and down the chord from beat 2, in C6–B6 (get-closer.md §10). */
   countervoice: "none" | "pluck8" | "arp8";
-  /** Pads: one close voicing (synthpop, Get Closer), or the triad stacked an octave up too (The
-   * Night's span C4–A♭6). */
-  pad: "close" | "octaves";
+  /** Pads: one close voicing (synthpop, Get Closer); the triad stacked an octave up too (The
+   * Night's span C4–A♭6); or Faces' open voicings, the root in octave 3, the 7th in the middle
+   * (faces.md §10.3). */
+  pad: "close" | "octaves" | "open";
+  /** The stabs' sound: the saw brass with a noise burst (synthpop), or Faces' plucked saw with its
+   * 300 ms echo on the right, in close three-note voicings (faces.md §10.1). */
+  stabPatch: "brass" | "pluck";
 }
 
 /** Synthpop's parts and sounds, for every genre that doesn't say otherwise. */
@@ -117,6 +121,7 @@ export const SYNTHPOP_VOICES: Voices = {
   riffPatch: "fm",
   countervoice: "none",
   pad: "close",
+  stabPatch: "brass",
 };
 
 /** The Italo planner's odds (composer.ts `planItalo`). */
@@ -138,7 +143,7 @@ export interface ItaloForm {
   verseArp: Blend;
   /** Gated stabs through the verses and choruses (Faces). */
   stabs: Blend;
-  /** The first verse without bass (Faces). */
+  /** The first verse's bass holds long roots instead of its figure (Faces). */
   bareFirstVerse: Blend;
   /** A short instrumental on the verse loop after the first chorus (Faces' 8 bars, Get Closer's
    * hook reprise). */
@@ -813,13 +818,40 @@ export const GENRES: Record<GenreId, Genre> = {
       afterChorus: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.6 } },
     },
     parts: { stabs: "gated8" },
-    voices: { riff: "echo", riffPatch: "pulse", countervoice: "arp8", pad: "close" },
+    voices: {
+      riff: "echo",
+      riffPatch: "pulse",
+      countervoice: "arp8",
+      pad: "close",
+      stabPatch: "pluck",
+    },
     voiceTraits: {
       // The two-note intro riff on a bright saw, the countervoice in every chorus, octave pads
       // (the-night.md §10).
-      [TN]: { riff: "pair", riffPatch: "saw", countervoice: "pluck8", pad: "octaves" },
+      [TN]: {
+        riff: "pair",
+        riffPatch: "saw",
+        countervoice: "pluck8",
+        pad: "octaves",
+        stabPatch: "pluck",
+      },
       // The echoing pulse hook and the soft chorus arpeggio (get-closer.md §10).
-      [GC]: { riff: "echo", riffPatch: "pulse", countervoice: "arp8", pad: "close" },
+      [GC]: {
+        riff: "echo",
+        riffPatch: "pulse",
+        countervoice: "arp8",
+        pad: "close",
+        stabPatch: "pluck",
+      },
+      // The plucked stab, open chorus pads, and no countervoice: the high held note in its chorus
+      // is the singer's (faces.md §10).
+      [FC]: {
+        riff: "echo",
+        riffPatch: "pulse",
+        countervoice: "none",
+        pad: "open",
+        stabPatch: "pluck",
+      },
     },
     // The verses sit low (Faces C4–E4, Get Closer G3–A4), the choruses a 5th or so higher (Faces
     // C♯4–B4, Get Closer D4–B4, The Night A♭4–E♭5): the lift that sets the chorus apart.

@@ -145,7 +145,11 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
         : song.bassStyle === "italo" || song.bassStyle === "night"
           ? italoBassLine(figureContext("bass"), song.bassStyle === "night", barInSection)
           : song.bassStyle === "faces"
-            ? facesBassLine(figureContext("bass"), barInSection, section.kind === "chorus")
+            ? facesBassLine(
+                figureContext("bass"),
+                barInSection,
+                section.kind === "chorus" || !!L.bassHeld,
+              )
             : bassLine(song.bassStyle, figureContext("bass")),
     hook: L.hook
       ? motifNotes(
@@ -170,7 +174,7 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
               parts && section.kind === "verse"
               ? 0.4
               : 0.55,
-          voices.pad === "octaves",
+          voices.pad,
         )
       : [],
     riff: !L.riff
@@ -187,7 +191,9 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     stab: !L.stabs
       ? []
       : parts?.stabs === "gated8"
-        ? gatedStabs(key, slots)
+        ? voices.stabPatch === "pluck"
+          ? pluckedStabs(key, slots, section.kind === "chorus" || section.kind === "outro")
+          : gatedStabs(key, slots)
         : barInSection % 4 === 0
           ? stabChord(key, slots)
           : [],
@@ -200,7 +206,8 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     notes.synth = (melody?.bars[barInSection % melody.bars.length] ?? []).map((n) => ({ ...n }));
   }
 
-  if (L.held && !L.lead) notes.lead = heldLine(key, slots);
+  // Faces' held line comes in halfway through an instrumental (its 9th bar; faces.md §10.2).
+  if (L.held && !L.lead && barInSection >= 8) notes.lead = heldLine(key, slots);
   if (L.lead) {
     const melody = song.sectionMelodies[sectionIndex] ?? song.melodies[L.lead];
     const lead = melody.bars[barInSection % melody.bars.length] ?? [];
@@ -689,11 +696,24 @@ function buildLadder(key: Key, c: Chord, kind: "chord" | "scale", base: number):
 
 // ── Pad and stabs ─────────────────────────────────────────────────────────────────────────────
 
-/** `octaves`: The Night's pads, the triad stacked an octave up as well (they span C4–A♭6). */
-function padChords(key: Key, slots: readonly ChordSlot[], vel: number, octaves = false): Note[] {
+/** "octaves": The Night's pads, the triad stacked an octave up as well (they span C4–A♭6). "open":
+ * Faces' chorus pads (faces.md §10.3), see openVoicing. */
+function padChords(
+  key: Key,
+  slots: readonly ChordSlot[],
+  vel: number,
+  style: "close" | "octaves" | "open" = "close",
+): Note[] {
+  const octaves = style === "octaves";
   const out: Note[] = [];
   for (const slot of slots) {
     const pcs = chordPitchClasses(key, slot.chord);
+    if (style === "open") {
+      for (const midi of openVoicing(key, slot.chord)) {
+        out.push({ step: slot.step, dur: slot.length - 0.1, midi, vel });
+      }
+      continue;
+    }
     // No low root: the bass has it, and a C3-area pad note masks the bass's harmonics.
     for (const midi of voiceChord(pcs, 62)) {
       out.push({ step: slot.step, dur: slot.length - 0.1, midi, vel });
@@ -718,6 +738,50 @@ function heldLine(key: Key, slots: readonly ChordSlot[]): Note[] {
 
 function closestTo(notes: readonly number[], target: number): number {
   return notes.reduce((a, b) => (Math.abs(b - target) < Math.abs(a - target) ? b : a), target);
+}
+
+/**
+ * Faces' open pad voicing (faces.md §10.3): the root in octave 3, then the 7th (or, in a triad, the
+ * 5th) in the middle, and on top the 3rd or 5th nearest A4. A triad leaves its 3rd out (the
+ * singer has it): A3 E4 A4 on A, E3 D4 G4 on Em7, D3 C♯4 A4 on Dmaj7.
+ */
+function openVoicing(key: Key, c: Chord): number[] {
+  const iv = intervalsOf(c);
+  const root = nearestWithPc(mod12(key.tonic + c.root), 53);
+  const seventh = iv.find((i) => i === 10 || i === 11);
+  if (seventh === undefined) return [root, root + (iv[2] ?? 7), root + 12];
+  const top = [iv[1] ?? 4, iv[2] ?? 7]
+    .map((i) => root + 12 + i)
+    .reduce((a, b) => (Math.abs(b - 68) < Math.abs(a - 68) ? b : a));
+  return [root, root + seventh, top];
+}
+
+/** A chord's intervals above its root, from its pitch classes. */
+function intervalsOf(c: Chord): number[] {
+  return chordPitchClasses({ tonic: 0, mode: "major" }, { ...c, root: 0 }).map((pc) => mod12(pc));
+}
+
+/**
+ * Faces' plucked stab (faces.md §10.1): a close three-note chord on every 8th, around D4–E5, the
+ * 7th chords without their root (A C E on Fmaj7, D G B on Em7, E G C on Am7). A sus chord comes in
+ * an 8th after the bass (Gsus4 on 3&). In a chorus it plays only the "&"s, lower (A3–A4). The
+ * "&"s are a little louder.
+ */
+function pluckedStabs(key: Key, slots: readonly ChordSlot[], chorus: boolean): Note[] {
+  const out: Note[] = [];
+  for (let step = chorus ? 2 : 0; step < 16; step += chorus ? 4 : 2) {
+    let slot = slotAt(slots, step);
+    if (!slot) continue;
+    // A sus chord lands an 8th late: the 8th on its boundary still plays the chord before.
+    if (step > 0 && step === slot.step && slot.chord.quality.includes("sus"))
+      slot = slotAt(slots, step - 1) ?? slot;
+    const pcs = chordPitchClasses(key, slot.chord);
+    const notes = pcs.length > 3 ? pcs.slice(1) : pcs;
+    for (const midi of voiceChord(notes, chorus ? 62 : 68)) {
+      out.push({ step, dur: 1.8, midi, vel: step % 4 === 2 ? 0.62 : 0.5 });
+    }
+  }
+  return out;
 }
 
 /** Faces' gated stabs (§7): the chord on every 8th, cut short, the off-beats a little louder. */

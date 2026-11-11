@@ -96,6 +96,9 @@ export interface Layers {
   /** The Night's lead synth (the-night.md §10.1): an instrumental line of its own, on the synth
    * track, in its 12 bars after each intro block. Only set when on. */
   leadSynth?: boolean;
+  /** Faces' bass holds each root instead of its figure (its first verse; faces.md §11, clip 11).
+   * Only set when on. */
+  bassHeld?: boolean;
 }
 
 export interface Section {
@@ -848,12 +851,7 @@ function planItalo(
     afterPedal();
   } else if (opening === "build") {
     add("intro", "Intro · bass and kick", 4, p.verse, { drums: "kick", bass: true });
-    add("intro", "Intro · stabs", 8, p.verse, {
-      drums: "kick",
-      bass: true,
-      stabs: true,
-      held: true,
-    });
+    add("intro", "Intro · stabs", 8, p.verse, { drums: "kick", bass: true, stabs: true });
     add("intro", "Intro · groove", short ? 8 : 16, p.verse, {
       drums: "full",
       bass: true,
@@ -865,7 +863,7 @@ function planItalo(
     add("intro", "Intro", short ? 4 : 8, p.verse, { drums: "full", bass: true, pad: true });
     add("intro", "Hook", block, p.verse, { drums: "full", bass: true, pad: true, riff: true });
   }
-  verse("Verse 1", block, bareFirstVerse ? { bass: false } : {});
+  verse("Verse 1", block, bareFirstVerse ? { bassHeld: true } : {});
   chorus("Chorus");
   if (afterChorus) instrumental("Instrumental", 8);
   verse("Verse 2", block);

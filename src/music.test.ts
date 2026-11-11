@@ -904,17 +904,28 @@ describe("italo genre", () => {
     }
   });
 
-  it("keeps Faces' verses to stabs, and brings pads in for the chorus", () => {
+  it("keeps Faces' verses to plucked stabs, and brings open pads in for the chorus", () => {
     const song = compose({ seed: 5, genre: "italo", weights: corners[2] });
     const verse = song.sections.find((s) => s.kind === "verse");
     const chorus = song.sections.find((s) => s.kind === "chorus");
     if (!verse || !chorus) throw new Error("no verse or chorus");
     const v = arrangeBar(song, verse.startBar);
     expect(v.notes.pad).toEqual([]);
-    expect(arrangeBar(song, chorus.startBar).notes.pad.length).toBeGreaterThan(2);
+    // The stab: close three-note chords on every 8th in the verse, the "&"s only in the chorus.
+    expect(new Set(v.notes.stab.map((n) => n.step))).toEqual(new Set([0, 2, 4, 6, 8, 10, 12, 14]));
+    const c = arrangeBar(song, chorus.startBar);
+    expect(new Set(c.notes.stab.map((n) => n.step))).toEqual(new Set([2, 6, 10, 14]));
+    // The chorus pads: open, the root in octave 3 (A3 E4 A4 on A).
+    const pad = c.notes.pad.map((n) => n.midi).sort((a, b) => a - b);
+    expect(pad).toHaveLength(3);
+    expect(pad[0]).toBeGreaterThanOrEqual(47);
+    expect(pad[0]).toBeLessThan(59);
+    expect((pad[2] ?? 0) - (pad[0] ?? 0)).toBeGreaterThanOrEqual(12);
     const intro = song.sections.find((s) => s.label === "Intro · groove");
     if (!intro) throw new Error("no groove intro");
-    const line = arrangeBar(song, intro.startBar).notes.lead;
+    // The held line comes in at the instrumental's 9th bar.
+    expect(arrangeBar(song, intro.startBar).notes.lead).toEqual([]);
+    const line = arrangeBar(song, intro.startBar + 8).notes.lead;
     expect(line.length).toBeGreaterThan(0);
     expect(line.every((n) => n.midi >= 60 && n.midi <= 69)).toBe(true);
     // The chorus voice sits higher than the verse's.
@@ -927,8 +938,8 @@ describe("italo genre", () => {
 
   it("plays Faces' bass on the beat, then off it, rolling into the next root on 4&", () => {
     const song = compose({ seed: 5, genre: "italo", weights: corners[2], bassStyle: "faces" });
-    const verse = song.sections.find((s) => s.kind === "verse" && s.layers.bass);
-    if (!verse) throw new Error("no verse with bass");
+    const verse = song.sections.find((s) => s.kind === "verse" && !s.layers.bassHeld);
+    if (!verse) throw new Error("no verse with the figure");
     const steps = (i: number) => arrangeBar(song, verse.startBar + i).notes.bass.map((n) => n.step);
     expect(steps(2)).toEqual([4, 8, 12, 14]);
     expect(steps(3)).toEqual([2, 6, 10, 14]);
