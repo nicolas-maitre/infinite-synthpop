@@ -16,6 +16,7 @@ import {
 import { GENRES, genreAt, type DrumTraits, type Grooves } from "./genres";
 import { createRng, type Rng } from "./rng";
 import {
+  chord,
   chordName,
   chordPitchClasses,
   mod12,
@@ -202,19 +203,33 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
           ? pairNotes(song.riff, barInSection, key)
           : unison
             ? motifNotes(song.riff, barInSection, key, slots, "scale", 84, 0.8)
-            : motifNotes(
-                song.riff,
-                barInSection,
-                key,
-                slots,
-                "chord",
-                song.riffHigh ? 79 : 67,
-                0.85,
-              ),
+            : voices.riff === "sync"
+              ? syncRiff(
+                  song.riff,
+                  barInSection,
+                  key,
+                  slots,
+                  section.kind === "chorus" || section.kind === "outro",
+                )
+              : voices.riff === "run"
+                ? runRiff(song.riff, barInSection, key)
+                : motifNotes(
+                    song.riff,
+                    barInSection,
+                    key,
+                    slots,
+                    "chord",
+                    song.riffHigh ? 79 : 67,
+                    0.85,
+                  ),
     lead: [],
     leadOct: [],
     counter: [],
-    arp: L.arp ? motifNotes(song.arp, barInSection, key, slots, "chord", 72, 0.5) : [],
+    arp: !L.arp
+      ? []
+      : voices.arp === "pulse"
+        ? pulseNotes(key, slots)
+        : motifNotes(song.arp, barInSection, key, slots, "chord", 72, 0.5),
     stab: !L.stabs
       ? []
       : L.drums === "stab"
@@ -236,7 +251,12 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   };
   if (L.leadSynth) {
     const melody = song.sectionMelodies[sectionIndex];
-    notes.synth = (melody?.bars[barInSection % melody.bars.length] ?? []).map((n) => ({ ...n }));
+    // Crazy Juliet's instrumental lead sits an octave over The Night's (F♯5–A♯5).
+    const up = voices.synthPatch === "saw" ? 12 : 0;
+    notes.synth = (melody?.bars[barInSection % melody.bars.length] ?? []).map((n) => ({
+      ...n,
+      midi: n.midi + up,
+    }));
   }
 
   // Faces' plucked arpeggio joins for the second 8 bars of a loop section (faces.md §10.4).
@@ -1198,24 +1218,109 @@ function gatedStabs(key: Key, slots: readonly ChordSlot[]): Note[] {
 }
 
 /**
- * Innocent Love's chorus stabs (§7): close chords that follow the bass figure's rhythm, on 1, 1&,
- * 2e, 2& and 3&, and 4e, the 2e push a little louder, as the bass's is.
+ * Innocent Love's chorus stabs (§7, §12): close chords in C♯4–F♯5 that follow the bass figure's
+ * rhythm and stay off the snare's beats, on 1, 1&, 2e, 2&, 3, 3& and 3a, the 2e push a little
+ * louder, as the bass's is. Each is re-struck and falls away before the next.
  */
 function followStabs(key: Key, slots: readonly ChordSlot[]): Note[] {
   const out: Note[] = [];
-  for (const step of [0, 2, 5, 6, 10, 13]) {
+  for (const step of [0, 2, 5, 6, 8, 10, 11]) {
     const slot = slotAt(slots, step);
     if (!slot) continue;
-    for (const midi of voiceChord(chordPitchClasses(key, slot.chord), 66)) {
+    for (const midi of voiceChord(chordPitchClasses(key, slot.chord), 68)) {
       out.push({
         step,
-        dur: step === 5 || step === 13 ? 0.9 : 1.6,
+        dur: step === 5 || step === 11 ? 0.9 : 1.6,
         midi,
         vel: step === 5 ? 0.7 : 0.55,
       });
     }
   }
   return out;
+}
+
+/**
+ * Heaven Can Wait's 16th pulse (§12): every 16th, alternating the chord's root and 5th in
+ * B♭3–F5, gated at about 90%, with no accents.
+ */
+function pulseNotes(key: Key, slots: readonly ChordSlot[]): Note[] {
+  const out: Note[] = [];
+  for (let step = 0; step < 16; step++) {
+    const slot = slotAt(slots, step);
+    if (!slot) continue;
+    const [root = 0, , fifth = 7] = chordPitchClasses(key, slot.chord);
+    const low = nearestWithPc(root, 60);
+    const midi = step % 2 === 0 ? low : low + mod12(fifth - root);
+    out.push({ step, dur: 0.9, midi, vel: 0.5 });
+  }
+  return out;
+}
+
+/**
+ * Crazy Juliet's sequence and chorus riff (§7, §12), on the chord's tones. The intro sequence
+ * plays the same bar every time, strong on 1, 1a, 2&, 3&, 4 and 4&, softer on 2 and 2a, in
+ * G♯4–C♯6. The chorus riff is a 2-bar figure in D♯5–G♯5, always running 1–1&–1a, accented on 1a
+ * and 3&, falling from its top note. The notes come from the song's riff motif, so each song has
+ * its own line.
+ */
+function syncRiff(
+  motif: Motif,
+  barInSection: number,
+  key: Key,
+  slots: readonly ChordSlot[],
+  chorus: boolean,
+): Note[] {
+  const rhythm = chorus
+    ? barInSection % 2 === 0
+      ? [0, 2, 3, 4, 10, 12, 13]
+      : [0, 2, 3, 4, 5, 7, 9, 12, 14]
+    : [0, 3, 4, 6, 7, 10, 12, 14];
+  const soft = chorus ? [] : [4, 7];
+  const accents = chorus ? [3, 10] : [];
+  const idx = motif.notes.map((n) => n.idx);
+  return rhythm.flatMap((step, i) => {
+    const slot = slotAt(slots, step);
+    if (!slot) return [];
+    const [lo, hi] = chorus ? [75, 81] : [68, 85];
+    const tones = notesInRange(chordPitchClasses(key, slot.chord), lo, hi).reverse();
+    if (!tones.length) return [];
+    // Mostly downward through the tones from the top, stepping as the motif's contour does.
+    const at =
+      Math.abs((idx[(i + barInSection * 3) % Math.max(1, idx.length)] ?? i) + i) % tones.length;
+    const midi = tones[chorus ? Math.min(at, i % tones.length) : at] ?? tones[0] ?? lo;
+    const next = rhythm[i + 1] ?? 16;
+    return [
+      {
+        step,
+        dur: Math.min(2, next - step) - 0.1,
+        midi,
+        vel: soft.includes(step) ? 0.5 : accents.includes(step) ? 0.95 : 0.75,
+      },
+    ];
+  });
+}
+
+/**
+ * Heaven Can Wait's intro motif (§4, §12): a straight 16th run up and down the key's 4th to 8th
+ * degrees in one bar, legato, then the tonic held through the next. The steps follow the song's
+ * riff motif, so each song runs its own way.
+ */
+function runRiff(motif: Motif, barInSection: number, key: Key): Note[] {
+  const ladder = notesInRange(scaleForChord(key, chord(key.mode === "major" ? "I" : "i")), 64, 77);
+  const tonic = nearestWithPc(key.tonic, 75);
+  if (barInSection % 2 === 1) return [{ step: 0, dur: 15.5, midi: tonic, vel: 0.8 }];
+  const start = Math.max(
+    0,
+    ladder.findIndex((m) => m >= tonic - 7),
+  );
+  let at = start;
+  const idx = motif.notes.map((n) => n.idx);
+  return Array.from({ length: 16 }, (_, step) => {
+    const move = step < 8 ? 1 : -1;
+    const wobble = (idx[step % Math.max(1, idx.length)] ?? 0) % 2 === 0 ? 0 : -move;
+    at = Math.min(ladder.length - 1, Math.max(start, at + (step === 0 ? 0 : move + wobble)));
+    return { step, dur: 1.05, midi: ladder[at] ?? tonic, vel: step % 4 === 0 ? 0.8 : 0.7 };
+  });
 }
 
 function stabChord(key: Key, slots: readonly ChordSlot[]): Note[] {

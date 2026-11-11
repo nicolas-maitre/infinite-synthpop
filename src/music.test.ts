@@ -1631,9 +1631,38 @@ describe("euro-disco genre", () => {
     const chorus = sectionAt(il, "Chorus");
     expect(chorus.layers.stabs).toBe(true);
     expect([...new Set(steps(arrangeBar(il, chorus.startBar).notes.stab))]).toEqual([
-      0, 2, 5, 6, 10, 13,
+      0, 2, 5, 6, 8, 10, 11,
     ]);
     expect(arrangeBar(il, sectionAt(il, "Verse 1").startBar).notes.stab).toEqual([]);
+  });
+
+  it("gives each record its measured parts", () => {
+    const [il, hcw, cj] = corners.map((w) => at(w, 5));
+    if (!il || !hcw || !cj) throw new Error("no song");
+    // Heaven Can Wait: the intro motif runs 16ths, then holds the tonic; the chorus pulse is every
+    // 16th on the root and 5th.
+    const motif = sectionAt(hcw, "Intro · motif");
+    expect(steps(arrangeBar(hcw, motif.startBar).notes.riff)).toEqual(
+      Array.from({ length: 16 }, (_, i) => i),
+    );
+    const held = arrangeBar(hcw, motif.startBar + 1).notes.riff;
+    expect(held).toHaveLength(1);
+    expect(mod12((held[0]?.midi ?? 0) - hcw.key.tonic)).toBe(0);
+    const pulse = arrangeBar(hcw, sectionAt(hcw, "Chorus").startBar).notes.arp;
+    expect(steps(pulse)).toEqual(Array.from({ length: 16 }, (_, i) => i));
+    expect(pulse.every((n) => n.midi >= 54 && n.midi <= 77)).toBe(true);
+    // Crazy Juliet: the intro sequence's syncopated bar, the chorus riff under G♯5's height.
+    const seq = arrangeBar(cj, sectionAt(cj, "Intro").startBar).notes.riff;
+    expect(steps(seq)).toEqual([0, 3, 4, 6, 7, 10, 12, 14]);
+    const chorus = sectionAt(cj, "Chorus");
+    expect(chorus.layers.riff).toBe(true);
+    const riff = arrangeBar(cj, chorus.startBar).notes.riff;
+    expect(steps(riff)).toEqual([0, 2, 3, 4, 10, 12, 13]);
+    expect(riff.every((n) => n.midi >= 75 && n.midi <= 81)).toBe(true);
+    // Its instrumental choruses: the lead synth an octave over The Night's.
+    const lead = arrangeBar(cj, sectionAt(cj, "Instrumental chorus").startBar).notes.synth;
+    for (const n of lead) expect(n.midi).toBeGreaterThanOrEqual(74);
+    expect(genreAt(euro, corners[2]).voices.padTone).toBe(1200);
   });
 
   it("names the Sandra records' chords", () => {

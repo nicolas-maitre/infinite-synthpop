@@ -149,12 +149,12 @@ export interface Voices {
    * figure, the tonic and the 7th below in 16ths, every other bar (the-night.md §7); or Self
    * Control's syncopated riff (1, 1a, 2&, then a step or two), played in unison by the bass
    * (branigan-self-control.md §4.1). */
-  riff: "motif" | "echo" | "pair" | "unison";
+  riff: "motif" | "echo" | "pair" | "unison" | "sync" | "run";
   /** The riff's sound: the FM bell layered with a saw pluck (synthpop); The Night's bright, nearly
    * unfiltered saw (the-night.md §10.3); or Get Closer's gated 12% pulse with a darkening
    * dotted-8th echo and a stereo chorus (get-closer.md §10); or Self Control's saw with its 2–4
    * kHz lifted, as bright there as at its fundamentals (branigan-self-control.md §11). */
-  riffPatch: "fm" | "saw" | "pulse" | "bright";
+  riffPatch: "fm" | "saw" | "pulse" | "bright" | "click" | "glide";
   /** The chorus countervoice: none; The Night's line on the off-beat 8ths, stepping down through
    * each chord's tones in the voice's register (the-night.md §10.2); or Get Closer's soft,
    * near-sine 8th arpeggio up and down the chord from beat 2, in C6–B6 (get-closer.md §10); or
@@ -167,12 +167,24 @@ export interface Voices {
   pad: "close" | "octaves" | "open";
   /** The stabs' sound: the saw brass with a noise burst (synthpop), or Faces' plucked saw with its
    * 300 ms echo on the right, in close three-note voicings (faces.md §10.1), and its held, open
-   * chorus stab (§10.3); or Self Control's short, dark chord chop on every "&"
-   * (branigan-self-control.md §6, §11). */
-  stabPatch: "brass" | "pluck" | "chop";
-  /** The arpeggio's sound: the FM bell (synthpop), or a softer copy of Faces' pluck through its
-   * echo (faces.md §10.4). */
-  arpPatch: "bell" | "pluck";
+   * chorus stab (§10.3); Self Control's short, dark chord chop on every "&"
+   * (branigan-self-control.md §6, §11); or Innocent Love's saw stab (sandra-innocent-love.md
+   * §12). */
+  stabPatch: "brass" | "pluck" | "chop" | "saw";
+  /** The arpeggio's sound: the FM bell (synthpop), a softer copy of Faces' pluck through its echo
+   * (faces.md §10.4), a soft triangle pluck through a 1.5 kHz low-pass (Crazy Juliet's verse
+   * figure, Innocent Love's intro), or a gated saw at 2.9 kHz (Heaven Can Wait's pulse). */
+  arpPatch: "bell" | "pluck" | "triangle" | "saw";
+  // The Euro-disco references' parts (docs/references/sandra-*.md §12). Unset: as before.
+  /** The 16th part: the song's arpeggio motif (unset), or Heaven Can Wait's pulse, every 16th on
+   * the chord's root and 5th in B♭3–F5. */
+  arp?: "motif" | "pulse";
+  /** The pads' low-pass, Hz (unset: 2.8 kHz with a heavier chorus): Crazy Juliet's are far darker
+   * (1.2 kHz), Heaven Can Wait's and Innocent Love's about ours (2.5 and 3 kHz). */
+  padTone?: number;
+  /** The lead synth's sound: The Night's struck FM tone (unset), or a saw through a 4.7 kHz
+   * low-pass with a 4.4 Hz vibrato and no echo, an octave up (Crazy Juliet's instrumental lead). */
+  synthPatch?: "fm" | "saw";
 }
 
 /** Synthpop's parts and sounds, for every genre that doesn't say otherwise. */
@@ -992,18 +1004,60 @@ const CJ_GROOVE: Grooves = {
   stop: "beat4",
 };
 
-/** The Euro-disco parts and sounds (measured in each analysis's §12). */
-const EURO_VOICES: Voices = SYNTHPOP_VOICES;
-const EURO_VOICE_TRAITS: Partial<Record<StyleId, Voices>> = {};
+/** The Euro-disco parts and sounds, measured from the "other" stems (each analysis's §12). */
+const EURO_VOICE_TRAITS: Partial<Record<StyleId, Voices>> = {
+  // Pads like ours; the intro's soft triangle figure; saw stabs on the bass's rhythm; a bright lead
+  // over the instrumental link.
+  "innocent-love": {
+    riff: "motif",
+    riffPatch: "click",
+    countervoice: "none",
+    pad: "close",
+    stabPatch: "saw",
+    arp: "motif",
+    arpPatch: "triangle",
+    padTone: 3000,
+    synthPatch: "saw",
+  },
+  // The solo intro motif (three detuned saws, legato, a filter falling from 8 to 3.2 kHz, a long
+  // reverb), the gated saw pulse in the pre-chorus and chorus.
+  "heaven-can-wait": {
+    riff: "run",
+    riffPatch: "glide",
+    countervoice: "none",
+    pad: "close",
+    stabPatch: "saw",
+    arp: "pulse",
+    arpPatch: "saw",
+    padTone: 2500,
+    synthPatch: "saw",
+  },
+  // The clicky, chorused sequence and chorus riff on syncopated chord tones, the verse's triangle
+  // figure, dark pads, and the saw lead of the instrumental choruses.
+  "crazy-juliet": {
+    riff: "sync",
+    riffPatch: "click",
+    countervoice: "none",
+    pad: "close",
+    stabPatch: "saw",
+    arp: "motif",
+    arpPatch: "triangle",
+    padTone: 1200,
+    synthPatch: "saw",
+  },
+};
+const EURO_VOICES: Voices = EURO_VOICE_TRAITS["heaven-can-wait"] ?? SYNTHPOP_VOICES;
 
-/** The voice's mix at each corner (compare_voice.py against each record's vocal stem). */
+/** The voice's mix at each corner, matched with scripts/compare_voice.py to each record's vocal
+ * stem over three rounds: all three sit forward in the presence band (Innocent Love the most) and
+ * wider than a mono lead, Crazy Juliet the narrowest, Heaven Can Wait the furthest back. */
 const EURO_LEAD_TONE: Genre["leadTone"] = {
-  level: {},
-  low: {},
-  mid: {},
-  high: {},
-  air: {},
-  width: {},
+  level: { by: { "innocent-love": 0.4, "heaven-can-wait": -2.4, "crazy-juliet": -0.6 } },
+  low: { by: { "innocent-love": 4, "heaven-can-wait": 1, "crazy-juliet": 6 } },
+  mid: { by: { "innocent-love": 17, "heaven-can-wait": 11.5, "crazy-juliet": 10 } },
+  high: { by: { "innocent-love": 11, "heaven-can-wait": 13, "crazy-juliet": 12 } },
+  air: { by: { "innocent-love": 8.5, "heaven-can-wait": 7, "crazy-juliet": 8 } },
+  width: { by: { "innocent-love": 0.5, "heaven-can-wait": 0.45, "crazy-juliet": 0.25 } },
 };
 
 export const GENRES: Record<GenreId, Genre> = {
