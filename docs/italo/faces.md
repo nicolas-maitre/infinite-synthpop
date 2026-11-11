@@ -587,7 +587,8 @@ synthetic, DJ-shaped record, with these traits to compare against The Night and 
 ## 10. Ear check
 
 Each uncertain point was checked by ear by the user, from clips rendered offline (local only, in
-`renders/ear-check-faces/`; nothing was played through speakers):
+`renders/ear-check-faces/`, named by the clip numbers below; nothing was played through
+speakers):
 
 - **Chords:** the target bar with a bar of context each side, a pause, then the same bars with
   the candidate chord overlaid at the record's +47-cent tuning.
@@ -597,14 +598,14 @@ Each uncertain point was checked by ear by the user, from clips rendered offline
   jumping an octave on every other note).
 - **Drums:** the mix, then the drum stem, then the hits in question cut out one by one.
 
-| #   | Bars, time                     | Question                                          | Answer                                                                                                 |
-| --- | ------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 1   | 41 (1:22), beats 1–2           | Chorus chord over E: Em7, E7sus4 or E?            | **Em7**                                                                                                |
-| 2   | 47 (1:34), beats 3–4           | Turnaround E: E7sus4, E or Em7?                   | **E7sus4** (from the recreations; the overlays alone didn't decide it)                                 |
-| 3   | 46 (1:32), beats 3–4           | F♯m7 or F♯m?                                      | **F♯m7** (from the recreations)                                                                        |
-| 4   | 10 (0:20), beats 3–4           | Verse G: G11, Gsus4 or G?                         | All fit; the user leans to **Gsus4 or plain G**. Written as Gsus4                                      |
-| 5   | 8–11 (0:16–0:24)               | Verse bass: same register or alternating octaves? | **Same register**, and not on every 8th: the first notes land on the beats (§5.1 rewritten after this) |
-| 6   | 137–147 (4:34–4:56), breakdown | What are the extra hits in the drum stem?         | The 1& hit in bars 138 and 146 is a **quiet tom**; the off-beat click is a **clave** (or a rim click)  |
+| Clips             | Bars, time                     | Question                                          | Answer                                                                                                |
+| ----------------- | ------------------------------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 1a–1c             | 41 (1:22), beats 1–2           | Chorus chord over E: Em7, E7sus4 or E?            | **1a, Em7**                                                                                           |
+| 2a–2c, then 7a–7f | 47 (1:34), beats 3–4           | Turnaround E: E7sus4, E or Em7?                   | Overlays 2a–2c didn't decide it; from the recreations 7a–7f, **7a: E7sus4**                           |
+| 3a–3b, then 7a–7f | 46 (1:32), beats 3–4           | F♯m7 or F♯m?                                      | Overlays 3a–3b didn't decide it; from the recreations, **7a: F♯m7**                                   |
+| 4a–4c             | 10 (0:20), beats 3–4           | Verse G: G11, Gsus4 or G?                         | All fit; the user leans to **4b (Gsus4) or 4c (plain G)**. Written as Gsus4                           |
+| 5a–5c             | 8–11 (0:16–0:24)               | Verse bass: same register or alternating octaves? | **5b, same register**, and not on every 8th: in 5a the first notes land on the beats (§5.1 rewritten) |
+| 6a–6b, then 6c–6e | 137–147 (4:34–4:56), breakdown | What are the extra hits in the drum stem?         | **6c** (the 1& hit in bars 138 and 146) is a **quiet tom**; **6d/6e** is a **clave** (or a rim click) |
 
 ## Sources
 
