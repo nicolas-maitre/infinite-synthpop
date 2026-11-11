@@ -74,12 +74,13 @@ export async function renderSong(
   inst.setVoices(profile.voices);
   inst.setTempo(song.bpm);
   for (const track of solo) inst.channels[track].solo = true;
-  for (const track of mute) inst.channels[track].mute = true;
   // The faders as on auto (the genre's mix), then any levels given.
   const volumes = { ...autoVolumes(genre.mix), ...options.volumes };
   for (const [track, db] of Object.entries(volumes) as [Track, number][]) {
     inst.channels[track].volume.value = db;
   }
+  // After the levels: setting a channel's volume unmutes it.
+  for (const track of mute) inst.channels[track].mute = true;
   if (options.master !== undefined) inst.master.volume.value = options.master;
   inst.setLeadPatch(options.leadPatch ?? "voice");
   const scheduleWindow = (from: number) => {
