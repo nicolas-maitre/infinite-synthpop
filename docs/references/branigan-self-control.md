@@ -482,17 +482,17 @@ user. For chords: three bars of the single, a pause, then the same three bars wi
 chord over the middle bar. For the form and the drums: the mix, then the stem. Nothing was played
 through the speakers.
 
-| #   | Where                       | Question                   | Stems said                        | Ear (user)                                                                   |
-| --- | --------------------------- | -------------------------- | --------------------------------- | ---------------------------------------------------------------------------- |
-| 1   | 0:04, intro pad (bar 2)     | F♯7, F♯m7 or F♯?           | F♯7 (A♯ strong, E on top)         | **F♯m7**                                                                     |
-| 2   | 0:09, intro riff F♯ bar (4) | F♯ or F♯m?                 | F♯ (A♯)                           | **F♯m**                                                                      |
-| 3   | 0:11, intro riff C♯ bar (5) | C♯ or C♯m?                 | C♯ (E♯ slightly over E)           | **C♯m**                                                                      |
-| 4   | 0:18, verse F♯ bar (8)      | bare fifth, F♯m or F♯?     | bare fifth                        | **F♯m**                                                                      |
-| 5   | 1:32, chorus C♯ bar (41)    | C♯m or C♯m9?               | C♯m9 (B, D♯ on top)               | **C♯m**                                                                      |
-| 6   | 0:54 and 1:30               | which block is the chorus? | 1:30 (louder, wider, claps)       | **1:30 is the chorus; 0:54 is the pre-chorus, though it has the title line** |
-| 7   | 1:32, chorus drums          | the extra hit on 3e?       | a snare-like hit, every other bar | **a syncopated clap**, with a clap also on beat 4                            |
+| #   | Where                       | Question                                                | Stems said                        | Ear (user)                                                                             |
+| --- | --------------------------- | ------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
+| 1   | 0:04, intro pad (bar 2)     | F♯7 (clip 1A), F♯m7 (1B) or F♯ (1C)?                    | F♯7 (A♯ strong, E on top)         | **F♯m7** (1B)                                                                          |
+| 2   | 0:09, intro riff F♯ bar (4) | F♯ (clip 2A) or F♯m (2B)?                               | F♯ (A♯)                           | **F♯m** (2B)                                                                           |
+| 3   | 0:11, intro riff C♯ bar (5) | C♯ (clip 3A) or C♯m (3B)?                               | C♯ (E♯ slightly over E)           | **C♯m** (3B)                                                                           |
+| 4   | 0:18, verse F♯ bar (8)      | bare fifth (clip 4A), F♯m (4B) or F♯ (4C)?              | bare fifth                        | **F♯m** (4B)                                                                           |
+| 5   | 1:32, chorus C♯ bar (41)    | C♯m (clip 5A) or C♯m9 (5B)?                             | C♯m9 (B, D♯ on top)               | **C♯m** (5A)                                                                           |
+| 6   | 0:54 and 1:30               | which block is the chorus: 0:54 (clip 6A) or 1:30 (6B)? | 1:30 (louder, wider, claps)       | **1:30 (6B) is the chorus; 0:54 (6A) is the pre-chorus, though it has the title line** |
+| 7   | 1:32, chorus drums          | the extra hit on 3e (clip 7, mix then drum stem)?       | a snare-like hit, every other bar | **a syncopated clap**, with a clap also on beat 4                                      |
 
-Checks 1–3 found the stems' "major" readings to be ghosts (§3.1).
+Clip files are named after these numbers (e.g. `1B-intro-pad-0m04-F#m7.wav`). Checks 1–3 found the stems' "major" readings to be ghosts (§3.1).
 
 **Bars still unchecked by ear:**
 
