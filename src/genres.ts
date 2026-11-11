@@ -478,10 +478,11 @@ const ITALO_BANK: Record<ProgressionKind, readonly BankEntry[]> = {
       weight: 2,
     },
     { name: "TN chorus, plain", bars: [["III"], ["VI"], ["II"], ["VII7"]], ref: TN },
-    // Get Closer: i │ i │ ♭VII │ IV/V → V, the harmonic-minor V entered through a V11.
+    // Get Closer: i │ ♭VI over the tonic │ ♭VII │ IV/V → V (Em │ C/E │ D │ A/B → B), the
+    // harmonic-minor V entered through a V11.
     {
       name: "GC chorus (measured)",
-      bars: [["i"], ["i"], ["VII"], ["IV/V", "V"]],
+      bars: [["i"], ["VI/3"], ["VII"], ["IV/V", "V"]],
       ref: GC,
       weight: 2,
     },
