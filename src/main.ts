@@ -54,7 +54,8 @@ import { CENTRE } from "./polygon";
 
 interface Prefs {
   /** The genre generated songs come from (genres.ts). */
-  genre: GenreId;
+  /** "auto": a genre per song. */
+  genre: GenreId | "auto";
   /** That genre's references' weights (genres.ts), set with the style polygon. */
   weights: number[];
   styleAuto: boolean;
@@ -112,13 +113,15 @@ function loadPrefs(): Prefs {
     if (!raw) return defaults;
     const p = JSON.parse(raw) as Partial<Prefs> & { style?: unknown };
     // Saved before genres: synthpop.
-    const genre = isGenreId(p.genre) ? p.genre : DEFAULT_GENRE;
+    const genre = p.genre === "auto" || isGenreId(p.genre) ? p.genre : DEFAULT_GENRE;
     const volumes = { ...defaults.volumes, ...p.volumes };
     // Saved before the triangle: only a style, which plays as [1 − style, style, 0].
     const style = typeof p.style === "number" ? Math.min(1, Math.max(0, p.style)) : null;
+    // With the genre picked per song, the weights are too: these are kept for a fixed genre only.
+    const fixed = genre === "auto" ? DEFAULT_GENRE : genre;
     const weights =
-      parseWeights(GENRES[genre], p.weights) ??
-      (style === null ? centreWeights(genre) : [...referenceWeights(GENRES[genre], style)]);
+      parseWeights(GENRES[fixed], p.weights) ??
+      (style === null ? centreWeights(fixed) : [...referenceWeights(GENRES[fixed], style)]);
     delete p.style;
     // Faders left at an old default follow the new one.
     for (const [t, old] of Object.entries(PREVIOUS_DEFAULT_VOLUMES) as [Track, number][]) {
@@ -476,7 +479,7 @@ function isReferenceId(id: string | null | undefined): id is ReferenceId {
 function engineSettings(): EngineSettings {
   return {
     genre: prefs.genre,
-    weights: prefs.styleAuto ? null : prefs.weights,
+    weights: prefs.styleAuto || prefs.genre === "auto" ? null : prefs.weights,
     key: prefs.key === null ? null : { tonic: prefs.key, mode: "minor" },
     bpm: prefs.bpmAuto ? null : prefs.bpm,
     kit: prefs.kit,
@@ -610,8 +613,15 @@ function renderSong(song: Song): void {
     ...(engine.creation ? ["your creation (loops)"] : []),
   ].join(" · ");
   ui.seed.value = String(song.seed);
+  // Genre auto: the pad and the tempo hint follow each song's genre.
+  if (prefs.genre === "auto" && song.genre !== padGenre) {
+    padGenre = song.genre;
+    stylePad = newStylePad();
+    showStylePad();
+    showTempoHint();
+  }
   // Auto: the pad shows where this song's point landed (when the song is from the pad's genre).
-  if (prefs.styleAuto && song.genre === prefs.genre) {
+  if (styleIsAuto() && song.genre === padGenre) {
     stylePad.setWeights(song.weights);
     ui.styleOut.value = song.reference
       ? REFERENCES[song.reference].title
@@ -931,30 +941,42 @@ function renderKitStatus(): void {
 
 // ── Controls ──────────────────────────────────────────────────────────────────────────────────
 
+ui.genre.append(new Option("Auto (a genre per song)", "auto"));
 for (const id of GENRE_IDS) ui.genre.append(new Option(GENRES[id].name, id));
 ui.genre.value = prefs.genre;
 ui.genre.addEventListener("change", () => {
-  if (!isGenreId(ui.genre.value)) return;
-  prefs.genre = ui.genre.value;
+  const value = ui.genre.value;
+  if (value !== "auto" && !isGenreId(value)) return;
+  prefs.genre = value;
+  padGenre = value === "auto" ? engine.song.genre : value;
   // Another genre has other references: its polygon starts from the centre.
-  prefs.weights = centreWeights(prefs.genre);
+  if (value !== "auto") prefs.weights = centreWeights(value);
   stylePad = newStylePad();
   showStylePad();
   showTempoHint();
   savePrefs();
-  engine.update({ genre: prefs.genre, weights: prefs.styleAuto ? null : prefs.weights });
+  engine.update({
+    genre: prefs.genre,
+    weights: styleIsAuto() ? null : prefs.weights,
+  });
 });
+
+/** Whether the style point is picked per song: by choice, or because the genre is. */
+function styleIsAuto(): boolean {
+  return prefs.styleAuto || prefs.genre === "auto";
+}
 
 /** The auto tempo's range and where the genre's records sit. */
 function showTempoHint(): void {
-  const { range, note } = GENRES[prefs.genre].tempo;
-  ui.bpmHint.textContent = `Auto (varies per song, ${range[0]}–${range[1]}; ${note})`;
+  const { range, note } = GENRES[padGenre].tempo;
+  const genre = prefs.genre === "auto" ? `${GENRES[padGenre].name} now: ` : "";
+  ui.bpmHint.textContent = `Auto (varies per song, ${genre}${range[0]}–${range[1]}; ${note})`;
 }
-showTempoHint();
 
-/** The style polygon for the chosen genre: a triangle for synthpop, a slider for two references. */
+/** The style polygon for the genre the pad shows: a triangle for three references, a slider for
+ * two. */
 function newStylePad(): BlendPad {
-  const genre = prefs.genre;
+  const genre = padGenre;
   return new BlendPad({
     names: refNames(genre),
     weights: prefs.weights,
@@ -969,16 +991,21 @@ function newStylePad(): BlendPad {
   });
 }
 
-/** Shows the style polygon in place of the one before. */
+/** Shows the style polygon in place of the one before. With the genre picked per song, the point
+ * is too, so the pad only shows it. */
 function showStylePad(): void {
   ui.stylePad.replaceChildren(stylePad.element);
-  stylePad.disabled = prefs.styleAuto;
-  ui.styleOut.value = prefs.styleAuto ? "" : weightsLabel(prefs.genre, prefs.weights);
+  stylePad.disabled = styleIsAuto();
+  ui.styleAuto.disabled = prefs.genre === "auto";
+  ui.styleAuto.checked = styleIsAuto();
+  ui.styleOut.value = styleIsAuto() ? "" : weightsLabel(padGenre, prefs.weights);
 }
 
+/** The genre the style pad and tempo hint show: the chosen one, or with auto the current song's. */
+let padGenre: GenreId = prefs.genre === "auto" ? DEFAULT_GENRE : prefs.genre;
 let stylePad = newStylePad();
 showStylePad();
-ui.styleAuto.checked = prefs.styleAuto;
+showTempoHint();
 ui.styleAuto.addEventListener("change", () => {
   prefs.styleAuto = ui.styleAuto.checked;
   // Overriding starts from the point the pad shows (the current song's).

@@ -118,8 +118,9 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   but its bars must line up with the original's layout (a True Faith transcription with 4 bars of
   drums before the bass does).
 - **Seed:** every song is reproducible. The URL carries `#seed=…`, so a link replays the same song.
-- **Genre:** which genre generated songs come from, synthpop or Italo; the style control shows the
-  chosen genre's references. Italo ([docs/plans/italo-genre.md](docs/plans/italo-genre.md)) blends
+- **Genre:** which genre generated songs come from, synthpop or Italo, or **auto** (a genre per
+  song, and a point in its style polygon per song too); the style control shows the genre's
+  references. Italo ([docs/plans/italo-genre.md](docs/plans/italo-genre.md)) blends
   _The Night_ (110 BPM, a tonic-pedal intro, root 8ths with octave lifts, a relative-major chorus,
   not one fill), _Get Closer_ (112 BPM, a 16th-line hook, plucked root 8ths under slash-chord pads)
   and _Faces_ (120 BPM, a build from bass and kick, gated stabs, a staccato on-beat/off-beat bass,

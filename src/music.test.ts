@@ -763,6 +763,20 @@ describe("genres in links", () => {
   });
 });
 
+describe("genre auto", () => {
+  it("picks a genre per song, with a point in that genre's own polygon", () => {
+    const songs = Array.from({ length: 40 }, (_, i) =>
+      compose({ seed: i + 1, genre: "auto", weights: [1, 0, 0] }),
+    );
+    expect(new Set(songs.map((s) => s.genre))).toEqual(new Set(GENRE_IDS));
+    for (const s of songs) expect(s.weights).toHaveLength(GENRES[s.genre].references.length);
+    // The given weights are for one genre's references: auto picks each song's own point.
+    expect(songs.filter((s) => s.weights.join() === "1,0,0").length).toBeLessThan(10);
+    // The same seed picks the same genre.
+    expect(compose({ seed: 3, genre: "auto" }).genre).toBe(songs[2]?.genre);
+  });
+});
+
 describe("italo genre", () => {
   const italo = GENRES.italo;
   const corners = [

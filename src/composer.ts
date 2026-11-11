@@ -5,6 +5,7 @@
 import type { DrumHit, MelodicTrack } from "./arranger";
 import {
   DEFAULT_GENRE,
+  GENRE_IDS,
   GENRES,
   genreAt,
   genreOfReference,
@@ -217,9 +218,10 @@ export interface Song {
 
 export interface ComposeOptions {
   seed: number;
-  /** The genre profile to generate with (genres.ts); synthpop by default. A creation plays in its
-   * own genre and an original in the one that lists it, whatever this says. */
-  genre?: GenreId;
+  /** The genre profile to generate with (genres.ts); synthpop by default; "auto" picks one per
+   * song (its weights are then that genre's own: given ones are for another genre). A creation
+   * plays in its own genre and an original in the one that lists it, whatever this says. */
+  genre?: GenreId | "auto";
   /** Legacy: where the song sits between the genre's first two references (synthpop: 0 = True
    * Faith … 1 = The Different Story), as weights `[1 − style, style, 0]`. Unset or null, with no
    * `weights` either, picks a style on that axis per song (as the old slider's auto did). */
@@ -286,12 +288,17 @@ export function compose(opts: ComposeOptions): Song {
     ? (opts.custom.genre ?? DEFAULT_GENRE)
     : opts.reference
       ? genreOfReference(opts.reference)
-      : (opts.genre ?? DEFAULT_GENRE);
+      : opts.genre === "auto"
+        ? root.fork("genre").pick(GENRE_IDS)
+        : (opts.genre ?? DEFAULT_GENRE);
   const genre = GENRES[genreId];
   // The auto point draws from its own stream too.
   const rngPoint = root.fork("point");
+  // With the genre picked per song, the point is too: weights given for one genre don't fit another.
+  const weightsOpt =
+    opts.genre === "auto" && !opts.custom && !opts.reference ? "auto" : opts.weights;
   const given =
-    opts.weights === "auto" ? randomWeights(genre, () => rngPoint.next()) : (opts.weights ?? null);
+    weightsOpt === "auto" ? randomWeights(genre, () => rngPoint.next()) : (weightsOpt ?? null);
   const style = ref
     ? ref.style
     : given

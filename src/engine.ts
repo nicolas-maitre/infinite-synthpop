@@ -19,8 +19,9 @@ import { createRng } from "./rng";
 import type { Key } from "./theory";
 
 export interface EngineSettings {
-  /** The genre generated songs come from (genres.ts). Originals and creations keep their own. */
-  genre: GenreId;
+  /** The genre generated songs come from (genres.ts), or "auto": one per song. Originals and
+   * creations keep their own. */
+  genre: GenreId | "auto";
   /** The genre's references' weights (genres.ts); null = a random point of its polygon per song. */
   weights: readonly number[] | null;
   /** null = pick per song. */
