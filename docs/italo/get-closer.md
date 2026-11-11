@@ -84,7 +84,7 @@ on **E │ E │ A │ D**.
 | 0:00.7 | 8    | Intro: full kit, bass and pads from the first beat | the loop ×2                                |
 | 0:17.8 | 16   | Instrumental hook: a 16th-note line in D4–B4 joins | the loop ×4                                |
 | 0:52.0 | 16   | Verse 1                                            | the loop; bars 7 and 15 put C♯ in the bass |
-| 1:26.2 | 16   | Chorus 1                                           | **Em │ Em │ D │ A/B → B**, ×4              |
+| 1:26.2 | 16   | Chorus 1                                           | **Em │ C/E │ D │ A/B → B**, ×4             |
 | 2:00.3 | 16   | Verse 2                                            | the loop ×4, **no** C♯ bar                 |
 | 2:34.5 | 16   | Chorus 2                                           | as chorus 1                                |
 | 3:08.8 | 8    | Outro: chorus chords, the high line up front       | as the chorus                              |
@@ -105,7 +105,7 @@ That's 8 + 16 + 16 + 16 + 16 + 16 + 10 = **98 bars**.
 | 0:00.9 | 8    | Intro                                                                                                                                | the loop ×2                             |
 | 0:18.0 | 16   | Instrumental hook                                                                                                                    | the loop ×4                             |
 | 0:52.4 | 16   | Verse 1                                                                                                                              | the loop, C♯ in bars 7 and 15           |
-| 1:26.7 | 16   | Chorus 1                                                                                                                             | Em │ Em │ D │ A/B → B                   |
+| 1:26.7 | 16   | Chorus 1                                                                                                                             | Em │ C/E │ D │ A/B → B                  |
 | 2:01.1 | 16   | Verse 2                                                                                                                              | the loop ×4                             |
 | 2:35.4 | 16   | Chorus 2                                                                                                                             | as chorus 1                             |
 | 3:09.8 | 8    | **12″ only. Stop block:** bass and drums throughout; pads and the high line play only on the E bars and cut out for the A and D bars | the loop ×2                             |
@@ -150,8 +150,8 @@ model.
 
 Bass roots come from the bass stem (pYIN, checked against the spectrum for octave errors). The
 chords above them come from the "other" stem's chroma, split by register: C3–C5 (pads) and C5–C8
-(the high lines). Numerals are in E minor. Bars marked (?) are the ones queued for the ear check
-at the end of this file.
+(the high lines). Numerals are in E minor. Readings marked (?) were measured but not ear-checked: the ear check of
+the chords and drums was dropped (see the end of this file).
 
 ### The loop: intro, hook, verses, instrumental blocks
 
@@ -178,23 +178,23 @@ at the end of this file.
 - **Bar 1 is coloured:** over the Em, the top register holds F♯ and D as well as E, G and B, so the
   first bar sounds like Em9 in the intro and verses.
 
-### The chorus: Em │ Em │ D │ A/B → B
+### The chorus: Em │ C/E │ D │ A/B → B
 
-| Bar     | 1       | 2                                       | 3        | 4                                              |
-| ------- | ------- | --------------------------------------- | -------- | ---------------------------------------------- |
-| Time    | 1:26.7  | 1:28.9                                  | 1:31.0   | 1:33.2                                         |
-| Bass    | E2      | E2                                      | D2       | B1                                             |
-| Pads    | E, G, B | E, G, B; the top line holds C and G (?) | D, F♯, A | A, C♯, E (beats 1–2), then **B, D♯, F♯** (3–4) |
-| Chord   | Em      | Em, or C/E (?)                          | D        | A/B → B (?)                                    |
-| Numeral | i       | i (♭VI⁶)                                | ♭VII     | V¹¹ → **V** (major)                            |
+| Bar     | 1       | 2                               | 3        | 4                                              |
+| ------- | ------- | ------------------------------- | -------- | ---------------------------------------------- |
+| Time    | 1:26.7  | 1:28.9                          | 1:31.0   | 1:33.2                                         |
+| Bass    | E2      | E2                              | D2       | B1                                             |
+| Pads    | E, G, B | C, E, G above E: C5, G5, C6, E6 | D, F♯, A | A, C♯, E (beats 1–2), then **B, D♯, F♯** (3–4) |
+| Chord   | Em      | **C/E**                         | D        | A/B → B (?)                                    |
+| Numeral | i       | ♭VI⁶ (♭VI over the tonic bass)  | ♭VII     | V¹¹ → **V** (major)                            |
 
 - **The V is major**: D♯ is clear in beats 3–4 (0.52–0.74 in the pad register). The first half of
   that bar is an A triad over the B bass, a V¹¹ (or V9sus4) that resolves to plain B, and back to Em
   on the next bar. It's the only dominant in the record.
-- **Bar 2 (?):** the pads hold Em, but the high register is led by C and G (C 1.00, G 0.84, E 0.45),
-  with A in the second half. That fits C/E (Cmaj7 over E) or Am7/E better than plain Em; the tab site
-  reads Am7.
-- **The chorus loop, as numerals: i │ i (♭VI⁶) │ ♭VII │ V¹¹–V.** It's the minor-key climb of the
+- **Bar 2 is C/E.** The high register is led by C and G (C 1.00, G 0.84, E 0.45), with A in the
+  second half. The note-by-note trace in §10 settles it: in every chorus bar 2 the pads hold C5, G5,
+  C6 and E6 over the E bass, and the countervoice runs C E G A B. The tab site's Am7 is wrong.
+- **The chorus loop, as numerals: i │ ♭VI⁶ │ ♭VII │ V¹¹–V.** It's the minor-key climb of the
   synthpop references (♭VII → V → i), with the harmonic-minor V instead of TF's Dorian IV.
 
 ## 5. The bass
@@ -336,7 +336,7 @@ so.
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Intro **Em E7 A D** (tab site)                                                                  | **Em │ D/E │ A │ C/D**. The "E7" is a D triad over the E bass (E11, no G♯), and the "D" bar has a C triad over the D bass |
 | Verse **Em A D A │ C Em …** (tab site)                                                          | The verse is the loop: **Em │ D/E │ A │ C/D** (A/C♯ in two bars of verse 1)                                               |
-| Chorus **Em Am7 D A B7** (tab site)                                                             | **Em │ Em (C/E?) │ D │ A/B → B**: A and B share one bar over a B bass, and the V is a plain major triad by the 3rd beat   |
+| Chorus **Em Am7 D A B7** (tab site)                                                             | **Em │ C/E │ D │ A/B → B**: A and B share one bar over a B bass, and the V is a plain major triad by the 3rd beat         |
 | Outro **Em D A C** (tab site)                                                                   | That's the pads' line alone. It plays without bass only in the 12″'s break (4:18); the outro proper is the chorus chords  |
 | 111 BPM, G♯ major / A♯ major (AcousticBrainz, automatic)                                        | **111.8 BPM** (12″), **E minor**, tuned 25–30 cents sharp                                                                 |
 | Vocal Version 6:16 (Merak 12″), 6:12 (ZYX 12″); 7″ 3:40                                         | The files here are **6:01** and **3:36**: the same arrangement with an earlier fade, and the single runs 0.5% fast        |
@@ -347,13 +347,13 @@ so.
 **Where it sits next to the synthpop references.** It shares their four-on-the-floor kick, the
 snare on 2 and 4, a minor key, a root-8th bass and 16-bar sections. It differs on five axes:
 
-| Axis    | TF / DS (synthpop)                           | You Came (synthpop)             | Get Closer                                                                                  |
-| ------- | -------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------- |
-| Tempo   | 117–120                                      | 119                             | **112** (and "The Night" 110)                                                               |
-| Harmony | i–III–VII–IV / iv, one chord per bar         | IV–V loop, major                | **pads i–♭VII–IV–♭VI over a bass i–i–IV–♭VII**: slash chords D/E and C/D; chorus i–i–♭VII–V |
-| Bass    | shared figure, 4e/4a hiccup and anticipation | root 8ths, same root on 4a      | **plain root 8ths**, plucked decay, A1–E2, no detail at all                                 |
-| Hats    | dense 16ths                                  | beat, &, a                      | **8ths only**; 16ths only inside fills                                                      |
-| Form    | intro, verse, chorus, instrumental, bridge   | loop shared by verse and chorus | **16-bar blocks only**, no pre-chorus or bridge; a 12″ that inserts 64 instrumental bars    |
+| Axis    | TF / DS (synthpop)                           | You Came (synthpop)             | Get Closer                                                                                    |
+| ------- | -------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------- |
+| Tempo   | 117–120                                      | 119                             | **112** (and "The Night" 110)                                                                 |
+| Harmony | i–III–VII–IV / iv, one chord per bar         | IV–V loop, major                | **pads i–♭VII–IV–♭VI over a bass i–i–IV–♭VII**: slash chords D/E and C/D; chorus i–♭VI–♭VII–V |
+| Bass    | shared figure, 4e/4a hiccup and anticipation | root 8ths, same root on 4a      | **plain root 8ths**, plucked decay, A1–E2, no detail at all                                   |
+| Hats    | dense 16ths                                  | beat, &, a                      | **8ths only**; 16ths only inside fills                                                        |
+| Form    | intro, verse, chorus, instrumental, bridge   | loop shared by verse and chorus | **16-bar blocks only**, no pre-chorus or bridge; a 12″ that inserts 64 instrumental bars      |
 
 **New building blocks it needs:**
 
@@ -425,7 +425,7 @@ with the pads, and a six-stem split (htdemucs_6s) left its piano and guitar stem
   cycle (15 bars across choruses 1–3 and the 12″ outro), and its entries were read where its level
   jumps. Its harmonics were read on its A and B in the C/E bar, where neither note is in the pads.
 
-Bars and times are the 12″'s; uncertain readings carry "(?)" until the ear check.
+Bars and times are the 12″'s; uncertain readings carry "(?)" until the ear check (clips 7–9).
 
 ### The hook line
 
@@ -524,8 +524,8 @@ and no extra pad layer. The countervoice also narrows the top of the mix: the 1.
 left/right correlation goes from 0.21 in the verse to 0.62 in the chorus and 0.86 in the outro.
 
 **Chorus bar 2 is C/E.** In every chorus bar 2, the pads hold C5, G5, C6 and E6 over the E bass, and
-the countervoice plays C E G A B. So the bar is ♭VI over the tonic bass, not i. This settles the
-§4 candidate (clip 4b) on the data, pending the ear check.
+the countervoice plays C E G A B. So the bar is ♭VI over the tonic bass, not i. This settles §4's
+bar 2 on the data.
 
 **What the generated chorus gets wrong.** From the code on `main` (genres.ts `italo`, composer.ts
 `planItalo`, arranger.ts), not from a measurement of the render:
@@ -600,17 +600,20 @@ new NativeSynth({
 
 ## Ear check
 
-These are the bars I'm least sure of. Each has A/B clips in `renders/ear-check-get-closer/`
-(gitignored; each clip plays the record's bar, then the same bar with the candidate chord added).
-Times are in the 12″, with the single's in brackets.
+**Chords and drums: measured, not ear-checked.** Clips 1–6 were rendered, but the ear check was
+dropped once the generator had the song; the readings stand as measured, and the "(?)" marks in
+§4–§7 stay:
 
-1. **Verse bar 2, 0:54.5 (0:54.1):** D/E or Em7? Clips `1a`, `1b`.
-2. **Loop bar 4, 0:58.8 (0:58.4):** C/D or D? Clips `2a`, `2b`.
-3. **Verse 1's C♯ bar, 1:05.3 (1:04.8):** A/C♯, A7/C♯ or C♯m7♭5? Clips `3a`–`3c`.
-4. **Chorus bar 2, 1:28.9 (1:28.3):** Em, C/E or Am7/E? Clips `4a`–`4c`.
-5. **Chorus bar 4, 1:33.2 (1:32.6):** A/B → B, or B7 throughout? Clips `5a`, `5b`.
-6. **Drums:** a clap with the snare (any groove bar, for example 0:52–1:00)? Toms in the fills at
-   1:24.6 and 1:58.9? A crash or something else on beat 1 at 0:00.9, 0:09.4 and 0:18.0?
+- verse bar 2 as D/E rather than Em7, and loop bar 4 as C/D rather than D;
+- verse 1's C♯ bar as A/C♯ (possibly with a 7th);
+- chorus bar 4 as A/B → B;
+- in the drums, a clap under the snare, toms in the fills and a crash on the phrase starts are all
+  possible but unconfirmed.
+
+Chorus bar 2 needed no ear: the trace in §10 shows C/E.
+
+**Synth parts (open).** Clips in `renders/ear-check-get-closer/` (gitignored), times in the 12″:
+
 7. **Hook line's octave, 0:18.0:** D4–B4 or an octave up? Clips `7a` (the line overlaid at D4–B4)
    and `7b` (at D5–B5); `7c` is the pad-cancelled line alone, then the mix.
 8. **Hook line's timbre:** each clip plays the pad-cancelled line, then a candidate alone. Clips
