@@ -351,6 +351,7 @@ export class Engine {
   private applyBpm(time: number): void {
     if (this.appliedBpm === this.song.bpm) return;
     Tone.getTransport().bpm.setValueAtTime(this.song.bpm, time);
+    this.instruments?.setTempo(this.song.bpm);
     this.appliedBpm = this.song.bpm;
   }
 

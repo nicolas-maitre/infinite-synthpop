@@ -408,8 +408,8 @@ export function compose(opts: ComposeOptions): Song {
     sections,
     totalBars,
     riff:
-      g.voices.riff === "line16"
-        ? generateLine16(rngMotif)
+      g.voices.riff === "echo"
+        ? generateEchoHook(rngMotif)
         : g.voices.riff === "pair"
           ? generatePair(rngMotif)
           : generateRiff(rngMotif),
@@ -820,7 +820,8 @@ function planItalo(
       pad: true,
       lead: "chorus",
       stabs,
-      arp: !stabs && rng.chance(0.5),
+      // No 16th part in any of the three records' choruses: their motion is the countervoice's.
+      arp: false,
       counter: countervoice,
       ...extra,
     });
@@ -868,7 +869,7 @@ function planItalo(
   chorus("Chorus");
   if (afterChorus) instrumental("Instrumental", 8);
   verse("Verse 2", block);
-  chorus("Chorus", { arp: !stabs });
+  chorus("Chorus");
   if (reprise) {
     // The Night's second half: the pedal block and the lead synth again, a verse, a chorus.
     pedalBlock("Reprise · pedal");
@@ -883,7 +884,7 @@ function planItalo(
     add("break", "Breakdown", 16, p.interlude, { drums: "full", pad: true, arp: true });
     instrumental("Instrumental", rng.pick([8, 16]));
   }
-  chorus("Chorus · last", { leadDouble: true, arp: !stabs });
+  chorus("Chorus · last", { leadDouble: true });
   if (ending === "hold") {
     add("outro", "Ending · IV held", 4, [["IV"]], { pad: true });
   } else if (ending === "lift") {
@@ -901,9 +902,8 @@ function planItalo(
       bass: true,
       pad: true,
       stabs,
-      arp: true,
-      // Get Closer's outro puts the high line up front.
-      riff: true,
+      // A chorus to fade: the countervoice carries on to the end (Get Closer's outro).
+      counter: countervoice,
     });
   }
   return placeSections(plan, rng);
@@ -1130,26 +1130,30 @@ function generateRiff(rng: Rng): Motif {
 }
 
 /**
- * Get Closer's hook (get-closer.md §7): a 16th-note line through each bar's chord tones, 2 bars,
- * 8ths in beats 1–2 (an odd one left out) and every 16th in beats 3–4, where it is busiest. Both
- * bars share the rhythm; the contour walks the chord ladder by steps, so the line runs up and down
- * the triad. The record's own line is the composition; each song writes its own.
+ * Get Closer's hook (get-closer.md §10): short stepwise figures in D4–B4, played dry, that the riff's
+ * dotted-8th echo spins out (a 3-note cell keeps cycling across the beat). 4 bars: a run of 4–8
+ * 16ths down to a 3-note cell on beats 3–4 of bar 1, nothing in bar 2, a 4-note 16th figure on beat
+ * 4 of bar 3, nothing in bar 4. Notes are 70% of a 16th, gated. `idx` counts scale steps
+ * (arranger.ts plays it on a scale ladder from MIDI 62). Each song writes its own figures.
  *
- *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
- *            x  -  x  -  x  -  x  -  x  x  x  x  x  x  x  x   (one of the "&"s of 1–2 may rest)
+ *   bar 1    3  e  &  a  4  e  &  a      bar 3    4  e  &  a
+ *            x  x  x  x  x  x  x  x               x  x  x  x
+ *            (a run down)   (cell: n, n+1, n)     (n, n+1, n+2, n)
  */
-function generateLine16(rng: Rng): Motif {
-  const rest = rng.pick([-1, 2, 4, 6]);
-  const bar = [0, 2, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15].filter((s) => s !== rest);
-  const onsets = [...bar, ...bar.map((s) => s + 16)];
-  const contour = walk(rng, onsets.length, rng.int(1, 3), 0, 5, [
-    [1, 4],
-    [-1, 4],
-    [2, 1],
-    [-2, 1],
-    [0, 1],
-  ]);
-  return { bars: 2, notes: onsetsToNotes(onsets, 32, 2, (i) => contour[i] ?? 2) };
+function generateEchoHook(rng: Rng): Motif {
+  const notes: MotifNote[] = [];
+  const push = (step: number, idx: number, vel: number) => notes.push({ step, dur: 0.7, idx, vel });
+  const runLength = rng.pick([1, 2, 3, 5]);
+  const cell = rng.int(1, 3);
+  const top = cell + runLength;
+  const runStart = 16 - 3 - runLength;
+  for (let i = 0; i < runLength; i++) push(runStart + i, top - i, i === 0 ? 1 : 0.85);
+  [cell, cell + 1, cell].forEach((idx, i) => push(13 + i, idx, i === 0 ? 0.95 : 0.85));
+  const figure = rng.int(3, 5);
+  [figure, figure + 1, figure + 2, figure].forEach((idx, i) =>
+    push(32 + 12 + i, idx, i === 0 ? 1 : 0.85),
+  );
+  return { bars: 4, notes };
 }
 
 /**

@@ -166,14 +166,17 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
           section.kind === "break" ||
             (section.kind === "chorus" && L.stabs && parts?.stabs === "gated8")
             ? 0.75
-            : 0.55,
-          parts?.pad === "octaves",
+            : // Get Closer's verse pads sit 3–5 dB under its choruses'.
+              parts && section.kind === "verse"
+              ? 0.4
+              : 0.55,
+          voices.pad === "octaves",
         )
       : [],
     riff: !L.riff
       ? []
-      : voices.riff === "line16"
-        ? motifNotes(song.riff, barInSection, key, slots, "chord", 72, 0.95)
+      : voices.riff === "echo"
+        ? motifNotes(song.riff, barInSection, key, slots, "scale", 62, 0.95)
         : voices.riff === "pair"
           ? pairNotes(song.riff, barInSection, key)
           : motifNotes(song.riff, barInSection, key, slots, "chord", song.riffHigh ? 79 : 67, 0.85),
@@ -217,6 +220,10 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
       : null;
   if (L.counter && voices.countervoice === "pluck8")
     notes.counter = pluckedCountervoice(key, slots, rng.fork("counter"));
+  if (L.counter && voices.countervoice === "arp8") {
+    const next = bar + 1 < song.totalBars ? arrangeTarget(song, bar + 1) : undefined;
+    notes.counter = arpCountervoice(key, slots, next?.slots[0], rng.fork("counter"));
+  }
   if (counter)
     notes.counter = (counter.bars[barInSection % counter.bars.length] ?? []).map((n) => ({ ...n }));
   // Parts from a MIDI file replace the generated ones (midi.ts).
@@ -546,6 +553,51 @@ function pluckedCountervoice(key: Key, slots: readonly ChordSlot[], rng: Rng): N
     // Down through the tones, once per off-beat; a beat repeats its neighbour.
     if (step % 4 === 2) i = (i + 1) % Math.max(1, tones.length);
   }
+  return out;
+}
+
+/**
+ * Get Closer's chorus countervoice (get-closer.md §10): a rest on beat 1, then 8ths from beat 2, up
+ * the chord from its root in C6–B6 (root, 3rd, 5th) and back down, or on up through the 6th and
+ * 7th; the last 8th is a tone of the next chord. Each note rings about a quarter, overlapping the
+ * next.
+ *
+ *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *            -  -  -  -  R  -  3  -  5  -  3  -  R  -  N  -   (or R 3 5 6 7 6)
+ */
+function arpCountervoice(
+  key: Key,
+  slots: readonly ChordSlot[],
+  next: ChordSlot | undefined,
+  rng: Rng,
+): Note[] {
+  const out: Note[] = [];
+  const climb = rng.chance(0.3);
+  let last: number | undefined;
+  [4, 6, 8, 10, 12, 14].forEach((step, i) => {
+    const slot = slotAt(slots, step);
+    if (!slot) return;
+    // The root nearest D6, so the arpeggio stays around C6–B6 (Em, C and D bars: E G B, C E G A B,
+    // D F♯ A on the record) in any key.
+    const lo = nearestWithPc(mod12(key.tonic + slot.chord.root), 86);
+    const up = notesInRange(scaleForChord(key, slot.chord), lo, lo + 12);
+    const tones = notesInRange(chordPitchClasses(key, slot.chord), lo, lo + 12);
+    let midi: number | undefined;
+    if (i === 5 && next) {
+      const target = last ?? lo;
+      midi = closestTo(notesInRange(chordPitchClasses(key, next.chord), 82, 97), target);
+    } else if (climb && i >= 3) {
+      // On up through the 6th and the 7th, then back to the 6th.
+      const fifth = tones[2] ?? lo;
+      const above = up.filter((n) => n > fifth);
+      midi = [above[0], above[1], above[0]][i - 3] ?? fifth;
+    } else {
+      midi = [tones[0], tones[1], tones[2], tones[1], tones[0], tones[1]][i];
+    }
+    if (midi === undefined) return;
+    last = midi;
+    out.push({ step, dur: 3.6, midi, vel: i === 0 ? 0.8 : 0.7 });
+  });
   return out;
 }
 

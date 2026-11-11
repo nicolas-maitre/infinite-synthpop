@@ -90,27 +90,34 @@ export interface DrumTraits {
 export interface PartStyle {
   /** Stabs: one chord hit every 4 bars (synthpop), or gated 8th-note chords (Faces). */
   stabs: "hit" | "gated8";
-  /** Pads: one close voicing (synthpop), or the triad stacked an octave up too (The Night's pads
-   * span C4–A♭6). */
-  pad: "close" | "octaves";
 }
 
 /** The parts and sounds a reference brings while it outweighs the others (like `DrumTraits`). */
 export interface Voices {
-  /** The riff: synthpop's call-and-response motif; Get Closer's hook, a 16th-note line through
-   * each bar's chord tones, busiest in beats 3–4 (composer.ts `generateLine16`); or The Night's
-   * two-note figure, the tonic and the 7th below in 16ths, every other bar (the-night.md §7). */
-  riff: "motif" | "line16" | "pair";
-  /** The riff's sound: the FM bell layered with a saw pluck (synthpop), or The Night's bright,
-   * nearly unfiltered saw (the-night.md §10.3). */
-  riffPatch: "fm" | "saw";
-  /** The chorus countervoice: none, or The Night's plucked saw on the off-beat 8ths, stepping down
-   * through each chord's tones in the voice's register (the-night.md §10.2). */
-  countervoice: "none" | "pluck8";
+  /** The riff: synthpop's call-and-response motif; Get Closer's hook, short stepwise figures in
+   * D4–B4 that a dotted-8th echo spins out (composer.ts `generateEchoHook`); or The Night's two-note
+   * figure, the tonic and the 7th below in 16ths, every other bar (the-night.md §7). */
+  riff: "motif" | "echo" | "pair";
+  /** The riff's sound: the FM bell layered with a saw pluck (synthpop); The Night's bright, nearly
+   * unfiltered saw (the-night.md §10.3); or Get Closer's gated 12% pulse with a darkening
+   * dotted-8th echo and a stereo chorus (get-closer.md §10). */
+  riffPatch: "fm" | "saw" | "pulse";
+  /** The chorus countervoice: none; The Night's line on the off-beat 8ths, stepping down through
+   * each chord's tones in the voice's register (the-night.md §10.2); or Get Closer's soft,
+   * near-sine 8th arpeggio up and down the chord from beat 2, in C6–B6 (get-closer.md §10). */
+  countervoice: "none" | "pluck8" | "arp8";
+  /** Pads: one close voicing (synthpop, Get Closer), or the triad stacked an octave up too (The
+   * Night's span C4–A♭6). */
+  pad: "close" | "octaves";
 }
 
 /** Synthpop's parts and sounds, for every genre that doesn't say otherwise. */
-export const SYNTHPOP_VOICES: Voices = { riff: "motif", riffPatch: "fm", countervoice: "none" };
+export const SYNTHPOP_VOICES: Voices = {
+  riff: "motif",
+  riffPatch: "fm",
+  countervoice: "none",
+  pad: "close",
+};
 
 /** The Italo planner's odds (composer.ts `planItalo`). */
 export interface ItaloForm {
@@ -805,12 +812,14 @@ export const GENRES: Record<GenreId, Genre> = {
       bareFirstVerse: { by: { [FC]: 0.7 } },
       afterChorus: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.6 } },
     },
-    parts: { stabs: "gated8", pad: "octaves" },
-    voices: { riff: "line16", riffPatch: "fm", countervoice: "none" },
+    parts: { stabs: "gated8" },
+    voices: { riff: "echo", riffPatch: "pulse", countervoice: "arp8", pad: "close" },
     voiceTraits: {
-      // The two-note intro riff on a bright saw, and the plucked countervoice in every chorus
+      // The two-note intro riff on a bright saw, the countervoice in every chorus, octave pads
       // (the-night.md §10).
-      [TN]: { riff: "pair", riffPatch: "saw", countervoice: "pluck8" },
+      [TN]: { riff: "pair", riffPatch: "saw", countervoice: "pluck8", pad: "octaves" },
+      // The echoing pulse hook and the soft chorus arpeggio (get-closer.md §10).
+      [GC]: { riff: "echo", riffPatch: "pulse", countervoice: "arp8", pad: "close" },
     },
     // The verses sit low (Faces C4–E4, Get Closer G3–A4), the choruses a 5th or so higher (Faces
     // C♯4–B4, Get Closer D4–B4, The Night A♭4–E♭5): the lift that sets the chorus apart.

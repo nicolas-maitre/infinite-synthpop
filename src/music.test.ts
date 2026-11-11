@@ -844,15 +844,32 @@ describe("italo genre", () => {
     expect(bar(0).notes.bass.map((n) => n.step)).toEqual([0, 2, 4, 6, 8, 10, 12, 14]);
   });
 
-  it("gives Get Closer its 16th hook line, and The Night its lead synth, riff and countervoice", () => {
+  it("gives Get Closer its echo hook and chorus arpeggio, and The Night its lead synth, riff and countervoice", () => {
     const gc = compose({ seed: 7, genre: "italo", weights: corners[1] });
     const hook = gc.sections.find((s) => s.label === "Hook");
     if (!hook) throw new Error("no hook");
-    const line = arrangeBar(gc, hook.startBar).notes.riff;
-    expect(line.filter((n) => n.step >= 8).map((n) => n.step)).toEqual([
-      8, 9, 10, 11, 12, 13, 14, 15,
-    ]);
-    expect(Math.min(...line.map((n) => n.midi))).toBeGreaterThanOrEqual(60);
+    // Short dry figures in D4–B4 on beats 3–4 of bar 1 and beat 4 of bar 3; the echo does the rest.
+    const hookBar = (i: number) => arrangeBar(gc, hook.startBar + i).notes.riff;
+    expect(hookBar(0).length).toBeGreaterThanOrEqual(4);
+    expect(hookBar(0).every((n) => n.step >= 8 && n.dur < 1)).toBe(true);
+    expect(hookBar(1)).toEqual([]);
+    expect(hookBar(2).map((n) => n.step)).toEqual([12, 13, 14, 15]);
+    expect(hookBar(3)).toEqual([]);
+    const hookNotes = [0, 2].flatMap(hookBar).map((n) => n.midi);
+    expect(Math.min(...hookNotes)).toBeGreaterThanOrEqual(59);
+    expect(Math.max(...hookNotes)).toBeLessThanOrEqual(74);
+    // The chorus countervoice: 8ths from beat 2 in C6–B6, in every chorus and the outro only.
+    for (const s of gc.sections) {
+      const counter = arrangeBar(gc, s.startBar).notes.counter;
+      if (s.kind === "chorus" || s.kind === "outro") {
+        expect(counter.map((n) => n.step)).toEqual([4, 6, 8, 10, 12, 14]);
+        // Roots within a tritone of D6, so the line keeps to about octave 6.
+        expect(counter.every((n) => n.midi >= 79 && n.midi <= 104)).toBe(true);
+      } else expect(counter).toEqual([]);
+    }
+    // No 16th part in the chorus.
+    const chorus = gc.sections.find((s) => s.kind === "chorus");
+    expect(arrangeBar(gc, chorus?.startBar ?? 0).notes.arp).toEqual([]);
 
     const tn = compose({ seed: 7, genre: "italo", weights: corners[0] });
     expect(tn.sections.slice(0, 6).map((s) => [s.label, s.bars])).toEqual([
@@ -878,10 +895,10 @@ describe("italo genre", () => {
       arrangeBar(tn, riff?.startBar ?? 0).notes.riff.map((n) => mod12(n.midi - tn.key.tonic)),
     );
     expect(pcs).toEqual(new Set([0, 10]));
-    // The plucked countervoice in every chorus, on all the off-beat 8ths, and nowhere else.
+    // The countervoice in every chorus and the chorus to fade, on all the off-beat 8ths, nowhere else.
     for (const s of tn.sections) {
       const counter = arrangeBar(tn, s.startBar).notes.counter;
-      if (s.kind !== "chorus") expect(counter).toEqual([]);
+      if (s.kind !== "chorus" && s.kind !== "outro") expect(counter).toEqual([]);
       else
         expect(counter.filter((n) => n.step % 4 === 2).map((n) => n.step)).toEqual([2, 6, 10, 14]);
     }

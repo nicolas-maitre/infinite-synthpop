@@ -8,7 +8,7 @@ import type { DrumHit, MelodicTrack } from "./arranger";
 import type { Note } from "./composer";
 import { DrumKit } from "./drums";
 import { FixedEQ3, FixedFilter } from "./filters";
-import type { BassTone, Voices } from "./genres";
+import { SYNTHPOP_VOICES, type BassTone, type Voices } from "./genres";
 import { NativeFMSynth, NativeMonoSynth, NativeSynth } from "./voices";
 import { midiToFreq } from "./theory";
 
@@ -143,7 +143,13 @@ export class Instruments {
   private readonly riffPlain: NativeSynth;
   /** The Night's lead synth. */
   private readonly synth: NativeFMSynth;
-  private voices: Voices = { riff: "motif", riffPatch: "fm", countervoice: "none" };
+  /** Get Closer's chorus countervoice, on the counter track (see setVoices). */
+  private readonly counterSoft: NativeSynth;
+  /** Get Closer's hook: a gated narrow pulse into its own echo and chorus, on the riff track. */
+  private readonly riffPulse: NativeMonoSynth;
+  /** The echoes that follow the tempo (setTempo): The Night's lead synth's, Get Closer's hook's. */
+  private readonly echoTimes: Tone.Param<"time">[] = [];
+  private voices: Voices = SYNTHPOP_VOICES;
   private readonly arp: NativeFMSynth;
   private readonly stab: NativeSynth;
   private readonly stabNoise: Tone.NoiseSynth;
@@ -324,6 +330,41 @@ export class Instruments {
       envelope: { attack: 0.002, decay: 0.2, sustain: 0.5, release: 0.08 },
       volume: -4,
     }).chain(new FixedFilter("lowpass", 6000), this.channels.riff);
+    // Get Closer's hook (get-closer.md §10): a 12% pulse (every harmonic within 3 dB up to 2 kHz)
+    // through a fixed 12 dB low-pass at 3.5 kHz, gated at 70% of a 16th by the notes. Then a
+    // dotted-8th echo whose repeats fall about 4 dB each and darken (a 2.5 kHz low-pass in the
+    // feedback loop, as on an analog or tape delay), and a stereo chorus as wide as the pads.
+    const riffChorus = new Tone.Chorus({ frequency: 0.8, delayTime: 3.5, depth: 0.5, wet: 0.5 });
+    riffChorus.start().connect(this.channels.riff);
+    const echoIn = new Tone.Gain(1);
+    const echoDelay = new Tone.Delay(0.4, 1);
+    const echoTone = new FixedFilter("lowpass", 2500);
+    const echoFeedback = new Tone.Gain(0.63);
+    echoIn.connect(riffChorus);
+    echoIn.connect(echoDelay);
+    echoDelay.chain(echoTone, echoFeedback, echoDelay);
+    echoTone.connect(new Tone.Gain(0.63).connect(riffChorus));
+    this.echoTimes.push(echoDelay.delayTime);
+    this.riffPulse = new NativeMonoSynth({
+      oscillator: {
+        type: "square",
+        partials: [
+          1, 0.93, 0.82, 0.68, 0.52, 0.35, 0.19, 0.04, 0.08, 0.16, 0.21, 0.22, 0.21, 0.16, 0.11,
+          0.04,
+        ],
+      },
+      filter: { type: "lowpass", rolloff: -12, Q: 1 },
+      envelope: { attack: 0.002, decay: 0.3, sustain: 0.6, release: 0.04 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.1,
+        sustain: 1,
+        release: 0.05,
+        baseFrequency: 3500,
+        octaves: 0,
+      },
+      maxPolyphony: 4,
+    }).connect(echoIn);
     const riffFilter = new FixedFilter("lowpass", 3200);
     this.riffSaw = new NativeSynth({
       volume: -6,
@@ -389,6 +430,15 @@ export class Instruments {
     });
     this.counterPluck.fan(this.channels.counter, new Tone.Gain(0.35).connect(reverb));
 
+    // Get Closer's chorus countervoice (get-closer.md §10): soft and nearly sine-like (h2 and h3
+    // about 18 dB down), rising in about 30 ms and settling 8–10 dB down; near-mono, no effects.
+    this.counterSoft = new NativeSynth({
+      oscillator: { type: "sine", partials: [1, 0.12, 0.1] },
+      envelope: { attack: 0.025, decay: 0.25, sustain: 0.35, release: 0.35 },
+      maxPolyphony: 4,
+      volume: -3,
+    }).connect(this.channels.counter);
+
     // The Night's lead synth (the-night.md §10.1): a nearly pure tone (h2 −10 dB, h3 −19.5) struck
     // hard: a 1:1 FM whose index falls from about 2.4 to 0.6, a 3 Hz vibrato of ±18 cents, and a
     // dotted-8th echo about 8.5 dB down. The shared delay is high-passed at 600 Hz, which would
@@ -396,6 +446,7 @@ export class Instruments {
     const synthVibrato = new Tone.Vibrato({ frequency: 3, depth: 0.22 });
     const synthEcho = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.25, wet: 0.3 });
     synthVibrato.chain(synthEcho, this.channels.synth);
+    this.echoTimes.push(synthEcho.delayTime);
     this.synth = new NativeFMSynth({
       harmonicity: 1,
       modulationIndex: 7.5,
@@ -554,7 +605,12 @@ export class Instruments {
         }
         break;
       case "counter": {
-        const voice = this.voices.countervoice === "pluck8" ? this.counterPluck : this.counter;
+        const voice =
+          this.voices.countervoice === "pluck8"
+            ? this.counterPluck
+            : this.voices.countervoice === "arp8"
+              ? this.counterSoft
+              : this.counter;
         for (const n of notes) voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
       }
@@ -562,6 +618,10 @@ export class Instruments {
         for (const n of notes) {
           if (this.voices.riffPatch === "saw") {
             this.riffPlain.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+            continue;
+          }
+          if (this.voices.riffPatch === "pulse") {
+            this.riffPulse.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
             continue;
           }
           this.riffFm.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
@@ -651,6 +711,11 @@ export class Instruments {
     this.voices = voices;
   }
 
+  /** Sets the dotted-8th echoes to the song's tempo. */
+  setTempo(bpm: number): void {
+    for (const t of this.echoTimes) t.value = (0.75 * 60) / bpm;
+  }
+
   /** Gated reverb on the snare and clap (TF, DS), or an open, untreated tail (You Came's long,
    * smooth snare: −10 dB at 80 ms, −20 dB at 220 ms, no gate cut-off). */
   setSnareGate(gated: boolean): void {
@@ -674,7 +739,9 @@ export class Instruments {
       this.arp,
       this.counter,
       this.counterPluck,
+      this.counterSoft,
       this.riffPlain,
+      this.riffPulse,
       this.synth,
     ];
     for (const s of synths) s.releaseAll(time);

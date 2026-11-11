@@ -69,6 +69,7 @@ export async function renderSong(
   const profile = genreAt(genre, song.weights);
   inst.setSnareGate(profile.drums.gatedSnare);
   inst.setVoices(profile.voices);
+  inst.setTempo(song.bpm);
   for (const track of solo) inst.channels[track].solo = true;
   for (const track of mute) inst.channels[track].mute = true;
   for (const [track, db] of Object.entries(options.volumes ?? {}) as [Track, number][]) {
