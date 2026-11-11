@@ -11,6 +11,7 @@ import {
   specWeights,
 } from "./genres";
 import { REFERENCES, type ReferenceId } from "./references";
+import { resolveQuality } from "./quality";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
 import { Library, LIBRARY_KEY } from "./library";
@@ -638,6 +639,18 @@ describe("creator specs", () => {
     spec.sections[0]!.progression = [["i", "VII"], ["IV"]];
     const decoded = decodeCreation(encodeCreation({ seed: 1, spec }));
     expect(decoded?.spec.sections[0]?.progression).toEqual([["i", "VII"], ["IV"]]);
+  });
+});
+
+describe("performance setting", () => {
+  it("lets the URL win, then the saved choice, then the device", () => {
+    expect(resolveQuality(null, "auto", "lite")).toBe("lite");
+    expect(resolveQuality(null, "auto", "full")).toBe("full");
+    expect(resolveQuality(null, "full", "lite")).toBe("full");
+    expect(resolveQuality(null, "lite", "full")).toBe("lite");
+    expect(resolveQuality("full", "lite", "lite")).toBe("full");
+    expect(resolveQuality("lite", "full", "full")).toBe("lite");
+    expect(resolveQuality("bogus", "full", "lite")).toBe("full");
   });
 });
 

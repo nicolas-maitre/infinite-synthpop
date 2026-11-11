@@ -24,7 +24,14 @@ import { randomSeed } from "./rng";
 import { chord, chordName, keyName, noteName } from "./theory";
 import { startVisualizer } from "./visualizer";
 import { mountAudioStats } from "./audiostats";
-import { SHOW_AUDIO_STATS } from "./quality";
+import {
+  DEVICE_QUALITY,
+  QUALITY,
+  QUALITY_CHOICE,
+  QUALITY_FROM_URL,
+  saveQualityChoice,
+  SHOW_AUDIO_STATS,
+} from "./quality";
 import { BlendPad, initials, weightsSummary } from "./blendpad";
 import {
   DEFAULT_GENRE,
@@ -755,6 +762,21 @@ switchMode.addEventListener("change", () => {
   savePrefs();
   engine.setInstant(prefs.instant);
   renderCue(engine.cuedBar);
+});
+
+// Lite or full sound is set up when the page loads (quality.ts), so a change reloads the page.
+const qualitySelect = el<HTMLSelectElement>("quality");
+const autoQuality = qualitySelect.querySelector<HTMLOptionElement>('option[value="auto"]');
+if (autoQuality) autoQuality.textContent = `auto (${DEVICE_QUALITY} here)`;
+qualitySelect.value = QUALITY_FROM_URL ? QUALITY : QUALITY_CHOICE;
+if (QUALITY_FROM_URL) {
+  qualitySelect.disabled = true;
+  qualitySelect.title = `Set to ${QUALITY} by ?quality= in the address`;
+}
+qualitySelect.addEventListener("change", () => {
+  const v = qualitySelect.value;
+  saveQualityChoice(v === "full" || v === "lite" ? v : "auto");
+  location.reload();
 });
 
 function renderBar(song: Song, bar: number): void {

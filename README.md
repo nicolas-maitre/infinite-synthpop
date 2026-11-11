@@ -44,6 +44,10 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   (the default), it starts at the next bar line, and a dashed ⏭ marks the bar and section waiting
   to play. With **instantly**, it starts at once, about a third of a second after the click (the
   audio look-ahead).
+- **Performance** picks the full sound or **lite**: lighter voices and effects, a lower sample
+  rate and 30 fps drawing, so phones play without breaking up. **auto** (the default) uses lite on
+  touch devices and machines with 4 cores or fewer. The choice is kept per device, and changing it
+  reloads the page. `?quality=full` or `?quality=lite` in the address still overrides it.
 - **My songs** lists the songs kept in this browser. Every creation (creator mode, the wizard, a
   link you open) keeps itself there and updates as you edit. **♡ Save** keeps a generated song or
   an original too. Click a song to play it, ⤴ to copy its link, × to delete it (with undo).
