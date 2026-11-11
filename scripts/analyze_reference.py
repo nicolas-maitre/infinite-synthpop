@@ -1,7 +1,7 @@
 """Measure the reference recordings in inspiration/: tempo, key, bar-by-bar chords, form, and the
 average 16-step drum and bass profiles. Prints a report and writes JSON next to it.
 
-    .venv/bin/python -I scripts/analyze_reference.py inspiration/*.mp3 --out docs/reference-data.json
+    .venv/bin/python -I scripts/analyze_reference.py inspiration/*/*.mp3 --out docs/reference-data.json
 """
 
 import argparse

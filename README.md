@@ -159,11 +159,11 @@ src/main.ts          UI
 
 ## Measuring against the reference recordings
 
-Put the reference tracks in `inspiration/` (git-ignored). Then:
+Put the reference tracks in `inspiration/`, one folder per artist (git-ignored). Then:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements-analysis.txt
-.venv/bin/python -I scripts/analyze_reference.py inspiration/*.mp3 --out docs/reference-data.json
+.venv/bin/python -I scripts/analyze_reference.py inspiration/*/*.mp3 --out docs/reference-data.json
 ```
 
 To measure the generator itself, run `await renderToDisk({ seed: 42, style: 0.5 })` in the dev
@@ -172,7 +172,7 @@ page's console (or pass the references' weights, True Faith, The Different Story
 tracks to solo: `renderToDisk({ seed: 42, style: 0.5 }, 64, ["bass"])`. Then compare the mixes:
 
 ```bash
-.venv/bin/python -I scripts/compare_mix.py inspiration/*.mp3 renders/*.wav
+.venv/bin/python -I scripts/compare_mix.py inspiration/*/*.mp3 renders/*.wav
 ```
 
 You can also run `analyze_reference.py` on a render to check its tempo, chords and form.

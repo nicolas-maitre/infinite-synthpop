@@ -1,7 +1,7 @@
 """Compare the mix of renders against the reference recordings: loudness, peak, crest factor,
 stereo width, and the share of energy per frequency band.
 
-    .venv/bin/python -I scripts/compare_mix.py inspiration/*.mp3 renders/*.wav
+    .venv/bin/python -I scripts/compare_mix.py inspiration/*/*.mp3 renders/*.wav
 """
 
 import sys
