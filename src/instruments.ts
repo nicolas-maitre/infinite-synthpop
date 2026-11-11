@@ -345,13 +345,25 @@ export class Instruments {
       return Math.sign(x) * y;
     }, 4096);
     // Oversampled, so rounding off bright peaks (the voice's air, the hats) doesn't alias into
-    // harsh distortion; lite skips it for CPU.
+    // harsh distortion; lite skips it for CPU. Oversampling's filters overshoot the curve's
+    // −0.5 dBFS ceiling by up to 0.5 dB (renders of The Night and Faces touched full scale), so
+    // its output comes down 0.6 dB to keep the peaks under 0 dBFS.
     if (!lite) softClip.oversample = "2x";
+    const overshoot = new Tone.Gain(lite ? 1 : Tone.dbToGain(-0.6));
     // Headroom trim: without it the bus compressor and limiter squashed TF-style songs to a crest
     // factor of 11 dB (the records: 15–18).
     const trim = new Tone.Gain(Tone.dbToGain(-5.5));
-    this.master.chain(trim, eq, comp, limiter, new Tone.Gain(0.5), softClip, Tone.getDestination());
-    softClip.fan(this.fft, this.waveform);
+    this.master.chain(
+      trim,
+      eq,
+      comp,
+      limiter,
+      new Tone.Gain(0.5),
+      softClip,
+      overshoot,
+      Tone.getDestination(),
+    );
+    overshoot.fan(this.fft, this.waveform);
 
     const delay = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.32, wet: 1 });
     const delayFilter = new FixedFilter("highpass", 600);
