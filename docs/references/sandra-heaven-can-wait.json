@@ -1,0 +1,2077 @@
+[
+  {
+    "file": "Heaven Can Wait.mp3",
+    "duration_s": 244.5,
+    "bpm": 118.73,
+    "bpm_librosa": 117.45,
+    "tempo_stability_ms": 81.4,
+    "key": {
+      "tonic": 8,
+      "mode": "minor",
+      "name": "Ab minor",
+      "r": 0.4769866758005347
+    },
+    "downbeat_phase": 1,
+    "n_bars": 116,
+    "segments": [
+      {
+        "start_bar": 0,
+        "bars": 3,
+        "time": 1.07,
+        "rms_db": -32.7,
+        "chords": ["Abm", "Abm", "Abm"]
+      },
+      {
+        "start_bar": 3,
+        "bars": 1,
+        "time": 7.17,
+        "rms_db": -29.4,
+        "chords": ["Eb"]
+      },
+      {
+        "start_bar": 4,
+        "bars": 12,
+        "time": 9.2,
+        "rms_db": -24.3,
+        "chords": [
+          "Ab / F#m",
+          "E / Eb",
+          "Ab / F#m",
+          "Ab / Eb",
+          "E / F#m",
+          "Ab / Eb",
+          "Ab / F#m",
+          "Ab / Eb",
+          "Ab / F#m",
+          "E / Eb",
+          "E / F#m",
+          "Ab / Eb"
+        ]
+      },
+      {
+        "start_bar": 16,
+        "bars": 7,
+        "time": 33.65,
+        "rms_db": -23.7,
+        "chords": [
+          "E / F#",
+          "C#m / Ebm",
+          "Ab / F#m",
+          "Ab / Cm",
+          "C#m / F#",
+          "C#m / Ebm",
+          "Abm / F#m"
+        ]
+      },
+      {
+        "start_bar": 23,
+        "bars": 16,
+        "time": 47.9,
+        "rms_db": -20.9,
+        "chords": [
+          "Ab",
+          "Ebm",
+          "Ebm",
+          "C#",
+          "C#",
+          "C#m / Ebm",
+          "Ebm / Eb",
+          "C# / C#m",
+          "C#",
+          "Abm",
+          "B",
+          "Ebm",
+          "Ebm / Eb",
+          "Bb",
+          "Bb",
+          "Eb / Ebm"
+        ]
+      },
+      {
+        "start_bar": 39,
+        "bars": 9,
+        "time": 80.16,
+        "rms_db": -23.0,
+        "chords": [
+          "C#m / Eb",
+          "E / F#",
+          "Ab / Eb",
+          "E / F#m",
+          "Ab / Eb",
+          "E / F#m",
+          "Ab / Eb",
+          "E / F#m",
+          "Ab / Eb"
+        ]
+      },
+      {
+        "start_bar": 48,
+        "bars": 7,
+        "time": 98.48,
+        "rms_db": -22.7,
+        "chords": ["E / F#", "C#m / Eb", "Ab", "Ab / Cm", "C#m / F#", "C#m / Eb", "Abm / F#m"]
+      },
+      {
+        "start_bar": 55,
+        "bars": 15,
+        "time": 112.73,
+        "rms_db": -20.1,
+        "chords": [
+          "Ab",
+          "Ebm",
+          "Ebm",
+          "C# / C#m",
+          "C#",
+          "Eb / Ebm",
+          "Eb / Abm",
+          "C#",
+          "C# / C#m",
+          "Abm",
+          "B / A",
+          "Ebm / A",
+          "Ebm / Eb",
+          "Bb",
+          "Bb"
+        ]
+      },
+      {
+        "start_bar": 70,
+        "bars": 9,
+        "time": 142.97,
+        "rms_db": -21.2,
+        "chords": ["Eb / Ebm", "Eb", "C#m", "C#", "Eb / Ebm", "Ebm / Eb", "C#m", "C#m / C#", "Abm"]
+      },
+      {
+        "start_bar": 79,
+        "bars": 2,
+        "time": 161.1,
+        "rms_db": -21.1,
+        "chords": ["Abm / C#", "Ebm"]
+      },
+      {
+        "start_bar": 81,
+        "bars": 3,
+        "time": 165.12,
+        "rms_db": -21.4,
+        "chords": ["Ebm", "Bbm / Ebm", "Bbm / Bb"]
+      },
+      {
+        "start_bar": 84,
+        "bars": 5,
+        "time": 171.18,
+        "rms_db": -20.5,
+        "chords": ["Ebm", "Ebm", "C# / Ab", "C#m / C#", "Ebm"]
+      },
+      {
+        "start_bar": 89,
+        "bars": 23,
+        "time": 181.25,
+        "rms_db": -20.0,
+        "chords": [
+          "Ebm / Abm",
+          "C#m / C#",
+          "C#m",
+          "Abm / E",
+          "B",
+          "Ebm",
+          "Ebm",
+          "Bbm / Bb",
+          "Bb / Ebm",
+          "Ebm",
+          "Ebm",
+          "C#",
+          "C#",
+          "Ebm",
+          "Ebm / Eb",
+          "C#",
+          "C# / C#m",
+          "Abm",
+          "B / Abm",
+          "Ebm",
+          "Ebm / Eb",
+          "Bb",
+          "Bb"
+        ]
+      },
+      {
+        "start_bar": 112,
+        "bars": 4,
+        "time": 227.6,
+        "rms_db": -28.1,
+        "chords": ["Ebm", "Ebm", "C#", "C#m / C#"]
+      }
+    ],
+    "drum_profiles": {
+      "kick (40\u2013120 Hz)": [
+        0.51, 0.55, 1.0, 0.37, 0.92, 0.39, 0.44, 0.45, 0.66, 0.54, 0.52, 0.42, 0.7, 0.27, 0.69, 0.42
+      ],
+      "snare (150\u2013400 Hz + 1\u20134 kHz)": [
+        1.0, 0.5, 0.74, 0.64, 0.66, 0.57, 0.61, 0.57, 0.64, 0.56, 0.7, 0.63, 0.56, 0.61, 0.67, 0.67
+      ],
+      "hats (7\u201311 kHz)": [
+        1.0, 0.44, 0.62, 0.5, 0.47, 0.46, 0.51, 0.5, 0.69, 0.51, 0.53, 0.59, 0.42, 0.54, 0.52, 0.57
+      ]
+    },
+    "bass_octave_up_profile": [
+      0.96, 0.01, 0.01, 0.0, 0.0, 0.0, 0.04, 0.04, 0.34, 0.01, 0.19, 0.12, 0.0, 0.21, 0.0, 0.0
+    ],
+    "bars": [
+      {
+        "time": 1.07,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.7565423468027271
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.7381973914131652
+          }
+        ],
+        "rms_db": -29.7
+      },
+      {
+        "time": 3.11,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.685309176363951
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.7284585190160289
+          }
+        ],
+        "rms_db": -38.4
+      },
+      {
+        "time": 5.13,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.7153550445843875
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.7342586380077324
+          }
+        ],
+        "rms_db": -29.9
+      },
+      {
+        "time": 7.17,
+        "chords": [
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6601241616771238
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.7113168676617353
+          }
+        ],
+        "rms_db": -29.4
+      },
+      {
+        "time": 9.2,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.636029643801071
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.6212181252915687
+          }
+        ],
+        "rms_db": -25.3
+      },
+      {
+        "time": 11.24,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.6166328525737625
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6320350226448458
+          }
+        ],
+        "rms_db": -24.8
+      },
+      {
+        "time": 13.28,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6259154019351139
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.6297985323294243
+          }
+        ],
+        "rms_db": -25.2
+      },
+      {
+        "time": 15.3,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6361622927021962
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.576112730432839
+          }
+        ],
+        "rms_db": -22.9
+      },
+      {
+        "time": 17.35,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.617215123775354
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.6258373812967748
+          }
+        ],
+        "rms_db": -25.0
+      },
+      {
+        "time": 19.39,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6249060284301076
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6060509881993541
+          }
+        ],
+        "rms_db": -24.2
+      },
+      {
+        "time": 21.43,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6079941619677274
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.5913344010499032
+          }
+        ],
+        "rms_db": -23.4
+      },
+      {
+        "time": 23.48,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6344281187171517
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6143506669935088
+          }
+        ],
+        "rms_db": -24.6
+      },
+      {
+        "time": 25.5,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6245593191608649
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.6248637989947952
+          }
+        ],
+        "rms_db": -24.6
+      },
+      {
+        "time": 27.54,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.6232191010436099
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6072799760840205
+          }
+        ],
+        "rms_db": -24.1
+      },
+      {
+        "time": 29.58,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.6165678820862129
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.5713360752405281
+          }
+        ],
+        "rms_db": -23.0
+      },
+      {
+        "time": 31.63,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6560080312221713
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6106834088303563
+          }
+        ],
+        "rms_db": -24.5
+      },
+      {
+        "time": 33.65,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.5891477468366333
+          },
+          {
+            "name": "F#",
+            "numeral": "VII",
+            "score": 0.7399834975772124
+          }
+        ],
+        "rms_db": -23.9
+      },
+      {
+        "time": 35.69,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5849383666200071
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5561168283356794
+          }
+        ],
+        "rms_db": -23.7
+      },
+      {
+        "time": 37.73,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6711184597644049
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.6176866265917986
+          }
+        ],
+        "rms_db": -23.9
+      },
+      {
+        "time": 39.75,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6976911325903213
+          },
+          {
+            "name": "Cm",
+            "numeral": "?4",
+            "score": 0.6061177508128743
+          }
+        ],
+        "rms_db": -23.1
+      },
+      {
+        "time": 41.8,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5986326524834977
+          },
+          {
+            "name": "F#",
+            "numeral": "VII",
+            "score": 0.723013935711343
+          }
+        ],
+        "rms_db": -24.1
+      },
+      {
+        "time": 43.82,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5796331428203008
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5896356511583802
+          }
+        ],
+        "rms_db": -23.4
+      },
+      {
+        "time": 45.86,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.6589025791411811
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.615442667769029
+          }
+        ],
+        "rms_db": -23.7
+      },
+      {
+        "time": 47.9,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6908380823534774
+          },
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.5907849052270179
+          }
+        ],
+        "rms_db": -20.0
+      },
+      {
+        "time": 49.92,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6003478867760175
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6761228333773832
+          }
+        ],
+        "rms_db": -22.2
+      },
+      {
+        "time": 51.94,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6469924888933463
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6037768553437252
+          }
+        ],
+        "rms_db": -20.8
+      },
+      {
+        "time": 53.96,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6673720993714689
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6496888253115766
+          }
+        ],
+        "rms_db": -22.6
+      },
+      {
+        "time": 55.98,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6715623306826267
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.5933444558542175
+          }
+        ],
+        "rms_db": -20.7
+      },
+      {
+        "time": 58.0,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5677325046553651
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.649453796280122
+          }
+        ],
+        "rms_db": -22.0
+      },
+      {
+        "time": 60.0,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6518245499890079
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6004045045354759
+          }
+        ],
+        "rms_db": -20.1
+      },
+      {
+        "time": 62.02,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6638566469097381
+          },
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6295863311933159
+          }
+        ],
+        "rms_db": -22.5
+      },
+      {
+        "time": 64.04,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.691162575576549
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.5776478718549851
+          }
+        ],
+        "rms_db": -20.9
+      },
+      {
+        "time": 66.06,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.643718002373774
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.699173970776546
+          }
+        ],
+        "rms_db": -22.1
+      },
+      {
+        "time": 68.06,
+        "chords": [
+          {
+            "name": "B",
+            "numeral": "III",
+            "score": 0.6407287559921407
+          },
+          {
+            "name": "B",
+            "numeral": "III",
+            "score": 0.5720183778610999
+          }
+        ],
+        "rms_db": -20.2
+      },
+      {
+        "time": 70.08,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6496099086102525
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5800027411698069
+          }
+        ],
+        "rms_db": -20.1
+      },
+      {
+        "time": 72.1,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6442291332796839
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6012623565528707
+          }
+        ],
+        "rms_db": -19.4
+      },
+      {
+        "time": 74.12,
+        "chords": [
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6844100186061272
+          },
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6496039361728223
+          }
+        ],
+        "rms_db": -18.9
+      },
+      {
+        "time": 76.14,
+        "chords": [
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6291135059931705
+          },
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6150747766760916
+          }
+        ],
+        "rms_db": -19.5
+      },
+      {
+        "time": 78.14,
+        "chords": [
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.5596393190366289
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5632786729299903
+          }
+        ],
+        "rms_db": -22.7
+      },
+      {
+        "time": 80.16,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5767742104443929
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6048809312587687
+          }
+        ],
+        "rms_db": -22.2
+      },
+      {
+        "time": 82.18,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.6294052593642622
+          },
+          {
+            "name": "F#",
+            "numeral": "VII",
+            "score": 0.6438151719175812
+          }
+        ],
+        "rms_db": -23.4
+      },
+      {
+        "time": 84.22,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6245694798045829
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.5926377068985466
+          }
+        ],
+        "rms_db": -23.3
+      },
+      {
+        "time": 86.26,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.6207025061759045
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.6482521560798681
+          }
+        ],
+        "rms_db": -21.7
+      },
+      {
+        "time": 88.31,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6413170470001308
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6075585135129338
+          }
+        ],
+        "rms_db": -23.4
+      },
+      {
+        "time": 90.33,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.6324747566731623
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.626343068718735
+          }
+        ],
+        "rms_db": -23.9
+      },
+      {
+        "time": 92.37,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6200906609483867
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6197284620264832
+          }
+        ],
+        "rms_db": -23.4
+      },
+      {
+        "time": 94.41,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.6191562330461887
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.5790984438789136
+          }
+        ],
+        "rms_db": -22.1
+      },
+      {
+        "time": 96.46,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6434979735156403
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.5858850275582898
+          }
+        ],
+        "rms_db": -23.5
+      },
+      {
+        "time": 98.48,
+        "chords": [
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.5901496439394632
+          },
+          {
+            "name": "F#",
+            "numeral": "VII",
+            "score": 0.7516767642671075
+          }
+        ],
+        "rms_db": -23.2
+      },
+      {
+        "time": 100.52,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5717789494367069
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.5736797812684679
+          }
+        ],
+        "rms_db": -22.8
+      },
+      {
+        "time": 102.54,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6777207939464318
+          },
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.5951239579945894
+          }
+        ],
+        "rms_db": -22.9
+      },
+      {
+        "time": 104.58,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6770833181596054
+          },
+          {
+            "name": "Cm",
+            "numeral": "?4",
+            "score": 0.5882989482133205
+          }
+        ],
+        "rms_db": -22.2
+      },
+      {
+        "time": 106.63,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5832146019657645
+          },
+          {
+            "name": "F#",
+            "numeral": "VII",
+            "score": 0.6920743571644465
+          }
+        ],
+        "rms_db": -23.0
+      },
+      {
+        "time": 108.65,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5851753594899425
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.5698252301517477
+          }
+        ],
+        "rms_db": -22.5
+      },
+      {
+        "time": 110.69,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.6652513432880462
+          },
+          {
+            "name": "F#m",
+            "numeral": "vii",
+            "score": 0.6030318125245316
+          }
+        ],
+        "rms_db": -22.6
+      },
+      {
+        "time": 112.73,
+        "chords": [
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6757566633569636
+          },
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.5670811418659747
+          }
+        ],
+        "rms_db": -19.1
+      },
+      {
+        "time": 114.75,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6017744072062502
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6681120460791472
+          }
+        ],
+        "rms_db": -21.3
+      },
+      {
+        "time": 116.77,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.644921004431869
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6094289601251848
+          }
+        ],
+        "rms_db": -20.0
+      },
+      {
+        "time": 118.79,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6694708644113203
+          },
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6360990038130241
+          }
+        ],
+        "rms_db": -21.7
+      },
+      {
+        "time": 120.81,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.677187348309
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6116264973589403
+          }
+        ],
+        "rms_db": -19.7
+      },
+      {
+        "time": 122.81,
+        "chords": [
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.5831645882299814
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.657782310933779
+          }
+        ],
+        "rms_db": -21.2
+      },
+      {
+        "time": 124.83,
+        "chords": [
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.628387434445814
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.5950015289483925
+          }
+        ],
+        "rms_db": -19.4
+      },
+      {
+        "time": 126.85,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6782531343079348
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6550469543278444
+          }
+        ],
+        "rms_db": -21.5
+      },
+      {
+        "time": 128.87,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6485541411481301
+          },
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5607376514642561
+          }
+        ],
+        "rms_db": -20.1
+      },
+      {
+        "time": 130.87,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.6102666092775646
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.7015968106135816
+          }
+        ],
+        "rms_db": -21.1
+      },
+      {
+        "time": 132.89,
+        "chords": [
+          {
+            "name": "B",
+            "numeral": "III",
+            "score": 0.6485622728210358
+          },
+          {
+            "name": "A",
+            "numeral": "?1",
+            "score": 0.5447868382117186
+          }
+        ],
+        "rms_db": -19.5
+      },
+      {
+        "time": 134.91,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6381076020215606
+          },
+          {
+            "name": "A",
+            "numeral": "?1",
+            "score": 0.6069219298416784
+          }
+        ],
+        "rms_db": -19.6
+      },
+      {
+        "time": 136.93,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6549692415878
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6064934064692122
+          }
+        ],
+        "rms_db": -19.2
+      },
+      {
+        "time": 138.95,
+        "chords": [
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6711930106258097
+          },
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6670501206511354
+          }
+        ],
+        "rms_db": -19.3
+      },
+      {
+        "time": 140.95,
+        "chords": [
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6331586185222767
+          },
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6305766781626886
+          }
+        ],
+        "rms_db": -19.2
+      },
+      {
+        "time": 142.97,
+        "chords": [
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.5776922802628431
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6559064050479222
+          }
+        ],
+        "rms_db": -21.4
+      },
+      {
+        "time": 144.96,
+        "chords": [
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6384309268100787
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.5995134429238314
+          }
+        ],
+        "rms_db": -21.6
+      },
+      {
+        "time": 146.98,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6444190907377232
+          },
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6681316884113696
+          }
+        ],
+        "rms_db": -21.4
+      },
+      {
+        "time": 149.0,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6767447721425806
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6376912406317264
+          }
+        ],
+        "rms_db": -21.1
+      },
+      {
+        "time": 151.02,
+        "chords": [
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.560781179598785
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6567910126376246
+          }
+        ],
+        "rms_db": -21.3
+      },
+      {
+        "time": 153.02,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6216614751511385
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6005266651575186
+          }
+        ],
+        "rms_db": -21.3
+      },
+      {
+        "time": 155.04,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6364838727337123
+          },
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6797285118816393
+          }
+        ],
+        "rms_db": -21.3
+      },
+      {
+        "time": 157.06,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6944905298191824
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6508003776287964
+          }
+        ],
+        "rms_db": -19.9
+      },
+      {
+        "time": 159.08,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.6432755485771895
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.6958750892382568
+          }
+        ],
+        "rms_db": -21.9
+      },
+      {
+        "time": 161.1,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.6323389024718433
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6210605682079028
+          }
+        ],
+        "rms_db": -20.6
+      },
+      {
+        "time": 163.1,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5928822452504038
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6113765115757192
+          }
+        ],
+        "rms_db": -21.6
+      },
+      {
+        "time": 165.12,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6298036797573218
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.624862520032649
+          }
+        ],
+        "rms_db": -20.8
+      },
+      {
+        "time": 167.14,
+        "chords": [
+          {
+            "name": "Bbm",
+            "numeral": "ii",
+            "score": 0.6156380923955023
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6470525330081844
+          }
+        ],
+        "rms_db": -22.2
+      },
+      {
+        "time": 169.16,
+        "chords": [
+          {
+            "name": "Bbm",
+            "numeral": "ii",
+            "score": 0.6888031430511066
+          },
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.5698102260310127
+          }
+        ],
+        "rms_db": -21.3
+      },
+      {
+        "time": 171.18,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5993213222829028
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6775761291169937
+          }
+        ],
+        "rms_db": -21.0
+      },
+      {
+        "time": 173.2,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6252780327284662
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6187786036828347
+          }
+        ],
+        "rms_db": -19.7
+      },
+      {
+        "time": 175.22,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.666459042768839
+          },
+          {
+            "name": "Ab",
+            "numeral": "I",
+            "score": 0.6111621235722371
+          }
+        ],
+        "rms_db": -21.3
+      },
+      {
+        "time": 177.24,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6536515395201825
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.593031631187024
+          }
+        ],
+        "rms_db": -19.6
+      },
+      {
+        "time": 179.26,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5700255772035187
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6557885668442442
+          }
+        ],
+        "rms_db": -20.9
+      },
+      {
+        "time": 181.25,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6492771100280579
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.5978218654836043
+          }
+        ],
+        "rms_db": -19.4
+      },
+      {
+        "time": 183.28,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6574582045572827
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6067356040045486
+          }
+        ],
+        "rms_db": -21.8
+      },
+      {
+        "time": 185.3,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6738232120693509
+          },
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.5649269748701867
+          }
+        ],
+        "rms_db": -20.3
+      },
+      {
+        "time": 187.29,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.6100081365541752
+          },
+          {
+            "name": "E",
+            "numeral": "VI",
+            "score": 0.7112542735174329
+          }
+        ],
+        "rms_db": -21.1
+      },
+      {
+        "time": 189.31,
+        "chords": [
+          {
+            "name": "B",
+            "numeral": "III",
+            "score": 0.6213777271357033
+          },
+          {
+            "name": "B",
+            "numeral": "III",
+            "score": 0.587775973091608
+          }
+        ],
+        "rms_db": -19.5
+      },
+      {
+        "time": 191.33,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6202330875940688
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5869889692612562
+          }
+        ],
+        "rms_db": -20.0
+      },
+      {
+        "time": 193.35,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.614644836181988
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.641637640178139
+          }
+        ],
+        "rms_db": -19.2
+      },
+      {
+        "time": 195.37,
+        "chords": [
+          {
+            "name": "Bbm",
+            "numeral": "ii",
+            "score": 0.6671024554663694
+          },
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6318075844905745
+          }
+        ],
+        "rms_db": -19.3
+      },
+      {
+        "time": 197.39,
+        "chords": [
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6160875765364774
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6180822206364114
+          }
+        ],
+        "rms_db": -19.4
+      },
+      {
+        "time": 199.39,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5961223932153135
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6776723591762615
+          }
+        ],
+        "rms_db": -21.6
+      },
+      {
+        "time": 201.41,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6145684931946126
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6165409370380317
+          }
+        ],
+        "rms_db": -20.2
+      },
+      {
+        "time": 203.43,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6484966431153427
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6807719002533577
+          }
+        ],
+        "rms_db": -21.2
+      },
+      {
+        "time": 205.43,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6709669895931759
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.5692121888577782
+          }
+        ],
+        "rms_db": -19.2
+      },
+      {
+        "time": 207.45,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6069600500189838
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.665549558575908
+          }
+        ],
+        "rms_db": -19.9
+      },
+      {
+        "time": 209.47,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.677184624593318
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.6039013567822887
+          }
+        ],
+        "rms_db": -19.0
+      },
+      {
+        "time": 211.49,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6655154292341888
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6985566425909379
+          }
+        ],
+        "rms_db": -21.1
+      },
+      {
+        "time": 213.48,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.7079162849483305
+          },
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.580758655167244
+          }
+        ],
+        "rms_db": -19.6
+      },
+      {
+        "time": 215.5,
+        "chords": [
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.6326781629708078
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.6707852822304632
+          }
+        ],
+        "rms_db": -21.3
+      },
+      {
+        "time": 217.52,
+        "chords": [
+          {
+            "name": "B",
+            "numeral": "III",
+            "score": 0.6476211856313661
+          },
+          {
+            "name": "Abm",
+            "numeral": "i",
+            "score": 0.5780495251801367
+          }
+        ],
+        "rms_db": -19.3
+      },
+      {
+        "time": 219.54,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6432723195925114
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6000630413794815
+          }
+        ],
+        "rms_db": -20.2
+      },
+      {
+        "time": 221.54,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.642830603962351
+          },
+          {
+            "name": "Eb",
+            "numeral": "V",
+            "score": 0.5968773164118286
+          }
+        ],
+        "rms_db": -19.0
+      },
+      {
+        "time": 223.56,
+        "chords": [
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6895456437356636
+          },
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.670383174952698
+          }
+        ],
+        "rms_db": -19.0
+      },
+      {
+        "time": 225.58,
+        "chords": [
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6392169832610628
+          },
+          {
+            "name": "Bb",
+            "numeral": "II",
+            "score": 0.6278079224866308
+          }
+        ],
+        "rms_db": -19.4
+      },
+      {
+        "time": 227.6,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.5879438368733112
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6964032453408862
+          }
+        ],
+        "rms_db": -22.8
+      },
+      {
+        "time": 229.6,
+        "chords": [
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6304702085114224
+          },
+          {
+            "name": "Ebm",
+            "numeral": "v",
+            "score": 0.6026069720893572
+          }
+        ],
+        "rms_db": -26.6
+      },
+      {
+        "time": 231.62,
+        "chords": [
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6813117091222088
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.6584413553908754
+          }
+        ],
+        "rms_db": -31.6
+      },
+      {
+        "time": 233.64,
+        "chords": [
+          {
+            "name": "C#m",
+            "numeral": "iv",
+            "score": 0.6752049885615329
+          },
+          {
+            "name": "C#",
+            "numeral": "IV",
+            "score": 0.5931056136208083
+          }
+        ],
+        "rms_db": -31.6
+      }
+    ]
+  }
+]
