@@ -323,7 +323,7 @@ TF     (G1)  G1   G1   -    G1   -    G1   -    G1   -    G1   -    G1   A1   - 
 ## 6. You Came in depth (measured)
 
 Both versions were separated into drums, bass, "other" and vocals with Demucs (htdemucs; the stems
-stay local in `inspiration/stems/`). The grid is a straight line through the drum stem's beats:
+stay local in `inspiration/stems/you-came/`). The grid is a straight line through the drum stem's beats:
 119.01 BPM for the album version and 119.00 for the 12″, 9–10 ms of scatter, so the track runs
 off a machine clock. Bar 1 of a section is where the bass changes root; the snare confirms 2
 and 4. Timestamps below are in the album version unless marked 12″.
