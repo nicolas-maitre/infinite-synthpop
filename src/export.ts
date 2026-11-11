@@ -5,7 +5,7 @@
  */
 import { arrangeBar, type DrumVoice, type MelodicTrack } from "./arranger";
 import type { Song } from "./composer";
-import type { Track } from "./instruments";
+import type { LeadPatch, Track } from "./instruments";
 
 const TICKS_PER_BEAT = 480;
 const TICKS_PER_16TH = TICKS_PER_BEAT / 4;
@@ -172,6 +172,8 @@ export interface AudioExportOptions {
   master: number;
   muted: readonly Track[];
   soloed: readonly Track[];
+  /** The Lead setting. */
+  leadPatch: LeadPatch;
   /** 0–1 across rendering, then encoding. */
   onProgress?: (fraction: number, stage: "rendering" | "encoding") => void;
 }
@@ -186,6 +188,7 @@ export async function exportAudio(
   const audio = await renderSong(song, song.totalBars, options.soloed, options.muted, {
     volumes: options.volumes,
     master: options.master,
+    leadPatch: options.leadPatch,
     onProgress: (f) => options.onProgress?.(f, "rendering"),
   });
   if (format === "wav") return encodeWav(audio);

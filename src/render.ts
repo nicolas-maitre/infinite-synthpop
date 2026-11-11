@@ -7,11 +7,13 @@ import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./composer";
 import { bassTone, genreAt, GENRES, isStyleWeights } from "./genres";
 import { scheduleBar } from "./schedule";
-import { Instruments, type Track } from "./instruments";
+import { Instruments, type LeadPatch, type Track } from "./instruments";
 
 /** Mixer levels (dB) to render with, and a progress callback (0–1). */
 export interface RenderOptions {
   volumes?: Partial<Record<Track, number>>;
+  /** The sung lead's sound (the Lead setting); the voice by default. */
+  leadPatch?: LeadPatch;
   master?: number;
   onProgress?: (fraction: number) => void;
 }
@@ -76,6 +78,7 @@ export async function renderSong(
     inst.channels[track].volume.value = db;
   }
   if (options.master !== undefined) inst.master.volume.value = options.master;
+  inst.setLeadPatch(options.leadPatch ?? "voice");
   const scheduleWindow = (from: number) => {
     options.onProgress?.(from / bars);
     const to = Math.min(bars, from + WINDOW_BARS);
@@ -134,6 +137,7 @@ export interface RenderExtras {
   imported?: ImportedTracks;
   /** File name suffix. */
   tag?: string;
+  leadPatch?: LeadPatch;
 }
 
 /** Dev only: renders a song and saves it to renders/ through the Vite dev server. */
@@ -146,7 +150,9 @@ export async function renderToDisk(
   const song = compose(opts);
   if (extras.imported) song.imported = extras.imported;
   const started = performance.now();
-  const audio = await renderSong(song, bars, solo, extras.mute);
+  const audio = await renderSong(song, bars, solo, extras.mute, {
+    ...(extras.leadPatch ? { leadPatch: extras.leadPatch } : {}),
+  });
   const stem = solo.length ? `-solo-${solo.join("+")}` : "";
   // A song a legacy style describes keeps its old name; others name their weights (TF-DS-YC %).
   const blend = isStyleWeights(GENRES[song.genre], song.weights, song.style)

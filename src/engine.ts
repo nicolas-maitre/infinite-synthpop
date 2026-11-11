@@ -13,7 +13,7 @@ import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
 import { newSongId, type Creation, type SongSpec } from "./spec";
-import { Instruments, type Track } from "./instruments";
+import { Instruments, type LeadPatch, type Track } from "./instruments";
 import { LATENCY, LITE, LITE_SAMPLE_RATE } from "./quality";
 import { createRng } from "./rng";
 import type { Key } from "./theory";
@@ -58,6 +58,7 @@ export class Engine {
   private repeatId: number | null = null;
   /** Set while one of the originals plays; cleared when the next generated song starts. */
   private reference: ReferenceId | null = null;
+  private leadPatch: LeadPatch = "voice";
   /** Set while a creation (creator mode) plays; it loops until another song is chosen. */
   private custom: Creation | null = null;
   /** Creator mode: the section being edited plays on repeat. */
@@ -297,6 +298,12 @@ export class Engine {
    * Settings changes recompose the current song in place from the same seed. Key, tempo and kit keep
    * the form; the weights can reshape it, so the play position is clamped into the new song.
    */
+  /** The sung lead's sound (the Lead setting). It changes no song, so it applies right away. */
+  setLeadPatch(patch: LeadPatch): void {
+    this.leadPatch = patch;
+    this.instruments?.setLeadPatch(patch);
+  }
+
   update(settings: Partial<EngineSettings>): void {
     this.settings = { ...this.settings, ...settings };
     this.song = this.compose(this.song.seed);
@@ -335,6 +342,7 @@ export class Engine {
    * plays (the others are disconnected). */
   private applySong(inst: Instruments): void {
     inst.drums.use(this.effectiveKit());
+    inst.setLeadPatch(this.leadPatch);
     const genre = GENRES[this.song.genre];
     inst.setBassTone(bassTone(genre, this.song.weights));
     const profile = genreAt(genre, this.song.weights);

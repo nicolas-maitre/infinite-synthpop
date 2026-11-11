@@ -207,7 +207,8 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   }
 
   // Faces' held line comes in halfway through an instrumental (its 9th bar; faces.md §10.2).
-  if (L.held && !L.lead && barInSection >= 8) notes.lead = heldLine(key, slots);
+  // On the lead-synth track: the voice only sings.
+  if (L.held && !L.lead && barInSection >= 8) notes.synth = heldLine(key, slots);
   if (L.lead) {
     const melody = song.sectionMelodies[sectionIndex] ?? song.melodies[L.lead];
     const lead = melody.bars[barInSection % melody.bars.length] ?? [];
@@ -556,7 +557,8 @@ function pluckedCountervoice(key: Key, slots: readonly ChordSlot[], rng: Rng): N
     const tones = notesInRange(chordPitchClasses(key, slot.chord), 67, 76).reverse();
     const midi = tones[Math.min(i, tones.length - 1)] ?? tones[0];
     if (midi === undefined) continue;
-    out.push({ step, dur: 1.6, midi, vel: step % 4 === 2 ? 0.8 : 0.6 });
+    // Each note rings on for most of a bar (the envelope fades it), overlapping the next.
+    out.push({ step, dur: 8, midi, vel: step % 4 === 2 ? 0.8 : 0.6 });
     // Down through the tones, once per off-beat; a beat repeats its neighbour.
     if (step % 4 === 2) i = (i + 1) % Math.max(1, tones.length);
   }

@@ -101,6 +101,65 @@ const SENDS: Record<Track, { reverb: number; delay: number }> = {
   synth: { reverb: 0.15, delay: 0 },
 };
 
+/**
+ * The sung lead's sound (setLeadPatch, the Lead setting):
+ * - "voice": one saw through three vowel formants that move from note to note (a line moves
+ *   through vowels the way words do), a breath of noise, a little glide, and a vibrato that sets
+ *   in after the attack, slower and wider than the synth's (The Night's singer: 3.7 Hz, ±15–20
+ *   cents);
+ * - "synth": the original lead, portamento and a constant 5.2 Hz vibrato on two detuned saws.
+ */
+export type LeadPatch = "voice" | "synth";
+export const LEAD_PATCHES: readonly LeadPatch[] = ["voice", "synth"];
+
+interface LeadSettings {
+  oscillator: Tone.OmniOscillatorOptions;
+  portamento: number;
+  /** The unshaped synth's share, and the formant bank's. */
+  dry: number;
+  formants: number;
+  breath: number;
+  vibratoHz: number;
+  /** Vibrato depth once it has set in (Tone.Vibrato's 0–1: 0.73 / Hz is about ±20 cents). */
+  vibratoDepth: number;
+  /** Whether the vibrato waits for the attack. */
+  vibratoDelay: boolean;
+}
+
+const LEAD_SETTINGS: Record<LeadPatch, LeadSettings> = {
+  voice: {
+    oscillator: { type: "sawtooth" } as Tone.OmniOscillatorOptions,
+    portamento: 0.06,
+    // Level-matched to the synth lead (a solo render measured it 4.9 LU louder at 0.15 and 1).
+    dry: 0.085,
+    formants: 0.57,
+    breath: 0.07,
+    vibratoHz: 4.2,
+    vibratoDepth: 0.17,
+    vibratoDelay: true,
+  },
+  synth: {
+    oscillator: { type: "fatsawtooth", count: 2, spread: 14 } as Tone.OmniOscillatorOptions,
+    portamento: 0.045,
+    dry: 1,
+    formants: 0,
+    breath: 0,
+    vibratoHz: 5.2,
+    vibratoDepth: 0.07,
+    vibratoDelay: false,
+  },
+};
+
+/** Vowel formants F1–F3 (Hz) of a high voice: "ah", "oh", "eh", "ee"-ish and "aw". A note takes
+ * one, so a line moves through vowels the way words do. */
+const VOWELS: readonly (readonly [number, number, number])[] = [
+  [800, 1150, 2900],
+  [500, 900, 2800],
+  [600, 1750, 2700],
+  [420, 2000, 2850],
+  [650, 1000, 2700],
+];
+
 export interface InstrumentOptions {
   /** Lighter voices and effects, for phones (quality.ts). Offline renders always use the full set. */
   lite?: boolean;
@@ -136,9 +195,21 @@ export class Instruments {
   private readonly riffSaw: NativeSynth;
   private readonly lead: Tone.MonoSynth;
   private readonly leadOct: Tone.MonoSynth;
+  /** The sung lead's voice: vibrato, formants and breath (setLeadPatch). */
+  private readonly leadVoice: {
+    vibrato: Tone.Vibrato;
+    dry: Tone.Gain;
+    formants: Tone.Gain;
+    bands: Tone.Filter[];
+    breath: Tone.NoiseSynth;
+    breathLevel: Tone.Gain;
+  };
+  private leadSettings: LeadSettings = LEAD_SETTINGS.synth;
   private readonly counter: NativeFMSynth;
   /** The Night's plucked chorus countervoice, on the counter track (see setVoices). */
   private readonly counterPluck: NativeMonoSynth;
+  /** …and its electric-piano layer. */
+  private readonly counterPluckEp: NativeFMSynth;
   /** The Night's bright saw for its two-note riff, on the riff track (see setVoices). */
   private readonly riffPlain: NativeSynth;
   /** The Night's lead synth. */
@@ -378,10 +449,27 @@ export class Instruments {
       envelope: { attack: 0.002, decay: 0.18, sustain: 0.15, release: 0.2 },
     }).chain(riffFilter, this.channels.riff);
 
-    // Lead "voice": portamento + vibrato on detuned saws.
+    // The lead: portamento + vibrato on detuned saws ("synth"), or one saw shaped by three vowel
+    // formants with a breath of noise ("voice"; setLeadPatch).
     const vibrato = new Tone.Vibrato({ frequency: 5.2, depth: 0.07 });
     const leadFilter = new FixedFilter("lowpass", 4500);
     vibrato.chain(leadFilter, this.channels.lead);
+    const leadIn = new Tone.Gain(1);
+    const leadDry = new Tone.Gain(1).connect(vibrato);
+    // The bank loses level to its narrow bands: made up here, so the patches sit level.
+    const leadFormants = new Tone.Gain(0).connect(vibrato);
+    const bands = [800, 1150, 2900].map((f, i) => {
+      const band = new Tone.Filter({ type: "bandpass", frequency: f, Q: [5, 8, 10][i] ?? 8 });
+      leadIn.chain(band, new Tone.Gain([2.6, 1.6, 0.9][i] ?? 1), leadFormants);
+      return band;
+    });
+    leadIn.connect(leadDry);
+    const breathLevel = new Tone.Gain(0);
+    const breath = new Tone.NoiseSynth({
+      noise: { type: "pink" },
+      envelope: { attack: 0.03, decay: 0.2, sustain: 0.5, release: 0.2 },
+    }).chain(breathLevel, leadIn);
+    this.leadVoice = { vibrato, dry: leadDry, formants: leadFormants, bands, breath, breathLevel };
     const leadOptions: ConstructorParameters<typeof Tone.MonoSynth>[0] = {
       portamento: 0.045,
       oscillator: { type: "fatsawtooth", count: 2, spread: 14 } as Tone.OmniOscillatorOptions,
@@ -396,8 +484,8 @@ export class Instruments {
         octaves: 2.2,
       },
     };
-    this.lead = new Tone.MonoSynth(leadOptions).connect(vibrato);
-    this.leadOct = new Tone.MonoSynth(leadOptions).connect(vibrato);
+    this.lead = new Tone.MonoSynth(leadOptions).connect(leadIn);
+    this.leadOct = new Tone.MonoSynth(leadOptions).connect(leadIn);
 
     // TF's chorus counter-line (MIDI "Synth Lead"): a plucked electric-piano tone. Measured on
     // Demucs "other" stems of chorus 1 (record and our render alike), its held notes strike hard
@@ -417,24 +505,37 @@ export class Instruments {
       maxPolyphony: lite ? 2 : 4,
     }).connect(this.channels.counter);
 
-    // The Night's chorus countervoice (the-night.md §10.2): a saw darkened above about 2 kHz (h2
-    // −3 dB … h5 −19), plucked: −13 dB at 120 ms, gone within the 8th. Heavy reverb, no delay: an
-    // extra send of its own, on top of the counter track's.
+    // The Night's chorus countervoice (the-night.md §10.2, found by ear, clips 20–22): an open saw
+    // pluck, bright and ringing for most of a bar, layered at equal loudness with TF's FM electric
+    // piano, both with a softened 12 ms attack, under heavy reverb (an extra send on top of the
+    // counter track's, about 0.65 in all) and no delay.
+    const nightCounter = new Tone.Gain(1);
+    nightCounter.fan(this.channels.counter, new Tone.Gain(0.2).connect(reverb));
     this.counterPluck = new NativeMonoSynth({
       oscillator: { type: "sawtooth" },
-      filter: { type: "lowpass", rolloff: -24, Q: 2 },
-      envelope: { attack: 0.002, decay: 0.5, sustain: 0, release: 0.15 },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.8 },
+      envelope: { attack: 0.012, decay: 1.4, sustain: 0.05, release: 0.35 },
       filterEnvelope: {
         attack: 0.002,
         decay: 0.12,
         sustain: 0.3,
         release: 0.15,
-        baseFrequency: 1500,
-        octaves: 1,
+        baseFrequency: 5000,
+        octaves: 0.5,
       },
-      volume: -2,
-    });
-    this.counterPluck.fan(this.channels.counter, new Tone.Gain(0.35).connect(reverb));
+      maxPolyphony: lite ? 3 : 6,
+      volume: -9,
+    }).connect(nightCounter);
+    this.counterPluckEp = new NativeFMSynth({
+      harmonicity: 1,
+      modulationIndex: 1.6,
+      oscillator: { type: "sine", partials: [1, 0.56, 0.28, 0.14, 0.08, 0.056, 0.018, 0.016] },
+      modulation: { type: "sine" },
+      envelope: { attack: 0.012, decay: 7.3, sustain: 0.15, release: 0.35 },
+      modulationEnvelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 0.2 },
+      volume: 0,
+      maxPolyphony: lite ? 3 : 6,
+    }).connect(nightCounter);
 
     // Get Closer's chorus countervoice (get-closer.md §10): soft and nearly sine-like (h2 and h3
     // about 18 dB down), rising in about 30 ms and settling 8–10 dB down; near-mono, no effects.
@@ -636,8 +737,10 @@ export class Instruments {
           this.hook.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
       case "lead":
-        for (const n of notes)
+        for (const n of notes) {
           this.lead.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+          this.voiceNote(n, at(n), len(n));
+        }
         break;
       case "leadOct":
         for (const n of notes) {
@@ -651,7 +754,11 @@ export class Instruments {
             : this.voices.countervoice === "arp8"
               ? this.counterSoft
               : this.counter;
-        for (const n of notes) voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+        for (const n of notes) {
+          voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+          if (voice === this.counterPluck)
+            this.counterPluckEp.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+        }
         break;
       }
       case "riff":
@@ -756,6 +863,38 @@ export class Instruments {
     if (stab.delay) stab.delay.gain.value = pluck ? 0 : SENDS.stab.delay;
   }
 
+  /** Picks the sung lead's sound (LeadPatch). */
+  setLeadPatch(patch: LeadPatch): void {
+    const s = (this.leadSettings = LEAD_SETTINGS[patch]);
+    for (const synth of [this.lead, this.leadOct]) {
+      synth.oscillator.set(s.oscillator as never);
+      synth.portamento = s.portamento;
+    }
+    const v = this.leadVoice;
+    v.dry.gain.value = s.dry;
+    v.formants.gain.value = s.formants;
+    v.breathLevel.gain.value = s.breath;
+    v.vibrato.frequency.value = s.vibratoHz;
+    v.vibrato.depth.value = s.vibratoDepth;
+  }
+
+  /** A sung note's vowel, breath and vibrato onset. */
+  private voiceNote(n: Note, time: number, duration: number): void {
+    const s = this.leadSettings;
+    if (s.formants === 0) return;
+    const vowel = VOWELS[(n.midi * 7 + Math.round(n.step) * 3) % VOWELS.length];
+    this.leadVoice.bands.forEach((band, i) =>
+      band.frequency.linearRampToValueAtTime(vowel?.[i] ?? 1000, time + 0.06),
+    );
+    if (s.breath > 0) this.leadVoice.breath.triggerAttackRelease(duration, time, n.vel);
+    if (s.vibratoDelay) {
+      const depth = this.leadVoice.vibrato.depth;
+      depth.cancelScheduledValues(time);
+      depth.setValueAtTime(0, time);
+      depth.linearRampToValueAtTime(s.vibratoDepth, time + Math.min(0.4, duration * 0.6));
+    }
+  }
+
   /** Sets the dotted-8th echoes to the song's tempo. */
   setTempo(bpm: number): void {
     for (const t of this.echoTimes) t.value = (0.75 * 60) / bpm;
@@ -784,6 +923,7 @@ export class Instruments {
       this.arp,
       this.counter,
       this.counterPluck,
+      this.counterPluckEp,
       this.counterSoft,
       this.riffPlain,
       this.riffPulse,

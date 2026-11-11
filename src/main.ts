@@ -5,9 +5,11 @@ import { KIT_LABELS } from "./drums";
 import { Engine, type EngineSettings } from "./engine";
 import {
   DEFAULT_VOLUMES,
+  LEAD_PATCHES,
   PREVIOUS_DEFAULT_VOLUMES,
   TRACK_LABELS,
   TRACKS,
+  type LeadPatch,
   type Track,
 } from "./instruments";
 import { matchTracks, mergeBars, parseMidi, toDrumBars, type MidiFile } from "./midi";
@@ -67,6 +69,8 @@ interface Prefs {
   autoplay: boolean;
   /** Switch songs, sections and bars right away instead of at the next bar line. */
   instant: boolean;
+  /** The sung lead's sound: a formant voice, or the original lead synth. */
+  lead: LeadPatch;
 }
 
 const PREFS_KEY = "infinite-synthpop:prefs:v1";
@@ -99,6 +103,7 @@ const defaults: Prefs = {
   master: 0,
   autoplay: false,
   instant: false,
+  lead: "voice",
 };
 
 function loadPrefs(): Prefs {
@@ -119,7 +124,8 @@ function loadPrefs(): Prefs {
     for (const [t, old] of Object.entries(PREVIOUS_DEFAULT_VOLUMES) as [Track, number][]) {
       if (volumes[t] === old) volumes[t] = DEFAULT_VOLUMES[t];
     }
-    return { ...defaults, ...p, volumes, genre, weights };
+    const lead = LEAD_PATCHES.find((l) => l === p.lead) ?? defaults.lead;
+    return { ...defaults, ...p, volumes, genre, weights, lead };
   } catch {
     return defaults;
   }
@@ -429,6 +435,7 @@ async function exportSong(format: string): Promise<void> {
       master: prefs.master,
       muted: prefs.muted,
       soloed: [...soloed],
+      leadPatch: prefs.lead,
       onProgress: (f, stage) => {
         exportStatus.textContent = `${stage === "rendering" ? "Rendering" : "Encoding"} ${Math.round(f * 100)}%`;
       },
@@ -792,6 +799,15 @@ switchMode.addEventListener("change", () => {
   savePrefs();
   engine.setInstant(prefs.instant);
   renderCue(engine.cuedBar);
+});
+
+const leadSelect = el<HTMLSelectElement>("lead-sound");
+leadSelect.value = prefs.lead;
+engine.setLeadPatch(prefs.lead);
+leadSelect.addEventListener("change", () => {
+  prefs.lead = LEAD_PATCHES.find((l) => l === leadSelect.value) ?? "voice";
+  savePrefs();
+  engine.setLeadPatch(prefs.lead);
 });
 
 // Lite or full sound is set up when the page loads (quality.ts), so a change reloads the page.

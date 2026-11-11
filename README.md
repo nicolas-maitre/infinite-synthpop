@@ -51,6 +51,10 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   scrubber over the song's length that jumps to the bar. Seek forward and back skip by section.
   Browsers only offer these to pages playing a media element, so a silent `<audio>` loop plays
   alongside the music; the sound itself stays on Web Audio.
+- **Lead** picks the melody's sound: **voice**, a sung-style lead (a saw through vowel formants
+  that change from note to note, a breath of noise, a vibrato that sets in after the attack), or
+  **synth**, the original lead synth. Instrumental lines stay on the genre's own lead synth (the
+  Lead synth track).
 - **Performance** picks the full sound or **lite**: lighter voices and effects, a lower sample
   rate and 30 fps drawing, so phones play without breaking up. **auto** (the default) uses lite on
   touch devices and machines with 4 cores or fewer. The choice is kept per device, and changing it

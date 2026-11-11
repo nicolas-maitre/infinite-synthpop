@@ -924,8 +924,8 @@ describe("italo genre", () => {
     const intro = song.sections.find((s) => s.label === "Intro · groove");
     if (!intro) throw new Error("no groove intro");
     // The held line comes in at the instrumental's 9th bar.
-    expect(arrangeBar(song, intro.startBar).notes.lead).toEqual([]);
-    const line = arrangeBar(song, intro.startBar + 8).notes.lead;
+    expect(arrangeBar(song, intro.startBar).notes.synth).toEqual([]);
+    const line = arrangeBar(song, intro.startBar + 8).notes.synth;
     expect(line.length).toBeGreaterThan(0);
     expect(line.every((n) => n.midi >= 60 && n.midi <= 69)).toBe(true);
     // The chorus voice sits higher than the verse's.
