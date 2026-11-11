@@ -764,9 +764,9 @@ export const GENRES: Record<GenreId, Genre> = {
       level: { by: { [TF]: 0.5, [DS]: 1.5, [YC]: 3 } },
       low: { by: { [TF]: 3, [DS]: 2, [YC]: 1 } },
       mid: { by: { [TF]: 2, [DS]: 5, [YC]: 7 } },
-      high: { by: { [TF]: 8, [DS]: 6, [YC]: 12 } },
-      air: { by: { [TF]: 10, [DS]: 10, [YC]: 7 } },
-      width: { by: { [TF]: 0.6, [DS]: 0.65, [YC]: 0.7 } },
+      high: { by: { [TF]: 8, [DS]: 6, [YC]: 13 } },
+      air: { by: { [TF]: 12, [DS]: 13, [YC]: 7 } },
+      width: { by: { [TF]: 0.45, [DS]: 0.55, [YC]: 0.58 } },
     },
     bassTone: {
       frequency: { base: 240, by: { [DS]: -80, [YC]: -60 } },
@@ -897,12 +897,12 @@ export const GENRES: Record<GenreId, Genre> = {
     // The Night's voice is the brightest in the presence band and the widest (a long, wide
     // reverb); Get Closer's narrow and dark up top; Faces' thin low down and airy.
     leadTone: {
-      level: { by: { [TN]: -2.5, [FC]: 1 } },
+      level: { by: { [TN]: -4, [FC]: 1 } },
       low: { by: { [TN]: 1, [GC]: 1, [FC]: -3 } },
       mid: { by: { [TN]: 11, [GC]: 5, [FC]: 4.5 } },
-      high: { by: { [TN]: 15, [GC]: 10, [FC]: 4 } },
-      air: { by: { [TN]: 6, [GC]: 4, [FC]: 10 } },
-      width: { by: { [TN]: 1.1, [GC]: 0.35, [FC]: 0.5 } },
+      high: { by: { [TN]: 17, [GC]: 11, [FC]: 4 } },
+      air: { by: { [TN]: 6, [GC]: 4, [FC]: 14 } },
+      width: { by: { [TN]: 1.1, [GC]: 0.28, [FC]: 0.42 } },
     },
     bassTone: {
       frequency: { base: 160, by: { [FC]: 100 } },
