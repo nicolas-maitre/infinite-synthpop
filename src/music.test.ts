@@ -445,15 +445,15 @@ describe("references", () => {
     expect(faces.sections.filter((s) => s.layers.bassHeld).map((s) => s.label)).toEqual([
       "Verse 1",
     ]);
-    // No bass in the breakdown; the held line in the instrumentals from their 9th bar.
+    // No bass in the breakdown; the plucked arpeggio in the instrumentals from their 9th bar.
     for (const s of faces.sections.filter((s) => s.kind === "break")) {
       expect(s.layers.bass).toBe(false);
       expect(arrangeBar(faces, s.startBar).notes.bass).toEqual([]);
     }
     const instrumental = faces.sections.find((s) => s.label === "Instrumental 1");
     if (!instrumental) throw new Error("no Instrumental 1");
-    expect(arrangeBar(faces, instrumental.startBar + 7).notes.synth).toEqual([]);
-    expect(arrangeBar(faces, instrumental.startBar + 8).notes.synth.length).toBeGreaterThan(0);
+    expect(arrangeBar(faces, instrumental.startBar + 7).notes.arp).toEqual([]);
+    expect(arrangeBar(faces, instrumental.startBar + 8).notes.arp).toHaveLength(8);
   });
 
   it("plays You Came's bass: the pushed tonic, the ii's octaves and the v's walk", () => {
@@ -1006,10 +1006,12 @@ describe("italo genre", () => {
     if (!verse || !chorus) throw new Error("no verse or chorus");
     const v = arrangeBar(song, verse.startBar);
     expect(v.notes.pad).toEqual([]);
-    // The stab: close three-note chords on every 8th in the verse, the "&"s only in the chorus.
+    // The stab: close three-note chords on every 8th in the verse, and in the chorus the held
+    // chorus stab, also on every 8th.
     expect(new Set(v.notes.stab.map((n) => n.step))).toEqual(new Set([0, 2, 4, 6, 8, 10, 12, 14]));
     const c = arrangeBar(song, chorus.startBar);
-    expect(new Set(c.notes.stab.map((n) => n.step))).toEqual(new Set([2, 6, 10, 14]));
+    const c0 = c;
+    expect(new Set(c.notes.stab.map((n) => n.step))).toEqual(new Set([0, 2, 4, 6, 8, 10, 12, 14]));
     // The chorus pads: open, the root in octave 3 (A3 E4 A4 on A).
     const pad = c.notes.pad.map((n) => n.midi).sort((a, b) => a - b);
     expect(pad).toHaveLength(3);
@@ -1018,11 +1020,16 @@ describe("italo genre", () => {
     expect((pad[2] ?? 0) - (pad[0] ?? 0)).toBeGreaterThanOrEqual(12);
     const intro = song.sections.find((s) => s.label === "Intro · groove");
     if (!intro) throw new Error("no groove intro");
-    // The held line comes in at the instrumental's 9th bar.
-    expect(arrangeBar(song, intro.startBar).notes.synth).toEqual([]);
-    const line = arrangeBar(song, intro.startBar + 8).notes.synth;
-    expect(line.length).toBeGreaterThan(0);
-    expect(line.every((n) => n.midi >= 60 && n.midi <= 69)).toBe(true);
+    // The plucked arpeggio comes in at the instrumental's 9th bar: root, octave, 5th on 8ths.
+    expect(arrangeBar(song, intro.startBar).notes.arp).toEqual([]);
+    const arp = arrangeBar(song, intro.startBar + 8).notes.arp;
+    expect(arp.map((n) => n.step)).toEqual([0, 2, 4, 6, 8, 10, 12, 14]);
+    const [root = 0, octave = 0, fifth = 0] = arp.map((n) => n.midi);
+    expect([octave - root, fifth - root]).toEqual([12, 7]);
+    // The chorus has its own held stab, every 8th, low and open.
+    const chorusStab = c0.notes.stab;
+    expect(chorusStab.every((n) => n.alt)).toBe(true);
+    expect(Math.min(...chorusStab.map((n) => n.midi))).toBeLessThan(57);
     // The chorus voice sits higher than the verse's.
     const mean = (m: { bars: { midi: number }[][] }) => {
       const all = m.bars.flat().map((n) => n.midi);

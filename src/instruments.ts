@@ -270,6 +270,10 @@ export class Instruments {
   private readonly echoTimes: Tone.Param<"time">[] = [];
   /** Faces' plucked stab, on the stab track (see setVoices). */
   private readonly stabPluck: NativeMonoSynth;
+  /** Faces' chorus stab, held and open, for the stab notes marked `alt`. */
+  private readonly stabHeld: NativeMonoSynth;
+  /** Faces' arpeggio, a softer copy of its pluck, on the arp track. */
+  private readonly arpPluck: NativeMonoSynth;
   /** Each track's sends to the reverb and the shared delay, so a voice can change them. */
   private readonly sends = {} as Record<Track, { reverb?: Tone.Gain; delay?: Tone.Gain }>;
   private voices: Voices = SYNTHPOP_VOICES;
@@ -706,6 +710,51 @@ export class Instruments {
       maxPolyphony: lite ? 6 : 8,
       volume: ARP_STAB_GAIN_DB - 2,
     }).connect(pluckBus);
+    // Faces' chorus stab (faces.md §10.3): held through the 8th, bright, darkening slowly; and its
+    // arpeggio (§10.4), a softer, darker copy of the pluck. Both through the pluck's EQ, chorus and
+    // echo.
+    this.stabHeld = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -24, Q: 0 },
+      envelope: { attack: 0.003, decay: 0.6, decayCurve: "linear", sustain: 0, release: 0.03 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.25,
+        sustain: 0,
+        release: 0.05,
+        baseFrequency: 3000,
+        octaves: 1.5,
+      },
+      maxPolyphony: lite ? 8 : 12,
+      volume: ARP_STAB_GAIN_DB - 6,
+    }).connect(pluckBus);
+    const arpBus = new Tone.Gain(1);
+    arpBus.connect(this.channels.arp);
+    this.arpPluck = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -24, Q: 2 },
+      envelope: { attack: 0.003, decay: 0.4, sustain: 0.3, release: 0.05 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.15,
+        sustain: 0,
+        release: 0.05,
+        baseFrequency: 1400,
+        octaves: 2,
+      },
+      maxPolyphony: 3,
+      volume: -4,
+    });
+    this.arpPluck.chain(
+      new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.6, wet: 0.5 }).start(),
+      arpBus,
+    );
+    this.arpPluck.chain(
+      new Tone.FeedbackDelay({ delayTime: 0.3, feedback: 0.35, wet: 1 }),
+      new Tone.Panner(1),
+      new Tone.Gain(0.8),
+      arpBus,
+    );
     const stabNoiseFilter = new FixedFilter("bandpass", 2500);
     this.stabNoise = new Tone.NoiseSynth({
       noise: { type: "pink" },
@@ -874,10 +923,11 @@ export class Instruments {
         for (const n of notes)
           this.synth.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
-      case "arp":
-        for (const n of notes)
-          this.arp.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+      case "arp": {
+        const voice = this.voices.arpPatch === "pluck" ? this.arpPluck : this.arp;
+        for (const n of notes) voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
+      }
       case "pad":
         for (const group of byOnset(notes)) {
           const [first] = group;
@@ -896,7 +946,8 @@ export class Instruments {
           if (!first) continue;
           const freqs = group.map((n) => midiToFreq(n.midi));
           if (this.voices.stabPatch === "pluck") {
-            this.stabPluck.triggerAttackRelease(freqs, len(first), at(first), first.vel);
+            const voice = first.alt ? this.stabHeld : this.stabPluck;
+            voice.triggerAttackRelease(freqs, len(first), at(first), first.vel);
             continue;
           }
           this.stab.triggerAttackRelease(freqs, len(first), at(first), first.vel);
@@ -1056,6 +1107,8 @@ export class Instruments {
       this.riffPulse,
       this.synth,
       this.stabPluck,
+      this.stabHeld,
+      this.arpPluck,
     ];
     for (const s of synths) s.releaseAll(time);
   }

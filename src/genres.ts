@@ -97,8 +97,12 @@ export interface Voices {
    * (faces.md §10.3). */
   pad: "close" | "octaves" | "open";
   /** The stabs' sound: the saw brass with a noise burst (synthpop), or Faces' plucked saw with its
-   * 300 ms echo on the right, in close three-note voicings (faces.md §10.1). */
+   * 300 ms echo on the right, in close three-note voicings (faces.md §10.1), and its held, open
+   * chorus stab (§10.3). */
   stabPatch: "brass" | "pluck";
+  /** The arpeggio's sound: the FM bell (synthpop), or a softer copy of Faces' pluck through its
+   * echo (faces.md §10.4). */
+  arpPatch: "bell" | "pluck";
 }
 
 /** Synthpop's parts and sounds, for every genre that doesn't say otherwise. */
@@ -108,6 +112,7 @@ export const SYNTHPOP_VOICES: Voices = {
   countervoice: "none",
   pad: "close",
   stabPatch: "brass",
+  arpPatch: "bell",
 };
 
 /** The Italo planner's odds (composer.ts `planItalo`). */
@@ -836,6 +841,7 @@ export const GENRES: Record<GenreId, Genre> = {
       countervoice: "arp8",
       pad: "close",
       stabPatch: "pluck",
+      arpPatch: "bell",
     },
     voiceTraits: {
       // The two-note intro riff on a bright saw, the countervoice in every chorus, octave pads
@@ -846,6 +852,7 @@ export const GENRES: Record<GenreId, Genre> = {
         countervoice: "pluck8",
         pad: "octaves",
         stabPatch: "pluck",
+        arpPatch: "bell",
       },
       // The echoing pulse hook and the soft chorus arpeggio (get-closer.md §10).
       [GC]: {
@@ -854,6 +861,7 @@ export const GENRES: Record<GenreId, Genre> = {
         countervoice: "arp8",
         pad: "close",
         stabPatch: "pluck",
+        arpPatch: "bell",
       },
       // The plucked stab, open chorus pads, and no countervoice: the high held note in its chorus
       // is the singer's (faces.md §10).
@@ -863,6 +871,7 @@ export const GENRES: Record<GenreId, Genre> = {
         countervoice: "none",
         pad: "open",
         stabPatch: "pluck",
+        arpPatch: "pluck",
       },
     },
     // The verses sit low (Faces C4–E4, Get Closer G3–A4), the choruses a 5th or so higher (Faces

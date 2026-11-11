@@ -91,8 +91,9 @@ export interface Layers {
   /** TF's chorus counter-line: a high, sparse electric-piano line above the vocal (MIDI "Synth
    * Lead"). */
   counter: boolean;
-  /** Faces' verse world (faces.md §7): where nothing sings, a sustained synth line that follows
-   * the chords. Only set when on, so older sections are unchanged. */
+  /** Faces' verse world (faces.md §10.4): its plucked root–octave–5th arpeggio, in the second 8
+   * bars of a 16-bar section and all through a shorter one. Only set when on, so older sections
+   * are unchanged. */
   held?: boolean;
   /** The Night's lead synth (the-night.md §10.1): an instrumental line of its own, on the synth
    * track, in its 12 bars after each intro block. Only set when on. */
@@ -154,6 +155,8 @@ export interface Note {
   dur: number;
   midi: number;
   vel: number;
+  /** Played by the track's other voice: Faces' chorus stab on the stab track. Only set then. */
+  alt?: true;
 }
 
 /** A motif note whose pitch is an index into a per-chord ladder, so it follows the harmony. */

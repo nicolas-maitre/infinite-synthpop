@@ -206,9 +206,9 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     notes.synth = (melody?.bars[barInSection % melody.bars.length] ?? []).map((n) => ({ ...n }));
   }
 
-  // Faces' held line comes in halfway through an instrumental (its 9th bar; faces.md §10.2).
-  // On the lead-synth track: the voice only sings.
-  if (L.held && !L.lead && barInSection >= 8) notes.synth = heldLine(key, slots);
+  // Faces' plucked arpeggio joins for the second 8 bars of a loop section (faces.md §10.4).
+  if (L.held && voices.arpPatch === "pluck" && (section.bars <= 8 || barInSection >= 8))
+    notes.arp = facesArpeggio(key, slots);
   if (L.lead) {
     const melody = song.sectionMelodies[sectionIndex] ?? song.melodies[L.lead];
     const lead = melody.bars[barInSection % melody.bars.length] ?? [];
@@ -729,13 +729,30 @@ function padChords(
   return out;
 }
 
-/** Faces' sustained line in its instrumentals: for each chord, the chord tone nearest the middle
- * of C4–A4, held for the chord, so it moves by the smallest steps the chords allow. */
-function heldLine(key: Key, slots: readonly ChordSlot[]): Note[] {
-  return slots.map((s) => {
-    const tones = notesInRange(chordPitchClasses(key, s.chord), 60, 69);
-    return { step: s.step, dur: s.length - 0.1, midi: closestTo(tones, 65), vel: 0.7 };
-  });
+/**
+ * Faces' intro arpeggio (faces.md §10.4): on 8ths, the chord's root in octave 4, its octave and its
+ * 5th, cycling and starting over at each chord change; a sus chord comes an 8th late, as the stab
+ * does (F4 F5 C5 F4 F5 │ G4 G5 D5 over F–Gsus4).
+ */
+function facesArpeggio(key: Key, slots: readonly ChordSlot[]): Note[] {
+  const out: Note[] = [];
+  let i = 0;
+  let current: ChordSlot | undefined;
+  for (let step = 0; step < 16; step += 2) {
+    let slot = slotAt(slots, step);
+    if (!slot) continue;
+    if (step > 0 && step === slot.step && slot.chord.quality.includes("sus"))
+      slot = slotAt(slots, step - 1) ?? slot;
+    if (slot !== current) {
+      current = slot;
+      i = 0;
+    }
+    const root = nearestWithPc(mod12(key.tonic + slot.chord.root), 65);
+    const midi = [root, root + 12, root + 7][i % 3] ?? root;
+    out.push({ step, dur: 1.8, midi, vel: step % 4 === 2 ? 0.62 : 0.55 });
+    i++;
+  }
+  return out;
 }
 
 function closestTo(notes: readonly number[], target: number): number {
@@ -770,6 +787,7 @@ function intervalsOf(c: Chord): number[] {
  * "&"s are a little louder.
  */
 function pluckedStabs(key: Key, slots: readonly ChordSlot[], chorus: boolean): Note[] {
+  if (chorus) return chorusStabs(key, slots);
   const out: Note[] = [];
   for (let step = chorus ? 2 : 0; step < 16; step += chorus ? 4 : 2) {
     let slot = slotAt(slots, step);
@@ -781,6 +799,34 @@ function pluckedStabs(key: Key, slots: readonly ChordSlot[], chorus: boolean): N
     const notes = pcs.length > 3 ? pcs.slice(1) : pcs;
     for (const midi of voiceChord(notes, chorus ? 62 : 68)) {
       out.push({ step, dur: 1.8, midi, vel: step % 4 === 2 ? 0.62 : 0.5 });
+    }
+  }
+  return out;
+}
+
+/**
+ * Faces' chorus stab (faces.md §10.3): its own sound (held through the 8th, bright), on every 8th,
+ * the "&"s louder, in low open voicings from A2: the root, the 5th, then the 7th and the 3rd (or
+ * 4th) above, or in a triad the octave and the 5th above it (A2 A3 E4 A4, E3 B3 D4 G4, D3 A3 C♯4
+ * F♯4, G3 D4 G4).
+ */
+function chorusStabs(key: Key, slots: readonly ChordSlot[]): Note[] {
+  const out: Note[] = [];
+  for (let step = 0; step < 16; step += 2) {
+    const slot = slotAt(slots, step);
+    if (!slot) continue;
+    const iv = intervalsOf(slot.chord);
+    const root = nearestWithPc(mod12(key.tonic + slot.chord.root), 50);
+    const seventh = iv.find((i) => i === 10 || i === 11);
+    const third = iv[1] ?? 4;
+    const voicing =
+      seventh === undefined
+        ? root < 48
+          ? [root, root + 12, root + 19, root + 24]
+          : [root, root + 7, root + 12]
+        : [root, root + 7, root + seventh, root + 12 + third];
+    for (const midi of voicing) {
+      out.push({ step, dur: 1.7, midi, vel: step % 4 === 2 ? 0.62 : 0.45, alt: true });
     }
   }
   return out;
