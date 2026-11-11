@@ -1,7 +1,8 @@
 /**
  * The originals as songs for the same engine: the measured form, chords per section, key, tempo,
  * drum machine and bass figure (docs/analysis.md §1–§3 and, for You Came, §2 and §6; the Italo
- * records from docs/italo/ and docs/references/branigan-self-control.md; section lengths rounded to whole phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
+ * records from docs/italo/ and docs/references/branigan-self-control.md, the Euro-disco ones from
+ * docs/references/sandra-*.md; section lengths rounded to whole phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
  * the copyrighted compositions, while harmony, form and groove are what the generator studies.
  */
 import type { BassStyle, CustomMelody, KitName, Layers, SectionKind } from "./composer";
@@ -16,7 +17,10 @@ export type ReferenceId =
   | "the-night"
   | "get-closer"
   | "faces"
-  | "self-control";
+  | "self-control"
+  | "innocent-love"
+  | "heaven-can-wait"
+  | "crazy-juliet";
 
 export interface ReferenceSection {
   kind: SectionKind;
@@ -169,6 +173,71 @@ const band = { drums: "full", bass: true, pad: true } as const;
 // the outro on i–v.
 const SC_LOOP: Progression = [["i"], ["v"], ["i"], ["v"], ["VII"], ["iv"], ["VI"], ["III"]];
 const SC_VAMP: Progression = [["i"], ["v"]];
+
+// The three Sandra records (docs/references/sandra-*.md §3–§4), as the Euro-disco genre's bank
+// reads them (genres.ts).
+// Innocent Love, in E♭ minor: the verse over the v pedal, the pre-chorus and its ♭VI–V turn (the
+// turn's last bar a stop), the chorus loop 3½ times round, the late Aeolian bridge.
+const IL_VERSE: Progression = [["v"], ["ii7/v"], ["v"], ["I/v"]];
+const IL_PRE: Progression = [["i"], ["viø7"], ["i"], ["viø7"], ["VI"], ["V"]];
+const IL_LOOP: Progression = [["i"], ["IVsus4", "IV"], ["VII9sus4"], ["III"]];
+const IL_CHORUS: Progression = [...IL_LOOP, ...IL_LOOP, ...IL_LOOP, ["i"], ["IVsus4", "IV"]];
+const IL_BRIDGE: Progression = [
+  ["VI"],
+  ["VI", "VII"],
+  ["i"],
+  ["III"],
+  ["VII"],
+  ["iv"],
+  ["III"],
+  ["i"],
+  ["VI"],
+  ["VI"],
+];
+// Heaven Can Wait, in E♭ minor: the IV⁷ vamp, the pre-chorus over the IV pedal, the 14-bar chorus.
+const HCW_VERSE: Progression = [["IV7"], ["IV7"]];
+const HCW_PRE: Progression = [
+  ["III/IV"],
+  ["VII/IV"],
+  ["IV"],
+  ["IV"],
+  ["III/IV"],
+  ["VII/IV"],
+  ["IV"],
+  ["IV"],
+];
+const HCW_CHORUS: Progression = [
+  ["i"],
+  ["i"],
+  ["VII"],
+  ["VII"],
+  ["i"],
+  ["i"],
+  ["VII"],
+  ["VII"],
+  ["iv"],
+  ["VI"],
+  ["i"],
+  ["i"],
+  ["Vsus4"],
+  ["V"],
+];
+// Crazy Juliet, in C♯ major: the Mixolydian verse, the pre-chorus to IV⁷ (a stop bar), the chorus
+// on the minor v with its 4-bar tag.
+const CJ_VERSE: Progression = [["I"], ["I"], ["I"], ["I"], ["ii"], ["VII"], ["I"], ["I"]];
+const CJ_PRE: Progression = [["iv"], ["IIIadd9"], ["VII"], ["IV7sus4"], ["IV7"]];
+const CJ_CHORUS: Progression = [
+  ["III", "IV"],
+  ["v"],
+  ["III", "IV"],
+  ["v"],
+  ["III", "IV"],
+  ["v"],
+  ["III"],
+  ["ii7"],
+  ["Vsus4"],
+  ["IV/V"],
+];
 
 export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
   // 5:55, about 173 bars (the MIDI transcription's layout; the audio beat count lost bars in the
@@ -987,6 +1056,412 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         bars: 16,
         progression: SC_VAMP,
         layers: { ...band, drums: "big", counter: true, lead: "chorus" },
+      },
+    ],
+  },
+
+  // The album version, 150 bars at 115.18 BPM (sandra-innocent-love.md §4.1): an 8 + 4 + 2 bar
+  // verse unit (the v pedal, the pre-chorus, the turn with its stop on 2), 14-bar choruses each
+  // followed by a 2-bar stop on ♭VII without bass, then the bass's link back; an instrumental block
+  // (link, verse and pre-chorus without the voice), the late bridge ending on a stop, and two
+  // choruses to the fade (32 bars). The intro's B │ D♭ bars carry no voice here (on the record, a
+  // few held notes). Stacked voices and stabs on the bass's rhythm in every chorus.
+  "innocent-love": {
+    title: "Innocent Love",
+    style: 0,
+    key: { tonic: 3, mode: "minor" },
+    bpm: 115.2,
+    kit: "linndrum",
+    bassStyle: "innocent",
+    verse: IL_VERSE,
+    chorus: IL_CHORUS,
+    sections: [
+      {
+        kind: "intro",
+        label: "Intro",
+        bars: 8,
+        progression: [["i"], ["i"], ["v"], ["v"]],
+        layers: { drums: "hats16", pad: true, arp: true },
+      },
+      {
+        kind: "intro",
+        label: "Intro · ♭VI–♭VII",
+        bars: 4,
+        progression: [["VI"], ["VII"]],
+        layers: { drums: "hats16", pad: true, arp: true },
+      },
+      {
+        kind: "intro",
+        label: "Link",
+        bars: 2,
+        progression: [["i7"], ["VII"]],
+        layers: { bass: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 1",
+        bars: 8,
+        progression: IL_VERSE,
+        layers: { ...band, lead: "verse" },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus and turn",
+        bars: 6,
+        progression: IL_PRE,
+        layers: { ...band, lead: "verse", stop: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 1",
+        bars: 14,
+        progression: IL_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", leadStack: true, stabs: true },
+      },
+      {
+        kind: "break",
+        label: "Stop",
+        bars: 2,
+        progression: [["VII"]],
+        layers: { drums: "half", pad: true },
+      },
+      {
+        kind: "intro",
+        label: "Link",
+        bars: 2,
+        progression: [["i7"], ["VII"]],
+        layers: { bass: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 2",
+        bars: 8,
+        progression: IL_VERSE,
+        layers: { ...band, lead: "verse" },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus and turn",
+        bars: 6,
+        progression: IL_PRE,
+        layers: { ...band, lead: "verse", stop: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 2",
+        bars: 14,
+        progression: IL_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", leadStack: true, stabs: true },
+      },
+      {
+        kind: "break",
+        label: "Stop",
+        bars: 2,
+        progression: [["VII"]],
+        layers: { drums: "half", pad: true },
+      },
+      // B♭11 │ E♭maj7 │ B♭11 │ D♭ → E♭, the song's only four-on-the-floor.
+      {
+        kind: "interlude",
+        label: "Instrumental link",
+        bars: 4,
+        progression: [["ii7/v"], ["I"], ["ii7/v"], ["VII", "I"]],
+        layers: { drums: "groove", bass: true, pad: true, leadSynth: true },
+      },
+      {
+        kind: "verse",
+        label: "Instrumental verse",
+        bars: 8,
+        progression: IL_VERSE,
+        layers: { ...band, leadSynth: true },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus and turn",
+        bars: 6,
+        progression: IL_PRE,
+        layers: { ...band, stop: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 3",
+        bars: 14,
+        progression: IL_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", leadStack: true, stabs: true },
+      },
+      {
+        kind: "bridge",
+        label: "Bridge",
+        bars: 10,
+        progression: IL_BRIDGE,
+        layers: {
+          ...band,
+          drums: "big",
+          lead: "chorus",
+          leadStack: true,
+          stabs: true,
+          stop: true,
+        },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 4",
+        bars: 14,
+        progression: IL_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", leadStack: true, stabs: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 5 · fade",
+        bars: 18,
+        progression: IL_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", leadStack: true, stabs: true },
+      },
+    ],
+  },
+  // The album / single version, 4:04 (sandra-heaven-can-wait.md §3), 118 bars. The record runs
+  // two clocks, 117.9 BPM until each chorus and 119.1 from it; the engine has one, between them
+  // (the genre's centre). A solo synth motif opens it, then drums and bass alone; bare verses of
+  // drums, bass and voice; pre-choruses over the IV pedal with pads and the 16th pulse; 14-bar
+  // choruses, the first and last followed by a 2-bar tag on i; an instrumental chorus (its first 12
+  // bars) into a 2-bar break on V without bass; then pads alone, the kit thinning to hats, to the
+  // end.
+  "heaven-can-wait": {
+    title: "Heaven Can Wait",
+    style: 1,
+    key: { tonic: 3, mode: "minor" },
+    bpm: 118.5,
+    kit: "linndrum",
+    bassStyle: "heaven",
+    verse: HCW_VERSE,
+    chorus: HCW_CHORUS,
+    sections: [
+      {
+        kind: "intro",
+        label: "Intro · motif",
+        bars: 4,
+        progression: [["i"]],
+        layers: { riff: true },
+      },
+      {
+        kind: "intro",
+        label: "Groove",
+        bars: 4,
+        progression: HCW_VERSE,
+        layers: { drums: "full", bass: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 1",
+        bars: 8,
+        progression: HCW_VERSE,
+        layers: { drums: "full", bass: true, lead: "verse" },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus",
+        bars: 8,
+        progression: HCW_PRE,
+        layers: { ...band, lead: "verse", arp: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 1",
+        bars: 14,
+        progression: HCW_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", arp: true },
+      },
+      {
+        kind: "chorus",
+        label: "Tag",
+        bars: 2,
+        progression: [["i"]],
+        layers: { ...band, drums: "big", arp: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 2",
+        bars: 8,
+        progression: HCW_VERSE,
+        layers: { drums: "full", bass: true, lead: "verse" },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus",
+        bars: 8,
+        progression: HCW_PRE,
+        layers: { ...band, lead: "verse", arp: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 2",
+        bars: 14,
+        progression: HCW_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", arp: true },
+      },
+      {
+        kind: "chorus",
+        label: "Instrumental chorus",
+        bars: 12,
+        progression: HCW_CHORUS,
+        layers: { ...band, drums: "big", arp: true },
+      },
+      {
+        kind: "break",
+        label: "Break on V",
+        bars: 2,
+        progression: [["V"]],
+        layers: { drums: "full", pad: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 3",
+        bars: 14,
+        progression: HCW_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", arp: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 4",
+        bars: 14,
+        progression: HCW_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", arp: true },
+      },
+      {
+        kind: "chorus",
+        label: "Tag",
+        bars: 2,
+        progression: [["i"]],
+        layers: { ...band, drums: "big", arp: true },
+      },
+      {
+        kind: "outro",
+        label: "Outro · pads",
+        bars: 4,
+        progression: [["VII"], ["VII"], ["i"], ["i"]],
+        layers: { drums: "half", pad: true },
+      },
+    ],
+  },
+  // The album version, 125 bars at 123.0 BPM (sandra-crazy-juliet.md §3), every section start
+  // exact to the bar: the staggered intro over the verse chords, 16-bar verses, 5-bar pre-choruses
+  // ending on a stop bar, then 10-bar choruses back to back to the fade, two of them instrumental on
+  // the bright lead. The fading 6th chorus's 5 bars round to 6 (three passes of the loop). The
+  // verses' 16th figure and the chorus riff play throughout.
+  "crazy-juliet": {
+    title: "Crazy Juliet",
+    style: 0.5,
+    key: { tonic: 1, mode: "major" },
+    bpm: 123,
+    kit: "sp12",
+    bassStyle: "juliet",
+    verse: CJ_VERSE,
+    chorus: CJ_CHORUS,
+    sections: [
+      {
+        kind: "intro",
+        label: "Intro",
+        bars: 4,
+        progression: [["I"]],
+        layers: { pad: true, riff: true },
+      },
+      {
+        kind: "intro",
+        label: "Intro · hats and bass",
+        bars: 2,
+        progression: [["ii"], ["VII"]],
+        layers: { drums: "hats16", bass: true, pad: true, riff: true },
+      },
+      {
+        kind: "intro",
+        label: "Intro · kit",
+        bars: 2,
+        progression: [["I"]],
+        layers: { drums: "full", pad: true, riff: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 1",
+        bars: 16,
+        progression: CJ_VERSE,
+        layers: { ...band, lead: "verse", arp: true },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus",
+        bars: 5,
+        progression: CJ_PRE,
+        layers: { ...band, lead: "verse", arp: true, stop: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 1",
+        bars: 10,
+        progression: CJ_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", riff: true },
+      },
+      {
+        kind: "verse",
+        label: "Verse 2",
+        bars: 16,
+        progression: CJ_VERSE,
+        layers: { ...band, lead: "verse", arp: true },
+      },
+      {
+        kind: "prechorus",
+        label: "Pre-chorus",
+        bars: 5,
+        progression: CJ_PRE,
+        layers: { ...band, lead: "verse", arp: true, stop: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 2",
+        bars: 10,
+        progression: CJ_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", riff: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 3",
+        bars: 10,
+        progression: CJ_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", riff: true },
+      },
+      {
+        kind: "chorus",
+        label: "Instrumental chorus",
+        bars: 10,
+        progression: CJ_CHORUS,
+        layers: { ...band, drums: "big", riff: true, leadSynth: true },
+      },
+      {
+        kind: "chorus",
+        label: "Instrumental chorus",
+        bars: 10,
+        progression: CJ_CHORUS,
+        layers: { ...band, drums: "big", riff: true, leadSynth: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 4",
+        bars: 10,
+        progression: CJ_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", riff: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 5",
+        bars: 10,
+        progression: CJ_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", riff: true },
+      },
+      {
+        kind: "chorus",
+        label: "Chorus 6 · fade",
+        bars: 6,
+        progression: CJ_CHORUS,
+        layers: { ...band, drums: "big", lead: "chorus", riff: true },
       },
     ],
   },

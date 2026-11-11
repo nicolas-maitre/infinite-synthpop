@@ -50,6 +50,10 @@ const REFERENCE_SEEDS: Record<ReferenceId, number> = {
   faces: 1985,
   "get-closer": 1986,
   "self-control": 1983,
+  // Sandra's years are taken too: 1986 and 1988, then the order on their albums.
+  "innocent-love": 19861,
+  "heaven-can-wait": 19881,
+  "crazy-juliet": 19882,
 };
 
 export function nextSeed(seed: number): number {

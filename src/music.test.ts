@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar, MELODIC_TRACKS } from "./arranger";
-import { compose, COUNTER_RANGE, LEAD_RANGES } from "./composer";
+import { compose, COUNTER_RANGE, LEAD_RANGES, type Layers } from "./composer";
 import {
   bassTone,
   genreAt,
@@ -1497,6 +1497,64 @@ describe("euro-disco genre", () => {
   const steps = (hits: readonly { step: number }[]) => hits.map((h) => Math.round(h.step));
   const voice = (hits: readonly { voice: string; step: number }[], v: string) =>
     steps(hits.filter((h) => h.voice === v));
+
+  it.each([
+    // id, key, bpm, kit, bass style, bars, weights
+    ["innocent-love", { tonic: 3, mode: "minor" }, 115.2, "linndrum", "innocent", 150, [1, 0, 0]],
+    ["heaven-can-wait", { tonic: 3, mode: "minor" }, 118.5, "linndrum", "heaven", 118, [0, 1, 0]],
+    ["crazy-juliet", { tonic: 1, mode: "major" }, 123, "sp12", "juliet", 126, [0, 0, 1]],
+  ] as const)(
+    "plays %s in Euro-disco at its measured key, tempo, kit, bass and length",
+    (id, key, bpm, kit, bassStyle, bars, weights) => {
+      const song = compose({ seed: 1988, reference: id, genre: "synthpop", bpm: 130, kit: "dmx" });
+      expect(song.genre).toBe("euro");
+      expect(song.title).toBe(REFERENCES[id].title);
+      expect(song.key).toEqual(key);
+      expect([song.bpm, song.kit, song.bassStyle, song.totalBars]).toEqual([
+        bpm,
+        kit,
+        bassStyle,
+        bars,
+      ]);
+      expect(song.weights).toEqual(weights);
+      expect(song.sections.at(-1)?.fade).toBe(true);
+      for (let bar = 0; bar < song.totalBars; bar++) {
+        const ev = arrangeBar(song, bar);
+        expect(ev.chords.length).toBeGreaterThan(0);
+        for (const track of MELODIC_TRACKS) {
+          for (const n of ev.notes[track]) expect(Number.isFinite(n.midi)).toBe(true);
+        }
+      }
+    },
+  );
+
+  it("lays out the Sandra originals' stops, instrumentals and bare verses", () => {
+    const labels = (id: ReferenceId, keep: (l: Layers) => boolean) =>
+      compose({ seed: 1, reference: id })
+        .sections.filter((s) => keep(s.layers))
+        .map((s) => s.label);
+    // Innocent Love stops before every chorus and at the bridge's end; Crazy Juliet before each
+    // chorus; Heaven Can Wait never.
+    expect(labels("innocent-love", (l) => !!l.stop)).toEqual([
+      ...Array<string>(3).fill("Pre-chorus and turn"),
+      "Bridge",
+    ]);
+    expect(labels("crazy-juliet", (l) => !!l.stop)).toEqual(["Pre-chorus", "Pre-chorus"]);
+    expect(labels("heaven-can-wait", (l) => !!l.stop)).toEqual([]);
+    expect(labels("crazy-juliet", (l) => !!l.leadSynth)).toEqual([
+      "Instrumental chorus",
+      "Instrumental chorus",
+    ]);
+    expect(labels("innocent-love", (l) => !!l.leadSynth)).toEqual([
+      "Instrumental link",
+      "Instrumental verse",
+    ]);
+    // Heaven Can Wait's verses: drums, bass and voice only.
+    expect(labels("heaven-can-wait", (l) => l.lead === "verse" && !l.pad)).toEqual([
+      "Verse 1",
+      "Verse 2",
+    ]);
+  });
   const sectionAt = (song: ReturnType<typeof compose>, label: string) => {
     const s = song.sections.find((x) => x.label === label);
     if (!s) throw new Error(`no ${label}`);

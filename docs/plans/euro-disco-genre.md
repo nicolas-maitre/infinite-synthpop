@@ -136,11 +136,23 @@ The name fits loosely: none of the three is four-on-the-floor. It is the Cretu/S
 11. **Checks**: synthpop and Italo songs and old links byte-identical (`src/snapshot.test.ts`); tests
     for Euro-disco songs, drums, basses and links; offline renders of each corner for an ear check.
 
+## Phase 2: the originals (done)
+
+The three records play as originals (`REFERENCES` in `src/references.ts`, the Originals row,
+`#ref=` links), each at its measured form, chords, key, tempo, kit and bass figure, with
+Euro-disco's parts and sounds at its own corner:
+
+- Innocent Love: 150 bars, the 8 + 6 bar verse unit with its stop, 2-bar stops after the first two
+  choruses, the instrumental block, the bridge, two choruses to the fade.
+- Heaven Can Wait: 118 bars at one tempo (118.5, between its two clocks), the motif intro, bare
+  verses, tags after choruses 1 and 4, the instrumental chorus into the break on V, a pads outro.
+- Crazy Juliet: 126 bars (the fading chorus's 5 bars rounded to 6), the staggered intro, stop
+  bars before each chorus, six choruses after verse 2, two of them on the lead synth.
+
 ## Not in this phase
 
 - **Heaven Can Wait's two clocks** (its choruses 1.1% faster). The engine has one tempo per song;
   a tempo per section is its own change.
-- **Playable originals** of the three songs (`REFERENCES` entries with their measured forms).
 - **Crazy Juliet's low, voice-like synth answer** at each verse phrase's end, and Heaven Can Wait's
   low male second voice in the pre-chorus: specific to their records.
 - **12″ mode (issue #2)**: Heaven Can Wait's 7:38 and Innocent Love's 6:47 extended versions aren't

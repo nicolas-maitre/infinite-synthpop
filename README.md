@@ -109,10 +109,13 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   page) or **WAV**. Audio exports stop playback while they render.
 - **Originals:** play _True Faith_, _The Different Story_ or _You Came_ (album version, E major),
   or the Italo records _The Night_ (Original Mix), _Get Closer_ (the single), _Faces_ (the 12″
-  mix) and _Self Control_ (the single, F♯ minor), through the same engine, at their measured form,
-  chords, key, tempo, drum machine and bass figure, with their genre's parts and sounds. The
-  melodies and riffs stay generated. Links: `#ref=true-faith`, `#ref=different-story`,
-  `#ref=you-came`, `#ref=the-night`, `#ref=get-closer`, `#ref=faces`, `#ref=self-control`.
+  mix) and _Self Control_ (the single, F♯ minor), and the Euro-disco records _Innocent Love_,
+  _Heaven Can Wait_ and _Crazy Juliet_ (the album versions), through the same engine, at their
+  measured form, chords, key, tempo, drum machine and bass figure, with their genre's parts and
+  sounds. The melodies and riffs stay generated. Heaven Can Wait plays at one tempo, 118.5, between
+  the record's two clocks. Links: `#ref=true-faith`, `#ref=different-story`, `#ref=you-came`,
+  `#ref=the-night`, `#ref=get-closer`, `#ref=faces`, `#ref=self-control`, `#ref=innocent-love`,
+  `#ref=heaven-can-wait`, `#ref=crazy-juliet`.
   Generated songs follow when one ends.
 - **Follow MIDI…:** pick a MIDI file to drive the current original. Each mixer row then gets a
   **MIDI** switch (generated ↔ MIDI) and a select for which of the file's tracks it follows.
@@ -145,7 +148,7 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   verse, a 10-bar chorus, instrumental choruses on a lead synth). None of them is
   four-on-the-floor: each plays its own backbeat kick and hat patterns, read from the records hit
   by hit, under a riff bass that rests on the snare's beats, with pre-choruses and choruses back
-  to back. The three records aren't playable as originals yet.
+  to back. All three records also play as originals.
 - **Style:** a point in a triangle whose corners are the three references: _True Faith_ (Dorian
   IV choruses, minor v, a brighter, lower bass, the high 16th sequencer, modulating outro), _The
   Different Story_ (minor iv choruses, major V, Dorian turnaround, chorus fade) and _You Came_
