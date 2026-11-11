@@ -4,7 +4,17 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "public", "node_modules", ".venv", "inspiration", "renders"] },
+  {
+    ignores: [
+      "dist",
+      "public",
+      "node_modules",
+      ".venv",
+      "inspiration",
+      "renders",
+      ".claude/worktrees",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
