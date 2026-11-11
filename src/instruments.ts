@@ -162,7 +162,10 @@ const LEAD_SETTINGS: Record<LeadPatch, LeadSettings> = {
     filterOctaves: 2,
     cutoff: 11000,
     legato: 0.82,
-    air: 0.2,
+    // 16 dB under the 0.2 it was matched at: the breath's noise enters before the high shelf, so
+    // the genres' boosts lifted it into a steady hiss over every note from 2 kHz up, as loud as
+    // the voice's own highs (28 dB under its body; now 42). Chosen by ear (clips 2a, 2e, 2c).
+    air: 0.2 * Tone.dbToGain(-16),
     reverb: 0.22,
     mixed: true,
     portamento: 0.06,
