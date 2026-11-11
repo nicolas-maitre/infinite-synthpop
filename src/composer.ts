@@ -90,6 +90,10 @@ export interface Layers {
   /** TF's chorus counter-line: a high, sparse electric-piano line above the vocal (MIDI "Synth
    * Lead"). */
   counter: boolean;
+  /** Faces' verse world (faces.md §7): the held two-note pedal on the relative major's 1 and 5
+   * (C5 and G4 in A minor) where no pads play, and, where nothing sings, a sustained synth line
+   * that follows the chords. Only set when on, so older sections are unchanged. */
+  held?: boolean;
 }
 
 export interface Section {
@@ -242,6 +246,8 @@ export const LEAD_RANGES: Record<MelodyKind, readonly [number, number]> = {
   verse: [57, 70],
   chorus: [62, 74],
 };
+/** The Night's lead synth, in its instrumentals: F3–C4 on the record, a little room either side. */
+export const LEAD_SYNTH_RANGE = [52, 65] as const;
 /** The counter-line sits above the sung chorus: TF's MIDI keeps it to F5–C6, reaching to A4 and
  * E6. */
 export const COUNTER_RANGE = [74, 86] as const;
@@ -358,15 +364,11 @@ export function compose(opts: ComposeOptions): Song {
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 
   const counter = generateCounter(root.fork("counter-line"), key, progressions.chorus);
+  const leadRanges = genre.leadRanges ?? LEAD_RANGES;
   const rngMotif = root.fork("motifs");
   const melodies: Record<MelodyKind, Melody> = {
-    verse: generateMelody(root.fork("melody-verse"), key, progressions.verse, LEAD_RANGES.verse),
-    chorus: generateMelody(
-      root.fork("melody-chorus"),
-      key,
-      progressions.chorus,
-      LEAD_RANGES.chorus,
-    ),
+    verse: generateMelody(root.fork("melody-verse"), key, progressions.verse, leadRanges.verse),
+    chorus: generateMelody(root.fork("melody-chorus"), key, progressions.chorus, leadRanges.chorus),
   };
 
   return {
@@ -384,13 +386,21 @@ export function compose(opts: ComposeOptions): Song {
     progressions,
     sections,
     totalBars,
-    riff: generateRiff(rngMotif),
+    riff: genre.parts?.riff === "line16" ? generateLine16(rngMotif) : generateRiff(rngMotif),
     riffHigh,
     hook: generateHook(rngMotif),
     arp: generateArp(rngMotif),
     sequence: generateSequence(root.fork("sequence")),
     melodies,
-    sectionMelodies: sectionMelodies(root, sections, key, progressions, melodies, ref?.melodies),
+    sectionMelodies: sectionMelodies(
+      root,
+      sections,
+      key,
+      progressions,
+      melodies,
+      ref?.melodies,
+      leadRanges,
+    ),
     counter,
     sectionCounters: sectionCounters(root, sections, key, progressions.chorus, counter),
   };
@@ -747,8 +757,22 @@ function planItalo(
   const reprise = !short && chance(odds.reprise);
   const breakdown = !short && chance(odds.breakdown);
 
-  const pedalBlock = (label: string) =>
-    add("intro", label, 8, pedal, { drums: "full", bass: true, pad: true, arp: true });
+  // The Night's opening (bars 1–10): pads on the pedal, then the riff alone without pads, then
+  // the verse loop with its 16th arpeggio (and here the lead synth, as the maxi has it).
+  const pedalBlock = (label: string) => {
+    add("intro", label, 4, pedal, { drums: "full", bass: true, pad: true });
+    add("intro", "Intro · riff", 4, pedal, { drums: "full", bass: true, riff: true });
+  };
+  const leadSynth = (label: string, bars: number) =>
+    add("interlude", label, bars, p.verse, {
+      drums: "full",
+      bass: true,
+      pad: true,
+      arp: true,
+      lead: "verse",
+    });
+  // Faces' verse world: stabs and the held pedal instead of pads, which the chorus brings in.
+  const verseWorld: Partial<Layers> = stabs ? { pad: false, held: true } : {};
   const verse = (label: string, bars: number, extra: Partial<Layers> = {}) =>
     add("verse", label, bars, p.verse, {
       drums: "full",
@@ -757,6 +781,7 @@ function planItalo(
       lead: "verse",
       arp: verseArp,
       stabs,
+      ...verseWorld,
       ...extra,
     });
   const chorus = (label: string, extra: Partial<Layers> = {}) =>
@@ -766,49 +791,58 @@ function planItalo(
       pad: true,
       lead: "chorus",
       stabs,
-      arp: rng.chance(0.5),
+      arp: !stabs && rng.chance(0.5),
       ...extra,
     });
+  // Faces' instrumentals keep the verse world, its sustained line on top; the others play the
+  // riff (Get Closer's 16th line).
   const instrumental = (label: string, bars: number) =>
     add("interlude", label, bars, p.verse, {
       drums: "full",
       bass: true,
       pad: true,
-      riff: true,
-      arp: true,
+      riff: !stabs,
+      arp: !stabs,
       stabs,
+      ...verseWorld,
     });
 
   if (opening === "pedal") {
     pedalBlock("Intro · pedal");
-    add("intro", "Intro · riff", 4, pedal, { drums: "full", bass: true, riff: true });
+    if (leadSection) leadSynth("Intro · lead synth", 8);
+    else
+      add("intro", "Intro · loop", 4, p.verse, { drums: "full", bass: true, pad: true, arp: true });
   } else if (opening === "build") {
     add("intro", "Intro · bass and kick", 4, p.verse, { drums: "kick", bass: true });
-    add("intro", "Intro · stabs", 8, p.verse, { drums: "kick", bass: true, stabs: true });
-    add("intro", "Intro · groove", short ? 4 : 8, p.verse, {
+    add("intro", "Intro · stabs", 8, p.verse, {
+      drums: "kick",
+      bass: true,
+      stabs: true,
+      held: true,
+    });
+    add("intro", "Intro · groove", short ? 8 : 16, p.verse, {
       drums: "full",
       bass: true,
-      pad: true,
       stabs: true,
+      held: true,
     });
   } else {
-    add("intro", "Intro · hook", block, p.verse, {
-      drums: "full",
-      bass: true,
-      pad: true,
-      riff: true,
-      arp: true,
-    });
+    // Get Closer: 8 bars of drums, bass and pads, then the hook with its 16th line.
+    add("intro", "Intro", short ? 4 : 8, p.verse, { drums: "full", bass: true, pad: true });
+    add("intro", "Hook", block, p.verse, { drums: "full", bass: true, pad: true, riff: true });
   }
   verse("Verse 1", block, bareFirstVerse ? { bass: false } : {});
+  // The Night: the lead synth takes the 16 bars before every chorus, in place of a second verse.
+  if (leadSection) leadSynth("Lead synth", block);
   chorus("Chorus");
   if (afterChorus) instrumental("Instrumental", 8);
-  if (leadSection) instrumental("Instrumental · lead synth", block);
+  if (leadSection) leadSynth("Lead synth", block);
   else verse("Verse 2", block);
-  chorus("Chorus", { arp: true });
+  chorus("Chorus", { arp: !stabs });
   if (reprise) {
     pedalBlock("Reprise · pedal");
     verse("Verse 3", 8);
+    if (leadSection) leadSynth("Lead synth", 8);
     chorus("Chorus");
   } else if (form === "long") {
     verse("Verse 3", block);
@@ -816,9 +850,9 @@ function planItalo(
   }
   if (breakdown) {
     add("break", "Breakdown", 16, p.interlude, { drums: "full", pad: true, arp: true });
-    instrumental("Instrumental · lead synth", rng.pick([8, 16]));
+    leadSynth("Instrumental · lead synth", rng.pick([8, 16]));
   }
-  chorus("Chorus · last", { leadDouble: true, arp: true });
+  chorus("Chorus · last", { leadDouble: true, arp: !stabs });
   if (ending === "hold") {
     add("outro", "Ending · IV held", 4, [["IV"]], { pad: true });
   } else if (ending === "lift") {
@@ -837,7 +871,8 @@ function planItalo(
       pad: true,
       stabs,
       arp: true,
-      riff: rng.chance(0.5),
+      // Get Closer's outro puts the high line up front.
+      riff: true,
     });
   }
   return placeSections(plan, rng);
@@ -894,6 +929,7 @@ function sectionMelodies(
   progressions: Progressions,
   melodies: Record<MelodyKind, Melody>,
   custom: Record<string, CustomMelody> = {},
+  ranges: Record<MelodyKind, readonly [number, number]> = LEAD_RANGES,
 ): (Melody | null)[] {
   const written = new Map<string, Melody>();
   return sections.map((section) => {
@@ -902,6 +938,22 @@ function sectionMelodies(
     const own = section.melody ? custom[section.melody] : undefined;
     if (own) return customMelody(own, section.key);
     const progression = JSON.stringify(section.progression);
+    // An instrumental with the lead (The Night's lead synth): a line of its own, lower than the
+    // voice (F3–C4 on the record) and answering it rather than repeating the verse.
+    if (section.kind === "interlude") {
+      const id = `synth|${section.key.tonic}${section.key.mode}|${progression}`;
+      let melody = written.get(id);
+      if (!melody) {
+        melody = generateMelody(
+          root.fork(`melody-${id}`),
+          section.key,
+          section.progression,
+          LEAD_SYNTH_RANGE,
+        );
+        written.set(id, melody);
+      }
+      return melody;
+    }
     const sameKey = section.key.tonic === key.tonic && section.key.mode === key.mode;
     if (sameKey && progression === JSON.stringify(progressions[kind])) return melodies[kind];
     const id = `${kind}|${section.key.tonic}${section.key.mode}|${progression}`;
@@ -911,7 +963,7 @@ function sectionMelodies(
         root.fork(`melody-${id}`),
         section.key,
         section.progression,
-        LEAD_RANGES[kind],
+        ranges[kind],
       );
       written.set(id, melody);
     }
@@ -1043,6 +1095,29 @@ function generateRiff(rng: Rng): Motif {
     [0, 1],
   ]);
   return { bars: 2, notes: onsetsToNotes(onsets, 32, 3, (i) => contour[i] ?? 3) };
+}
+
+/**
+ * Get Closer's hook (get-closer.md §7): a 16th-note line through each bar's chord tones, 2 bars,
+ * 8ths in beats 1–2 (an odd one left out) and every 16th in beats 3–4, where it is busiest. Both
+ * bars share the rhythm; the contour walks the chord ladder by steps, so the line runs up and down
+ * the triad. The record's own line is the composition; each song writes its own.
+ *
+ *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *            x  -  x  -  x  -  x  -  x  x  x  x  x  x  x  x   (one of the "&"s of 1–2 may rest)
+ */
+function generateLine16(rng: Rng): Motif {
+  const rest = rng.pick([-1, 2, 4, 6]);
+  const bar = [0, 2, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15].filter((s) => s !== rest);
+  const onsets = [...bar, ...bar.map((s) => s + 16)];
+  const contour = walk(rng, onsets.length, rng.int(1, 3), 0, 5, [
+    [1, 4],
+    [-1, 4],
+    [2, 1],
+    [-2, 1],
+    [0, 1],
+  ]);
+  return { bars: 2, notes: onsetsToNotes(onsets, 32, 2, (i) => contour[i] ?? 2) };
 }
 
 /** Melodic high bass (Peter Hook style): 2 bars; pitches are scale steps above the chord root. */

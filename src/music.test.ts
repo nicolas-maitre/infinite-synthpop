@@ -800,7 +800,7 @@ describe("italo genre", () => {
     expect(tempo(corners[0])).toBeLessThan(113);
     expect(tempo(corners[2])).toBeGreaterThan(118);
     const intros = corners.map((w) => at(w, 7).sections[0]?.label);
-    expect(intros).toEqual(["Intro · pedal", "Intro · hook", "Intro · bass and kick"]);
+    expect(intros).toEqual(["Intro · pedal", "Intro", "Intro · bass and kick"]);
     expect(corners.map((w) => at(w, 3).bassStyle)).toEqual(["night", "italo", "faces"]);
   });
 
@@ -842,6 +842,57 @@ describe("italo genre", () => {
     );
     expect(pcs(bar(3).notes.bass)).toEqual(new Set([mod12(song.key.tonic + 10)]));
     expect(bar(0).notes.bass.map((n) => n.step)).toEqual([0, 2, 4, 6, 8, 10, 12, 14]);
+  });
+
+  it("gives Get Closer its 16th hook line and The Night its lead synth before each chorus", () => {
+    const gc = compose({ seed: 7, genre: "italo", weights: corners[1] });
+    const hook = gc.sections.find((s) => s.label === "Hook");
+    if (!hook) throw new Error("no hook");
+    const line = arrangeBar(gc, hook.startBar).notes.riff;
+    expect(line.filter((n) => n.step >= 8).map((n) => n.step)).toEqual([
+      8, 9, 10, 11, 12, 13, 14, 15,
+    ]);
+    expect(Math.min(...line.map((n) => n.midi))).toBeGreaterThanOrEqual(60);
+
+    const tn = compose({ seed: 7, genre: "italo", weights: corners[0] });
+    const kinds = tn.sections.map((s) => s.label);
+    expect(kinds.slice(0, 7)).toEqual([
+      "Intro · pedal",
+      "Intro · riff",
+      "Intro · lead synth",
+      "Verse 1",
+      "Lead synth",
+      "Chorus",
+      "Lead synth",
+    ]);
+    const synth = tn.sections.findIndex((s) => s.label === "Lead synth");
+    const melody = tn.sectionMelodies[synth];
+    expect(melody).not.toBe(tn.melodies.verse);
+    const pitches = melody?.bars.flat().map((n) => n.midi) ?? [];
+    expect(Math.max(...pitches)).toBeLessThanOrEqual(65);
+  });
+
+  it("keeps Faces' verses to stabs and the held pedal, and brings pads in for the chorus", () => {
+    const song = compose({ seed: 5, genre: "italo", weights: corners[2] });
+    const verse = song.sections.find((s) => s.kind === "verse");
+    const chorus = song.sections.find((s) => s.kind === "chorus");
+    if (!verse || !chorus) throw new Error("no verse or chorus");
+    const v = arrangeBar(song, verse.startBar);
+    expect(v.notes.pad.map((n) => mod12(n.midi)).sort()).toEqual(
+      [3, 10].map((i) => mod12(song.key.tonic + i)).sort(),
+    );
+    expect(arrangeBar(song, chorus.startBar).notes.pad.length).toBeGreaterThan(2);
+    const intro = song.sections.find((s) => s.label === "Intro · groove");
+    if (!intro) throw new Error("no groove intro");
+    const line = arrangeBar(song, intro.startBar).notes.lead;
+    expect(line.length).toBeGreaterThan(0);
+    expect(line.every((n) => n.midi >= 60 && n.midi <= 69)).toBe(true);
+    // The chorus voice sits higher than the verse's.
+    const mean = (m: { bars: { midi: number }[][] }) => {
+      const all = m.bars.flat().map((n) => n.midi);
+      return all.reduce((a, b) => a + b, 0) / all.length;
+    };
+    expect(mean(song.melodies.chorus) - mean(song.melodies.verse)).toBeGreaterThan(4);
   });
 
   it("plays Faces' bass on the beat, then off it, rolling into the next root on 4&", () => {

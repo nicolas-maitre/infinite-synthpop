@@ -93,6 +93,9 @@ export interface PartStyle {
   /** Pads: one close voicing (synthpop), or the triad stacked an octave up too (The Night's pads
    * span C4–A♭6). */
   pad: "close" | "octaves";
+  /** The riff: synthpop's call-and-response motif, or Get Closer's hook, a 16th-note line through
+   * each bar's chord tones in C5–E6, busiest in beats 3–4 (composer.ts `generateLine16`). */
+  riff: "motif" | "line16";
 }
 
 /** The Italo planner's odds (composer.ts `planItalo`). */
@@ -172,6 +175,8 @@ export interface Genre {
   planner: "synthpop" | "italo";
   italo?: ItaloForm;
   parts?: PartStyle;
+  /** Where generated verse and chorus melodies sit, when not composer.ts `LEAD_RANGES`. */
+  leadRanges?: Record<"verse" | "chorus", readonly [number, number]>;
   /** Key tonic (pitch class) → weight, for minor keys. */
   keyWeights: readonly (readonly [number, number])[];
   /** Chance of a major key, and the major tonics' weights. */
@@ -780,7 +785,10 @@ export const GENRES: Record<GenreId, Genre> = {
       bareFirstVerse: { by: { [FC]: 0.7 } },
       afterChorus: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.6 } },
     },
-    parts: { stabs: "gated8", pad: "octaves" },
+    parts: { stabs: "gated8", pad: "octaves", riff: "line16" },
+    // The verses sit low (Faces C4–E4, Get Closer G3–A4), the choruses a 5th or so higher (Faces
+    // C♯4–B4, Get Closer D4–B4, The Night A♭4–E♭5): the lift that sets the chorus apart.
+    leadRanges: { verse: [55, 67], chorus: [63, 76] },
     drums: ITALO_DRUMS,
     drumTraits: {
       // Clap and snare on 2 and 4 throughout, quiet 8th hats opening on the chorus off-beats, not

@@ -207,6 +207,8 @@ interface CompactSection {
   x?: 1;
   /** A second voice a 3rd under the lead (You Came's choruses). */
   ls?: 1;
+  /** Faces' held pedal and line (`held`). */
+  h?: 1;
   st?: 1;
   /** Drum fill at the end: 1 on, 0 off, absent = default. */
   f?: 0 | 1;
@@ -285,6 +287,7 @@ export function encodeCreation({ seed, spec }: Creation): string {
         ...(L.lead ? { ld: L.lead } : {}),
         ...(L.leadDouble ? { x: 1 as const } : {}),
         ...(L.leadStack ? { ls: 1 as const } : {}),
+        ...(L.held ? { h: 1 as const } : {}),
         ...(L.bassShort ? { st: 1 as const } : {}),
         ...(s.fill === undefined ? {} : { f: s.fill ? (1 as const) : (0 as const) }),
         ...(s.melody ? { ml: s.melody } : {}),
@@ -316,6 +319,7 @@ export function decodeCreation(encoded: string): Creation | null {
         leadDouble: s.x === 1,
         // Only when set: old links have no `ls`, and decode as they did.
         ...(s.ls === 1 ? { leadStack: true } : {}),
+        ...(s.h === 1 ? { held: true } : {}),
         bassShort: s.st === 1,
       };
       for (const i of SECTION_INSTRUMENTS) layers[i] = s.on.includes(i);

@@ -156,11 +156,24 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
         )
       : [],
     pad: L.pad
-      ? padChords(key, slots, section.kind === "break" ? 0.75 : 0.55, parts?.pad === "octaves")
-      : [],
-    riff: L.riff
-      ? motifNotes(song.riff, barInSection, key, slots, "chord", song.riffHigh ? 79 : 67, 0.85)
-      : [],
+      ? padChords(
+          key,
+          slots,
+          // Faces' chorus brings sustained pads in over the stabs: louder than verse pads.
+          section.kind === "break" ||
+            (section.kind === "chorus" && L.stabs && parts?.stabs === "gated8")
+            ? 0.75
+            : 0.55,
+          parts?.pad === "octaves",
+        )
+      : L.held
+        ? heldPedal(key)
+        : [],
+    riff: !L.riff
+      ? []
+      : parts?.riff === "line16"
+        ? motifNotes(song.riff, barInSection, key, slots, "chord", 72, 0.95)
+        : motifNotes(song.riff, barInSection, key, slots, "chord", song.riffHigh ? 79 : 67, 0.85),
     lead: [],
     leadOct: [],
     counter: [],
@@ -176,6 +189,7 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     guitar: L.guitar ? guitarStrums(key, slots) : [],
   };
 
+  if (L.held && !L.lead) notes.lead = heldLine(key, slots);
   if (L.lead) {
     const melody = song.sectionMelodies[sectionIndex] ?? song.melodies[L.lead];
     const lead = melody.bars[barInSection % melody.bars.length] ?? [];
@@ -580,6 +594,31 @@ function padChords(key: Key, slots: readonly ChordSlot[], vel: number, octaves =
     }
   }
   return out;
+}
+
+/** Faces' held pedal (§7): the relative major's 1 and 5 above the minor tonic (C5 and G4 in A
+ * minor), held through the bar on the pad track. */
+function heldPedal(key: Key): Note[] {
+  const pcs = key.mode === "minor" ? [3, 10] : [0, 7];
+  return pcs.map((i) => ({
+    step: 0,
+    dur: 15.9,
+    midi: nearestWithPc(mod12(key.tonic + i), i === 3 || i === 0 ? 72 : 67),
+    vel: 0.45,
+  }));
+}
+
+/** Faces' sustained line in its instrumentals: for each chord, the chord tone nearest the middle
+ * of C4–A4, held for the chord, so it moves by the smallest steps the chords allow. */
+function heldLine(key: Key, slots: readonly ChordSlot[]): Note[] {
+  return slots.map((s) => {
+    const tones = notesInRange(chordPitchClasses(key, s.chord), 60, 69);
+    return { step: s.step, dur: s.length - 0.1, midi: closestTo(tones, 65), vel: 0.7 };
+  });
+}
+
+function closestTo(notes: readonly number[], target: number): number {
+  return notes.reduce((a, b) => (Math.abs(b - target) < Math.abs(a - target) ? b : a), target);
 }
 
 /** Faces' gated stabs (§7): the chord on every 8th, cut short, the off-beats a little louder. */
