@@ -5,6 +5,7 @@
  * the copyrighted compositions, while harmony, form and groove are what the generator studies.
  */
 import type { BassStyle, CustomMelody, KitName, Layers, SectionKind } from "./composer";
+import type { GenreId } from "./genres";
 import type { Progression } from "./progressions";
 import type { Key } from "./theory";
 
@@ -34,6 +35,9 @@ export interface ReferenceSong {
    * Unset: its `style`'s, `[1 − style, style, 0]` (creations from before the weights). An
    * original plays with all the weight on itself whatever this says. */
   weights?: readonly number[];
+  /** The genre whose profile a creation plays with (genres.ts). Unset: synthpop (everything made
+   * before genres existed). An original plays in the genre that lists it. */
+  genre?: GenreId;
   key: Key;
   bpm: number;
   kit: KitName;

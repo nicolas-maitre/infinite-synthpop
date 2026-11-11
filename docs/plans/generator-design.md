@@ -59,7 +59,11 @@ main.ts          controls, mixer, section timeline, chord display, visualiser
   profile holds the genre's references (TF, DS, You Came: the style polygon's vertices), tempo range and centre, key
   weights, progression bank and substitutions, kit and bass-figure weights, ending, counter-line
   and section-planner odds, drum details and bass tone. `compose` takes a `genre` (default
-  `synthpop`) and the song records it; specs and share links don't carry it yet. A song has one
+  `synthpop`) and the song records it. A creation plays in its own genre (`genre` in the spec,
+  `g` in links) and an original in the genre that lists it. Synthpop stays implicit everywhere,
+  so links, saves and prefs from before genres read as synthpop and still encode the same. The
+  main UI, the wizard and the creator each have a genre select; switching genre resets the style
+  polygon to its centre, since the new genre has other references. A song has one
   weight per reference, and each style-dependent number is a `Blend`: a base plus what each
   reference adds in proportion to its weight (`0.1 + 0.7 × TF`). That's the form the old
   expressions had, so the output stayed bit-identical (checked by `src/snapshot.test.ts`). The

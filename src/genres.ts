@@ -490,6 +490,22 @@ export const GENRES: Record<GenreId, Genre> = {
   },
 };
 
+/** Every genre, in the order the genre select lists them. */
+export const GENRE_IDS = Object.keys(GENRES) as GenreId[];
+
+/** The genre songs, links and settings fall back to when they name none: everything made before
+ * genres existed is synthpop. */
+export const DEFAULT_GENRE: GenreId = "synthpop";
+
+export function isGenreId(id: unknown): id is GenreId {
+  return typeof id === "string" && Object.hasOwn(GENRES, id);
+}
+
+/** The genre an original belongs to. */
+export function genreOfReference(ref: ReferenceId): GenreId {
+  return GENRE_IDS.find((id) => GENRES[id].references.includes(ref)) ?? DEFAULT_GENRE;
+}
+
 /** One weight per reference, in `genre.references` order, from the legacy scalar `style`: it runs
  * from the first reference to the second; the others get 0. Saved settings and links from before
  * the weights still play this way. */

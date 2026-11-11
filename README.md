@@ -103,6 +103,8 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   but its bars must line up with the original's layout (a True Faith transcription with 4 bars of
   drums before the bass does).
 - **Seed:** every song is reproducible. The URL carries `#seed=…`, so a link replays the same song.
+- **Genre:** which genre generated songs come from. Synthpop is the only one so far; the style
+  control shows the chosen genre's references.
 - **Style:** a point in a triangle whose corners are the three references: _True Faith_ (Dorian
   IV choruses, minor v, a brighter, lower bass, the high 16th sequencer, modulating outro), _The
   Different Story_ (minor iv choruses, major V, Dorian turnaround, chorus fade) and _You Came_

@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar, MELODIC_TRACKS } from "./arranger";
 import { compose, COUNTER_RANGE, LEAD_RANGES } from "./composer";
-import { bassTone, genreAt, GENRES, referenceWeights, specWeights } from "./genres";
+import {
+  bassTone,
+  genreAt,
+  genreOfReference,
+  GENRE_IDS,
+  GENRES,
+  referenceWeights,
+  specWeights,
+} from "./genres";
+import { REFERENCES, type ReferenceId } from "./references";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
 import { Library, LIBRARY_KEY } from "./library";
@@ -629,6 +638,58 @@ describe("creator specs", () => {
     spec.sections[0]!.progression = [["i", "VII"], ["IV"]];
     const decoded = decodeCreation(encodeCreation({ seed: 1, spec }));
     expect(decoded?.spec.sections[0]?.progression).toEqual([["i", "VII"], ["IV"]]);
+  });
+});
+
+describe("genres in links", () => {
+  /** A link's JSON, changed and re-encoded. */
+  const relink = (link: string, change: (json: Record<string, unknown>) => void) => {
+    const json = JSON.parse(
+      new TextDecoder().decode(
+        Uint8Array.from(atob(link.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0)),
+      ),
+    ) as Record<string, unknown>;
+    change(json);
+    const bytes = new TextEncoder().encode(JSON.stringify(json));
+    return btoa(String.fromCharCode(...bytes))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  };
+
+  it("lists every reference in exactly one genre", () => {
+    for (const id of Object.keys(REFERENCES) as ReferenceId[]) {
+      expect(GENRE_IDS.filter((g) => GENRES[g].references.includes(id))).toEqual([
+        genreOfReference(id),
+      ]);
+    }
+  });
+
+  it("leaves synthpop out of links and specs, as before genres", () => {
+    const song = compose({ seed: 5, weights: [0.2, 0.3, 0.5] });
+    expect(song.genre).toBe("synthpop");
+    const spec = songToSpec(song);
+    expect(spec.genre).toBeUndefined();
+    const link = encodeCreation({ seed: 5, spec });
+    expect(relink(link, () => {})).toBe(link);
+    let hasG = true;
+    relink(link, (json) => (hasG = "g" in json));
+    expect(hasG).toBe(false);
+  });
+
+  it("reads a named genre, and refuses one it doesn't know", () => {
+    const link = encodeCreation({ seed: 5, spec: songToSpec(compose({ seed: 5, style: 0.3 })) });
+    const named = decodeCreation(relink(link, (json) => (json.g = "synthpop")));
+    expect(named?.spec.genre).toBeUndefined();
+    expect(compose({ seed: 5, custom: named?.spec }).genre).toBe("synthpop");
+    expect(decodeCreation(relink(link, (json) => (json.g = "italo-from-the-future")))).toBeNull();
+    expect(decodeCreation(relink(link, (json) => (json.g = "toString")))).toBeNull();
+  });
+
+  it("plays a creation in its genre and an original in the one that lists it", () => {
+    expect(compose({ seed: 1, reference: "you-came" }).genre).toBe(genreOfReference("you-came"));
+    const spec = { ...songToSpec(compose({ seed: 2, style: 0.5 })), genre: "synthpop" as const };
+    expect(compose({ seed: 2, custom: spec }).genre).toBe("synthpop");
   });
 });
 

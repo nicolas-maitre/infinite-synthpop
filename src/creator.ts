@@ -7,7 +7,16 @@
 import { LEAD_RANGES, type Layers, type MelodyKind, type SectionKind, type Song } from "./composer";
 import { BlendPad, initials } from "./blendpad";
 import { KIT_LABELS } from "./drums";
-import { GENRES, specWeights, styleOf } from "./genres";
+import {
+  DEFAULT_GENRE,
+  GENRE_IDS,
+  GENRES,
+  isGenreId,
+  specWeights,
+  styleOf,
+  weightsAtPoint,
+} from "./genres";
+import { CENTRE } from "./polygon";
 import { REFERENCES } from "./references";
 import {
   assignMelody,
@@ -702,9 +711,25 @@ export function mountCreator(
       s.bassStyle,
       (v) => update((n) => (n.bassStyle = v === "ds" || v === "yc" ? v : "tf")),
     );
-    // The song's style triangle, small: which reference's drum details, bass tone and riff
+    // The creation's genre: whose references the feel blends (synthpop for everything older).
+    const genreId = s.genre ?? DEFAULT_GENRE;
+    const genrePick = select(
+      GENRE_IDS.map((id) => [id, GENRES[id].name]),
+      genreId,
+      (v) =>
+        update((n) => {
+          if (!isGenreId(v) || v === (n.genre ?? DEFAULT_GENRE)) return;
+          // Synthpop stays implicit, the way links and old saves have it.
+          if (v === DEFAULT_GENRE) delete n.genre;
+          else n.genre = v;
+          // Another genre has other references: its feel starts from the centre.
+          n.weights = weightsAtPoint(GENRES[v], CENTRE);
+          n.style = styleOf(n.weights);
+        }),
+    );
+    // The song's style polygon, small: which reference's drum details, bass tone and riff
     // register the creation plays with (its form and chords are its own).
-    const genre = GENRES.synthpop;
+    const genre = GENRES[genreId];
     const names = genre.references.map((id) => REFERENCES[id].title);
     const feel = new BlendPad({
       names,
@@ -756,6 +781,7 @@ export function mountCreator(
         labelled("Tempo", bpm),
         labelled("Drums", kit),
         labelled("Bass figure", bass),
+        labelled("Genre", genrePick),
         feelField,
       ),
       row("song-settings-row", ...actions),

@@ -26,13 +26,25 @@ import { startVisualizer } from "./visualizer";
 import { mountAudioStats } from "./audiostats";
 import { SHOW_AUDIO_STATS } from "./quality";
 import { BlendPad, initials, weightsSummary } from "./blendpad";
-import { GENRES, isStyleWeights, parseWeights, referenceWeights, weightsAtPoint } from "./genres";
+import {
+  DEFAULT_GENRE,
+  GENRE_IDS,
+  GENRES,
+  isGenreId,
+  isStyleWeights,
+  parseWeights,
+  referenceWeights,
+  weightsAtPoint,
+  type GenreId,
+} from "./genres";
 import { CENTRE } from "./polygon";
 
 // ── Persisted preferences (per browser; everything still works without storage) ─────────────
 
 interface Prefs {
-  /** The synthpop references' weights (genres.ts), set with the style triangle. */
+  /** The genre generated songs come from (genres.ts). */
+  genre: GenreId;
+  /** That genre's references' weights (genres.ts), set with the style polygon. */
   weights: number[];
   styleAuto: boolean;
   bpm: number;
@@ -49,13 +61,25 @@ interface Prefs {
 }
 
 const PREFS_KEY = "infinite-synthpop:prefs:v1";
-const GENRE = GENRES.synthpop;
-/** The style triangle's references, at its vertices. */
-const REF_NAMES = GENRE.references.map((id) => REFERENCES[id].title);
-const REF_SHORT = initials(REF_NAMES);
+/** A genre's references, as named at its style polygon's vertices. */
+function refNames(genre: GenreId): string[] {
+  return GENRES[genre].references.map((id) => REFERENCES[id].title);
+}
+
+/** "TF 30 · DS 30 · YC 40" for a genre's weights. */
+function weightsLabel(genre: GenreId, weights: readonly number[]): string {
+  const names = refNames(genre);
+  return weightsSummary(names, initials(names), weights);
+}
+
+/** A genre's style polygon at its centre: an equal mix of its references. */
+function centreWeights(genre: GenreId): number[] {
+  return weightsAtPoint(GENRES[genre], CENTRE);
+}
 
 const defaults: Prefs = {
-  weights: weightsAtPoint(GENRE, CENTRE),
+  genre: DEFAULT_GENRE,
+  weights: centreWeights(DEFAULT_GENRE),
   styleAuto: true,
   bpm: 118,
   bpmAuto: true,
@@ -73,18 +97,20 @@ function loadPrefs(): Prefs {
     const raw = localStorage.getItem(PREFS_KEY);
     if (!raw) return defaults;
     const p = JSON.parse(raw) as Partial<Prefs> & { style?: unknown };
+    // Saved before genres: synthpop.
+    const genre = isGenreId(p.genre) ? p.genre : DEFAULT_GENRE;
     const volumes = { ...defaults.volumes, ...p.volumes };
     // Saved before the triangle: only a style, which plays as [1 − style, style, 0].
     const style = typeof p.style === "number" ? Math.min(1, Math.max(0, p.style)) : null;
     const weights =
-      parseWeights(GENRE, p.weights) ??
-      (style === null ? defaults.weights : [...referenceWeights(GENRE, style)]);
+      parseWeights(GENRES[genre], p.weights) ??
+      (style === null ? centreWeights(genre) : [...referenceWeights(GENRES[genre], style)]);
     delete p.style;
     // Faders left at an old default follow the new one.
     for (const [t, old] of Object.entries(PREVIOUS_DEFAULT_VOLUMES) as [Track, number][]) {
       if (volumes[t] === old) volumes[t] = DEFAULT_VOLUMES[t];
     }
-    return { ...defaults, ...p, volumes, weights };
+    return { ...defaults, ...p, volumes, genre, weights };
   } catch {
     return defaults;
   }
@@ -132,6 +158,7 @@ const ui = {
   bpmAuto: el<HTMLInputElement>("bpm-auto"),
   key: el<HTMLSelectElement>("key"),
   kit: el<HTMLSelectElement>("kit"),
+  genre: el<HTMLSelectElement>("genre"),
   kitStatus: el("kit-status"),
   mixer: el("mixer-rows"),
   mixerReset: el<HTMLButtonElement>("mixer-reset"),
@@ -179,9 +206,11 @@ function songOrigin(song: Song): string {
   const style = isStyleWeights(GENRES[song.genre], song.weights, song.style)
     ? String(song.style)
     : `w${song.weights.join(",")}`;
+  // Synthpop songs keep the form they had before genres.
+  const genre = song.genre === DEFAULT_GENRE ? "" : `${song.genre}/`;
   return song.reference
     ? `ref:${song.reference}`
-    : `seed:${song.seed}/${style}/${song.key.tonic}/${song.bpm}/${song.kit}`;
+    : `seed:${song.seed}/${genre}${style}/${song.key.tonic}/${song.bpm}/${song.kit}`;
 }
 
 /** The library entry for what's playing, if it has one. */
@@ -429,6 +458,7 @@ function isReferenceId(id: string | null | undefined): id is ReferenceId {
 
 function engineSettings(): EngineSettings {
   return {
+    genre: prefs.genre,
     weights: prefs.styleAuto ? null : prefs.weights,
     key: prefs.key === null ? null : { tonic: prefs.key, mode: "minor" },
     bpm: prefs.bpmAuto ? null : prefs.bpm,
@@ -536,12 +566,12 @@ function renderSong(song: Song): void {
     ...(engine.creation ? ["your creation (loops)"] : []),
   ].join(" · ");
   ui.seed.value = String(song.seed);
-  if (prefs.styleAuto) {
-    // Auto: the pad shows where this song's point landed.
+  // Auto: the pad shows where this song's point landed (when the song is from the pad's genre).
+  if (prefs.styleAuto && song.genre === prefs.genre) {
     stylePad.setWeights(song.weights);
     ui.styleOut.value = song.reference
       ? REFERENCES[song.reference].title
-      : weightsSummary(REF_NAMES, REF_SHORT, song.weights);
+      : weightsLabel(song.genre, song.weights);
   }
   if (prefs.bpmAuto) {
     ui.bpm.value = String(song.bpm);
@@ -832,22 +862,46 @@ function renderKitStatus(): void {
 
 // ── Controls ──────────────────────────────────────────────────────────────────────────────────
 
-const stylePad = new BlendPad({
-  names: REF_NAMES,
-  weights: prefs.weights,
-  label: "Style",
-  onInput: (w) => (ui.styleOut.value = weightsSummary(REF_NAMES, REF_SHORT, w)),
-  onChange: (w) => {
-    ui.styleOut.value = weightsSummary(REF_NAMES, REF_SHORT, w);
-    prefs.weights = w;
-    savePrefs();
-    engine.update({ weights: prefs.weights });
-  },
+for (const id of GENRE_IDS) ui.genre.append(new Option(GENRES[id].name, id));
+ui.genre.value = prefs.genre;
+ui.genre.addEventListener("change", () => {
+  if (!isGenreId(ui.genre.value)) return;
+  prefs.genre = ui.genre.value;
+  // Another genre has other references: its polygon starts from the centre.
+  prefs.weights = centreWeights(prefs.genre);
+  stylePad = newStylePad();
+  showStylePad();
+  savePrefs();
+  engine.update({ genre: prefs.genre, weights: prefs.styleAuto ? null : prefs.weights });
 });
-ui.stylePad.append(stylePad.element);
+
+/** The style polygon for the chosen genre: a triangle for synthpop, a slider for two references. */
+function newStylePad(): BlendPad {
+  const genre = prefs.genre;
+  return new BlendPad({
+    names: refNames(genre),
+    weights: prefs.weights,
+    label: "Style",
+    onInput: (w) => (ui.styleOut.value = weightsLabel(genre, w)),
+    onChange: (w) => {
+      ui.styleOut.value = weightsLabel(genre, w);
+      prefs.weights = w;
+      savePrefs();
+      engine.update({ weights: prefs.weights });
+    },
+  });
+}
+
+/** Shows the style polygon in place of the one before. */
+function showStylePad(): void {
+  ui.stylePad.replaceChildren(stylePad.element);
+  stylePad.disabled = prefs.styleAuto;
+  ui.styleOut.value = prefs.styleAuto ? "" : weightsLabel(prefs.genre, prefs.weights);
+}
+
+let stylePad = newStylePad();
+showStylePad();
 ui.styleAuto.checked = prefs.styleAuto;
-stylePad.disabled = prefs.styleAuto;
-if (!prefs.styleAuto) ui.styleOut.value = weightsSummary(REF_NAMES, REF_SHORT, prefs.weights);
 ui.styleAuto.addEventListener("change", () => {
   prefs.styleAuto = ui.styleAuto.checked;
   // Overriding starts from the point the pad shows (the current song's).

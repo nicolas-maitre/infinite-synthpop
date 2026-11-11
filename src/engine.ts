@@ -8,7 +8,7 @@ import { AudioContext as StandardAudioContext } from "standardized-audio-context
 import * as Tone from "tone";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents } from "./arranger";
 import type { SampleReport } from "./drums";
-import { bassTone, genreAt, GENRES } from "./genres";
+import { bassTone, genreAt, GENRES, type GenreId } from "./genres";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
@@ -19,6 +19,8 @@ import { createRng } from "./rng";
 import type { Key } from "./theory";
 
 export interface EngineSettings {
+  /** The genre generated songs come from (genres.ts). Originals and creations keep their own. */
+  genre: GenreId;
   /** The genre's references' weights (genres.ts); null = a random point of its polygon per song. */
   weights: readonly number[] | null;
   /** null = pick per song. */

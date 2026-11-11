@@ -7,6 +7,9 @@
  * A spec carries the genre's references' weights (`w` in links). Creations from before the weights
  * carry only the scalar style (`st`), which plays as `[1 − st, st, 0]`, exactly as it did; a
  * creation whose weights say no more than that is still written that way.
+ *
+ * A spec also names its genre (`g` in links), whose references the weights are for. Links without
+ * one are synthpop, which is all there was before genres; synthpop creations still leave it out.
  */
 import type {
   BassStyle,
@@ -21,7 +24,7 @@ import type {
 import type { Progression } from "./progressions";
 import type { ReferenceSection, ReferenceSong } from "./references";
 import { chord, type Key, type Mode } from "./theory";
-import { GENRES, isStyleWeights, parseWeights } from "./genres";
+import { DEFAULT_GENRE, GENRES, isGenreId, isStyleWeights, parseWeights } from "./genres";
 
 export type SongSpec = ReferenceSong;
 export type SectionSpec = ReferenceSection;
@@ -129,6 +132,8 @@ export function songToSpec(song: Song): SongSpec {
     title: song.title,
     style: song.style,
     weights: [...song.weights],
+    // Synthpop stays implicit, the way links and old saves have it.
+    ...(song.genre !== DEFAULT_GENRE ? { genre: song.genre } : {}),
     key: { ...song.key },
     bpm: song.bpm,
     kit: song.kit,
@@ -218,6 +223,8 @@ interface CompactCreation {
   st: number;
   /** The references' weights (genres.ts), when they differ from `st`'s. */
   w?: number[];
+  /** The genre (genres.ts), when it isn't synthpop. */
+  g?: string;
   key: [number, Mode];
   bpm: number;
   kit: KitName;
@@ -231,15 +238,17 @@ interface CompactCreation {
 }
 
 export function encodeCreation({ seed, spec }: Creation): string {
+  const genre = spec.genre ?? DEFAULT_GENRE;
   const compact: CompactCreation = {
     v: 1,
     seed,
     t: spec.title,
     st: Math.round(spec.style * 100) / 100,
     // Written as they are: the UI rounds them to hundredths, which JSON keeps short and exact.
-    ...(spec.weights && !isStyleWeights(GENRES.synthpop, spec.weights, spec.style)
+    ...(spec.weights && !isStyleWeights(GENRES[genre], spec.weights, spec.style)
       ? { w: [...spec.weights] }
       : {}),
+    ...(genre !== DEFAULT_GENRE ? { g: genre } : {}),
     key: [spec.key.tonic, spec.key.mode],
     bpm: spec.bpm,
     kit: spec.kit,
@@ -295,6 +304,9 @@ export function decodeCreation(encoded: string): Creation | null {
     const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
     const c = JSON.parse(new TextDecoder().decode(bytes)) as CompactCreation;
     if (c.v !== 1 || !Array.isArray(c.s) || c.s.length === 0) return null;
+    // A genre this version doesn't know can't play as it was made.
+    if (c.g !== undefined && !isGenreId(c.g)) return null;
+    const genre = c.g ?? DEFAULT_GENRE;
     const key = toKey(c.key) ?? { tonic: 2, mode: "minor" };
     const sections: SectionSpec[] = c.s.map((s) => {
       const layers: Partial<Layers> = {
@@ -319,13 +331,14 @@ export function decodeCreation(encoded: string): Creation | null {
       };
     });
     const first = (kind: SectionKind) => sections.find((s) => s.kind === kind)?.progression;
-    const weights = c.w === undefined ? null : parseWeights(GENRES.synthpop, c.w);
+    const weights = c.w === undefined ? null : parseWeights(GENRES[genre], c.w);
     return {
       seed: clampInt(c.seed, 0, 999_999),
       spec: {
         title: String(c.t || "Untitled").slice(0, 60),
         style: Math.min(1, Math.max(0, Number(c.st) || 0)),
         ...(weights ? { weights } : {}),
+        ...(genre !== DEFAULT_GENRE ? { genre } : {}),
         key,
         bpm: Math.min(160, Math.max(60, Number(c.bpm) || 118.5)),
         kit: KITS.includes(c.kit) ? c.kit : "sp12",

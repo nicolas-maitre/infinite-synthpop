@@ -14,12 +14,16 @@ import {
 import { BlendPad, initials, weightsSummary } from "./blendpad";
 import { KIT_LABELS } from "./drums";
 import {
+  DEFAULT_GENRE,
+  GENRE_IDS,
   GENRES,
+  isGenreId,
   parseWeights,
   referenceWeights,
   styleOf,
   weightOf,
   weightsAtPoint,
+  type GenreId,
 } from "./genres";
 import { CENTRE } from "./polygon";
 import { REFERENCES } from "./references";
@@ -30,7 +34,9 @@ import { chord, chordName, keyName, type Key } from "./theory";
 
 export interface WizardChoices {
   title: string;
-  /** The references' weights (genres.ts), set with the style triangle. */
+  /** The genre the song is generated in (genres.ts). */
+  genre: GenreId;
+  /** That genre's references' weights (genres.ts), set with the style polygon. */
   weights: number[];
   /** The generator picks a point per song (the triangle keeps the last fixed one). */
   styleAuto: boolean;
@@ -46,28 +52,35 @@ export interface WizardChoices {
 }
 
 const STORE_KEY = "infinite-synthpop:wizard:v1";
-/** The wizard generates synthpop in minor keys; picking a genre (and a major key) comes later. */
+/** The wizard generates in minor keys; picking a major key comes later. */
 const minorOnly = (entries: readonly BankEntry[]) =>
   entries.filter((e) => (e.mode ?? "minor") === "minor");
-const GENRE = GENRES.synthpop;
-const BANK = {
-  verse: minorOnly(GENRE.bank.verse),
-  chorus: minorOnly(GENRE.bank.chorus),
-};
-const NAMES = GENRE.references.map((id) => REFERENCES[id].title);
-const SHORT = initials(NAMES);
 
-function defaults(): WizardChoices {
+/** A genre's verse and chorus presets. */
+function bankOf(genre: GenreId): Record<"verse" | "chorus", BankEntry[]> {
+  const { bank } = GENRES[genre];
+  return { verse: minorOnly(bank.verse), chorus: minorOnly(bank.chorus) };
+}
+
+/** "TF 30 · DS 30 · YC 40" for a genre's weights. */
+function weightsLabel(genre: GenreId, weights: readonly number[]): string {
+  const names = GENRES[genre].references.map((id) => REFERENCES[id].title);
+  return weightsSummary(names, initials(names), weights);
+}
+
+function defaults(genre: GenreId = DEFAULT_GENRE): WizardChoices {
+  const bank = bankOf(genre);
   return {
     title: "",
-    weights: weightsAtPoint(GENRE, CENTRE),
+    genre,
+    weights: weightsAtPoint(GENRES[genre], CENTRE),
     styleAuto: true,
     tonic: 2,
     bpm: null,
     kit: "auto",
     bassStyle: "auto",
-    verse: BANK.verse[0]?.bars ?? [["i"], ["VI"], ["VII"], ["v"]],
-    chorus: BANK.chorus[0]?.bars ?? [["i"], ["III"], ["VII"], ["IV"]],
+    verse: bank.verse[0]?.bars ?? [["i"], ["VI"], ["VII"], ["v"]],
+    chorus: bank.chorus[0]?.bars ?? [["i"], ["III"], ["VII"], ["IV"]],
     form: "standard",
     ending: "auto",
   };
@@ -78,13 +91,15 @@ function load(): WizardChoices {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw) return defaults();
     const stored = JSON.parse(raw) as Partial<WizardChoices> & { style?: unknown };
+    // Saved before genres: synthpop.
+    const genre = isGenreId(stored.genre) ? stored.genre : DEFAULT_GENRE;
     // Saved before the triangle: only a style, which plays as [1 − style, style, 0].
     const style = typeof stored.style === "number" ? Math.min(1, Math.max(0, stored.style)) : null;
     const weights =
-      parseWeights(GENRE, stored.weights) ??
-      (style === null ? defaults().weights : [...referenceWeights(GENRE, style)]);
+      parseWeights(GENRES[genre], stored.weights) ??
+      (style === null ? defaults(genre).weights : [...referenceWeights(GENRES[genre], style)]);
     delete stored.style;
-    return { ...defaults(), ...stored, weights };
+    return { ...defaults(genre), ...stored, genre, weights };
   } catch {
     return defaults();
   }
@@ -102,6 +117,7 @@ function save(c: WizardChoices): void {
 export function generateFromChoices(c: WizardChoices, seed = randomSeed()): Creation {
   const song: Song = compose({
     seed,
+    genre: c.genre,
     weights: c.styleAuto ? "auto" : c.weights,
     key: { tonic: c.tonic, mode: "minor" },
     bpm: c.bpm,
@@ -137,16 +153,28 @@ export function mountWizard(
     title.value = c.title;
     title.addEventListener("input", () => (choices.title = title.value));
 
+    const genre = select(
+      GENRE_IDS.map((id): [string, string] => [id, GENRES[id].name]),
+      c.genre,
+      (v) => {
+        if (!isGenreId(v) || v === choices.genre) return;
+        // Another genre has other references: its polygon starts from the centre.
+        choices.genre = v;
+        choices.weights = weightsAtPoint(GENRES[v], CENTRE);
+        render();
+      },
+    );
+
     const styleOut = el("output");
-    styleOut.value = c.styleAuto ? "" : weightsSummary(NAMES, SHORT, c.weights);
+    styleOut.value = c.styleAuto ? "" : weightsLabel(c.genre, c.weights);
     const style = new BlendPad({
-      names: NAMES,
+      names: GENRES[c.genre].references.map((id) => REFERENCES[id].title),
       weights: c.weights,
       label: "Style",
-      onInput: (w) => (styleOut.value = weightsSummary(NAMES, SHORT, w)),
+      onInput: (w) => (styleOut.value = weightsLabel(c.genre, w)),
       onChange: (w) => {
         choices.weights = w;
-        styleOut.value = weightsSummary(NAMES, SHORT, w);
+        styleOut.value = weightsLabel(c.genre, w);
         // Re-rank the presets for the new style (only them: the pad keeps its focus).
         refreshPickers();
       },
@@ -258,6 +286,7 @@ export function mountWizard(
     form.append(
       heading,
       title,
+      field("Genre", genre),
       styleField,
       row(field("Key", tonic), field("Tempo", bpm), field("Drums", kit), field("Bass", bass)),
       verse,
@@ -272,10 +301,13 @@ export function mountWizard(
    * chord pickers. */
   function progressionPicker(label: string, kind: "verse" | "chorus", key: Key): HTMLElement {
     const current = choices[kind];
+    const bank = bankOf(choices.genre)[kind];
     const presets = choices.styleAuto
-      ? [...BANK[kind]]
-      : [...BANK[kind]].sort(
-          (a, b) => closeness(b, choices.weights) - closeness(a, choices.weights),
+      ? bank
+      : bank.sort(
+          (a, b) =>
+            closeness(choices.genre, b, choices.weights) -
+            closeness(choices.genre, a, choices.weights),
         );
     const match = presets.findIndex((p) => same(p.bars, current));
     const preset = select(
@@ -349,8 +381,8 @@ export function mountWizard(
 
 /** How well a bank entry fits the weights: an entry on the first two references' axis by its
  * distance along it, scaled by their share; one leaning to a reference by that one's weight. */
-function closeness(e: BankEntry, weights: readonly number[]): number {
-  if (e.ref) return weightOf(GENRE, weights, e.ref);
+function closeness(genre: GenreId, e: BankEntry, weights: readonly number[]): number {
+  if (e.ref) return weightOf(GENRES[genre], weights, e.ref);
   const axis = (weights[0] ?? 0) + (weights[1] ?? 0);
   return (1 - Math.abs((e.style ?? 0.5) - styleOf(weights))) * axis;
 }

@@ -4,8 +4,10 @@
  */
 import type { DrumHit, MelodicTrack } from "./arranger";
 import {
+  DEFAULT_GENRE,
   GENRES,
   genreAt,
+  genreOfReference,
   randomWeights,
   referenceWeights,
   soloWeights,
@@ -164,7 +166,7 @@ export interface Song {
   style: number;
   /** The genre's references' weights the song was generated with, in `references` order. */
   weights: readonly number[];
-  /** The genre whose profile the song was generated with (not yet part of specs or links). */
+  /** The genre whose profile the song was generated with. */
   genre: GenreId;
   kit: KitName;
   bassStyle: BassStyle;
@@ -190,7 +192,8 @@ export interface Song {
 
 export interface ComposeOptions {
   seed: number;
-  /** The genre profile to generate with (genres.ts); synthpop by default. */
+  /** The genre profile to generate with (genres.ts); synthpop by default. A creation plays in its
+   * own genre and an original in the one that lists it, whatever this says. */
   genre?: GenreId;
   /** Legacy: where the song sits between the genre's first two references (synthpop: 0 = True
    * Faith … 1 = The Different Story), as weights `[1 − style, style, 0]`. Unset or null, with no
@@ -232,7 +235,12 @@ export function compose(opts: ComposeOptions): Song {
   const root = createRng(opts.seed);
   // Its own stream, so an auto style draws nothing from the others.
   const autoStyle = Math.round(root.fork("style").next() * 100) / 100;
-  const genreId = opts.genre ?? "synthpop";
+  // A creation plays in its own genre, an original in the one that lists it.
+  const genreId = opts.custom
+    ? (opts.custom.genre ?? DEFAULT_GENRE)
+    : opts.reference
+      ? genreOfReference(opts.reference)
+      : (opts.genre ?? DEFAULT_GENRE);
   const genre = GENRES[genreId];
   // The auto point draws from its own stream too.
   const rngPoint = root.fork("point");
