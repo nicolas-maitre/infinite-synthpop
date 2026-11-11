@@ -280,15 +280,15 @@ hat       x    .    x    .    x    .    x    .    x    .    x    .    x    .    
 
 Roles and registers only; the melodies, the riff and the lyrics are the composition.
 
-| Section                       | Pads and chords                                                        | High lines and sequences                                                                                                                    | Voice                                            |
-| ----------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Intro                         | sustained pads from about C4 up, Em9 colours                           | none                                                                                                                                        | none                                             |
-| Hook (0:18, 3:27)             | pads                                                                   | **a 16th-note line, D4–B4**: two 16-note phrases per 4 bars, each a 3-note scale cell across the beat (§10)                                 | none                                             |
-| Verses                        | pads, quieter (the "other" stem drops 3–5 dB); the 16th line drops out | none                                                                                                                                        | **one lead, G3–A4**, low alto                    |
-| Choruses                      | pads on the chorus chords (C/E in bar 2)                               | **the countervoice**: 8ths from beat 2 up through each chord, octave-doubled, heard as C6–B6 (§10); the "other" stem 2–8 kHz rises 10–15 dB | the same lead, **D4–B4**: its floor a 5th higher |
-| Outro (3:08 single, 5:27 12″) | chorus chords                                                          | the chorus countervoice, up front without the voice                                                                                         | none                                             |
-| 12″ stop block (3:09)         | pads on the E bars only                                                | as the hook, on the E bars only                                                                                                             | none                                             |
-| 12″ fill block, break (4:01)  | pads at verse level; in the break, the pads alone carry the harmony    | none                                                                                                                                        | faint fragments (?)                              |
+| Section                       | Pads and chords                                                        | High lines and sequences                                                                                           | Voice                                            |
+| ----------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| Intro                         | sustained pads from about C4 up, Em9 colours                           | none                                                                                                               | none                                             |
+| Hook (0:18, 3:27)             | pads                                                                   | **a 16th-note line, D4–B4**: short played figures with a dotted-8th echo that cycles them across the beat (§10)    | none                                             |
+| Verses                        | pads, quieter (the "other" stem drops 3–5 dB); the 16th line drops out | none                                                                                                               | **one lead, G3–A4**, low alto                    |
+| Choruses                      | pads on the chorus chords (C/E in bar 2)                               | **the countervoice**: 8ths from beat 2 up through each chord, C6–B6 (§10); the "other" stem 2–8 kHz rises 10–15 dB | the same lead, **D4–B4**: its floor a 5th higher |
+| Outro (3:08 single, 5:27 12″) | chorus chords                                                          | the chorus countervoice, up front without the voice                                                                | none                                             |
+| 12″ stop block (3:09)         | pads on the E bars only                                                | as the hook, on the E bars only                                                                                    | none                                             |
+| 12″ fill block, break (4:01)  | pads at verse level; in the break, the pads alone carry the harmony    | none                                                                                                               | faint fragments (?)                              |
 
 - **No vocoder.** Held vocal notes waver by 15–21 cents (median within-note pitch spread), as a
   sung voice does; a vocoder on a keyboard carrier would sit flat. There is no vocoder break
@@ -379,8 +379,9 @@ snare on 2 and 4, a minor key, a root-8th bass and 16-bar sections. It differs o
    - a **fill block** (the verse backing with a fill every other bar);
    - a **bass-less break** (pads and drums only, fills in the second half);
    - then a chorus and a longer outro.
-7. **A 16th-note line** in D4–B4 for the hook, built from 3-note scale cells (the generator writes
-   its own), and a countervoice in 8ths for the choruses and outro. §10 has both parts' rhythm,
+7. **A 16th-note line** in D4–B4 for the hook: short played figures with a dotted-8th echo that
+   cycles them across the beat (the generator writes its own figures), and a countervoice in 8ths
+   for the choruses and outro. §10 has both parts' rhythm,
    register and patch.
 
 **Generic Italo, or specific to this song?** With only this record measured in depth, the split is a
@@ -425,47 +426,58 @@ with the pads, and a six-stem split (htdemucs_6s) left its piano and guitar stem
   cycle (15 bars across choruses 1–3 and the 12″ outro), and its entries were read where its level
   jumps. Its harmonics were read on its A and B in the C/E bar, where neither note is in the pads.
 
-Bars and times are the 12″'s; uncertain readings carry "(?)" until the ear check (clips 7–9).
+Bars and times are the 12″'s. The ear check of these parts (clips 7–9) is at the end of this file.
 
 ### The hook line
 
-**Register: D4–B4, not C5–E6.** The draft of §7 had the line an octave too high; it was reading the
-2nd harmonic. Odd harmonics as strong as the fundamental confirm the lower octave. The line sits in
-the pads' own register (pads from about C4 up), which is why it needs a cutting timbre.
+**Register: D4–B4, not C5–E6** (ear-checked, clip 7a). The draft of §7 had the line an octave too
+high; it was reading the 2nd harmonic. The line sits in the pads' own register (pads from about C4
+up).
 
-**Pattern.** Two 16-note phrases per 4-bar loop, each a 3-note scale cell repeated across the beat
-(3 against 4), with rests between. The record's notes, for reference (each song writes its own):
+**Played notes plus an echo** (ear-checked, clip 7d). Most of what sounds like a 16th line is a
+dotted-8th echo. Each phrase is played as one or two beats of 16ths, and the echo, repeating every
+three 16ths, keeps cycling the last three notes across the beat for the next three beats (3 against
+4). The evidence: along each repeating cell every repeat is about 4 dB quieter than the one 3 16ths
+before it, and the line's spectral autocorrelation peaks at 400 ms, a dotted 8th at 111.8 BPM. The
+record's notes, for reference (each song writes its own):
 
-| Loop bar (pads / bass) | Beats 1–2                     | Beats 3–4                          |
-| ---------------------- | ----------------------------- | ---------------------------------- |
-| 1 (Em / E)             | rest                          | G F♯ E D │ F♯(?) D E D: a run down |
-| 2 (D / E)              | D E D · D E D · D E: the cell | rest                               |
-| 3 (A / A)              | rest                          | rest on beat 3, then G A B G       |
-| 4 (C / D)              | A B G · A B G · A B           | G A B G, then rest on beat 4       |
+| Loop bar (pads / bass) | Played (dry)                  | What the echo adds                               |
+| ---------------------- | ----------------------------- | ------------------------------------------------ |
+| 1 (Em / E)             | beats 3–4: G F♯ E D · – D E D | the F♯ on 4, then the tail                       |
+| 2 (D / E)              | nothing                       | beats 1–2: D E D · D E D · D E, fading           |
+| 3 (A / A)              | beat 4: G A B G               |                                                  |
+| 4 (C / D)              | nothing                       | beats 1–3: A B G · A B G · A B G · A B G, fading |
 
-- **Phrase 1** starts on beat 3 of bar 1: a scale run down, then the D–E–D cell.
-- **Phrase 2** starts on beat 4 of bar 3 and is the G–A–B cell five times over.
-- Both phrases cross the bar line. They move by steps: no triad leaps and no octave jumps.
-- Beats 1–2 of the odd bars and beats 3–4 of the even bars are empty, so the line answers itself
-  every two bars instead of filling every beat.
+- **Phrase 1** is a scale run down from G on beat 3 of bar 1, ending on the D–E–D cell. **Phrase 2**
+  is G A B G on beat 4 of bar 3. Everything after them is echo, fading to about 17 dB down after
+  4–5 repeats; the rests that follow are clear.
+- The notes move by steps: no triad leaps and no octave jumps.
 - It plays only in the hook (0:18) and the 12″ hook reprise (3:27), the same notes both times. It
   doesn't play in the verses, choruses or the break.
 
-**Timbre:**
+**Echo:**
 
-- **Source: a narrow pulse.** Measured from the fundamental, harmonics 2–4 sit at −3.5 to +2 dB,
-  the 5th at −7, the 6th at −12 and the 8th–11th at −16 to −20 dB. A pulse of about 12% width
-  through a 12 dB low-pass at about 3 kHz (Q 2) fits this best: 6 dB RMS error, against 8 dB for the
-  best resonant saw and much worse for a square, whose even harmonics are missing.
-- **Filter envelope:** harmonics 2–4 lose 4–9 dB against the fundamental within the first 100 ms of
-  a note. That's a short sweep down, about an octave, settling around 2.4 kHz.
-- **Amp envelope:** an attack under 5 ms. The note falls 7–12 dB across its 16th (134 ms). The last
-  note of a phrase is cut at about 115 ms and is gone within 30 ms, so it's gated, not left to
-  ring.
-- **Stereo and effects:** as wide as the pads. In the hook band the left/right correlation is 0.09,
-  against −0.10 for the pads alone, though the line is 6–7 dB louder than them. That points to a
-  stereo chorus or ensemble. There's no audible echo: the rests after each phrase stay more than
-  20 dB down.
+- **Time:** 3 16ths, about 400 ms (a dotted 8th).
+- **Feedback:** about −4 dB per repeat (0.63). The first repeat is also about 4 dB under the played
+  note.
+- **Tone:** each repeat is darker. Harmonics 6–12 sit 8–19 dB down on the dry notes, 9–23 dB down on
+  the first repeat and 18–28 dB down by the second and third, as from a low-pass of about 2.5 kHz in
+  the feedback loop (an analog or tape delay).
+- **Stereo:** the repeats sit where the dry note does, a little right of centre; it isn't a
+  ping-pong.
+
+**Timbre**, read on the dry notes only (ear check: clip 8d, "8d is better"):
+
+- **Source: a narrow pulse.** Every harmonic is within about 3 dB of the fundamental up to 2 kHz.
+  Then the level drops about 10 dB by 2.8 kHz, and falls to −23 dB at 4–5.6 kHz and −36 dB at
+  8–11 kHz. A 12% pulse through a 12 dB low-pass at about 3.5 kHz, Q 1, fits within 3 dB RMS; the
+  best saw is off by 5 dB. The pulse's own spectral null near its 8th harmonic makes the drop around
+  2.5 kHz, so the filter needs no resonance.
+- **No filter sweep.** The brightness loss read earlier across notes was the darker echoes mixed in.
+- **Amp envelope:** an attack under 5 ms; the note eases down 4–5 dB over 80 ms, then is cut at about
+  90–100 ms (about 70% of a 16th) and is gone within about 40 ms.
+- **Stereo:** as wide as the pads. In the hook band the left/right correlation is 0.09, against
+  −0.10 for the pads alone, though the line is 6–7 dB louder than them: a stereo chorus or ensemble.
 - **Level:** the synth stem rises 6.7 dB from the intro to the hook. The line sits about 6 dB over
   the pads.
 
@@ -480,44 +492,50 @@ new NativeMonoSynth({
       1, 0.93, 0.82, 0.68, 0.52, 0.35, 0.19, 0.04, 0.08, 0.16, 0.21, 0.22, 0.21, 0.16, 0.11, 0.04,
     ],
   },
-  filter: { type: "lowpass", rolloff: -12, Q: 2 },
-  envelope: { attack: 0.003, decay: 0.25, sustain: 0.25, release: 0.04 },
+  filter: { type: "lowpass", rolloff: -12, Q: 1 },
+  envelope: { attack: 0.002, decay: 0.3, sustain: 0.6, release: 0.04 },
+  // A fixed filter: no sweep.
   filterEnvelope: {
     attack: 0.002,
-    decay: 0.15,
-    sustain: 0.4,
+    decay: 0.1,
+    sustain: 1,
     release: 0.05,
-    baseFrequency: 1800,
-    octaves: 1,
+    baseFrequency: 3500,
+    octaves: 0,
   },
   maxPolyphony: 4,
 }).chain(
+  new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.63, wet: 0.36 }),
   new Tone.Chorus({ frequency: 0.8, delayTime: 3.5, depth: 0.5, wet: 0.5 }).start(),
   riffChannel,
 );
 ```
 
-- **Gate:** 90% of a 16th.
-- **New:** the chorus on the riff channel. The chorus rate and depth weren't measured; only the
-  width was.
+- **Gate:** 70% of a 16th.
+- **Echo level:** `wet: 0.36` puts the first repeat about 4 dB under the dry note, with Tone's
+  equal-power crossfade.
+- **New:** the delay and the chorus on the riff channel. Tone's FeedbackDelay can't darken its
+  repeats. The record's do, so a delay built from a DelayNode with a 2.5 kHz low-pass inside its
+  feedback loop would be closer. The chorus's rate and depth weren't measured, only its width.
 - **What the generator should change** (`generateLine16`, riff base MIDI 72):
   - move the line down an octave, to about MIDI 62–71;
-  - write two 16-note phrases per 4 bars from 3-note scale cells, starting on beat 3 and beat 4,
-    instead of 8ths in beats 1–2 and 16ths in beats 3–4 of every bar.
+  - write only the dry figures: a run of 4–8 16ths on beats 3–4 of bar 1, ending on a 3-note cell,
+    and a 4-note 16th figure on beat 4 of bar 3, with nothing in between. The echo makes the rest:
+    with a 3-16th delay, a 3-note cell keeps cycling across the beat.
 
 ### The chorus
 
 **What makes it the chorus.** Measured against the verse:
 
-| Layer        | Verse                                   | Chorus                                                                   |
-| ------------ | --------------------------------------- | ------------------------------------------------------------------------ |
-| Drums        | the groove, fill on bar 16              | the same groove; the bar-16 fill is snare 8ths                           |
-| Bass         | root 8ths                               | root 8ths (E E D B)                                                      |
-| Pads         | the loop, from about C4 up              | the chorus chords: Em │ C/E │ D │ A/B → B                                |
-| Countervoice | none                                    | **8ths from beat 2, every bar**, heard as C6–B6, near-mono in the centre |
-| Hook line    | none                                    | none                                                                     |
-| Voice        | G3–A4                                   | D4–B4                                                                    |
-| Synth stem   | −31.2 dB RMS (verse 1), −25.7 (verse 2) | −22.3 (chorus 1), −22.8 (chorus 2): 3–9 dB up; 2–8 kHz rise 10–15 dB     |
+| Layer        | Verse                                   | Chorus                                                               |
+| ------------ | --------------------------------------- | -------------------------------------------------------------------- |
+| Drums        | the groove, fill on bar 16              | the same groove; the bar-16 fill is snare 8ths                       |
+| Bass         | root 8ths                               | root 8ths (E E D B)                                                  |
+| Pads         | the loop, from about C4 up              | the chorus chords: Em │ C/E │ D │ A/B → B                            |
+| Countervoice | none                                    | **8ths from beat 2, every bar**, C6–B6, near-mono in the centre      |
+| Hook line    | none                                    | none                                                                 |
+| Voice        | G3–A4                                   | D4–B4                                                                |
+| Synth stem   | −31.2 dB RMS (verse 1), −25.7 (verse 2) | −22.3 (chorus 1), −22.8 (chorus 2): 3–9 dB up; 2–8 kHz rise 10–15 dB |
 
 The lift comes from the countervoice and the higher voice. There's no new drum part, no 16th part
 and no extra pad layer. The countervoice also narrows the top of the mix: the 1.5–6 kHz band's
@@ -565,26 +583,30 @@ It's the "follows the chords" line: a chord arpeggio in 8ths, not a tune. The ge
 it from each bar's chord: the root on beat 2, up through the triad, turning back or adding the 6th
 and 7th, with the last note a tone of the next chord.
 
-**Register.** The fundamentals are C5–B5, but the octave above is 4–11 dB louder, so the line is
-heard as C6–B6 (?).
+**Same in the chorus and the outro** (ear-checked, clips 9d and 9e): the chorus countervoice plays
+exactly the outro's melody.
+
+**Register: C6–B6** (ear-checked, clip 9b, "9b is more correct"). The measurement found energy at
+C5–B5 too, with onsets matching the upper octave. By ear the line is the upper octave alone, so
+that lower energy is more likely the pads or the line's own lower partial than a doubling. The
+isolated outro also shows a few octave-5 notes on odd 16ths (D5 in the D bar, C5 in the C bar).
+Whether they are a second line or echoes is still open.
 
 **Timbre:**
 
-- **Spectrum:** measured from the lower fundamental, the octave is +4 dB (on A) to +11 dB (on B),
-  the 3rd harmonic −8 to −11 dB, the 4th and 5th about −10 dB and the 6th −15 dB. Little lies
-  above 5 kHz. It's a soft, octave-doubled tone, like two near-sine or triangle oscillators at 8′
-  and 4′ with the 4′ louder, or a flute-like organ register.
+- **Spectrum:** soft and nearly sine-like. On the upper octave, its own 2nd harmonic is 14–30 dB
+  down and its 3rd about 19 dB down, with little above 5 kHz. Only the register was ear-checked;
+  this spectrum is measured.
 - **Envelope:** a rise of 20 dB in about 30 ms, settling 8–10 dB down by 250 ms and holding there.
   Notes overlap by about an 8th, so the release is about 0.3 s.
 - **Stereo and effects:** near-mono and centred; no chorus. No echo was found.
 - **Level:** its entries reach about the level of the pads' top notes.
 
-**Patch** (a counter track for Italo; Get Closer's notes go in at C5–B5, and the partials add the
-louder octave):
+**Patch** (a counter track for Italo; Get Closer's notes go in at C6–B6):
 
 ```ts
 new NativeSynth({
-  oscillator: { type: "sine", partials: [1, 1.8, 0.28, 0.3, 0.3, 0.15] },
+  oscillator: { type: "sine", partials: [1, 0.12, 0.1] },
   envelope: { attack: 0.025, decay: 0.25, sustain: 0.35, release: 0.35 },
   maxPolyphony: 4,
 }).connect(counterChannel);
@@ -612,16 +634,21 @@ dropped once the generator had the song; the readings stand as measured, and the
 
 Chorus bar 2 needed no ear: the trace in §10 shows C/E.
 
-**Synth parts (open).** Clips in `renders/ear-check-get-closer/` (gitignored), times in the 12″:
+**Synth parts (ear-checked).** Clips in `renders/ear-check-get-closer/` (gitignored), times in the
+12″:
 
-7. **Hook line's octave, 0:18.0:** D4–B4 or an octave up? Clips `7a` (the line overlaid at D4–B4)
-   and `7b` (at D5–B5); `7c` is the pad-cancelled line alone, then the mix.
-8. **Hook line's timbre:** each clip plays the pad-cancelled line, then a candidate alone. Clips
-   `8a` (narrow pulse, the fit), `8b` (resonant saw) and `8c` (the generator's current DX bell and
-   saw pluck).
-9. **Chorus countervoice, 1:35.3:** does the overlay double the line you hear? Clips `9a`
-   (octave-doubled, as measured) and `9b` (the upper octave alone); `9c` is the 12″ outro at 5:27.3,
-   the mix and then the synth stem high-passed at 900 Hz.
+7. **Hook line, 0:18.0.**
+   - **Octave:** D4–B4 (`7a`, against `7b` an octave up).
+   - **Rhythm:** the played notes plus a dotted-8th echo (`7d`: "perfect"). The first overlay, which
+     played every 16th as a note, missed the echo.
+8. **Hook timbre:** the gated 12% pulse with echo and chorus (`8d`); the saw version (`8e`) was also
+   good, but 8d was better. The first round (`8a`–`8c`: no gate, echo or chorus) all sounded far
+   off.
+9. **Chorus countervoice, 1:35.3.**
+   - **Register:** the upper octave alone, C6–B6 (`9b`, against `9a` octave-doubled).
+   - **Melody:** the isolated chorus (`9e`) plays the same melody as the isolated outro (`9d`,
+     5:27.3).
+   - **Still open:** whether the octave-5 notes on odd 16ths are a second line.
 
 ## Sources
 
