@@ -12,6 +12,7 @@ import {
 } from "./genres";
 import { REFERENCES, type ReferenceId } from "./references";
 import { resolveQuality } from "./quality";
+import { italoTitle, synthpopTitle } from "./titles";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
 import { Library, LIBRARY_KEY } from "./library";
@@ -639,6 +640,31 @@ describe("creator specs", () => {
     spec.sections[0]!.progression = [["i", "VII"], ["IV"]];
     const decoded = decodeCreation(encodeCreation({ seed: 1, spec }));
     expect(decoded?.spec.sections[0]?.progression).toEqual([["i", "VII"], ["IV"]]);
+  });
+});
+
+describe("titles", () => {
+  it("gives each genre its own vocabulary, decided by the seed", () => {
+    expect(italoTitle(createRng(7).fork("title"))).toBe(italoTitle(createRng(7).fork("title")));
+    const italo = new Set(
+      Array.from({ length: 400 }, (_, seed) => italoTitle(createRng(seed).fork("title"))),
+    );
+    const synthpop = new Set(
+      Array.from({ length: 400 }, (_, seed) => synthpopTitle(createRng(seed).fork("title"))),
+    );
+    // Plenty of variety, and the two genres barely overlap.
+    expect(italo.size).toBeGreaterThan(250);
+    expect([...italo].filter((t) => synthpop.has(t)).length).toBeLessThan(5);
+    for (const t of italo) {
+      expect(t).not.toMatch(/\b(\w+) in the \1\b/);
+      expect(t).not.toMatch(/^(\w+) \1$/);
+    }
+  });
+
+  it("titles synthpop songs from the synthpop list", () => {
+    expect(compose({ seed: 42, style: 0.5 }).title).toBe(
+      synthpopTitle(createRng(42).fork("title")),
+    );
   });
 });
 

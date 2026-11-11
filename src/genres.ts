@@ -17,6 +17,8 @@ import type { BankEntry, Progression, ProgressionKind } from "./progressions";
 import type { ReferenceId } from "./references";
 import type { Mode } from "./theory";
 import { polygonVertices, quantize, randomPoint, weightsAt, type Point } from "./polygon";
+import type { Rng } from "./rng";
+import { synthpopTitle } from "./titles";
 
 export type GenreId = "synthpop";
 
@@ -89,6 +91,8 @@ export interface Substitution {
 export interface Genre {
   id: GenreId;
   name: string;
+  /** Titles for its generated songs (titles.ts), drawn from the song's own "title" stream. */
+  title: (rng: Rng) => string;
   /** The references the blend runs between, one per vertex of the style polygon (polygon.ts): the
    * first two on its bottom edge, left to right (the legacy `style` runs from the first, 0, to the
    * second, 1), the others round from there. List similar references next to each other, so they
@@ -324,6 +328,7 @@ export const GENRES: Record<GenreId, Genre> = {
   synthpop: {
     id: "synthpop",
     name: "Synthpop",
+    title: synthpopTitle,
     references: [TF, DS, YC],
     // True Faith measures 117.0 BPM, The Different Story 119.8: centred between them. You Came's
     // 119.0 sits inside.

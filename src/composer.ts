@@ -355,7 +355,7 @@ export function compose(opts: ComposeOptions): Song {
     seed: opts.seed,
     reference: opts.custom ? null : (opts.reference ?? null),
     spec: ref ?? null,
-    title: ref?.title ?? generateTitle(root.fork("title")),
+    title: ref?.title ?? genre.title(root.fork("title")),
     bpm,
     key,
     style,
@@ -1125,80 +1125,4 @@ export function generateCounter(rng: Rng, key: Key, progression: Progression): M
       realise(rng.fork("walk"), key, progression, rhythm, COUNTER_RANGE, barOffset, false),
     ).map((bar) => bar.map((n) => ({ ...n, vel: n.dur >= 4 ? 0.85 : 0.7 })));
   return { bars: [...half(0), ...half(4)] };
-}
-
-// ── Titles ────────────────────────────────────────────────────────────────────────────────────
-
-const ADJECTIVES = [
-  "Electric",
-  "Silent",
-  "Blue",
-  "Cold",
-  "Broken",
-  "Neon",
-  "Distant",
-  "Restless",
-  "Endless",
-  "Paper",
-  "Velvet",
-  "Crystal",
-  "Hollow",
-  "Northern",
-  "Midnight",
-  "Secret",
-  "Fragile",
-  "Burning",
-  "Perfect",
-];
-const NOUNS = [
-  "Machine",
-  "Promise",
-  "Signal",
-  "Confession",
-  "Weather",
-  "Station",
-  "Kingdom",
-  "Mirror",
-  "Fever",
-  "Shadow",
-  "Summer",
-  "Distance",
-  "Heaven",
-  "Motion",
-  "Language",
-  "Ritual",
-  "Harbour",
-  "Empire",
-];
-const ELEMENTS = [
-  "Glass",
-  "Rain",
-  "Steel",
-  "Smoke",
-  "Gold",
-  "Ice",
-  "Fire",
-  "Light",
-  "Dust",
-  "Silence",
-  "Thunder",
-  "Wire",
-  "Static",
-  "Chrome",
-];
-const PLACES = ["World", "City", "Age", "Land", "Night", "House", "Sea"];
-
-function generateTitle(rng: Rng): string {
-  const pattern = rng.int(0, 3);
-  let title: string;
-  if (pattern === 0) title = `${rng.pick(ADJECTIVES)} ${rng.pick(NOUNS)}`;
-  else if (pattern === 1) title = `The ${rng.pick(ADJECTIVES)} ${rng.pick(NOUNS)}`;
-  else if (pattern === 2) {
-    const a = rng.pick(ELEMENTS);
-    let b = rng.pick(ELEMENTS);
-    if (b === a) b = rng.pick(ELEMENTS);
-    title = `${rng.pick(NOUNS)} (${rng.pick(PLACES)} of ${a} and ${b})`;
-  } else title = `${rng.pick(NOUNS)} ${rng.pick(["Of", "In", "For"])} ${rng.pick(NOUNS)}`;
-  if (rng.chance(0.2)) title += rng.pick([" (12″ Mix)", " (Extended)", " (Dub)"]);
-  return title;
 }
