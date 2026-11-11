@@ -33,6 +33,7 @@ import {
   SHOW_AUDIO_STATS,
 } from "./quality";
 import { BlendPad, initials, weightsSummary } from "./blendpad";
+import { barAtSeconds, mountMediaControls } from "./mediasession";
 import {
   DEFAULT_GENRE,
   GENRE_IDS,
@@ -477,6 +478,25 @@ const hash = new URLSearchParams(location.hash.slice(1));
 const initialSeed = Number(hash.get("seed"));
 const initialReference = hash.get("ref");
 const initialCreation = hash.get("song");
+// The system's media controls (lock screen, Now Playing, media keys): mediasession.ts.
+const media = mountMediaControls({
+  play: () => {
+    if (!engine.playing) void togglePlay();
+  },
+  pause: () => engine.stop(),
+  next: () => engine.newSong(randomSeed()),
+  previous: () => engine.jumpTo(0),
+  seekTo: (seconds) => engine.jumpTo(barAtSeconds(engine.song, seconds)),
+  seekForward: () => engine.skipSection(),
+  seekBackward: () => {
+    const { sections } = engine.song;
+    const i = sections.findIndex(
+      (s) => engine.currentBar >= s.startBar && engine.currentBar < s.startBar + s.bars,
+    );
+    engine.jumpTo(sections[Math.max(0, i - 1)]?.startBar ?? 0);
+  },
+});
+
 const engine = new Engine(
   engineSettings(),
   Number.isInteger(initialSeed) && initialSeed > 0 ? initialSeed : randomSeed(),
@@ -484,6 +504,7 @@ const engine = new Engine(
     onSong: renderSong,
     onBar: (ev, song) => renderBar(song, ev.bar),
     onStateChange: (playing) => {
+      media.setPlaying(playing);
       ui.play.textContent = playing ? "■ Stop" : "▶ Play";
       ui.play.setAttribute("aria-pressed", String(playing));
     },
@@ -500,6 +521,8 @@ async function togglePlay(): Promise<void> {
   // The first start loads the synths and ~36 drum samples: a spinner, then a count.
   ui.play.classList.add("loading");
   ui.play.textContent = "Loading…";
+  // Before any await, while the click still counts as a gesture.
+  media.activate();
   try {
     await engine.start((done, total) => {
       ui.play.textContent = `Loading ${Math.round((done / total) * 100)}%`;
@@ -556,6 +579,8 @@ const BASS_LABELS: Record<BassStyle, string> = {
 };
 
 function renderSong(song: Song): void {
+  media.setSong(song, GENRES[song.genre].name);
+  media.setPosition(song, engine.currentBar);
   // While editing the title, don't overwrite what's being typed.
   if (document.activeElement !== ui.title) ui.title.textContent = song.title;
   const editable = creator.active && !!engine.creation;
@@ -780,6 +805,7 @@ qualitySelect.addEventListener("change", () => {
 });
 
 function renderBar(song: Song, bar: number): void {
+  media.setPosition(song, bar);
   const sectionIndex = song.sections.findIndex(
     (s) => bar >= s.startBar && bar < s.startBar + s.bars,
   );

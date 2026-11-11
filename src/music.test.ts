@@ -12,6 +12,7 @@ import {
 } from "./genres";
 import { REFERENCES, type ReferenceId } from "./references";
 import { resolveQuality } from "./quality";
+import { barAtSeconds, barSeconds, silentWav, songSeconds } from "./mediasession";
 import { italoTitle, synthpopTitle } from "./titles";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
@@ -665,6 +666,35 @@ describe("titles", () => {
     expect(compose({ seed: 42, style: 0.5 }).title).toBe(
       synthpopTitle(createRng(42).fork("title")),
     );
+  });
+});
+
+describe("system media controls", () => {
+  it("gives each song a length and maps the scrubber to its bars", () => {
+    const song = { bpm: 120, totalBars: 100 };
+    expect(barSeconds(song)).toBe(2);
+    expect(songSeconds(song)).toBe(200);
+    expect(barAtSeconds(song, 0)).toBe(0);
+    expect(barAtSeconds(song, 1.99)).toBe(0);
+    expect(barAtSeconds(song, 2)).toBe(1);
+    expect(barAtSeconds(song, 199.9)).toBe(99);
+    expect(barAtSeconds(song, 500)).toBe(99);
+    expect(barAtSeconds(song, -3)).toBe(0);
+    const real = compose({ seed: 42, style: 0.5 });
+    expect(barAtSeconds(real, 17 * barSeconds(real))).toBe(17);
+  });
+
+  it("writes ten seconds of silence as a valid WAV", async () => {
+    const wav = new Uint8Array(await silentWav().arrayBuffer());
+    const text = (at: number, n: number) => String.fromCharCode(...wav.slice(at, at + n));
+    expect([text(0, 4), text(8, 4), text(12, 4), text(36, 4)]).toEqual([
+      "RIFF",
+      "WAVE",
+      "fmt ",
+      "data",
+    ]);
+    expect(wav.length).toBe(44 + 80_000);
+    expect(wav.slice(44).every((b) => b === 128)).toBe(true);
   });
 });
 

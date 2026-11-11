@@ -44,6 +44,12 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   (the default), it starts at the next bar line, and a dashed ⏭ marks the bar and section waiting
   to play. With **instantly**, it starts at once, about a third of a second after the click (the
   audio look-ahead).
+- **System media controls:** while the music plays, the song shows up where your system shows
+  what's playing (the macOS Now Playing widget, the Android media notification, the iOS lock
+  screen), with play/pause, next (a new random song), previous (back to the top of the song) and a
+  scrubber over the song's length that jumps to the bar. Seek forward and back skip by section.
+  Browsers only offer these to pages playing a media element, so a silent `<audio>` loop plays
+  alongside the music; the sound itself stays on Web Audio.
 - **Performance** picks the full sound or **lite**: lighter voices and effects, a lower sample
   rate and 30 fps drawing, so phones play without breaking up. **auto** (the default) uses lite on
   touch devices and machines with 4 cores or fewer. The choice is kept per device, and changing it
