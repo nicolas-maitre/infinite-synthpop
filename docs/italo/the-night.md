@@ -297,8 +297,8 @@ chorus    .    .    o    .    .    .    o    .    .    .    o    .    .    .    
 - **The chorus adds an off-beat open hat**: a hit on every "&" with a long tail, 15–25 dB above
   its surroundings in 3–15 kHz. Demucs puts it in the "other" stem. By ear, the chorus high-passed
   above 4 kHz has a clear off-beat hat that the verse doesn't have (a filter artefact can't be
-  fully excluded). The off-beats are also where the bass is accented (§5) and where the chorus
-  countervoice plucks its chord tones (§10), so the chorus "&"s carry three parts at once. The
+  fully excluded). The off-beats are also where the bass is accented (§5), and the chorus countervoice
+  plucks on the 8ths around them (§10). The
   hat is absent from the intro, the lead-synth and verse sections and the maxi's break.
 - **The bass drops** (bars 5–6, 95–96) keep the same drums; with the bass gone, the backbeat's
   tail is exposed and reads as "open".
@@ -331,16 +331,16 @@ also the LinnDrum's clap, which alone doesn't decide it). Confidence: low.
 
 Roles and registers only; the melodies, the riff and the lyrics are the composition.
 
-| Section       | Pads                                          | Lines and riffs                                                                                      | Voice                                                          |
-| ------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Intro, pedal  | Fm │ E♭/F, triads stacked in 3 octaves C4–A♭6 | none                                                                                                 | none                                                           |
-| Intro, riff   | none                                          | **a two-note figure F4–E♭4** in 16ths, every other bar                                               | none                                                           |
-| Verse loop    | the loop chords, C4–G6                        | the lead synth's first notes (clip 18)                                                               | none                                                           |
-| Lead synth    | as the loop                                   | **the lead synth**: E♭4–C5, phrases with rests, a dotted-8th echo (§10)                              | none                                                           |
-| Verse         | as the loop                                   | a moving part about 5 dB under the verse loop's (stem only, not checked by ear)                      | **the voice, low and dense**: F3–C4, wet and wide (§10.3)      |
-| Chorus        | A♭(add9) │ D♭/F │ G♭ │ E♭7sus4                | **the countervoice**: plucked 8ths on chord tones, A♭4–E♭5, mostly off-beats (§10); the off-beat hat | **long notes**, A♭4–E♭5, 1–3 onsets a bar, identical each time |
-| Maxi break    | the verse chords, no bass                     | none (clip 15)                                                                                       | none                                                           |
-| Maxi chorus 3 | as the chorus                                 | as the chorus                                                                                        | the same chorus vocal                                          |
+| Section       | Pads                                          | Lines and riffs                                                                                  | Voice                                                          |
+| ------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Intro, pedal  | Fm │ E♭/F, triads stacked in 3 octaves C4–A♭6 | none                                                                                             | none                                                           |
+| Intro, riff   | none                                          | **a two-note figure F4–E♭4** in 16ths, every other bar                                           | none                                                           |
+| Verse loop    | the loop chords, C4–G6                        | the lead synth's first notes (clip 18)                                                           | none                                                           |
+| Lead synth    | as the loop                                   | **the lead synth**: E♭4–C5, phrases with rests, a dotted-8th echo (§10)                          | none                                                           |
+| Verse         | as the loop                                   | a moving part about 5 dB under the verse loop's (stem only, not checked by ear)                  | **the voice, low and dense**: F3–C4, wet and wide (§10.3)      |
+| Chorus        | A♭(add9) │ D♭/F │ G♭ │ E♭7sus4                | **the countervoice**: plucked 8ths on chord tones, A♭4–E♭5, some skipped (§10); the off-beat hat | **long notes**, A♭4–E♭5, 1–3 onsets a bar, identical each time |
+| Maxi break    | the verse chords, no bass                     | none (clip 15)                                                                                   | none                                                           |
+| Maxi chorus 3 | as the chorus                                 | as the chorus                                                                                    | the same chorus vocal                                          |
 
 - **The chorus vocal is one recorded part, reused.** Its pitch contour is identical, 8th by 8th,
   in all three choruses of the original and in the maxi's third chorus. By ear it is the
@@ -413,7 +413,7 @@ Roles and registers only; the melodies, the riff and the lyrics are the composit
 Against the three synthpop references it is slower (110 against 117–120), more static (one drum bar for the whole record), and harmonically richer in the chorus. It shares the
 four-on-the-floor kick, the root-8th bass and the 4-bar loop logic. What reads as "Italo" in it is
 less any single device than the combination: a machine groove that never changes, pads in stacked
-octaves, an echoed lead synth, a plucked off-beat countervoice, a minor verse over a tonic pedal
+octaves, an echoed lead synth, a plucked chorus countervoice, a minor verse over a tonic pedal
 and a relative-major chorus.
 
 **New building blocks:**
@@ -454,7 +454,7 @@ and a relative-major chorus.
    - toms only as single hits in the maxi's one fill, never in the groove.
 5. **Arrangement:** pads voiced as **triads stacked in three octaves** (C4–A♭6); a soft, echoed
    **lead synth** that opens each half before the voice; a **plucked countervoice** on the chorus
-   off-beats; a low, wet verse voice and long vocal notes in the chorus. The patches are in §10.
+   8ths; a low, wet verse voice and long vocal notes in the chorus. The patches are in §10.
 6. **Tempo and key:** a genre range around 110 BPM, below the synthpop 116–121; minor keys with a
    tonic pedal and a Dorian IV, and a chorus that may move to the relative major.
 
@@ -466,7 +466,7 @@ and a relative-major chorus.
 | Stacked-octave pads, an echoed synth lead                  | The two-note F–E♭ intro riff                                  |
 | Minor verse, relative-major chorus                         | The ♭II (G♭) in the chorus and the E♭7sus4 cadence            |
 | A tonic-pedal intro, a mid-song reprise of it              | A 12-bar lead-synth section before each half's first verse    |
-| A plucked chord-tone countervoice on the chorus off-beats  | A verse sung low (F3–C4), below the lead synth                |
+| A plucked chord-tone countervoice through the chorus       | A verse sung low (F3–C4), below the lead synth                |
 | ~110 BPM                                                   | 42 cents flat tuning, a bass tuned 20 cents sharp of the rest |
 | An open off-beat hat in the chorus                         | The maxi's 16-bar bass-less break                             |
 
@@ -481,7 +481,7 @@ record:
 - the F3–C4 line before each chorus is **the sung verse**, not a synth (clips 12a–12d);
 - **the lead synth** is a soft, nearly pure tone in E♭4–C5, in 12-bar sections after each intro
   block (§10.1);
-- **the chorus countervoice** is a plucked line on the off-beat 8ths, in the voice's register, on
+- **the chorus countervoice** is a plucked line on the 8ths, in the voice's register, on
   the chord tones (§10.2).
 
 Both parts were measured on the stems and checked by ear with A/B clips (the ear-check table
@@ -559,61 +559,72 @@ maxi, a few fragments over the backing-only replays.
 else: by ear it is absent from the verse loop, the sung verse and the maxi's break (clips 18, 19,
 15). It enters on the chorus's first bar and stops with it.
 
-**What it plays:** a note on the 8ths, mostly on the off-beat "&"s, with some skipped; in the
-voice's register, A♭4–E♭5 (once down to E♭4); chord tones and the chord's added notes, stepping
-down through each bar. Read from the "other" stem as the pitch whose harmonics rise at each 8th,
-summed over 12 chorus loops (maxi 33–48, which has no voice, and the original's 39–54 and 71–86).
-The onset strength on the four "&"s is 0.73, 0.76, 0.73 and 0.62, against 0.56, 0.44, 0.52 and
-0.70 on beats 1–4, and 0.27–0.44 on the 16ths in between (nothing plays there). Bold notes are
-the clearest; the rest are less certain, so this is the line's shape, not a transcription:
+**What it plays:** by ear, "a note every 8th (with some skipped)", in the voice's register
+(about A♭4–E♭5), on the chord tones (clips 13a, 13b). **The exact line is not transcribed.**
+Three readings from the "other" stem (the pitch rising at each 8th, summed over 12 chorus loops;
+the part that decays within each 8th, per loop; the same per 16th over C4–C6) disagree with each
+other, and lines built from the first two both sounded "completely off" or "still off" by ear
+(clips 20a–20f, 23). The pads, the open hat on the same off-beats and the reverb of the previous
+notes all leak into those readings. What they agree on: notes on most 8ths, beats included (beat 4
+of the A♭ bar reads A♭4 in all four maxi loops), all inside A♭4–E♭5. The generator's own line
+(chord tones from the top down on the off-beats, a few beats; `pluckedCountervoice`) was judged
+"alright" in the v3 render, so keep it until the line is transcribed by ear.
 
-| Chord    | 1   | &       | 2   | &       | 3   | &       | 4       | &   |
-| -------- | --- | ------- | --- | ------- | --- | ------- | ------- | --- |
-| A♭(add9) | –   | E♭5     | –   | **D♭5** | –   | **B♭4** | **A♭4** | A♭4 |
-| D♭/F     | A♭4 | **D♭5** | A♭4 | D♭5     | –   | **D♭5** | –       | D♭5 |
-| G♭       | C5  | **D♭5** | –   | **C5**  | B♭4 | **A♭4** | B♭4     | A♭4 |
-| E♭7sus4  | C5  | **A♭4** | D♭5 | A♭4     | B♭4 | **E♭4** | B♭4     | C5  |
+**Its sound,** found by ear in three rounds against the maxi's voiceless chorus (maxi 1:10.0),
+each candidate level-matched and played alone after the record:
 
-By ear: "a note every 8th (with some skipped), plucked … but with heavy reverb", in the same
-register as the voice (clips 13a, 13b).
+1. Six different sounds (clips 20a–20f: the saw pluck then on main, an FM mallet, an FM electric
+   piano, a square pluck, string pizzicato, a soft pluck with a tail): the saw pluck (20a) was the
+   closest, but the record's sound is **less round, brighter, and its notes ring longer**.
+2. Brighter and longer variants of the saw pluck (clips 21a–21e): **an open saw with long notes and
+   more reverb (21c), and the electric piano (20c)**, were the closest.
+3. The two alone and layered (clips 22a–22d): **the two layered at equal loudness (22c)** was the
+   closest. On a re-transcribed line (clip 23), the user added: "a softer attack might help".
 
-**Its sound** (the rise at each struck note, over the same loops):
+What the stems measure agrees with a bright, quickly decaying pluck: the fundamental falls about
+15 dB in the first 70 ms of a note, the onset is centred (left and right within about 1 dB), and
+the "other" stem around it is wide (side 6 dB under mid, pads included). The reverb can't be
+measured under the pads; by ear it is heavy.
 
-| Parameter | Measured                                                                                               |
-| --------- | ------------------------------------------------------------------------------------------------------ |
-| Waveform  | Bright: h2 −3 dB, h3 −7, h4 −11, then a drop: h5 −19, h6 −19, h7 −21. A saw darkened above about 2 kHz |
-| Envelope  | A pluck: −3 dB at 60 ms, −13 dB at 120 ms, gone well within the 8th                                    |
-| Reverb    | Heavy, by ear (the pads' own reverb under it kept the tail from being measured)                        |
-| Stereo    | The "other" stem is wide (side 6 dB under mid), but that includes the pads                             |
-
-**Patch for the existing voices:**
+**Patch: two layers, equal loudness, on the `counter` track.**
 
 ```ts
+// Layer 1, an open saw pluck: bright (a 12 dB filter barely closing), ringing for most of a bar.
 new NativeMonoSynth({
   oscillator: { type: "sawtooth" },
-  filter: { type: "lowpass", rolloff: -24, Q: 2 },
-  // Tone's exponential decay of 0.5 s to 0 is -13 dB at 120 ms, as measured.
-  envelope: { attack: 0.002, decay: 0.5, sustain: 0, release: 0.15 },
+  filter: { type: "lowpass", rolloff: -12, Q: 0.8 },
+  // The attack softened from the 2 ms the clips used, as asked after clip 23 (not yet re-checked).
+  envelope: { attack: 0.012, decay: 1.4, sustain: 0.05, release: 0.35 },
   filterEnvelope: {
     attack: 0.002,
     decay: 0.12,
     sustain: 0.3,
     release: 0.15,
-    baseFrequency: 1500,
-    octaves: 1,
+    baseFrequency: 5000,
+    octaves: 0.5,
   },
+});
+// Layer 2, TF's electric piano, the `counter` patch already in instruments.ts, with the same
+// softer attack: a 1:1 FM strike (index about 0.5 heard) on a carrier with the e-piano partials.
+new NativeFMSynth({
+  harmonicity: 1,
+  modulationIndex: 1.6,
+  oscillator: { type: "sine", partials: [1, 0.56, 0.28, 0.14, 0.08, 0.056, 0.018, 0.016] },
+  modulation: { type: "sine" },
+  envelope: { attack: 0.012, decay: 7.3, sustain: 0.15, release: 0.35 },
+  modulationEnvelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 0.2 },
 });
 ```
 
-On the `counter` track (TF's electric-piano counter-line uses it for the same job), with a heavier
-reverb send than TF's (about 0.6) and no delay. Not checked by ear as a patch yet.
+- **Balance:** the two at equal loudness (the clips matched their RMS on the same line); set the
+  volumes by meter, not by the option values, since the voices' gain staging differs.
+- **Reverb:** heavy. The clips used a 2.8 s tail about 4 dB under the dry signal, so a send of
+  about 0.6–0.7 to the shared 3.2 s reverb. No delay.
+- **Not re-checked:** the softer attack (12 ms) was added after the last round.
 
-**Role:** the chorus's signature second line. It fills the gaps between the long vocal notes,
-answering on the off-beats, where the bass is accented and the open hat plays, so the chorus "&"s
-carry three parts. It follows the chords bar by bar, and the composer should write it from each
-chorus chord's tones (root, 5th, added 9th or 4th, the 7th on the E♭ bar), high to low through
-the bar, in A♭4–E♭5. In the generator it should play in every chorus of a song in The Night's
-style (it isn't a chance draw on the record), and never outside the chorus.
+**Role:** the chorus's signature second line, following the chords bar by bar under and between
+the long vocal notes, in the voice's register. In the generator it should play in every chorus of
+a song in The Night's style (it isn't a chance draw on the record), and never outside the chorus.
 
 ### 10.3 Anything else the generator lacks
 
@@ -638,24 +649,28 @@ with a bar of context either side, then the same with the candidate chord tuned 
 parts, the mix, then the Demucs stem alone; for patches, the record (or the stem), then a candidate
 patch resynthesised on the record's own pitch line.
 
-| Clips  | Time                        | Question                           | Candidates                                | By ear                                                                |
-| ------ | --------------------------- | ---------------------------------- | ----------------------------------------- | --------------------------------------------------------------------- |
-| 1a, 1b | 1:25.6 (chorus bar 2)       | Chord over the F bass              | D♭/F, Fm                                  | **D♭/F** (1a)                                                         |
-| 2a–2c  | 1:29.9 (chorus bar 4)       | The E♭ bar                         | E♭7sus4 → E♭7, E♭7, E♭sus4 → E♭           | 2a or 2c, undecided; the measured D♭ keeps the 7th (2a)               |
-| 3a, 3b | 1:27.7 (chorus bar 3)       | G♭, or G♭ with C on top            | G♭, G♭(add♯11)                            | **G♭** (3a)                                                           |
-| 4a, 4b | 0:15.9 (verse bar 2)        | Chord over the F bass              | E♭/F, Fm7                                 | **E♭/F** (4a)                                                         |
-| 5a, 5b | 0:20.3 (verse bar 4)        | B♭ quality                         | B♭, B♭m                                   | **B♭ major** (5a)                                                     |
-| 6a, 6b | 1:23–1:58; maxi 3:29–4:04   | The chorus's long-note line        | Lead vocal, choir, vocoder, synth         | **The single lead vocal**                                             |
-| 7a, 7b | 0:22.5 and 0:48.6           | The low line (F3–C4) in 7b         | The singer low, a second voice, processed | Read then as "the lead synth"; **corrected by clips 12a–12d**         |
-| 8a–8c  | 1:23 (every chorus)         | The off-beat accent                | Open hat, synth stab, both                | The sequenced bass on the off-beats (8a, 8b); above 4 kHz, a hat (8c) |
-| 9a, 9b | 0:22.5; maxi 0:09–0:13      | The maxi's bass octave             | Same part, or a busier take               | **Same part**: only the mix differs                                   |
-| 10a–d  | maxi 0:13, 0:31, 2:19, 4:33 | Fragments in the maxi's vocal stem | Voice, lead synth                         | **All four are the lead synth**                                       |
-| 12a–d  | 0:48.6 (bars 23–26)         | The low line, resynthesised        | Waveform, vibrato, space                  | **It is the sung verse**, not a synth; with vibrato (12a), wet (12a)  |
-| 13a, b | 1:23.4; maxi 1:10.0         | The chorus countervoice            | Moving line, held chords, another part    | **The moving line** in the "other" stem: plucked 8ths, heavy reverb   |
-| 14     | 0:22.5 (bars 11–14)         | Is this the intro lead synth?      | Yes, another part                         | **Yes**                                                               |
-| 15     | maxi 3:03 (break)           | A moving line in the break?        | 16ths, 8ths, soft, none                   | **None**                                                              |
-| 16a–d  | 0:22.5 (bars 11–14)         | The lead synth's patch             | Soft + echo, square, saw, soft dry        | **16a** (soft, nearly pure, echo), but its attack is far too soft     |
-| 18, 19 | 0:13.8; 0:48.6              | The countervoice outside choruses  | In both, one, neither                     | **Neither**; the moving part in 18 is the intro lead synth            |
+| Clips  | Time                        | Question                           | Candidates                                                     | By ear                                                                |
+| ------ | --------------------------- | ---------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 1a, 1b | 1:25.6 (chorus bar 2)       | Chord over the F bass              | D♭/F, Fm                                                       | **D♭/F** (1a)                                                         |
+| 2a–2c  | 1:29.9 (chorus bar 4)       | The E♭ bar                         | E♭7sus4 → E♭7, E♭7, E♭sus4 → E♭                                | 2a or 2c, undecided; the measured D♭ keeps the 7th (2a)               |
+| 3a, 3b | 1:27.7 (chorus bar 3)       | G♭, or G♭ with C on top            | G♭, G♭(add♯11)                                                 | **G♭** (3a)                                                           |
+| 4a, 4b | 0:15.9 (verse bar 2)        | Chord over the F bass              | E♭/F, Fm7                                                      | **E♭/F** (4a)                                                         |
+| 5a, 5b | 0:20.3 (verse bar 4)        | B♭ quality                         | B♭, B♭m                                                        | **B♭ major** (5a)                                                     |
+| 6a, 6b | 1:23–1:58; maxi 3:29–4:04   | The chorus's long-note line        | Lead vocal, choir, vocoder, synth                              | **The single lead vocal**                                             |
+| 7a, 7b | 0:22.5 and 0:48.6           | The low line (F3–C4) in 7b         | The singer low, a second voice, processed                      | Read then as "the lead synth"; **corrected by clips 12a–12d**         |
+| 8a–8c  | 1:23 (every chorus)         | The off-beat accent                | Open hat, synth stab, both                                     | The sequenced bass on the off-beats (8a, 8b); above 4 kHz, a hat (8c) |
+| 9a, 9b | 0:22.5; maxi 0:09–0:13      | The maxi's bass octave             | Same part, or a busier take                                    | **Same part**: only the mix differs                                   |
+| 10a–d  | maxi 0:13, 0:31, 2:19, 4:33 | Fragments in the maxi's vocal stem | Voice, lead synth                                              | **All four are the lead synth**                                       |
+| 12a–d  | 0:48.6 (bars 23–26)         | The low line, resynthesised        | Waveform, vibrato, space                                       | **It is the sung verse**, not a synth; with vibrato (12a), wet (12a)  |
+| 13a, b | 1:23.4; maxi 1:10.0         | The chorus countervoice            | Moving line, held chords, another part                         | **The moving line** in the "other" stem: plucked 8ths, heavy reverb   |
+| 14     | 0:22.5 (bars 11–14)         | Is this the intro lead synth?      | Yes, another part                                              | **Yes**                                                               |
+| 15     | maxi 3:03 (break)           | A moving line in the break?        | 16ths, 8ths, soft, none                                        | **None**                                                              |
+| 16a–d  | 0:22.5 (bars 11–14)         | The lead synth's patch             | Soft + echo, square, saw, soft dry                             | **16a** (soft, nearly pure, echo), but its attack is far too soft     |
+| 18, 19 | 0:13.8; 0:48.6              | The countervoice outside choruses  | In both, one, neither                                          | **Neither**; the moving part in 18 is the intro lead synth            |
+| 20a–f  | maxi 1:10.0 (chorus)        | The countervoice's sound           | Saw pluck, FM mallet, e-piano, square, pizzicato, pluck + tail | **20a** (saw pluck) closest; the record is brighter, rings longer     |
+| 21a–e  | maxi 1:10.0                 | Variants of the saw pluck          | Current, brighter, open + long, pulse, detuned                 | **21c** (open saw, long notes, more reverb) and the e-piano (20c)     |
+| 22a–d  | maxi 1:10.0                 | Saw, e-piano, or a layer           | Saw, e-piano, equal layer, e-piano + quiet saw                 | **22c**, the equal layer                                              |
+| 23     | maxi 1:10.0                 | 22c on a re-transcribed line       | Line right, partly, off                                        | **Line still off**; the sound may want a softer attack                |
 
 ## Sources
 
