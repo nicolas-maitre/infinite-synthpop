@@ -133,8 +133,9 @@ for backing-only repeats, a break and a fill.
 **A skip and a splice:** the drum grid jumps twice before the last chorus. At **exactly 4:30**
 this copy of the recording skips ahead, by about an 8th: a fault in the copy, not part of the
 arrangement, so the fill's true length is unknown. **Between 4:37 and 4:40** there is audible tape
-splicing into the last chorus, which shifts the grid by about a beat. It sounds rough but may be
-intentional, the usual way such 12″ edits were assembled; the original has nothing like it. (The
+splicing into the last chorus, which shifts the grid by about a beat. It sounds bad, and it is
+**not a building block**: the generator joins the fill to the last chorus cleanly. The original
+has nothing like it. (The
 drum grid also reads up to 0.1 s late from 4:00 to 4:30; by ear that stretch is fine, so it is a
 measurement drift, not a fault.)
 
@@ -431,7 +432,8 @@ octaves, a 16th arpeggio, a minor verse over a tonic pedal and a relative-major 
      bridge, and a **fade on the chorus loop**;
    - for a 12″/maxi mode (from the maxi, §2): start straight on the loop without the intro;
      replay the verse and synth-lead sections as backing only; add a 16-bar **bass-less break on
-     the verse chords**, a longer pedal block and a no-bass fill with toms before the last chorus;
+     the verse chords**, a longer pedal block and a no-bass fill with toms before the last chorus
+     (joined cleanly: the maxi's tape splice is not reproduced);
      keep the voice for one chorus.
 3. **A bass style:** root 8ths ("disco 8ths") **accented on the off-beats**, legato, dark (nothing
    much above 300 Hz), octave-layered, with **octave lifts at fixed 8ths in the pattern** (beats 2–3 of the loop's
