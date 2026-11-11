@@ -91,8 +91,9 @@ function centreWeights(genre: GenreId): number[] {
   return weightsAtPoint(GENRES[genre], CENTRE);
 }
 
+// Everything a first visit plays is picked per song: press play and it keeps going.
 const defaults: Prefs = {
-  genre: DEFAULT_GENRE,
+  genre: "auto",
   weights: centreWeights(DEFAULT_GENRE),
   styleAuto: true,
   bpm: 118,

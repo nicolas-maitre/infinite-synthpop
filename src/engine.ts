@@ -8,7 +8,7 @@ import { AudioContext as StandardAudioContext } from "standardized-audio-context
 import * as Tone from "tone";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents } from "./arranger";
 import type { SampleReport } from "./drums";
-import { bassTone, genreAt, GENRES, type GenreId } from "./genres";
+import { bassTone, genreAt, leadTone, GENRES, type GenreId } from "./genres";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
@@ -346,6 +346,7 @@ export class Engine {
     inst.setLeadPatch(this.leadPatch);
     const genre = GENRES[this.song.genre];
     inst.setBassTone(bassTone(genre, this.song.weights));
+    inst.setLeadTone(leadTone(genre, this.song.weights));
     const profile = genreAt(genre, this.song.weights);
     inst.setSnareGate(profile.drums.gatedSnare);
     inst.setVoices(profile.voices);

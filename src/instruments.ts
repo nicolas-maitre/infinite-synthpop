@@ -8,7 +8,7 @@ import type { DrumHit, MelodicTrack } from "./arranger";
 import type { Note } from "./composer";
 import { DrumKit } from "./drums";
 import { FixedEQ3, FixedFilter } from "./filters";
-import { SYNTHPOP_VOICES, type BassTone, type Voices } from "./genres";
+import { SYNTHPOP_VOICES, type BassTone, type LeadTone, type Voices } from "./genres";
 import { NativeFMSynth, NativeMonoSynth, NativeSynth } from "./voices";
 import { midiToFreq } from "./theory";
 
@@ -84,6 +84,9 @@ const PANS: Record<Track, number> = {
   synth: 0,
 };
 
+/** The lead's reverb send on its own track (SENDS.lead), which the synth lead keeps. */
+const SENDS_LEAD_REVERB = 0.35;
+
 /** Post-fader send levels (gain) to the reverb and delay buses. */
 const SENDS: Record<Track, { reverb: number; delay: number }> = {
   drums: { reverb: 0.08, delay: 0 },
@@ -93,7 +96,7 @@ const SENDS: Record<Track, { reverb: number; delay: number }> = {
   hook: { reverb: 0.2, delay: 0.05 },
   pad: { reverb: 0.45, delay: 0 },
   riff: { reverb: 0.3, delay: 0.25 },
-  lead: { reverb: 0.35, delay: 0.2 },
+  lead: { reverb: SENDS_LEAD_REVERB, delay: 0.2 },
   counter: { reverb: 0.45, delay: 0.15 },
   arp: { reverb: 0.4, delay: 0.3 },
   stab: { reverb: 0.5, delay: 0.1 },
@@ -114,6 +117,19 @@ export const LEAD_PATCHES: readonly LeadPatch[] = ["voice", "synth"];
 
 interface LeadSettings {
   oscillator: Tone.OmniOscillatorOptions;
+  /** The synth's own filter: where its envelope starts, and how far it opens (octaves). */
+  filterBase: number;
+  filterOctaves: number;
+  /** The low-pass after it all. */
+  cutoff: number;
+  /** A sung note's share of its length: the rest is the gap between words. */
+  legato: number;
+  /** Breath in the air band (sibilance), above 5 kHz. */
+  air: number;
+  /** Send to the reverb. */
+  reverb: number;
+  /** Whether the genre's lead tone (setLeadTone) applies. */
+  mixed: boolean;
   portamento: number;
   /** The unshaped synth's share, and the formant bank's. */
   dry: number;
@@ -129,6 +145,15 @@ interface LeadSettings {
 const LEAD_SETTINGS: Record<LeadPatch, LeadSettings> = {
   voice: {
     oscillator: { type: "sawtooth" } as Tone.OmniOscillatorOptions,
+    // Open, with air and gaps: the records' vocal stems keep 5–10 kHz within 8–18 dB of their
+    // 250 Hz–1 kHz band, and dip 11–16 dB between words (compare_voice.py).
+    filterBase: 2600,
+    filterOctaves: 2,
+    cutoff: 11000,
+    legato: 0.82,
+    air: 0.2,
+    reverb: 0.22,
+    mixed: true,
     portamento: 0.06,
     // Level-matched to the synth lead (a solo render measured it 4.9 LU louder at 0.15 and 1).
     dry: 0.085,
@@ -140,6 +165,13 @@ const LEAD_SETTINGS: Record<LeadPatch, LeadSettings> = {
   },
   synth: {
     oscillator: { type: "fatsawtooth", count: 2, spread: 14 } as Tone.OmniOscillatorOptions,
+    filterBase: 1100,
+    filterOctaves: 2.2,
+    cutoff: 4500,
+    legato: 1,
+    air: 0,
+    reverb: SENDS_LEAD_REVERB,
+    mixed: false,
     portamento: 0.045,
     dry: 1,
     formants: 0,
@@ -195,6 +227,17 @@ export class Instruments {
   private readonly riffSaw: NativeSynth;
   private readonly lead: Tone.MonoSynth;
   private readonly leadOct: Tone.MonoSynth;
+  /** The voice's mix (setLeadTone): level, shelves, width. */
+  private readonly leadMix: {
+    level: Tone.Gain;
+    low: Tone.Filter;
+    mid: Tone.Filter;
+    high: Tone.Filter;
+    width: Tone.Gain;
+    cutoff: Tone.Filter;
+    air: Tone.Gain;
+  };
+  private leadTone: LeadTone = { level: 0, low: 0, mid: 0, high: 0, air: 0, width: 0 };
   /** The sung lead's voice: vibrato, formants and breath (setLeadPatch). */
   private readonly leadVoice: {
     vibrato: Tone.Vibrato;
@@ -452,8 +495,17 @@ export class Instruments {
     // The lead: portamento + vibrato on detuned saws ("synth"), or one saw shaped by three vowel
     // formants with a breath of noise ("voice"; setLeadPatch).
     const vibrato = new Tone.Vibrato({ frequency: 5.2, depth: 0.07 });
-    const leadFilter = new FixedFilter("lowpass", 4500);
-    vibrato.chain(leadFilter, this.channels.lead);
+    // The mix: the shelves, the level, and a 14 ms copy on the right for width (setLeadTone).
+    const leadCutoff = new Tone.Filter({ type: "lowpass", frequency: 4500, rolloff: -12 });
+    const leadLow = new Tone.Filter({ type: "lowshelf", frequency: 220, gain: 0 });
+    const leadMid = new Tone.Filter({ type: "peaking", frequency: 1800, Q: 0.9, gain: 0 });
+    const leadHigh = new Tone.Filter({ type: "highshelf", frequency: 3000, gain: 0 });
+    const leadLevel = new Tone.Gain(1);
+    vibrato.chain(leadCutoff, leadLow, leadMid, leadHigh, leadLevel, this.channels.lead);
+    const leadWidth = new Tone.Gain(0);
+    leadLevel.chain(new Tone.Delay(0.014), new Tone.Panner(1), leadWidth, this.channels.lead);
+    // Sibilance: the breath's own path above 5 kHz, past the formants.
+    const leadAir = new Tone.Gain(0).connect(leadLow);
     const leadIn = new Tone.Gain(1);
     const leadDry = new Tone.Gain(1).connect(vibrato);
     // The bank loses level to its narrow bands: made up here, so the patches sit level.
@@ -469,7 +521,17 @@ export class Instruments {
       noise: { type: "pink" },
       envelope: { attack: 0.03, decay: 0.2, sustain: 0.5, release: 0.2 },
     }).chain(breathLevel, leadIn);
+    breath.chain(new FixedFilter("highpass", 5000), leadAir);
     this.leadVoice = { vibrato, dry: leadDry, formants: leadFormants, bands, breath, breathLevel };
+    this.leadMix = {
+      level: leadLevel,
+      low: leadLow,
+      mid: leadMid,
+      high: leadHigh,
+      width: leadWidth,
+      cutoff: leadCutoff,
+      air: leadAir,
+    };
     const leadOptions: ConstructorParameters<typeof Tone.MonoSynth>[0] = {
       portamento: 0.045,
       oscillator: { type: "fatsawtooth", count: 2, spread: 14 } as Tone.OmniOscillatorOptions,
@@ -738,8 +800,10 @@ export class Instruments {
         break;
       case "lead":
         for (const n of notes) {
-          this.lead.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
-          this.voiceNote(n, at(n), len(n));
+          // The voice leaves a gap before the next word.
+          const sung = Math.max(0.06, len(n) * this.leadSettings.legato);
+          this.lead.triggerAttackRelease(midiToFreq(n.midi), sung, at(n), n.vel);
+          this.voiceNote(n, at(n), sung);
         }
         break;
       case "leadOct":
@@ -876,6 +940,33 @@ export class Instruments {
     v.breathLevel.gain.value = s.breath;
     v.vibrato.frequency.value = s.vibratoHz;
     v.vibrato.depth.value = s.vibratoDepth;
+    for (const synth of [this.lead, this.leadOct]) {
+      synth.filterEnvelope.baseFrequency = s.filterBase;
+      synth.filterEnvelope.octaves = s.filterOctaves;
+    }
+    this.leadMix.cutoff.frequency.value = s.cutoff;
+    const send = this.sends.lead.reverb;
+    if (send) send.gain.value = s.reverb;
+    this.applyLeadTone();
+  }
+
+  /** The genre's voice mix for the song (genres.ts `leadTone`); only the voice takes it. */
+  setLeadTone(tone: LeadTone): void {
+    this.leadTone = tone;
+    this.applyLeadTone();
+  }
+
+  private applyLeadTone(): void {
+    const t = this.leadSettings.mixed
+      ? this.leadTone
+      : { level: 0, low: 0, mid: 0, high: 0, air: 0, width: 0 };
+    const m = this.leadMix;
+    m.level.gain.value = Tone.dbToGain(t.level);
+    m.low.gain.value = t.low;
+    m.mid.gain.value = t.mid;
+    m.air.gain.value = this.leadSettings.air * Tone.dbToGain(t.air);
+    m.high.gain.value = t.high;
+    m.width.gain.value = t.width;
   }
 
   /** A sung note's vowel, breath and vibrato onset. */

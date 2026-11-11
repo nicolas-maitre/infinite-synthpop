@@ -169,6 +169,20 @@ export interface BassTone {
   sustain: number;
 }
 
+/** The sung voice's mix (instruments.ts `setLeadTone`), matched to each record's vocal stem with
+ * scripts/compare_voice.py: its level, a low shelf at 220 Hz, a presence peak at 1.8 kHz and a
+ * high shelf at 3 kHz (dB), its breath above 5 kHz (dB over the voice's own), and its width (the level of a 14 ms copy on the right; 0 = mono). The
+ * records' low band is mostly their singers' lower range, which EQ can't give a melody that sits
+ * higher, so the low shelves stay small. */
+export interface LeadTone {
+  level: number;
+  low: number;
+  mid: number;
+  high: number;
+  air: number;
+  width: number;
+}
+
 /** When a progression substitution may fire: chords one reference uses where the other uses
  * another (`mutate`). Tried in order; the first whose chance comes up wins. */
 export interface Substitution {
@@ -272,6 +286,7 @@ export interface Genre {
   /** Per reference, the drum details it brings while it outweighs the others. */
   drumTraits: Partial<Record<StyleId, DrumTraits>>;
   bassTone: { frequency: Blend; presence: Blend; sawCutoff: Blend; octave: Blend; sustain: Blend };
+  leadTone: { level: Blend; low: Blend; mid: Blend; high: Blend; air: Blend; width: Blend };
 }
 
 const TF = "true-faith";
@@ -743,6 +758,16 @@ export const GENRES: Record<GenreId, Genre> = {
     // TF's bass is brighter than DS's: spectral centroid 559 Hz vs 425 Hz, and DS's falls off
     // faster above 220 Hz (about 12 dB per octave). You Came's is two oscillators an octave apart
     // through a low lowpass: harmonics within 22 dB of the fundamental only up to 250–740 Hz (§6.3).
+    // The records' vocal stems against our voice at each corner (compare_voice.py): True Faith's
+    // is the fullest low down, You Came's the most forward, all of them wider than a mono lead.
+    leadTone: {
+      level: { by: { [TF]: 0.5, [DS]: 1.5, [YC]: 3 } },
+      low: { by: { [TF]: 3, [DS]: 2, [YC]: 1 } },
+      mid: { by: { [TF]: 2, [DS]: 5, [YC]: 7 } },
+      high: { by: { [TF]: 8, [DS]: 6, [YC]: 12 } },
+      air: { by: { [TF]: 10, [DS]: 10, [YC]: 7 } },
+      width: { by: { [TF]: 0.6, [DS]: 0.65, [YC]: 0.7 } },
+    },
     bassTone: {
       frequency: { base: 240, by: { [DS]: -80, [YC]: -60 } },
       presence: { base: 7, by: { [DS]: -6, [YC]: -5 } },
@@ -869,6 +894,16 @@ export const GENRES: Record<GenreId, Genre> = {
     },
     // The Night's bass is dark and octave-layered, legato; Get Closer's plucked (16 dB down per
     // 8th) and dark; Faces' a bright, plucky saw with its octave partial above the fundamental.
+    // The Night's voice is the brightest in the presence band and the widest (a long, wide
+    // reverb); Get Closer's narrow and dark up top; Faces' thin low down and airy.
+    leadTone: {
+      level: { by: { [TN]: -2.5, [FC]: 1 } },
+      low: { by: { [TN]: 1, [GC]: 1, [FC]: -3 } },
+      mid: { by: { [TN]: 11, [GC]: 5, [FC]: 4.5 } },
+      high: { by: { [TN]: 15, [GC]: 10, [FC]: 4 } },
+      air: { by: { [TN]: 6, [GC]: 4, [FC]: 10 } },
+      width: { by: { [TN]: 1.1, [GC]: 0.35, [FC]: 0.5 } },
+    },
     bassTone: {
       frequency: { base: 160, by: { [FC]: 100 } },
       presence: { base: 1, by: { [FC]: 5 } },
@@ -1003,6 +1038,18 @@ export function dominantVoices(genre: Genre, weights: readonly number[]): Voices
 export function dominantDrums(genre: Genre, weights: readonly number[]): DrumTraits {
   const ref = dominantReference(genre, weights);
   return (ref && genre.drumTraits[ref]) ?? genre.drums;
+}
+
+export function leadTone(genre: Genre, at: number | readonly number[]): LeadTone {
+  const g = genreAt(genre, at);
+  return {
+    level: g.at(genre.leadTone.level),
+    low: g.at(genre.leadTone.low),
+    mid: g.at(genre.leadTone.mid),
+    high: g.at(genre.leadTone.high),
+    air: g.at(genre.leadTone.air),
+    width: g.at(genre.leadTone.width),
+  };
 }
 
 export function bassTone(genre: Genre, at: number | readonly number[]): BassTone {

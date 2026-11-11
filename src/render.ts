@@ -5,7 +5,7 @@
 import * as Tone from "tone";
 import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./composer";
-import { bassTone, genreAt, GENRES, isStyleWeights } from "./genres";
+import { bassTone, genreAt, leadTone, GENRES, isStyleWeights } from "./genres";
 import { scheduleBar } from "./schedule";
 import { Instruments, type LeadPatch, type Track } from "./instruments";
 
@@ -68,6 +68,7 @@ export async function renderSong(
   inst.drums.use(song.kit);
   const genre = GENRES[song.genre];
   inst.setBassTone(bassTone(genre, song.weights));
+  inst.setLeadTone(leadTone(genre, song.weights));
   const profile = genreAt(genre, song.weights);
   inst.setSnareGate(profile.drums.gatedSnare);
   inst.setVoices(profile.voices);
