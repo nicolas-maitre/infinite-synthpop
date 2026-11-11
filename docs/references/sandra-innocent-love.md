@@ -488,6 +488,172 @@ recorded and then with one 16th muted (9a).
 | 8   | 0:00.8 | 0–3   | Intro: the hit on 2 and 4      | intro hits, verse snare, verse kick, one at a time (8d)              | **a different, lower drum** (low-tom-like), with 16th hat clicks                        |
 | 9   | 0:30.0 | 14–21 | Verse: a kick on 2a?           | as recorded vs 2a muted (9a); verse vs chorus 2a hits (9c)           | **a quiet thump** each bar, weaker and blurrier than the chorus kick: a ghost kick      |
 
+## 12. Synth parts for the generator
+
+What the Euro-disco genre needs to imitate Innocent Love's synths: the pad, the chorus stabs, the
+intro's soft 16th figure and the instrumental link's line. Patches are in the generator's own
+voices (`NativeSynth`, `NativeMonoSynth`, `FixedFilter`).
+
+**How this was measured:**
+
+- **Pad:** the chorus stops (bars 42–43 and 74–75), where the D♭ chord is held alone. Fitted
+  against the same chord played by candidate oscillators and filters, computed partial by partial.
+  Attack and release were traced on the song's first chord and the change into bar 2.
+- **The other parts:** their onsets per 16th (rises on each semitone in their register, counted
+  over every bar of the section) and their average spectrum (the mean minus the 20th-percentile
+  floor, which keeps the sustained pad out).
+
+Clips 2 and 3 (end of this section) check the two least certain readings.
+
+### The pad
+
+| Measure    | Record                                                                          | Current pad            |
+| ---------- | ------------------------------------------------------------------------------- | ---------------------- |
+| Register   | C♯3–F4 on the held D♭ (C♯3, G♯3, B3, C♯4, F4); the intro's triads in A♭3–F♯4    | as voiced              |
+| Brightness | 22 dB under the 250 Hz band by 5 kHz                                            | the same within 3.3 dB |
+| Filter fit | saw through a 12 dB low-pass at **2.8–3.2 kHz**, Q 0–1, within 3.0–3.2 dB       | 2.8 kHz, Q 1           |
+| Attack     | 0.2 s to full from silence (A♯3 at 0:00.8); 0.3–0.45 s at the change into bar 2 | 0.35 s                 |
+| Release    | the held D♭ falls 15 dB in 0.4 s before bar 44                                  | 1.1 (15 dB in 0.24 s)  |
+| Stereo     | L/R correlation 0.70, side 7 dB under mid; the intro's pads 0.75–0.84           | 0.51, side 5 dB under  |
+
+- **The current pad already has this record's brightness and envelope.** A narrower chorus (wet
+  0.3: correlation 0.80) is the one clear change.
+- **Release:** the held D♭'s fade would need `release: 2.4` (15 dB in 0.4 s), but at the intro's
+  chord changes the old notes fall faster, as with the current 1.1. A value between, 1.4, is a
+  guess.
+- **Level:** the held pad in the stops (−25.0 dB RMS) is louder than the whole stem in the chorus
+  (−30.6 dB). The chorus pad sits low under the stabs and the stacked voices.
+
+```ts
+new NativeSynth({
+  oscillator: { type: "sawtooth", count: 3, spread: 22 },
+  envelope: { attack: 0.3, decay: 0.6, sustain: 0.8, release: 1.4 },
+  maxPolyphony: 16,
+}).chain(
+  new FixedFilter("highpass", 220),
+  new FixedFilter("lowpass", 3000, { Q: 0 }),
+  new Tone.Chorus({ frequency: 0.8, delayTime: 4, depth: 0.5, wet: 0.3 }).start(),
+  padChannel,
+);
+```
+
+### The chorus stabs (choruses 1–4)
+
+**Rhythm.** Rises of the strongest notes per 16th, median of 52 chorus bars (dB):
+
+| 16th       | 1    | e   | &   | a   | 2   | e   | &    | a   | 3    | e   | &    | a    | 4   | e   | &   | a   |
+| ---------- | ---- | --- | --- | --- | --- | --- | ---- | --- | ---- | --- | ---- | ---- | --- | --- | --- | --- |
+| All bars   | 10.8 | 7.7 | 9.0 | 5.7 | 7.6 | 9.8 | 9.8  | 8.4 | 10.4 | 8.6 | 10.8 | 10.5 | 8.9 | 8.6 | 8.7 | 7.1 |
+| Loop bar 1 | 10.7 | 7.6 | 9.0 | 5.7 | 5.6 | 8.4 | 12.1 | 7.0 | 10.8 | 8.6 | 12.5 | 10.0 | 7.3 | 9.8 | 7.3 | 4.7 |
+
+- **The hits: 1, 1&, 2e, 2&, 3, 3&, 3a**; the weakest 16ths are 1a, 2, 4 and 4a. In the loop's
+  E♭m bar the strongest are 1, 2&, 3, 3& and 4e.
+- §7's reading (1, 1&, 2e, 2&, 3&, 4e) holds for the first five. The data add **3** and **3a**
+  and make 4e weaker (clips 2a, 2b).
+- The stabs avoid beats 2 and 4, where the drum stem is strongest, so they aren't snare leakage.
+
+**Voicing:** C♯4–F♯5, chord tones over the bass. The strongest bins are C♯4, D♯4, F♯4, then C♯5,
+D♯5, A♯4 and F♯5: three or four notes, close, around middle C to an octave above.
+
+**Tone and envelope:**
+
+- **Saw (or 25% pulse) through a 12 dB low-pass at about 3.7 kHz**, within 2.1–2.2 dB: a little
+  brighter than the pad.
+- **Envelope:** each hit falls about 5 dB within its 16th over a lower held level. These are
+  re-struck chords, not dry stabs with silence between them.
+- **Stereo:** narrower than the pad: L/R correlation 0.87 at 1.5–5 kHz, side 11.5 dB under mid.
+- **Echo:** none found.
+
+```ts
+new NativeSynth({
+  oscillator: { type: "sawtooth" },
+  envelope: { attack: 0.003, decay: 0.2, sustain: 0.45, release: 0.08 },
+  maxPolyphony: 12,
+}).chain(new FixedFilter("lowpass", 3700, { Q: 0 }), stabChannel);
+```
+
+Gate: a 16th to an 8th per hit, close voicings of 3–4 notes in C♯4–F♯5.
+
+### The intro's soft 16th figure (bars 0–7)
+
+Estimate: the figure shares the pad's register.
+
+- **Register:** D♯5–F♯5 over a held A♯4 (the pads' top): fundamentals 620–740 Hz.
+- **Rhythm:** it plays in the **first bar of each 2-bar chord** (bars 0, 2, 4, 6), about 8–9
+  16ths: the stem peaks after 1, 1&, 1a, 2&, 3, 3e and 4a. The second bar mostly holds.
+- **Envelope:** each note falls 8–10 dB within its 16th: a soft pluck.
+- **Tone:** mellow: 16 dB under its fundamentals by 1.3 kHz, 22 dB by 1.6 kHz. A triangle, or a
+  sine with a weak 3rd harmonic.
+- **Stereo:** L/R correlation 0.84 at 500–1500 Hz: near the centre.
+
+```ts
+new NativeMonoSynth({
+  oscillator: { type: "triangle" },
+  filter: { type: "lowpass", rolloff: -12, Q: 0 },
+  envelope: { attack: 0.005, decay: 0.12, sustain: 0.1, release: 0.1 },
+  filterEnvelope: {
+    attack: 0.002,
+    decay: 0.1,
+    sustain: 1,
+    release: 0.1,
+    baseFrequency: 1500,
+    octaves: 0,
+  },
+  maxPolyphony: 4,
+}).connect(seqChannel);
+```
+
+### The instrumental link's line (2:39.2–2:47.5)
+
+Least certain of all: the link plays a riff bass, a chord and the line together.
+
+- **Register: probably octave 5, not 6–7.** "Up to C♯7" in §7 reads harmonics. At 2:44.5 the
+  line's note is D5 (584 Hz), and its 2nd harmonic is as loud as the fundamental, the 3rd 1 dB
+  down, the 4th–6th 6–7 dB down. Those harmonics are what reach C♯7 (clips 3a–3c).
+- **Tone:** bright. The link's spectrum stays flat from 600 Hz to 3 kHz, then falls 9 dB by
+  5 kHz and 16 dB by 8 kHz: a saw or narrow pulse through a 12 dB low-pass at 5–7 kHz.
+- **Stereo:** mono: L/R correlation 0.95–0.97 in every band.
+- **Level:** loud: the stem is 8 dB above the chorus (−22.3 against −30.6 dB RMS).
+- **Rhythm:** it plays through beats 1–3 and stops with the bass riff after beat 3 in bars 77
+  and 79.
+
+```ts
+new NativeMonoSynth({
+  oscillator: { type: "square", partials: [1, 1, 0.9, 0.5, 0.45, 0.45, 0.3, 0.25] },
+  filter: { type: "lowpass", rolloff: -12, Q: 1 },
+  envelope: { attack: 0.003, decay: 0.15, sustain: 0.6, release: 0.08 },
+  filterEnvelope: {
+    attack: 0.002,
+    decay: 0.1,
+    sustain: 1,
+    release: 0.1,
+    baseFrequency: 6000,
+    octaves: 0,
+  },
+  maxPolyphony: 2,
+}).connect(leadChannel);
+```
+
+The partials are the D5 reading (h1–h6), extended by a guess.
+
+### Ear check
+
+Clips in `renders/ear-check-euro/` (gitignored):
+
+| Clip                                       | Contents                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------- |
+| `2a-innocent-love-chorus-stabs-clicks-doc` | "other" stem, bars 60–63 (2:05.9), ticks on 1, 1&, 2e, 2&, 3&, 4e |
+| `2b-innocent-love-chorus-stabs-clicks-new` | the same, ticks on 1, 1&, 2e, 2&, 3, 3&, 3a                       |
+| `3a-innocent-love-link-stem`               | "other" stem, bars 76–79 (2:39.2)                                 |
+| `3b-innocent-love-link-below-1200Hz`       | the same, low-passed at 1.2 kHz                                   |
+| `3c-innocent-love-link-above-1200Hz`       | the same, high-passed at 1.2 kHz                                  |
+
+Questions:
+
+- Which tick track follows the stabs, 2a or 2b?
+- Where do you hear the link's tune in its own register: in 3b (below 1.2 kHz, octave 5) or only
+  in 3c (above it)?
+
 ## Sources
 
 - The recording in `inspiration/Sandra/` (local only, not in the repo), measured with

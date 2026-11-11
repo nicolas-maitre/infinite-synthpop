@@ -282,6 +282,17 @@ export class Instruments {
   private readonly stabHeld: NativeMonoSynth;
   /** Faces' arpeggio, a softer copy of its pluck, on the arp track. */
   private readonly arpPluck: NativeMonoSynth;
+  /** The Euro-disco parts (docs/references/sandra-*.md §12), each on its track (see setVoices). */
+  private readonly euro: {
+    pad: NativeSynth;
+    padFilter: FixedFilter;
+    riffClick: NativeMonoSynth;
+    riffGlide: NativeMonoSynth;
+    arpTriangle: NativeMonoSynth;
+    arpSaw: NativeMonoSynth;
+    stabSaw: NativeMonoSynth;
+    synthSaw: NativeMonoSynth;
+  };
   /** Each track's sends to the reverb and the shared delay, so a voice can change them. */
   private readonly sends = {} as Record<Track, { reverb?: Tone.Gain; delay?: Tone.Gain }>;
   private voices: Voices = SYNTHPOP_VOICES;
@@ -772,6 +783,146 @@ export class Instruments {
       volume: ARP_STAB_GAIN_DB,
     }).chain(stabNoiseFilter, this.channels.stab);
 
+    // The Euro-disco parts, measured from the Sandra records' "other" stems (§12 of each analysis).
+    // Pads: three detuned saws as ours, a quicker attack (0.2–0.3 s), a lighter chorus (L/R
+    // correlation 0.70–0.87), and a low-pass set per reference (setVoices).
+    const euroPadFilter = new FixedFilter("lowpass", 2500, { Q: 0.7 });
+    const euroPad = new NativeSynth({
+      oscillator: { type: "sawtooth", count: lite ? 2 : 3, spread: 22 },
+      envelope: { attack: 0.25, decay: 0.6, sustain: 0.8, release: 0.8 },
+      maxPolyphony: lite ? 8 : 16,
+    });
+    euroPad.chain(
+      new FixedFilter("highpass", 220),
+      euroPadFilter,
+      new Tone.Chorus({ frequency: 0.8, delayTime: 4, depth: 0.5, wet: 0.3 }).start(),
+      this.channels.pad,
+    );
+    // Crazy Juliet's sequence and chorus riff: a soft square body with a click (a 12 dB low-pass
+    // whose envelope opens 2.5 octaves over 1.4 kHz for 50 ms), lightly chorused.
+    const clickChorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.5, wet: 0.3 });
+    clickChorus.start().connect(this.channels.riff);
+    const riffClick = new NativeMonoSynth({
+      oscillator: { type: "square" },
+      filter: { type: "lowpass", rolloff: -12, Q: 1 },
+      envelope: { attack: 0.002, decay: 0.25, sustain: 0.3, release: 0.12 },
+      filterEnvelope: {
+        attack: 0.001,
+        decay: 0.05,
+        sustain: 0,
+        release: 0.05,
+        baseFrequency: 1400,
+        octaves: 2.5,
+      },
+      maxPolyphony: 4,
+      volume: -6,
+    }).connect(clickChorus);
+    // Heaven Can Wait's intro motif (clip 4b matched the record within 1–2 dB to 7.6 kHz): three
+    // saws 25 cents apart, legato, the filter falling from about 8 kHz to 3.2 kHz over 0.3 s, a
+    // long release into a chorus and an extra reverb send.
+    const glideBus = new Tone.Gain(1);
+    glideBus.chain(
+      new Tone.Chorus({ frequency: 0.8, delayTime: 3.5, depth: 0.5, wet: 0.4 }).start(),
+      this.channels.riff,
+    );
+    glideBus.connect(new Tone.Gain(0.3).connect(reverb));
+    const riffGlide = new NativeMonoSynth({
+      oscillator: { type: "sawtooth", count: lite ? 2 : 3, spread: 25 },
+      filter: { type: "lowpass", rolloff: -12, Q: 1 },
+      envelope: { attack: 0.01, decay: 0.3, sustain: 0.9, release: 1.5 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.3,
+        sustain: 0,
+        release: 0.3,
+        baseFrequency: 3200,
+        octaves: 1.3,
+      },
+      maxPolyphony: 3,
+      volume: -10,
+    }).connect(glideBus);
+    // The 16th parts: Crazy Juliet's verse figure and Innocent Love's intro, a soft triangle
+    // pluck (falling 8–10 dB a 16th) through 1.5 kHz, chorused; Heaven Can Wait's pulse, a saw
+    // through a fixed 2.9 kHz low-pass, held for most of each 16th.
+    const arpChorus = new Tone.Chorus({ frequency: 1.2, delayTime: 3.5, depth: 0.5, wet: 0.5 });
+    arpChorus.start().connect(this.channels.arp);
+    const arpTriangle = new NativeMonoSynth({
+      oscillator: { type: "triangle" },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
+      envelope: { attack: 0.004, decay: 0.15, sustain: 0.2, release: 0.1 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.1,
+        sustain: 1,
+        release: 0.1,
+        baseFrequency: 1500,
+        octaves: 0,
+      },
+      maxPolyphony: lite ? 4 : 6,
+      volume: ARP_STAB_GAIN_DB + 6,
+    }).connect(arpChorus);
+    const arpSaw = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
+      envelope: { attack: 0.002, decay: 0.12, sustain: 0.55, release: 0.05 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.1,
+        sustain: 1,
+        release: 0.1,
+        baseFrequency: 2900,
+        octaves: 0,
+      },
+      maxPolyphony: lite ? 4 : 6,
+      volume: ARP_STAB_GAIN_DB - 2,
+    }).connect(this.channels.arp);
+    // Innocent Love's stabs: a saw chord through a fixed 3.7 kHz low-pass, re-struck and falling
+    // about 5 dB a 16th, centred, no echo.
+    const stabSaw = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
+      envelope: { attack: 0.003, decay: 0.2, sustain: 0.45, release: 0.08 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.1,
+        sustain: 1,
+        release: 0.1,
+        baseFrequency: 3700,
+        octaves: 0,
+      },
+      maxPolyphony: lite ? 6 : 8,
+      volume: ARP_STAB_GAIN_DB - 4,
+    }).connect(this.channels.stab);
+    // Crazy Juliet's instrumental lead (within 1.6–1.8 dB of the stem): a saw through a 12 dB
+    // low-pass at 4.7 kHz, Q 1, a 4.4 Hz vibrato of about ±20 cents, no echo, near the centre.
+    const sawVibrato = new Tone.Vibrato({ frequency: 4.4, depth: 0.17 });
+    sawVibrato.connect(this.channels.synth);
+    const synthSaw = new NativeMonoSynth({
+      oscillator: { type: "sawtooth" },
+      filter: { type: "lowpass", rolloff: -12, Q: 1 },
+      envelope: { attack: 0.005, decay: 0.1, sustain: 0.45, release: 0.1 },
+      filterEnvelope: {
+        attack: 0.002,
+        decay: 0.1,
+        sustain: 1,
+        release: 0.1,
+        baseFrequency: 4700,
+        octaves: 0,
+      },
+      maxPolyphony: 2,
+      volume: -8,
+    }).connect(sawVibrato);
+    this.euro = {
+      pad: euroPad,
+      padFilter: euroPadFilter,
+      riffClick,
+      riffGlide,
+      arpTriangle,
+      arpSaw,
+      stabSaw,
+      synthSaw,
+    };
+
     // TF's high sequencer: a plucky square on 16ths.
     this.seq = new NativeMonoSynth({
       oscillator: { type: "square" },
@@ -917,6 +1068,12 @@ export class Instruments {
       }
       case "riff":
         for (const n of notes) {
+          if (this.voices.riffPatch === "click" || this.voices.riffPatch === "glide") {
+            const synth =
+              this.voices.riffPatch === "click" ? this.euro.riffClick : this.euro.riffGlide;
+            synth.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+            continue;
+          }
           if (this.voices.riffPatch === "saw") {
             this.riffPlain.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
             continue;
@@ -929,20 +1086,28 @@ export class Instruments {
           this.riffSaw.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         }
         break;
-      case "synth":
-        for (const n of notes)
-          this.synth.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+      case "synth": {
+        const synth = this.voices.synthPatch === "saw" ? this.euro.synthSaw : this.synth;
+        for (const n of notes) synth.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
+      }
       case "arp": {
-        const voice = this.voices.arpPatch === "pluck" ? this.arpPluck : this.arp;
-        for (const n of notes) voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+        const arp =
+          this.voices.arpPatch === "pluck"
+            ? this.arpPluck
+            : this.voices.arpPatch === "triangle"
+              ? this.euro.arpTriangle
+              : this.voices.arpPatch === "saw"
+                ? this.euro.arpSaw
+                : this.arp;
+        for (const n of notes) arp.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
       }
       case "pad":
         for (const group of byOnset(notes)) {
           const [first] = group;
           if (!first) continue;
-          this.pad.triggerAttackRelease(
+          (this.voices.padTone ? this.euro.pad : this.pad).triggerAttackRelease(
             group.map((n) => midiToFreq(n.midi)),
             len(first),
             at(first),
@@ -958,6 +1123,10 @@ export class Instruments {
           if (this.voices.stabPatch === "pluck") {
             const voice = first.alt ? this.stabHeld : this.stabPluck;
             voice.triggerAttackRelease(freqs, len(first), at(first), first.vel);
+            continue;
+          }
+          if (this.voices.stabPatch === "saw") {
+            this.euro.stabSaw.triggerAttackRelease(freqs, len(first), at(first), first.vel);
             continue;
           }
           this.stab.triggerAttackRelease(freqs, len(first), at(first), first.vel);
@@ -1015,14 +1184,17 @@ export class Instruments {
     // Faces' pluck has its own echo and little reverb (faces.md §10.1).
     const pluck = voices.stabPatch === "pluck";
     const stab = this.sends.stab;
+    // Innocent Love's saw stabs have no echo either.
+    const dry = pluck || voices.stabPatch === "saw";
     if (stab.reverb) stab.reverb.gain.value = pluck ? 0.15 : SENDS.stab.reverb;
-    if (stab.delay) stab.delay.gain.value = pluck ? 0 : SENDS.stab.delay;
+    if (stab.delay) stab.delay.gain.value = dry ? 0 : SENDS.stab.delay;
     // Its arpeggio (§10.4) is centred on the record, and carries the same echo and little reverb.
     const arpPluck = voices.arpPatch === "pluck";
     const arp = this.sends.arp;
     if (arp.reverb) arp.reverb.gain.value = arpPluck ? 0.15 : SENDS.arp.reverb;
     if (arp.delay) arp.delay.gain.value = arpPluck ? 0 : SENDS.arp.delay;
     this.channels.arp.pan.value = arpPluck ? 0 : PANS.arp;
+    if (voices.padTone) this.euro.padFilter.input.frequency.value = voices.padTone;
   }
 
   /** Picks the sung lead's sound (LeadPatch). */
@@ -1125,6 +1297,13 @@ export class Instruments {
       this.stabPluck,
       this.stabHeld,
       this.arpPluck,
+      this.euro.pad,
+      this.euro.riffClick,
+      this.euro.riffGlide,
+      this.euro.arpTriangle,
+      this.euro.arpSaw,
+      this.euro.stabSaw,
+      this.euro.synthSaw,
     ];
     for (const s of synths) s.releaseAll(time);
   }

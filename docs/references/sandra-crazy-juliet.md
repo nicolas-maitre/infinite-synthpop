@@ -453,6 +453,236 @@ stem, or single hits cut from the stem.
 Still uncertain and not checked: the A♮ in the bass walk at 1:16.3 (§4) and whether the snare's
 tail is gated (§6).
 
+## 12. Synth parts for the generator
+
+What the Euro-disco genre needs to imitate Crazy Juliet's synths: the pad, the intro sequence, the
+verse figure, the chorus riff and the instrumental lead. Patches are in the generator's own voices
+(`NativeSynth`, `NativeMonoSynth`, `FixedFilter` in `src/voices.ts` and `src/filters.ts`).
+
+**How this was measured.** All parts sit in Demucs's "other" stem, over the pads, and no stretch
+of the record has the pads alone. So:
+
+- **Pad:** the 20th percentile of each frequency bin over the intro (bars 0–3) and the verse's C♯
+  bars, which keeps what sustains and drops what comes and goes. Fitted against the same chord
+  played by candidate oscillators and filters, computed partial by partial.
+- **Rhythms:** onsets per 16th, from rises in a band where the part dominates, counted over every
+  bar of the section and checked against the drum stem for leakage.
+- **Tones:** the moving parts' average spectrum (the mean minus the percentile floor), or a section
+  with the part minus one without it (the instrumental minus the sung chorus), fitted the same way.
+- **Vibrato:** pYIN on the stem, band-passed to the lead's register.
+
+Readings marked "estimate" rest on one method only; clips 1a–1c (end of this section) check the
+least certain rhythm.
+
+### The pad
+
+| Measure    | Record                                                                                 | Current pad                            |
+| ---------- | -------------------------------------------------------------------------------------- | -------------------------------------- |
+| Register   | C♯3–G♯4 over C♯ (C♯3, G♯3, C♯4, F4, G♯4); top voices to F♯5 in the pre-chorus          | as voiced                              |
+| Brightness | −12 dB under the 400 Hz band by 1.3 kHz, −22 dB by 1.6–2.5 kHz                         | −22 dB only by 5–6 kHz                 |
+| Filter fit | saw (or 25% pulse) through a 12 dB low-pass at **1.1–1.3 kHz**, Q 0, within 2.2–2.6 dB | 2.8 kHz: 7–11 dB too bright at 2–6 kHz |
+| Attack     | 0.2–0.25 s to full (C♯4 and F4 from silence at 0:00.6, A♯ entering the D♯m bar)        | 0.35 s                                 |
+| Body       | settles 5–8 dB under its peak over the next half second (estimate: chorus beating)     | sustain 0.8 (−2 dB)                    |
+| Release    | 10 dB in about 0.12 s, starting about 0.15 s before the bar line                       | 1.1                                    |
+| Stereo     | L/R correlation 0.68–0.76 in the intro, side 7–8 dB under mid                          | 0.51, side 5 dB under                  |
+
+- **Much darker than the other two records.** It is the darkest pad of the three Sandra songs;
+  Heaven Can Wait's and Innocent Love's match the current pad's filter.
+- **The width:** a simulation of the current pad's chorus (wet 0.5, depth 0.5, 4 ms) gives an L/R
+  correlation of 0.51. Wet 0.3 gives 0.80 and side 9.5 dB under mid, close to all three records.
+
+```ts
+// Crazy Juliet's pad: the current saws, darker, faster and narrower.
+new NativeSynth({
+  oscillator: { type: "sawtooth", count: 3, spread: 22 },
+  envelope: { attack: 0.22, decay: 0.6, sustain: 0.5, release: 0.7 },
+  maxPolyphony: 16,
+}).chain(
+  new FixedFilter("highpass", 220),
+  new FixedFilter("lowpass", 1200, { Q: 0 }),
+  new Tone.Chorus({ frequency: 0.8, delayTime: 4, depth: 0.5, wet: 0.3 }).start(),
+  padChannel,
+);
+```
+
+`release: 0.7` is the native voice's release time: with its time constant, ln(1.7)/ln(200) ≈
+0.1 s, that falls 10 dB in about 0.12 s, as measured.
+
+### The intro sequence (bars 0–3)
+
+**Rhythm** (solid). Read from 3–8 kHz rises, where the drum stem is silent in bars 0–2:
+
+| 16th             | 1   | e   | &   | a   | 2   | e   | &   | a   | 3   | e   | &   | a   | 4   | e   | &   | a   |
+| ---------------- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Bars with a hit  | 4   | 1   | 2   | 4   | 4   | 2   | 3   | 3   | 1   | 3   | 3   | 1   | 4   | 0   | 4   | 1   |
+| Median rise (dB) | 21  | 2   | 13  | 19  | 13  | 3   | 22  | 12  | 2   | 8   | 13  | 0   | 18  | 0   | 15  | 3   |
+
+- The pattern §7 gives, **1, 1a, 2&, 3&, 4, 4&**, is the strongest. The record also hits **2**
+  in every bar and **2a** in three of four, more softly: 8 hits a bar, not 6 (clips 1b, 1c).
+- The same pattern in every bar, on chord tones; 3e and 4e stay empty.
+
+**Register:** G♯4–B5, mostly G♯4 and C♯5, with B5 and C♯6 at the top of the phrase.
+
+**Tone** (estimate):
+
+- **A mellow body with a click.** The body falls 15 dB under its fundamental band by 1.3 kHz,
+  23 dB by 2 kHz and 34 dB by 4 kHz: a square or triangle through a low-pass at about 1.4 kHz,
+  nothing like the saw pad.
+- **The click:** 3–8 kHz peaks within 10 ms of each hit, then falls 10–15 dB by 50 ms. That is
+  where the rhythm reads cleanly.
+- **Stereo:** L/R correlation 0.73–0.79 in its bands, as wide as the pad, no wider. "Wide,
+  chorused" in §7 is the pad and the sequence together.
+
+```ts
+new NativeMonoSynth({
+  oscillator: { type: "square" },
+  filter: { type: "lowpass", rolloff: -12, Q: 0 },
+  envelope: { attack: 0.002, decay: 0.25, sustain: 0.3, release: 0.12 },
+  // 1.4 kHz body; the envelope opens to about 8 kHz for the first few ms: the click.
+  filterEnvelope: {
+    attack: 0.001,
+    decay: 0.05,
+    sustain: 0,
+    release: 0.05,
+    baseFrequency: 1400,
+    octaves: 2.5,
+  },
+  maxPolyphony: 4,
+}).chain(
+  new Tone.Chorus({ frequency: 0.8, delayTime: 3.5, depth: 0.5, wet: 0.3 }).start(),
+  seqChannel,
+);
+```
+
+### The verse figure (bars 8–23, 39–54)
+
+Estimate throughout: the figure shares the pad's register and no method separates it cleanly.
+
+- **Register:** G♯4–F♯5 (G♯4, C♯5, D♯5, F5 and F♯5 carry it).
+- **Rhythm:** a 16th figure, busiest on beat 1 through 2e and on beat 4. The stem's level dips
+  about 8 dB over 2&–3e, and the bar's 3–4 kHz rises fall on 1, 1&, 1a, 3, 3a, 4 and 4&. It is
+  not a steady 16th stream; it phrases around a rest in the middle of the bar.
+- **Tone:** mellower still than the sequence: 15 dB down by 1.3 kHz, 25 dB by 2 kHz. A triangle,
+  or a sine with a little 3rd harmonic.
+- **Stereo:** wider than the intro: L/R correlation 0.57–0.61 across the bands, side 6 dB under mid.
+
+```ts
+new NativeMonoSynth({
+  oscillator: { type: "triangle" },
+  filter: { type: "lowpass", rolloff: -12, Q: 0 },
+  envelope: { attack: 0.004, decay: 0.15, sustain: 0.2, release: 0.1 },
+  filterEnvelope: {
+    attack: 0.002,
+    decay: 0.1,
+    sustain: 1,
+    release: 0.1,
+    baseFrequency: 1500,
+    octaves: 0,
+  },
+  maxPolyphony: 4,
+}).chain(
+  new Tone.Chorus({ frequency: 0.8, delayTime: 3.5, depth: 0.6, wet: 0.5 }).start(),
+  seqChannel,
+);
+```
+
+### The chorus riff (choruses 1–6)
+
+**Rhythm.** A 2-bar figure on E–F♯ │ G♯m, measured on its fundamentals over 15 passes:
+
+- The two accents are **1a and 3&**: they rise at 2–5 kHz in 95% and 91% of chorus bars. Beats 2
+  and 4, where the drum stem is strongest, are the riff's weakest 16ths, so this isn't leakage.
+- Bar 1 (E–F♯): notes start on 1, 1&, 1a, 2, 3&, 4 and 4e. Bar 2 (G♯m): on 1, 1&, 1a, 2, 2e, 2a,
+  3e, 4 and 4&.
+- So beat 1 is always 1 – 1& – 1a (dense), beat 2 starts a lower note, and the second half
+  answers with an off-beat entry (3& or 3e). That is §7's "dense on 1–1a and 3&–3a".
+
+**Register and contour:** G♯5 on top, stepping down to F♯5 and leaping to D♯5 on beat 2. Three
+notes, a tone and a fourth apart; it never goes above G♯5.
+
+**Tone** (estimate, two methods disagree on how dark):
+
+- The average spectrum falls 9 dB by 1 kHz, 16 dB by 1.6 kHz and 21 dB by 2.5 kHz: a saw
+  through a 12 dB low-pass at about 2.9 kHz fits within 3.7 dB.
+- Read note by note at each onset, the 2nd harmonic is 23–29 dB down: nearly a sine.
+- Either way it is soft and round, darker than the lead and the Get Closer pulse.
+- **Pitch wobble:** ±30 cents at 4–5 Hz in the pitch track, more than the lead's: a chorus.
+
+```ts
+new NativeMonoSynth({
+  oscillator: { type: "sawtooth" },
+  filter: { type: "lowpass", rolloff: -12, Q: 0 },
+  envelope: { attack: 0.003, decay: 0.2, sustain: 0.5, release: 0.08 },
+  filterEnvelope: {
+    attack: 0.002,
+    decay: 0.1,
+    sustain: 1,
+    release: 0.1,
+    baseFrequency: 2600,
+    octaves: 0,
+  },
+  maxPolyphony: 4,
+}).chain(
+  new Tone.Chorus({ frequency: 4.5, delayTime: 3, depth: 0.4, wet: 0.5 }).start(),
+  riffChannel,
+);
+```
+
+If the riff sounds too bright against the record, drop the cutoff to about 1.5 kHz or use a
+triangle.
+
+### The instrumental lead (2:36–3:11)
+
+Measured as the instrumental choruses (bars 80–89) minus the same chords sung (bars 60–69):
+
+- **Tone** (solid): a **saw, or a 25% pulse, through a 12 dB low-pass at about 4.7 kHz**, within
+  1.6–1.8 dB from 800 Hz to 10 kHz. It's the brightest synth in the song: the instrumental adds
+  8 dB at 1.3 kHz, 13–16 dB at 1.6–3 kHz and 18–22 dB at 4–8 kHz.
+- **Register:** F♯5–A♯5 (5th–95th percentile of the pitch track), centred on G♯5. §7's G♯4 is the
+  pad's G♯4 under it.
+- **Vibrato** (estimate): about **4.4 Hz, ±20 cents**, median of 16 held notes. The clearest, a
+  1.06 s G♯5 at 2:52.2, reads 4.4 Hz ±18 cents.
+- **Envelope:** attack under 10 ms; −5 dB at 50 ms, −9 dB at 100 ms, then it holds about 7 dB
+  down.
+- **Echo:** none. The 3–8 kHz envelope's autocorrelation has no peak at a dotted 8th or an 8th
+  beyond what the rhythm gives.
+- **Stereo:** near the centre. The stem's L/R correlation rises from 0.52–0.64 in the sung chorus
+  to 0.78–0.80 in the instrumental (500 Hz–5 kHz), side 9.6 dB under mid.
+- **Level:** the stem is 3 dB louder overall (−26.6 against −29.4 dB RMS).
+- **Rhythm:** a tune, not a pattern: onsets on most 16ths, strongest on 1, 1a, 2e, 3& and 4&.
+
+```ts
+new NativeMonoSynth({
+  oscillator: { type: "sawtooth" },
+  filter: { type: "lowpass", rolloff: -12, Q: 1 },
+  envelope: { attack: 0.005, decay: 0.1, sustain: 0.45, release: 0.1 },
+  filterEnvelope: {
+    attack: 0.002,
+    decay: 0.1,
+    sustain: 1,
+    release: 0.1,
+    baseFrequency: 4700,
+    octaves: 0,
+  },
+  maxPolyphony: 2,
+}).chain(new Tone.Vibrato({ frequency: 4.4, depth: 0.17 }), leadChannel);
+```
+
+`depth: 0.17` at 4.4 Hz gives about ±20 cents with Tone's 5 ms maximum delay (The Night's 0.22 at
+3 Hz gives ±18).
+
+### Ear check
+
+Clips in `renders/ear-check-euro/` (gitignored), the "other" stem of bars 0–3 (0:00.6–0:08.4):
+
+| Clip                                      | Contents                                                       |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| `1a-crazy-juliet-intro-sequence`          | the stem alone                                                 |
+| `1b-crazy-juliet-intro-sequence-clicks-6` | with a tick on §7's six: 1, 1a, 2&, 3&, 4, 4&                  |
+| `1c-crazy-juliet-intro-sequence-clicks-8` | with a tick on the measured eight: 1, 1a, 2, 2&, 2a, 3&, 4, 4& |
+
+Question: which tick track lands on every note of the sequence, 1b or 1c?
+
 ## Sources
 
 - The recording in `inspiration/Sandra/` (local only, not in the repo), measured with

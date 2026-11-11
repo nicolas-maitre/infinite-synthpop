@@ -583,6 +583,172 @@ HCW shares only the minor key and the tempo band. It is not Italo by these measu
    (drums and bass), the bare verse and the bass-less break. The 7:38 extended version should be
    added to `inspiration/Sandra/` and compared section by section, as for You Came.
 
+## 12. Synth parts for the generator
+
+What the Euro-disco genre needs to imitate Heaven Can Wait's synths: the pad, the solo intro
+motif, the pre-chorus 16ths and the chorus pulse. Patches are in the generator's own voices
+(`NativeSynth`, `NativeMonoSynth`, `FixedFilter`). Note names are on the nearest semitone below
+the record's +29-cent tuning (§2.2).
+
+**How this was measured:**
+
+- **Pad:** the fade (bars 114–115), where the pads play alone, and the break's held V (bar 83).
+  Fitted against the same chord played by candidate oscillators and filters, computed partial by
+  partial. Attack and release were traced on the chord change into bar 116.
+- **Intro motif:** bars 0–3, where nothing else plays, read note by note. A candidate patch was
+  rendered next to it (clip 4b).
+- **The 16th parts:** their onsets per 16th in the "other" stem, and their average spectrum (the
+  mean minus the 20th-percentile floor, which keeps the sustained pad out).
+
+### The pad
+
+| Measure    | Record                                                                               | Current pad            |
+| ---------- | ------------------------------------------------------------------------------------ | ---------------------- |
+| Register   | C♯3–C♯5 on the D♭ chord (C♯3, G♯3, C♯4, F4, G♯4, C♯5); §7's C3–C5                    | as voiced              |
+| Brightness | 12 dB under the 800 Hz band by 3.2 kHz, 22 dB by 5 kHz                               | the same within 3.2 dB |
+| Filter fit | saw through a 12 dB low-pass at **2.5 kHz**, Q 3 dB, within 2.8 dB                   | 2.8 kHz, Q 1           |
+| Attack     | the new chord's tones reach −3 dB 0.2–0.3 s after the bar line (A♭→E♭m into bar 116) | 0.35 s                 |
+| Release    | the old chord falls 20 dB in about 0.15 s, starting about 0.1 s before the bar line  | 1.1 (20 dB in 0.32 s)  |
+| Stereo     | L/R correlation 0.72 (bars 114–115) and 0.87 (bar 116), side 8–11 dB under mid       | 0.51, side 5 dB under  |
+
+- **The current pad already has this record's brightness.** Only the release and the width differ.
+- **Width:** the current chorus at wet 0.5 gives 0.51; wet 0.3 gives 0.80.
+- **Gap at the change:** the old chord ends a little before the bar line and the new one swells in
+  over 0.2–0.3 s, so the chords don't overlap.
+
+```ts
+new NativeSynth({
+  oscillator: { type: "sawtooth", count: 3, spread: 22 },
+  envelope: { attack: 0.3, decay: 0.6, sustain: 0.8, release: 0.4 },
+  maxPolyphony: 16,
+}).chain(
+  new FixedFilter("highpass", 220),
+  new FixedFilter("lowpass", 2500, { Q: 3 }),
+  new Tone.Chorus({ frequency: 0.8, delayTime: 4, depth: 0.5, wet: 0.3 }).start(),
+  padChannel,
+);
+```
+
+`release: 0.4` falls 20 dB in about 0.15 s with the native voice's time constant.
+
+### The intro motif (bars 0–3)
+
+The cleanest synth sample of the three records: the motif plays alone.
+
+**Rhythm and contour:** a run of straight 16ths through bars 0 and 2 (16 notes a bar), a held
+E♭5 in bars 1 and 3. The run climbs A♭4–E♭5 by step and restarts from A♭4, so each climb lands
+on E♭5 and the cycle lands across the beat; the held E♭5 resolves it. Steps only, five notes.
+
+**Tone** (solid; checked by rendering, clip 4b):
+
+- **Three detuned saws.** On the held E♭5 the 1st harmonic splits into peaks across 630–641 Hz,
+  the 2nd across 1259–1276 Hz and the 3rd across 1889–1911 Hz: the spread grows with the harmonic,
+  so it's detuning, about 20–30 cents in all. The level beats at about 5 Hz. The peaks differ
+  between left and right: a stereo ensemble or chorus.
+- **A filter that closes on each note.** At the onset the harmonics sit near a plain saw's
+  (h4 −4 dB, h8 −16, h12 −20). Within 0.3 s they settle to h4 −15, h6 −23, h8 −25, h12 −32: a
+  saw through a 12 dB low-pass at about 3–3.5 kHz. Averaged over the motif, a saw through 6 kHz
+  fits within 1.1 dB.
+- **Attack:** from silence to within 9 dB of full in under 30 ms. The "soft attacks" of §7 are
+  the lack of a click and the legato, not a slow rise.
+- **Legato:** between 16ths the level never drops more than 3–4 dB. Each note runs into the next.
+- **Tail:** the held E♭5 holds for 0.35 s (bar 1) or 1.2 s (bar 3), then falls about 15 dB a
+  second, 24 dB in 1.6 s. That is slower than any release a 16th line would use: a long release
+  plus a long reverb (RT60 about 3–4 s).
+- **Echo:** none; the tail falls smoothly with no repeats.
+- **Stereo:** L/R correlation 0.62–0.67, side 6–7 dB under mid: a little wider than the pad.
+
+```ts
+new NativeMonoSynth({
+  oscillator: { type: "sawtooth", count: 3, spread: 25 },
+  filter: { type: "lowpass", rolloff: -12, Q: 1 },
+  envelope: { attack: 0.01, decay: 0.3, sustain: 0.9, release: 1.5 },
+  // About 8 kHz at the onset, closing to 3.2 kHz within 0.3 s.
+  filterEnvelope: {
+    attack: 0.005,
+    decay: 0.3,
+    sustain: 0,
+    release: 0.3,
+    baseFrequency: 3200,
+    octaves: 1.3,
+  },
+  maxPolyphony: 2,
+}).chain(
+  new Tone.Chorus({ frequency: 0.8, delayTime: 4, depth: 0.5, wet: 0.4 }).start(),
+  leadChannel,
+);
+```
+
+- Notes legato: each 16th lasts until the next starts.
+- Reverb: a long send (the shared 3.2 s reverb at about 0.3).
+- A fat oscillator starts its copies out of phase (faces.md §10.1). Here that only softens the
+  first few ms, which suits "soft attacks".
+
+### The pre-chorus 16ths (bars 16–23, 48–55)
+
+Estimate: the part enters together with the pads and shares their register.
+
+- **Register:** A♭3–E♭4. The strongest bins are G♯3, C4, C♯4 and D♯4, under the pad's top.
+- **Rhythm:** an even 16th stream. At 200–600 Hz a rise lands on 50–93% of each 16th, with no
+  accent standing out; the drum stem's leakage would put accents on the beats, and there are none.
+- **Envelope:** the level moves only 2–4 dB within a 16th: notes nearly legato.
+- **Tone:** a saw through a 12 dB low-pass at 2–2.6 kHz fits within 3.4–3.6 dB.
+- **Stereo:** L/R correlation 0.58–0.66, side about 6 dB under mid.
+
+```ts
+new NativeMonoSynth({
+  oscillator: { type: "sawtooth" },
+  filter: { type: "lowpass", rolloff: -12, Q: 0 },
+  envelope: { attack: 0.003, decay: 0.1, sustain: 0.6, release: 0.05 },
+  filterEnvelope: {
+    attack: 0.002,
+    decay: 0.1,
+    sustain: 1,
+    release: 0.1,
+    baseFrequency: 2400,
+    octaves: 0,
+  },
+  maxPolyphony: 2,
+}).connect(seqChannel);
+```
+
+Gate: about 80% of a 16th, on chord tones in A♭3–E♭4.
+
+### The chorus pulse (choruses 1–4 and the instrumental)
+
+- **Register:** chord tones B♭3–F5. The strongest are B♭3, E♭4 and E♭5 on i, then F5: root and
+  fifth in two octaves.
+- **Rhythm:** **every 16th.** At 200–600 Hz a rise lands on 78–100% of each 16th, and the
+  envelope peaks once per 16th, about 30 ms after it.
+- **Envelope:** each hit falls 4–5 dB before the next: short decay over a sustained level, not
+  a gated stab.
+- **Tone:** a saw (or 25% pulse) through a 12 dB low-pass at about **2.9 kHz**, within 2.8 dB.
+- **Stereo:** L/R correlation 0.61–0.68, side 6–7 dB under mid, like the pad.
+- **Level:** the stem is 3.5 dB louder than in the pre-chorus (−30.0 against −33.5 dB RMS).
+
+```ts
+new NativeSynth({
+  oscillator: { type: "sawtooth" },
+  envelope: { attack: 0.002, decay: 0.12, sustain: 0.55, release: 0.05 },
+  maxPolyphony: 6,
+}).chain(new FixedFilter("lowpass", 2900, { Q: 0 }), seqChannel);
+```
+
+Notes: root and fifth (and the octave) of each chord, every 16th, gate about 90%.
+
+### Ear check
+
+Clips in `renders/ear-check-euro/` (gitignored):
+
+| Clip                                       | Contents                                                 |
+| ------------------------------------------ | -------------------------------------------------------- |
+| `4a-heaven-can-wait-intro-motif-record`    | the "other" stem, bars 0–1 (0:00.55–0:04.6)              |
+| `4b-heaven-can-wait-intro-motif-candidate` | the intro patch above playing the same run and held note |
+
+Question: is 4b's tone close to 4a's (brightness, detune, attack), and is its tail too short?
+The rendered clip's spectrum matches the record's within 1–2 dB up to 7.6 kHz, and its L/R
+correlation is 0.62 against 0.67; its tail has no reverb.
+
 ## Sources
 
 - The recording in `inspiration/Sandra/` (local only), separated with Demucs v4 (htdemucs,

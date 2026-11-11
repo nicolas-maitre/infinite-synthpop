@@ -6,7 +6,8 @@
 An endless generative 1987–89 synth-pop machine for the browser, in the style of New Order's
 "True Faith", Peter Schilling's "The Different Story (World of Lust and Crime)" and Kim Wilde's
 "You Came", with a second genre, Italo, after Valerie Dore's "The Night" and "Get Closer" and
-Clio's "Faces". Every song is composed from a seed. When it ends, the next one starts.
+Clio's "Faces", and a third, Euro-disco, after Sandra's "Innocent Love", "Heaven Can Wait" and
+"Crazy Juliet". Every song is composed from a seed. When it ends, the next one starts.
 
 The musical rules come from an analysis of the songs, measured from the recordings and
 cross-checked against published sources: see [docs/analysis.md](docs/analysis.md). The design is
@@ -120,14 +121,24 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   but its bars must line up with the original's layout (a True Faith transcription with 4 bars of
   drums before the bass does).
 - **Seed:** every song is reproducible. The URL carries `#seed=…`, so a link replays the same song.
-- **Genre:** which genre generated songs come from, synthpop or Italo, or **auto** (a genre per
+- **Genre:** which genre generated songs come from, synthpop, Italo or Euro-disco, or **auto** (a genre per
   song, and a point in its style polygon per song too; the default, like every other auto setting,
   so a first visit just plays); the style control shows the genre's references. Italo ([docs/plans/italo-genre.md](docs/plans/italo-genre.md)) blends
   _The Night_ (110 BPM, a tonic-pedal intro, root 8ths with octave lifts, a relative-major chorus,
   not one fill), _Get Closer_ (112 BPM, a 16th-line hook, plucked root 8ths under slash-chord pads)
   and _Faces_ (120 BPM, a build from bass and kick, gated stabs, a staccato on-beat/off-beat bass,
   a parallel-major chorus with galloping hats, a breakdown). Its songs keep the kick going from the
-  first bar to the fade. The three records also play as originals.
+  first bar to the fade. The three records also play as originals. Euro-disco
+  ([docs/plans/euro-disco-genre.md](docs/plans/euro-disco-genre.md)) blends three Michael Cretu
+  productions for Sandra: _Innocent Love_ (115 BPM, E♭ minor, a bass pedal on the v in the verse
+  and a slurred syncopated riff in the chorus, chord stabs on the bass's rhythm, a stop before
+  every chorus and a late Aeolian bridge), _Heaven Can Wait_ (118–119 BPM, a bare verse of drums,
+  bass and voice on a Dorian IV⁷ riff, a pre-chorus over the IV pedal, a 14-bar chorus ending on
+  a harmonic-minor V) and _Crazy Juliet_ (123 BPM, C♯ major with a chorus on the minor v, a 16-bar
+  verse, a 10-bar chorus, instrumental choruses on a lead synth). None of them is
+  four-on-the-floor: each plays its own backbeat kick and hat patterns, read from the records hit
+  by hit, under a riff bass that rests on the snare's beats, with pre-choruses and choruses back
+  to back. The three records aren't playable as originals yet.
 - **Style:** a point in a triangle whose corners are the three references: _True Faith_ (Dorian
   IV choruses, minor v, a brighter, lower bass, the high 16th sequencer, modulating outro), _The
   Different Story_ (minor iv choruses, major V, Dorian turnaround, chorus fade) and _You Came_
@@ -137,7 +148,8 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   (Shift for bigger steps), Home or a double-click to centre it, and 1–3 to jump to a corner.
   Auto (a new point each song) or fixed. Settings saved with the old slider carry over.
 - **Tempo:** auto (synthpop 116–121 BPM, the originals measure 117, 119.8 and 119.0; Italo 108–122,
-  centred on the blend: The Night 110.3, Get Closer 111.8, Faces 120.1) or fixed.
+  centred on the blend: The Night 110.3, Get Closer 111.8, Faces 120.1; Euro-disco 113–125:
+  Innocent Love 115.2, Heaven Can Wait 118.5, Crazy Juliet 123.0) or fixed.
 - **Key:** auto or a fixed minor key.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.
 - **Mixer:** per-track volume, mute and solo, plus a master fader.
