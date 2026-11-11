@@ -8,7 +8,8 @@ export interface Key {
 }
 
 /** Triads, plus the colours You Came uses: sus4, dominant 7th, major 7th and added 9th. */
-export type Quality = "maj" | "min" | "dim" | "sus4" | "dom7" | "maj7" | "add9";
+export type Quality =
+  "maj" | "min" | "dim" | "sus4" | "dom7" | "maj7" | "add9" | "min7" | "dom7sus4";
 export interface Chord {
   numeral: string;
   /** Semitones above the key's tonic. */
@@ -54,6 +55,23 @@ const NUMERALS: Record<string, { root: number; quality: Quality; bass?: number }
   "V/vi": { root: 4, quality: "maj" },
   "V7/vi": { root: 4, quality: "dom7" },
   "Vsus4/vi": { root: 4, quality: "sus4" },
+  // The Italo references (docs/italo/). A slash names the bass under the chord: a degree of the
+  // key ("VII/i" is E♭ over F in F minor, "VI/VII" C over D in E minor), or "/3" the chord's own
+  // 3rd as above ("VI/3" is D♭ over F in F minor).
+  "VII/i": { root: 10, quality: "maj", bass: 0 },
+  "VI/VII": { root: 8, quality: "maj", bass: 10 },
+  "IV/V": { root: 5, quality: "maj", bass: 7 },
+  "VI/3": { root: 8, quality: "maj", bass: 0 },
+  i7: { root: 0, quality: "min7" },
+  v7: { root: 7, quality: "min7" },
+  vi7: { root: 9, quality: "min7" },
+  II: { root: 1, quality: "maj" },
+  IIIadd9: { root: 3, quality: "add9" },
+  VImaj7: { root: 8, quality: "maj7" },
+  VIIsus4: { root: 10, quality: "sus4" },
+  VII7: { root: 10, quality: "dom7" },
+  VII7sus4: { root: 10, quality: "dom7sus4" },
+  V7sus4: { root: 7, quality: "dom7sus4" },
 };
 
 const QUALITY_INTERVALS: Record<Quality, readonly number[]> = {
@@ -64,6 +82,8 @@ const QUALITY_INTERVALS: Record<Quality, readonly number[]> = {
   dom7: [0, 4, 7, 10],
   maj7: [0, 4, 7, 11],
   add9: [0, 4, 7, 2],
+  min7: [0, 3, 7, 10],
+  dom7sus4: [0, 5, 7, 10],
 };
 
 const QUALITY_SUFFIXES: Record<Quality, string> = {
@@ -74,6 +94,8 @@ const QUALITY_SUFFIXES: Record<Quality, string> = {
   dom7: "7",
   maj7: "maj7",
   add9: "add9",
+  min7: "m7",
+  dom7sus4: "7sus4",
 };
 
 const SCALES: Record<Mode, readonly number[]> = {
@@ -112,7 +134,8 @@ export function chordName(key: Key, c: Chord): string {
 
 /**
  * The scale melodies draw from over a chord. In minor, a major V borrows the harmonic-minor
- * leading tone; IV and ii borrow Dorian's raised 6th. In major, a secondary dominant raises the
+ * leading tone; IV and ii borrow Dorian's raised 6th; any other chord tone outside the scale
+ * replaces its neighbour (see below). In major, a secondary dominant raises the
  * note under its target (V/ii's E♯, V/vi's B♯ in E major), and any other borrowed tone (the minor
  * v's D♮, a ♭VI or ♭VII) takes the place of the scale step a semitone above it.
  */
@@ -122,6 +145,16 @@ export function scaleForChord(key: Key, c: Chord): number[] {
     if (c.numeral === "V" || c.numeral === "V7") steps[6] = 11;
     // Dorian colour: the major IV and minor ii both carry the raised 6th (TF's G, DS's F♯m–A).
     if (c.numeral === "IV" || c.numeral === "ii") steps[5] = 9;
+    // Any other borrowed tone (the Italo chords: Faces' A major and F♯m7 in A minor, The Night's
+    // ♭II) is a raised step and takes the place of the scale step a semitone below, or, for a
+    // ♭II, of the 2nd above it: the tonic stays.
+    for (const i of QUALITY_INTERVALS[c.quality]) {
+      const t = mod12(c.root + i);
+      if (steps.includes(t)) continue;
+      const below = steps.indexOf(mod12(t - 1));
+      const at = below > 0 ? below : steps.indexOf(mod12(t + 1));
+      if (at >= 0) steps[at] = t;
+    }
   } else {
     if (c.numeral === "V/ii") steps[0] = 1;
     if (c.numeral === "V/vi" || c.numeral === "V7/vi") steps[4] = 8;

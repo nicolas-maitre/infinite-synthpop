@@ -11,15 +11,16 @@
  * A spec also names its genre (`g` in links), whose references the weights are for. Links without
  * one are synthpop, which is all there was before genres; synthpop creations still leave it out.
  */
-import type {
-  BassStyle,
-  CustomMelody,
-  DrumMode,
-  KitName,
-  Layers,
-  MelodyKind,
-  SectionKind,
-  Song,
+import {
+  isBassStyle,
+  type BassStyle,
+  type CustomMelody,
+  type DrumMode,
+  type KitName,
+  type Layers,
+  type MelodyKind,
+  type SectionKind,
+  type Song,
 } from "./composer";
 import type { Progression } from "./progressions";
 import type { ReferenceSection, ReferenceSong } from "./references";
@@ -342,7 +343,7 @@ export function decodeCreation(encoded: string): Creation | null {
         key,
         bpm: Math.min(160, Math.max(60, Number(c.bpm) || 118.5)),
         kit: KITS.includes(c.kit) ? c.kit : "sp12",
-        bassStyle: c.bs === "ds" || c.bs === "yc" ? c.bs : "tf",
+        bassStyle: isBassStyle(c.bs) ? c.bs : "tf",
         verse: c.pv ? parseProgression(c.pv) : (first("verse") ?? VERSE),
         chorus: c.pc ? parseProgression(c.pc) : (first("chorus") ?? CHORUS),
         ...(c.m ? { melodies: parseMelodies(c.m, key.tonic) } : {}),

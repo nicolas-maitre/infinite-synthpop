@@ -42,6 +42,7 @@ import {
   isStyleWeights,
   parseWeights,
   referenceWeights,
+  styleName,
   weightsAtPoint,
   type GenreId,
 } from "./genres";
@@ -71,7 +72,7 @@ interface Prefs {
 const PREFS_KEY = "infinite-synthpop:prefs:v1";
 /** A genre's references, as named at its style polygon's vertices. */
 function refNames(genre: GenreId): string[] {
-  return GENRES[genre].references.map((id) => REFERENCES[id].title);
+  return GENRES[genre].references.map(styleName);
 }
 
 /** "TF 30 · DS 30 · YC 40" for a genre's weights. */
@@ -164,6 +165,7 @@ const ui = {
   bpm: el<HTMLInputElement>("bpm"),
   bpmOut: el<HTMLOutputElement>("bpm-out"),
   bpmAuto: el<HTMLInputElement>("bpm-auto"),
+  bpmHint: el("bpm-hint"),
   key: el<HTMLSelectElement>("key"),
   kit: el<HTMLSelectElement>("kit"),
   genre: el<HTMLSelectElement>("genre"),
@@ -576,6 +578,9 @@ const BASS_LABELS: Record<BassStyle, string> = {
   ds: "Different Story bass figure",
   tf: "True Faith bass figure",
   yc: "You Came root-8ths bass",
+  italo: "Get Closer root-8ths bass",
+  night: "The Night root-8ths bass",
+  faces: "Faces staccato bass",
 };
 
 function renderSong(song: Song): void {
@@ -919,9 +924,17 @@ ui.genre.addEventListener("change", () => {
   prefs.weights = centreWeights(prefs.genre);
   stylePad = newStylePad();
   showStylePad();
+  showTempoHint();
   savePrefs();
   engine.update({ genre: prefs.genre, weights: prefs.styleAuto ? null : prefs.weights });
 });
+
+/** The auto tempo's range and where the genre's records sit. */
+function showTempoHint(): void {
+  const { range, note } = GENRES[prefs.genre].tempo;
+  ui.bpmHint.textContent = `Auto (varies per song, ${range[0]}–${range[1]}; ${note})`;
+}
+showTempoHint();
 
 /** The style polygon for the chosen genre: a triangle for synthpop, a slider for two references. */
 function newStylePad(): BlendPad {

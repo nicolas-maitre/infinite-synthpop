@@ -14,18 +14,37 @@
 import type { BassStyle, KitName } from "./composer";
 import type { DrumVoice } from "./arranger";
 import type { BankEntry, Progression, ProgressionKind } from "./progressions";
-import type { ReferenceId } from "./references";
+import { REFERENCES, type ReferenceId } from "./references";
 import type { Mode } from "./theory";
 import { polygonVertices, quantize, randomPoint, weightsAt, type Point } from "./polygon";
 import type { Rng } from "./rng";
-import { synthpopTitle } from "./titles";
+import { italoTitle, synthpopTitle } from "./titles";
 
-export type GenreId = "synthpop";
+export type GenreId = "synthpop" | "italo";
+
+/** The records a genre blends between: the playable originals (references.ts), and the Italo
+ * records measured in docs/italo/, which don't play as originals (yet). */
+export type StyleId = ReferenceId | "the-night" | "get-closer" | "faces";
+
+const MEASURED_TITLES: Record<Exclude<StyleId, ReferenceId>, string> = {
+  "the-night": "The Night",
+  "get-closer": "Get Closer",
+  faces: "Faces",
+};
+
+export function isReferenceId(id: unknown): id is ReferenceId {
+  return typeof id === "string" && Object.hasOwn(REFERENCES, id);
+}
+
+/** A reference's title, for the style pad and the wizard. */
+export function styleName(id: StyleId): string {
+  return isReferenceId(id) ? REFERENCES[id].title : MEASURED_TITLES[id];
+}
 
 /** A number that varies with the references' weights: `base + Σ by[ref] × weight(ref)`. */
 export interface Blend {
   base?: number;
-  by?: Partial<Record<ReferenceId, number>>;
+  by?: Partial<Record<StyleId, number>>;
 }
 
 /** Drum details a reference has that the genre doesn't by default. They apply while that
@@ -41,8 +60,9 @@ export interface DrumTraits {
    * none for You Came, whose choruses keep the verse kit. */
   bigPercussion: Extract<DrumVoice, "tamb" | "cabasa"> | "none";
   /** The hats: every 16th (TF, DS), or on the beat, the "&" and the "a" with the "a" open in about
-   * a third of the bars (You Came, §6.4). The breaks' `hats16` mode always plays 16ths. */
-  hats: "16ths" | "beat-and-a";
+   * a third of the bars (You Came, §6.4), or 8ths (The Night, Get Closer), with an open hat on 3a
+   * (Faces' verses). The breaks' `hats16` mode always plays 16ths. */
+  hats: "16ths" | "beat-and-a" | "8ths" | "8ths-open3a";
   /** You Came's fill: snare on every 8th but the downbeats, hats down to 8ths, in the last bar of
    * every 8-bar phrase, then a crash on the next phrase's 1 (the hats skip it). Otherwise fills
    * come only at section ends, as one of the random snare, tom or flam fills. */
@@ -52,6 +72,53 @@ export interface DrumTraits {
   /** The snare and clap feed the 80s gated reverb (TF, DS); You Came's snare has a long, smooth
    * plate tail with no gate. */
   gatedSnare: boolean;
+  // The Italo references' details. Unset, each keeps synthpop's behaviour.
+  /** Big sections' hats: open hats on the off-beat 8ths (unset; The Night's chorus), or Faces'
+   * galloping 16th cell, x x x . │ x . x x every two beats, with a kick on 3& every 4th bar. */
+  bigHats?: "open8" | "gallop";
+  /** A clap doubles the snare in every section, not only the big ones (The Night). */
+  clapAlways?: boolean;
+  /** A crash opens each section (unset: yes). The Night and Faces have none. */
+  crashes?: boolean;
+  /** Section-end fills: the random snare, tom or flam fills (unset), snare 16ths only (Get
+   * Closer), none (The Night: not one in 5:46), or Faces' 3&–4–4& snare pickup closing every 8
+   * bars. */
+  fills?: "random" | "snare" | "none" | "pickup8";
+}
+
+/** How a genre plays some parts. Unset: synthpop's way. */
+export interface PartStyle {
+  /** Stabs: one chord hit every 4 bars (synthpop), or gated 8th-note chords (Faces). */
+  stabs: "hit" | "gated8";
+  /** Pads: one close voicing (synthpop), or the triad stacked an octave up too (The Night's pads
+   * span C4–A♭6). */
+  pad: "close" | "octaves";
+}
+
+/** The Italo planner's odds (composer.ts `planItalo`). */
+export interface ItaloForm {
+  /** The opening, one drawn per song in proportion to these: The Night's tonic-pedal intro, Faces'
+   * build (bass and kick, then stabs, then the groove), or Get Closer's 16-bar instrumental hook. */
+  pedalIntro: Blend;
+  buildIntro: Blend;
+  hookIntro: Blend;
+  /** An instrumental on the verse loop with the lead synth in place of the second verse (The
+   * Night). */
+  leadSection: Blend;
+  /** A 16-bar breakdown without bass or voice before the last choruses, then an instrumental with
+   * the lead synth (Faces; Get Closer's 12″ break). */
+  breakdown: Blend;
+  /** The second half restarts: the opening's pedal block again, a verse and a chorus (The Night). */
+  reprise: Blend;
+  /** The 16th arpeggio through the verses (The Night). */
+  verseArp: Blend;
+  /** Gated stabs through the verses and choruses (Faces). */
+  stabs: Blend;
+  /** The first verse without bass (Faces). */
+  bareFirstVerse: Blend;
+  /** A short instrumental on the verse loop after the first chorus (Faces' 8 bars, Get Closer's
+   * hook reprise). */
+  afterChorus: Blend;
 }
 
 /** The bass's tone controls (instruments.ts `setBassTone`). */
@@ -97,8 +164,14 @@ export interface Genre {
    * first two on its bottom edge, left to right (the legacy `style` runs from the first, 0, to the
    * second, 1), the others round from there. List similar references next to each other, so they
    * get neighbouring vertices. */
-  references: readonly ReferenceId[];
-  tempo: { range: readonly [number, number]; center: number };
+  references: readonly StyleId[];
+  /** Auto tempos fall in `range`, around `center`; `note` says where the records sit. */
+  tempo: { range: readonly [number, number]; center: Blend; note: string };
+  /** The section planner: synthpop's (True Faith's, The Different Story's and You Came's blocks,
+   * drawn with `form`'s odds) or Italo's (`italo`'s odds). */
+  planner: "synthpop" | "italo";
+  italo?: ItaloForm;
+  parts?: PartStyle;
   /** Key tonic (pitch class) → weight, for minor keys. */
   keyWeights: readonly (readonly [number, number])[];
   /** Chance of a major key, and the major tonics' weights. */
@@ -162,7 +235,7 @@ export interface Genre {
   /** Drum details when no reference outweighs the others. */
   drums: DrumTraits;
   /** Per reference, the drum details it brings while it outweighs the others. */
-  drumTraits: Partial<Record<ReferenceId, DrumTraits>>;
+  drumTraits: Partial<Record<StyleId, DrumTraits>>;
   bassTone: { frequency: Blend; presence: Blend; sawCutoff: Blend; octave: Blend; sustain: Blend };
 }
 
@@ -324,6 +397,154 @@ const SYNTHPOP_BANK: Record<ProgressionKind, readonly BankEntry[]> = {
   ],
 };
 
+const TN = "the-night";
+const GC = "get-closer";
+const FC = "faces";
+
+/** Measured from the Italo records (docs/italo/the-night.md §4 and §9, get-closer.md §4 and §9,
+ * faces.md §4 and §9), all written in the minor key: Faces' A major chorus is read from A minor
+ * (its I, v7, IVmaj7 and vi7 borrow from the major). Entries without a `ref` are unmeasured
+ * genre-wide loops; they also make each pool weigh the measured entries by their reference. */
+const ITALO_BANK: Record<ProgressionKind, readonly BankEntry[]> = {
+  verse: [
+    // The Night: i │ ♭VII over the tonic │ v7 │ IV, Dorian, over an F pedal in the bass's bar 2.
+    {
+      name: "TN verse loop (measured)",
+      bars: [["i"], ["VII/i"], ["v7"], ["IV"]],
+      ref: TN,
+      weight: 2,
+    },
+    { name: "TN verse loop, plain", bars: [["i"], ["VII"], ["v"], ["IV"]], ref: TN },
+    // Get Closer's two-layer loop: pads i │ ♭VII │ IV │ ♭VI over a bass i │ i │ IV │ ♭VII.
+    {
+      name: "GC loop (measured)",
+      bars: [["i"], ["VII/i"], ["IV"], ["VI/VII"]],
+      ref: GC,
+      weight: 2,
+    },
+    { name: "GC loop, IV⁶ walk", bars: [["i"], ["VII/i"], ["IV/3"], ["VI/VII"]], ref: GC },
+    // Faces' royal road, VI△7–♭VIIsus4 │ v7–i7, under a held pedal.
+    {
+      name: "FC royal road (measured)",
+      bars: [
+        ["VImaj7", "VIIsus4"],
+        ["v7", "i7"],
+      ],
+      ref: FC,
+      weight: 2,
+    },
+    {
+      name: "FC royal road, 4 bars",
+      bars: [
+        ["VImaj7", "VIIsus4"],
+        ["v7", "i7"],
+        ["VImaj7", "VII"],
+        ["v7", "i"],
+      ],
+      ref: FC,
+    },
+    { name: "aeolian loop", bars: [["i"], ["VI"], ["VII"], ["i"]], weight: 0.5 },
+    { name: "i–VII–VI–VII", bars: [["i"], ["VII"], ["VI"], ["VII"]], weight: 0.5 },
+  ],
+  chorus: [
+    // The Night: a I–IV⁶–♭VII–V7 cadence in the relative major, III(add9) │ VI⁶ │ ♭II │ ♭VII7sus4–7.
+    {
+      name: "TN chorus (measured)",
+      bars: [["IIIadd9"], ["VI/3"], ["II"], ["VII7sus4", "VII7"]],
+      ref: TN,
+      weight: 2,
+    },
+    { name: "TN chorus, plain", bars: [["III"], ["VI"], ["II"], ["VII7"]], ref: TN },
+    // Get Closer: i │ i │ ♭VII │ IV/V → V, the harmonic-minor V entered through a V11.
+    {
+      name: "GC chorus (measured)",
+      bars: [["i"], ["i"], ["VII"], ["IV/V", "V"]],
+      ref: GC,
+      weight: 2,
+    },
+    // Faces: the parallel major, I │ v7–IV△7 three times, then the I–vi7 │ ♭VII–V7sus4 turnaround.
+    {
+      name: "FC chorus (measured)",
+      bars: [
+        ["I"],
+        ["v7", "IVmaj7"],
+        ["I"],
+        ["v7", "IVmaj7"],
+        ["I"],
+        ["v7", "IVmaj7"],
+        ["I", "vi7"],
+        ["VII", "V7sus4"],
+      ],
+      ref: FC,
+      weight: 2,
+    },
+    {
+      name: "FC chorus, doubled turnaround",
+      bars: [["I"], ["v7", "IVmaj7"], ["I", "vi7"], ["VII", "V7sus4"]],
+      ref: FC,
+    },
+    { name: "relative-major lift", bars: [["III"], ["VII"], ["VI"], ["VII"]], weight: 0.5 },
+  ],
+  // The breakdowns and instrumentals that don't run on the verse loop.
+  interlude: [
+    { name: "TN pedal (measured)", bars: [["i"], ["VII/i"]], ref: TN },
+    { name: "GC break, the pads alone", bars: [["i"], ["VII"], ["IV"], ["VI"]], ref: GC },
+    {
+      name: "FC breakdown on the turnaround (measured)",
+      bars: [
+        ["I", "vi7"],
+        ["VII", "V7sus4"],
+      ],
+      ref: FC,
+    },
+    { name: "i–VII–VI–VII", bars: [["i"], ["VII"], ["VI"], ["VII"]], weight: 0.5 },
+  ],
+  // Not measured: Italo's turnarounds, bridges and lifts aren't played by its planner, but the
+  // wizard and creator offer them.
+  turnaround: [{ name: "VI–VII", bars: [["VI"], ["VII"]] }],
+  bridge: [{ name: "subdominant", bars: [["iv"], ["VI"], ["VII"], ["i"]] }],
+  lift: [{ name: "lift I–IV–V", bars: [["I"], ["IV"], ["I"], ["V"]] }],
+  prechorus: [],
+};
+
+const NO_FORM: Genre["form"] = {
+  seq: {},
+  guitar: {},
+  stabs: {},
+  introGroove: {},
+  introKick: {},
+  introHook: {},
+  riffIntroHook: {},
+  riffIntroArp: {},
+  dsBlock: {},
+  interludeHook: {},
+  instrumentalHook: {},
+  turn: {},
+  thirdVerse: {},
+  extraChorus: {},
+  verseOnLoop: {},
+  preChorus: {},
+  stack: {},
+  chorusRiff: {},
+  straightOn: {},
+  breakdown: {},
+  instrumental16: {},
+  holdEnding: {},
+};
+
+const ITALO_DRUMS: DrumTraits = {
+  introLowTom: false,
+  openHatBeat3: false,
+  bigKick14: false,
+  bigPercussion: "none",
+  hats: "8ths",
+  phraseFills: false,
+  snarePickup: false,
+  gatedSnare: false,
+  crashes: false,
+  fills: "snare",
+};
+
 export const GENRES: Record<GenreId, Genre> = {
   synthpop: {
     id: "synthpop",
@@ -332,7 +553,8 @@ export const GENRES: Record<GenreId, Genre> = {
     references: [TF, DS, YC],
     // True Faith measures 117.0 BPM, The Different Story 119.8: centred between them. You Came's
     // 119.0 sits inside.
-    tempo: { range: [116, 121], center: 118.5 },
+    tempo: { range: [116, 121], center: { base: 118.5 }, note: "the originals run at 117–119.8" },
+    planner: "synthpop",
     // Weighted toward the originals' keys: D minor (True Faith) and E minor (The Different Story).
     keyWeights: [
       [2, 3],
@@ -493,6 +715,93 @@ export const GENRES: Record<GenreId, Genre> = {
       sustain: { base: 0.2, by: { [YC]: 0.15 } },
     },
   },
+  italo: {
+    id: "italo",
+    name: "Italo",
+    title: italoTitle,
+    // The two Valerie Dore records share the bottom edge; Faces, the brighter DJ record, the top.
+    references: [TN, GC, FC],
+    // 110.3 (The Night), 111.8 (Get Closer), 120.1 (Faces): the centre follows the blend.
+    tempo: {
+      range: [108, 122],
+      center: { by: { [TN]: 110.3, [GC]: 111.8, [FC]: 120.1 } },
+      note: "Valerie Dore runs at 110–112, Faces at 120",
+    },
+    planner: "italo",
+    // E minor (Get Closer), F minor (The Night), A minor (Faces).
+    keyWeights: [
+      [4, 3],
+      [5, 3],
+      [9, 3],
+      [2, 1.5],
+      [7, 1.5],
+      [0, 1],
+      [11, 1],
+      [1, 0.5],
+      [6, 0.5],
+    ],
+    // All three are minor songs; Faces' major chorus is written into its progressions.
+    major: {},
+    majorKeyWeights: [[9, 1]],
+    bank: ITALO_BANK,
+    substitutions: [
+      // The Night's ♭VII over the tonic pedal and its v7; Get Closer's IV⁶ walk and its V11 into V.
+      { from: "VII", to: "VII/i", chance: { by: { [TN]: 0.6 } }, kinds: ["verse", "interlude"] },
+      { from: "v", to: "v7", chance: { base: 0.2, by: { [TN]: 0.6 } } },
+      { from: "IV", to: "IV/3", chance: { by: { [GC]: 0.5 } }, kinds: ["verse"] },
+      { from: "VII7", to: ["VII7sus4", "VII7"], chance: { by: { [TN]: 1 } }, kinds: ["chorus"] },
+      { from: "V", to: ["IV/V", "V"], chance: { by: { [GC]: 1 } }, lastBar: true },
+    ],
+    // The Night's deep, pitch-swept kick and burst clap, Faces' 909-like kick: synthesized kits,
+    // with the drier sample machines for Get Closer's short kick and long snare.
+    kits: [
+      ["synth", { base: 0.8, by: { [TN]: 0.6, [FC]: 0.8 } }],
+      ["dmx", { base: 0.3, by: { [GC]: 0.8, [TN]: 0.3 } }],
+      ["linndrum", { base: 0.3, by: { [GC]: 0.3 } }],
+      ["sp12", { base: 0.1 }],
+    ],
+    bassFigures: [
+      ["italo", { base: 0.3, by: { [GC]: 2 } }],
+      ["night", { by: { [TN]: 2 } }],
+      ["faces", { by: { [FC]: 2 } }],
+    ],
+    liftEnding: {},
+    counter: {},
+    form: NO_FORM,
+    italo: {
+      pedalIntro: { by: { [TN]: 1 } },
+      buildIntro: { by: { [FC]: 1 } },
+      hookIntro: { by: { [GC]: 1 } },
+      leadSection: { base: 0.1, by: { [TN]: 0.8 } },
+      breakdown: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.5 } },
+      reprise: { by: { [TN]: 0.7 } },
+      verseArp: { base: 0.2, by: { [TN]: 0.8 } },
+      stabs: { base: 0.1, by: { [FC]: 0.9 } },
+      bareFirstVerse: { by: { [FC]: 0.7 } },
+      afterChorus: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.6 } },
+    },
+    parts: { stabs: "gated8", pad: "octaves" },
+    drums: ITALO_DRUMS,
+    drumTraits: {
+      // Clap and snare on 2 and 4 throughout, quiet 8th hats opening on the chorus off-beats, not
+      // a fill or a crash in 5:46 (the-night.md §6).
+      [TN]: { ...ITALO_DRUMS, clapAlways: true, fills: "none" },
+      // 8th hats, snare-16th fills closing the choruses, a noise hit on the phrase starts.
+      [GC]: { ...ITALO_DRUMS, crashes: true },
+      // 8ths with an open 3a, the galloping 16th cell in the choruses, the 3&–4–4& snare pickup
+      // every 8 bars, no claps (faces.md §6).
+      [FC]: { ...ITALO_DRUMS, hats: "8ths-open3a", bigHats: "gallop", fills: "pickup8" },
+    },
+    // The Night's bass is dark and octave-layered, legato; Get Closer's plucked (16 dB down per
+    // 8th) and dark; Faces' a bright, plucky saw with its octave partial above the fundamental.
+    bassTone: {
+      frequency: { base: 160, by: { [FC]: 100 } },
+      presence: { base: 1, by: { [FC]: 5 } },
+      sawCutoff: { base: 520, by: { [FC]: 1500 } },
+      octave: { by: { [TN]: 1, [GC]: 0.3, [FC]: 1 } },
+      sustain: { by: { [TN]: 0.35, [GC]: 0.15, [FC]: 0.2 } },
+    },
+  },
 };
 
 /** Every genre, in the order the genre select lists them. */
@@ -507,7 +816,7 @@ export function isGenreId(id: unknown): id is GenreId {
 }
 
 /** The genre an original belongs to. */
-export function genreOfReference(ref: ReferenceId): GenreId {
+export function genreOfReference(ref: StyleId): GenreId {
   return GENRE_IDS.find((id) => GENRES[id].references.includes(ref)) ?? DEFAULT_GENRE;
 }
 
@@ -554,12 +863,12 @@ export function specWeights(genre: Genre, spec: { style: number; weights?: reado
 }
 
 /** All the weight on one reference (an original playing). */
-export function soloWeights(genre: Genre, ref: ReferenceId): readonly number[] {
+export function soloWeights(genre: Genre, ref: StyleId): readonly number[] {
   return genre.references.map((r) => (r === ref ? 1 : 0));
 }
 
 /** A reference's weight (0 when the genre doesn't have it). */
-export function weightOf(genre: Genre, weights: readonly number[], ref: ReferenceId): number {
+export function weightOf(genre: Genre, weights: readonly number[], ref: StyleId): number {
   const i = genre.references.indexOf(ref);
   return i >= 0 ? (weights[i] ?? 0) : 0;
 }

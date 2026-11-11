@@ -9,6 +9,7 @@ import {
   GENRES,
   referenceWeights,
   specWeights,
+  styleName,
 } from "./genres";
 import { REFERENCES, type ReferenceId } from "./references";
 import { resolveQuality } from "./quality";
@@ -759,6 +760,131 @@ describe("genres in links", () => {
     expect(compose({ seed: 1, reference: "you-came" }).genre).toBe(genreOfReference("you-came"));
     const spec = { ...songToSpec(compose({ seed: 2, style: 0.5 })), genre: "synthpop" as const };
     expect(compose({ seed: 2, custom: spec }).genre).toBe("synthpop");
+  });
+});
+
+describe("italo genre", () => {
+  const italo = GENRES.italo;
+  const corners = [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+  ] as const;
+
+  it("writes songs in 8- and 16-bar blocks that never drop the kick", () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const song = compose({ seed, genre: "italo", weights: "auto" });
+      expect(song.genre).toBe("italo");
+      expect(song.key.mode).toBe("minor");
+      expect(song.bpm).toBeGreaterThanOrEqual(108);
+      expect(song.bpm).toBeLessThanOrEqual(122);
+      expect(["italo", "night", "faces"]).toContain(song.bassStyle);
+      for (const s of song.sections) {
+        expect(s.layers.drums).not.toBe("off");
+        expect([4, 8, 16]).toContain(s.bars);
+      }
+      expect(song.sections.at(-1)?.label).toBe("Outro · chorus to fade");
+      // Every bar arranges, chords and all.
+      for (let bar = 0; bar < song.totalBars; bar++) {
+        const ev = arrangeBar(song, bar);
+        expect(ev.drums.some((h) => h.voice === "kick")).toBe(true);
+      }
+    }
+  });
+
+  it("follows each record's tempo, intro and bass at its corner", () => {
+    const at = (weights: readonly number[], seed: number) =>
+      compose({ seed, genre: "italo", weights });
+    const tempo = (w: readonly number[]) =>
+      Array.from({ length: 20 }, (_, i) => at(w, i + 1).bpm).reduce((a, b) => a + b) / 20;
+    expect(tempo(corners[0])).toBeLessThan(113);
+    expect(tempo(corners[2])).toBeGreaterThan(118);
+    const intros = corners.map((w) => at(w, 7).sections[0]?.label);
+    expect(intros).toEqual(["Intro · pedal", "Intro · hook", "Intro · bass and kick"]);
+    expect(corners.map((w) => at(w, 3).bassStyle)).toEqual(["night", "italo", "faces"]);
+  });
+
+  it("plays 8th hats, Faces' gallop in its choruses, and The Night without crashes or fills", () => {
+    const night = compose({ seed: 4, genre: "italo", weights: corners[0] });
+    const nightHits = Array.from({ length: night.totalBars }, (_, b) => arrangeBar(night, b).drums);
+    expect(nightHits.flat().some((h) => h.voice === "crash" || h.voice.startsWith("tom"))).toBe(
+      false,
+    );
+    const verseBar = night.sections.find((s) => s.kind === "verse")?.startBar ?? 0;
+    const hats = arrangeBar(night, verseBar).drums.filter((h) => h.voice === "hat");
+    expect(hats.every((h) => Math.round(h.step) % 2 === 0)).toBe(true);
+    const claps = arrangeBar(night, verseBar).drums.filter((h) => h.voice === "clap");
+    expect(claps.map((h) => h.step)).toEqual([4, 12]);
+
+    const faces = compose({ seed: 4, genre: "italo", weights: corners[2] });
+    const chorusBar = faces.sections.find((s) => s.kind === "chorus")?.startBar ?? 0;
+    const gallop = arrangeBar(faces, chorusBar)
+      .drums.filter((h) => h.voice === "hat")
+      .map((h) => Math.round(h.step));
+    expect(gallop.slice(0, 6)).toEqual([0, 1, 2, 4, 6, 7]);
+  });
+
+  it("puts Get Closer's pads over a bass of their own", () => {
+    const song = compose({
+      seed: 2,
+      genre: "italo",
+      weights: corners[1],
+      progressions: { verse: [["i"], ["VII/i"], ["IV"], ["VI/VII"]] },
+    });
+    const verse = song.sections.find((s) => s.kind === "verse");
+    if (!verse) throw new Error("no verse");
+    const bar = (i: number) => arrangeBar(song, verse.startBar + i);
+    // Bar 2: D major over E (E minor), bar 4: C over D.
+    const pcs = (notes: readonly { midi: number }[]) => new Set(notes.map((n) => mod12(n.midi)));
+    expect(pcs(bar(1).notes.bass)).toEqual(new Set([mod12(song.key.tonic)]));
+    expect(pcs(bar(1).notes.pad)).toEqual(
+      new Set([10, 2, 5].map((i) => mod12(song.key.tonic + i))),
+    );
+    expect(pcs(bar(3).notes.bass)).toEqual(new Set([mod12(song.key.tonic + 10)]));
+    expect(bar(0).notes.bass.map((n) => n.step)).toEqual([0, 2, 4, 6, 8, 10, 12, 14]);
+  });
+
+  it("plays Faces' bass on the beat, then off it, rolling into the next root on 4&", () => {
+    const song = compose({ seed: 5, genre: "italo", weights: corners[2], bassStyle: "faces" });
+    const verse = song.sections.find((s) => s.kind === "verse" && s.layers.bass);
+    if (!verse) throw new Error("no verse with bass");
+    const steps = (i: number) => arrangeBar(song, verse.startBar + i).notes.bass.map((n) => n.step);
+    expect(steps(2)).toEqual([4, 8, 12, 14]);
+    expect(steps(3)).toEqual([2, 6, 10, 14]);
+  });
+
+  it("names its chords, and borrows their tones for the melodies", () => {
+    const fMinor = { tonic: 5, mode: "minor" as const };
+    expect(chordName(fMinor, chord("VII/i"))).toBe("E♭/F");
+    expect(chordName(fMinor, chord("VI/3"))).toBe("D♭/F");
+    expect(chordName(fMinor, chord("VII7sus4"))).toBe("E♭7sus4");
+    expect(chordName(fMinor, chord("v7"))).toBe("Cm7");
+    const aMinor = { tonic: 9, mode: "minor" as const };
+    // Faces' A major chorus chord: C♯ takes C's place, the rest stays A minor.
+    expect(scaleForChord(aMinor, chord("I")).map((pc) => mod12(pc))).toEqual([
+      9, 11, 1, 2, 4, 5, 7,
+    ]);
+    // The Night's ♭II: G♭ takes G's place, the tonic stays.
+    expect(scaleForChord(fMinor, chord("II"))).toContain(6);
+    expect(scaleForChord(fMinor, chord("II"))).toContain(5);
+  });
+
+  it("travels in links, with its own weights", () => {
+    const song = compose({ seed: 9, genre: "italo", weights: [0.2, 0.3, 0.5] });
+    const spec = songToSpec(song);
+    expect(spec.genre).toBe("italo");
+    const back = decodeCreation(encodeCreation({ seed: 9, spec }));
+    expect(back?.spec.genre).toBe("italo");
+    expect(back?.spec.weights).toEqual([0.2, 0.3, 0.5]);
+    expect(compose({ seed: 9, custom: back?.spec }).genre).toBe("italo");
+  });
+
+  it("names its references and keeps a bank for every progression kind", () => {
+    expect(italo.references.map(styleName)).toEqual(["The Night", "Get Closer", "Faces"]);
+    for (const kind of ["verse", "chorus", "interlude", "turnaround", "bridge", "lift"] as const) {
+      expect(italo.bank[kind].length).toBeGreaterThan(0);
+      for (const e of italo.bank[kind]) for (const bar of e.bars) for (const n of bar) chord(n);
+    }
   });
 });
 

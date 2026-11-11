@@ -47,8 +47,24 @@ export type DrumMode = "off" | "kick" | "half" | "full" | "big" | "groove" | "br
 export type KitName = "sp12" | "linndrum" | "dmx" | "synth";
 /** "ds" and "tf" play the songs' signature bass figure (arranger.ts `figure`), in DS's
  * articulation (16th pickups, approach notes) or TF's (dotted 8ths). "yc" is You Came's root 8ths
- * with a same-note 16th on 4a (arranger.ts `ycBassLine`). */
-export type BassStyle = "ds" | "tf" | "yc";
+ * with a same-note 16th on 4a (arranger.ts `ycBassLine`). The Italo ones (arranger.ts
+ * `italoBassLine`, `facesBassLine`): "italo" is Get Closer's plain plucked root 8ths, "night" The
+ * Night's root 8ths with octave lifts, "faces" Faces' staccato on-beat/off-beat figure. */
+export type BassStyle = "ds" | "tf" | "yc" | "italo" | "night" | "faces";
+
+/** Every bass style with the record it comes from, in the order the pickers list them. */
+export const BASS_STYLES: readonly (readonly [BassStyle, string])[] = [
+  ["tf", "True Faith"],
+  ["ds", "The Different Story"],
+  ["yc", "You Came"],
+  ["night", "The Night"],
+  ["italo", "Get Closer"],
+  ["faces", "Faces"],
+];
+
+export function isBassStyle(v: unknown): v is BassStyle {
+  return BASS_STYLES.some(([style]) => style === v);
+}
 export type MelodyKind = "verse" | "chorus";
 
 export interface Layers {
@@ -277,7 +293,7 @@ export function compose(opts: ComposeOptions): Song {
   const autoBpm = rngSetup.weighted(
     Array.from({ length: (bpmHi - bpmLo) * 2 + 1 }, (_, i) => {
       const bpm = bpmLo + i / 2;
-      return [bpm, Math.exp(-((bpm - genre.tempo.center) ** 2) / 3)] as const;
+      return [bpm, Math.exp(-((bpm - g.at(genre.tempo.center)) ** 2) / 3)] as const;
     }),
   );
   const bpm = ref?.bpm ?? opts.bpm ?? autoBpm;
@@ -325,17 +341,19 @@ export function compose(opts: ComposeOptions): Song {
   const ending: SongEnding = opts.ending ?? (holdChance ? "hold" : liftChance ? "lift" : "fade");
   const sections = ref
     ? referenceSections(ref)
-    : planSections(
-        rngForm,
-        rngYc,
-        key,
-        liftKey,
-        ending,
-        progressions,
-        g,
-        opts.form ?? "standard",
-        riffHigh,
-      );
+    : genre.planner === "italo"
+      ? planItalo(rngForm, key, liftKey, ending, progressions, g, opts.form ?? "standard")
+      : planSections(
+          rngForm,
+          rngYc,
+          key,
+          liftKey,
+          ending,
+          progressions,
+          g,
+          opts.form ?? "standard",
+          riffHigh,
+        );
   if (!ref) addCounter(root.fork("counter"), sections, g);
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 
@@ -416,7 +434,7 @@ function planSections(
   form: SongForm,
   chorusRiff: boolean,
 ): Section[] {
-  const plan: Omit<Section, "startBar" | "fill" | "fade">[] = [];
+  const plan: PlannedSection[] = [];
   const add = (
     kind: SectionKind,
     label: string,
@@ -643,6 +661,14 @@ function planSections(
     });
   }
 
+  return placeSections(plan, rng);
+}
+
+type PlannedSection = Omit<Section, "startBar" | "fill" | "fade">;
+
+/** Lays planned sections end to end: a fill before each verse and chorus (and half the others),
+ * and a fade on the last. */
+function placeSections(plan: readonly PlannedSection[], rng: Rng): Section[] {
   let startBar = 0;
   return plan.map((s, i) => {
     const next = plan[i + 1];
@@ -654,6 +680,167 @@ function planSections(
     startBar += s.bars;
     return section;
   });
+}
+
+/**
+ * The Italo form (docs/plans/italo-genre.md), in 16-bar blocks (8 in a short song):
+ * - an opening, one of three: The Night's tonic pedal (i │ ♭VII/i with the arpeggio, then the riff
+ *   alone), Faces' build (bass and kick, then gated stabs, then the groove), or Get Closer's
+ *   instrumental hook on the verse loop;
+ * - verse and chorus; the first verse may run without bass (Faces);
+ * - an 8-bar instrumental after the first chorus (Faces; Get Closer's hook reprise);
+ * - a second verse, or The Night's instrumental with the lead synth in its place;
+ * - a second chorus; then The Night's reprise (the pedal block, a short verse, a chorus) or, in a
+ *   long song, a third verse and chorus;
+ * - a breakdown without bass or voice and an instrumental with the lead synth (Faces, Get
+ *   Closer's 12″);
+ * - a last chorus, and the chorus to fade all three records end on.
+ * The kick never stops: every section has the drums.
+ */
+function planItalo(
+  rng: Rng,
+  key: Key,
+  liftKey: Key,
+  ending: SongEnding,
+  p: Progressions,
+  g: GenreAt,
+  form: SongForm,
+): Section[] {
+  const odds = g.genre.italo;
+  if (!odds) throw new Error(`${g.genre.id} has no Italo form odds`);
+  const plan: PlannedSection[] = [];
+  const add = (
+    kind: SectionKind,
+    label: string,
+    bars: number,
+    progression: Progression,
+    layers: Partial<Layers>,
+    sectionKey = key,
+  ) =>
+    plan.push({
+      kind,
+      label,
+      bars,
+      progression,
+      key: sectionKey,
+      layers: { ...LAYERS_OFF, ...layers },
+    });
+  const chance = (b: Blend) => rng.chance(g.at(b));
+  const short = form === "short";
+  const block = short ? 8 : 16;
+  const tonic = key.mode === "major" ? "I" : "i";
+  const pedal: Progression = [[tonic], ["VII/i"]];
+
+  const openings = (
+    [
+      ["pedal", g.at(odds.pedalIntro)],
+      ["build", g.at(odds.buildIntro)],
+      ["hook", g.at(odds.hookIntro)],
+    ] as const
+  ).filter(([, w]) => w > 0);
+  const opening = openings.length ? rng.weighted(openings) : "hook";
+  const stabs = chance(odds.stabs);
+  const verseArp = chance(odds.verseArp);
+  const bareFirstVerse = chance(odds.bareFirstVerse);
+  const afterChorus = !short && chance(odds.afterChorus);
+  const leadSection = chance(odds.leadSection);
+  const reprise = !short && chance(odds.reprise);
+  const breakdown = !short && chance(odds.breakdown);
+
+  const pedalBlock = (label: string) =>
+    add("intro", label, 8, pedal, { drums: "full", bass: true, pad: true, arp: true });
+  const verse = (label: string, bars: number, extra: Partial<Layers> = {}) =>
+    add("verse", label, bars, p.verse, {
+      drums: "full",
+      bass: true,
+      pad: true,
+      lead: "verse",
+      arp: verseArp,
+      stabs,
+      ...extra,
+    });
+  const chorus = (label: string, extra: Partial<Layers> = {}) =>
+    add("chorus", label, block, p.chorus, {
+      drums: "big",
+      bass: true,
+      pad: true,
+      lead: "chorus",
+      stabs,
+      arp: rng.chance(0.5),
+      ...extra,
+    });
+  const instrumental = (label: string, bars: number) =>
+    add("interlude", label, bars, p.verse, {
+      drums: "full",
+      bass: true,
+      pad: true,
+      riff: true,
+      arp: true,
+      stabs,
+    });
+
+  if (opening === "pedal") {
+    pedalBlock("Intro · pedal");
+    add("intro", "Intro · riff", 4, pedal, { drums: "full", bass: true, riff: true });
+  } else if (opening === "build") {
+    add("intro", "Intro · bass and kick", 4, p.verse, { drums: "kick", bass: true });
+    add("intro", "Intro · stabs", 8, p.verse, { drums: "kick", bass: true, stabs: true });
+    add("intro", "Intro · groove", short ? 4 : 8, p.verse, {
+      drums: "full",
+      bass: true,
+      pad: true,
+      stabs: true,
+    });
+  } else {
+    add("intro", "Intro · hook", block, p.verse, {
+      drums: "full",
+      bass: true,
+      pad: true,
+      riff: true,
+      arp: true,
+    });
+  }
+  verse("Verse 1", block, bareFirstVerse ? { bass: false } : {});
+  chorus("Chorus");
+  if (afterChorus) instrumental("Instrumental", 8);
+  if (leadSection) instrumental("Instrumental · lead synth", block);
+  else verse("Verse 2", block);
+  chorus("Chorus", { arp: true });
+  if (reprise) {
+    pedalBlock("Reprise · pedal");
+    verse("Verse 3", 8);
+    chorus("Chorus");
+  } else if (form === "long") {
+    verse("Verse 3", block);
+    chorus("Chorus");
+  }
+  if (breakdown) {
+    add("break", "Breakdown", 16, p.interlude, { drums: "full", pad: true, arp: true });
+    instrumental("Instrumental · lead synth", rng.pick([8, 16]));
+  }
+  chorus("Chorus · last", { leadDouble: true, arp: true });
+  if (ending === "hold") {
+    add("outro", "Ending · IV held", 4, [["IV"]], { pad: true });
+  } else if (ending === "lift") {
+    add(
+      "outro",
+      "Outro · lift to IV",
+      16,
+      p.lift,
+      { drums: "full", bass: true, pad: true, riff: true, arp: true },
+      liftKey,
+    );
+  } else {
+    add("outro", "Outro · chorus to fade", 16, p.chorus, {
+      drums: "big",
+      bass: true,
+      pad: true,
+      stabs,
+      arp: true,
+      riff: rng.chance(0.5),
+    });
+  }
+  return placeSections(plan, rng);
 }
 
 /**

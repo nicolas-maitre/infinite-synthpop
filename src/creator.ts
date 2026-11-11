@@ -4,7 +4,15 @@
  * section's chords bar by bar; its other parameters and the song settings appear under the piano
  * roll. Every edit goes to the engine as a new spec (spec.ts) and plays from the next bar.
  */
-import { LEAD_RANGES, type Layers, type MelodyKind, type SectionKind, type Song } from "./composer";
+import {
+  BASS_STYLES,
+  isBassStyle,
+  LEAD_RANGES,
+  type Layers,
+  type MelodyKind,
+  type SectionKind,
+  type Song,
+} from "./composer";
 import { BlendPad, initials } from "./blendpad";
 import { KIT_LABELS } from "./drums";
 import {
@@ -13,11 +21,11 @@ import {
   GENRES,
   isGenreId,
   specWeights,
+  styleName,
   styleOf,
   weightsAtPoint,
 } from "./genres";
 import { CENTRE } from "./polygon";
-import { REFERENCES } from "./references";
 import {
   assignMelody,
   fromBars,
@@ -702,14 +710,8 @@ export function mountCreator(
       s.kit,
       (v) => update((n) => (n.kit = KITS.find((k) => k === v) ?? n.kit)),
     );
-    const bass = select(
-      [
-        ["tf", "True Faith"],
-        ["ds", "The Different Story"],
-        ["yc", "You Came"],
-      ],
-      s.bassStyle,
-      (v) => update((n) => (n.bassStyle = v === "ds" || v === "yc" ? v : "tf")),
+    const bass = select(BASS_STYLES, s.bassStyle, (v) =>
+      update((n) => (n.bassStyle = isBassStyle(v) ? v : n.bassStyle)),
     );
     // The creation's genre: whose references the feel blends (synthpop for everything older).
     const genreId = s.genre ?? DEFAULT_GENRE;
@@ -730,7 +732,7 @@ export function mountCreator(
     // The song's style polygon, small: which reference's drum details, bass tone and riff
     // register the creation plays with (its form and chords are its own).
     const genre = GENRES[genreId];
-    const names = genre.references.map((id) => REFERENCES[id].title);
+    const names = genre.references.map(styleName);
     const feel = new BlendPad({
       names,
       short: initials(names),

@@ -4,7 +4,9 @@
  * then generate. The result is a creation (spec.ts), so it can be shared and edited further.
  */
 import {
+  BASS_STYLES,
   compose,
+  isBassStyle,
   type BassStyle,
   type KitName,
   type Song,
@@ -20,13 +22,13 @@ import {
   isGenreId,
   parseWeights,
   referenceWeights,
+  styleName,
   styleOf,
   weightOf,
   weightsAtPoint,
   type GenreId,
 } from "./genres";
 import { CENTRE } from "./polygon";
-import { REFERENCES } from "./references";
 import type { BankEntry, Progression } from "./progressions";
 import { randomSeed } from "./rng";
 import { CHORD_CHOICES, KITS, songToSpec, type Creation } from "./spec";
@@ -64,7 +66,7 @@ function bankOf(genre: GenreId): Record<"verse" | "chorus", BankEntry[]> {
 
 /** "TF 30 · DS 30 · YC 40" for a genre's weights. */
 function weightsLabel(genre: GenreId, weights: readonly number[]): string {
-  const names = GENRES[genre].references.map((id) => REFERENCES[id].title);
+  const names = GENRES[genre].references.map(styleName);
   return weightsSummary(names, initials(names), weights);
 }
 
@@ -168,7 +170,7 @@ export function mountWizard(
     const styleOut = el("output");
     styleOut.value = c.styleAuto ? "" : weightsLabel(c.genre, c.weights);
     const style = new BlendPad({
-      names: GENRES[c.genre].references.map((id) => REFERENCES[id].title),
+      names: GENRES[c.genre].references.map(styleName),
       weights: c.weights,
       label: "Style",
       onInput: (w) => (styleOut.value = weightsLabel(c.genre, w)),
@@ -216,14 +218,9 @@ export function mountWizard(
       (v) => (choices.kit = (KITS as readonly string[]).includes(v) ? (v as KitName) : "auto"),
     );
     const bass = select(
-      [
-        ["auto", "Auto (by style)"],
-        ["tf", "True Faith"],
-        ["ds", "The Different Story"],
-        ["yc", "You Came"],
-      ],
+      [["auto", "Auto (by style)"], ...BASS_STYLES],
       c.bassStyle,
-      (v) => (choices.bassStyle = v === "tf" || v === "ds" || v === "yc" ? v : "auto"),
+      (v) => (choices.bassStyle = isBassStyle(v) ? v : "auto"),
     );
 
     const formPick = radios(
@@ -278,9 +275,9 @@ export function mountWizard(
     // A div, not a label: a click on the pad mustn't toggle the auto box.
     const styleField = el("div", "wizard-field wizard-style");
     const styleHead = el("span", "wizard-style-head");
-    const styleName = el("span");
-    styleName.textContent = "Style";
-    styleHead.append(styleName, styleOut);
+    const styleTitle = el("span");
+    styleTitle.textContent = "Style";
+    styleHead.append(styleTitle, styleOut);
     styleField.append(styleHead, style.element, styleAuto);
 
     form.append(

@@ -133,12 +133,17 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
         nextBar.section.startBar === bar + 1,
     };
   };
+  const parts = GENRES[song.genre].parts;
   const notes: Record<MelodicTrack, Note[]> = {
     bass: !L.bass
       ? []
       : song.bassStyle === "yc"
         ? ycBassLine(figureContext("bass"), rng.fork("bass"), section.kind !== "prechorus")
-        : bassLine(song.bassStyle, figureContext("bass")),
+        : song.bassStyle === "italo" || song.bassStyle === "night"
+          ? italoBassLine(figureContext("bass"), song.bassStyle === "night", barInSection)
+          : song.bassStyle === "faces"
+            ? facesBassLine(figureContext("bass"), barInSection, section.kind === "chorus")
+            : bassLine(song.bassStyle, figureContext("bass")),
     hook: L.hook
       ? motifNotes(
           song.hook,
@@ -150,7 +155,9 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
           section.kind === "bridge" ? 1 : 0.8,
         )
       : [],
-    pad: L.pad ? padChords(key, slots, section.kind === "break" ? 0.75 : 0.55) : [],
+    pad: L.pad
+      ? padChords(key, slots, section.kind === "break" ? 0.75 : 0.55, parts?.pad === "octaves")
+      : [],
     riff: L.riff
       ? motifNotes(song.riff, barInSection, key, slots, "chord", song.riffHigh ? 79 : 67, 0.85)
       : [],
@@ -158,7 +165,13 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     leadOct: [],
     counter: [],
     arp: L.arp ? motifNotes(song.arp, barInSection, key, slots, "chord", 72, 0.5) : [],
-    stab: L.stabs && barInSection % 4 === 0 ? stabChord(key, slots) : [],
+    stab: !L.stabs
+      ? []
+      : parts?.stabs === "gated8"
+        ? gatedStabs(key, slots)
+        : barInSection % 4 === 0
+          ? stabChord(key, slots)
+          : [],
     seq: L.seq ? sequenceLine(song, key) : [],
     guitar: L.guitar ? guitarStrums(key, slots) : [],
   };
@@ -219,7 +232,15 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
  * DS A1–G♯2 (Demucs stems: B1, E2, A2), You Came F♯1–F2 (stems: A1 and B1 in the loop, F♯1 to E2
  * in the pre-chorus). An inverted chord puts its bass note there instead of its root. */
 function bassRoot(style: BassStyle, key: Key, c: Chord): number {
-  const [lo, hi] = style === "tf" ? [31, 42] : style === "yc" ? [30, 41] : [33, 44];
+  const [lo, hi] =
+    style === "tf"
+      ? [31, 42]
+      : style === "yc"
+        ? [30, 41]
+        : style === "ds"
+          ? [33, 44]
+          : // The Italo basses: The Night E♭1–G♭2, Get Closer A1–E2, Faces E1–A1.
+            [28, 40];
   let root = nearestWithPc(mod12(key.tonic + (c.bass ?? c.root)), (lo + hi) / 2);
   while (root > hi) root -= 12;
   while (root < lo) root += 12;
@@ -378,6 +399,83 @@ function ycBassLine(ctx: FigureContext, rng: Rng, loop: boolean): Note[] {
   return out;
 }
 
+/**
+ * The Italo root 8ths (Get Closer §5, The Night §5): every 8th re-struck on the chord's bass note
+ * (a slash chord's, so Get Closer's pads move over a bass of their own), the off-beats a little
+ * stronger, no anticipations and no pickups. The tone (genres.ts `bassTone`) makes Get Closer's a
+ * plucked decay and The Night's legato. With `lifts`, The Night's octave lifts: on 2& and 3 of
+ * each 4-bar loop's first bar, and on the last 8th before the bass changes note.
+ *
+ *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *   plain    R  -  R  -  R  -  R  -  R  -  R  -  R  -  R  -
+ *   lifts    R  -  R  -  R  -  R8 -  R8 -  R  -  R  -  R8 -   (bar 1 of 4, before a change)
+ */
+function italoBassLine(ctx: FigureContext, lifts: boolean, barInSection: number): Note[] {
+  const out: Note[] = [];
+  const nextRoot = ctx.next ? bassRoot("italo", ctx.key, ctx.next.chord) : undefined;
+  for (let step = 0; step < 16; step += 2) {
+    const slot = slotAt(ctx.slots, step);
+    if (!slot) continue;
+    let midi = bassRoot("italo", ctx.key, slot.chord);
+    if (lifts) {
+      const following =
+        step === 14
+          ? nextRoot
+          : bassRoot("italo", ctx.key, slotAt(ctx.slots, step + 2)?.chord ?? slot.chord);
+      const loopStart = barInSection % 4 === 0 && (step === 6 || step === 8);
+      if (loopStart || (following !== undefined && following !== midi)) midi += 12;
+    }
+    out.push({ step, dur: ctx.short ? 0.95 : 1.8, midi, vel: step % 4 === 0 ? 0.85 : 1 });
+  }
+  return out;
+}
+
+/**
+ * Faces' bass (§5): a two-bar staccato figure on the chord's bass note, short notes on the four
+ * beats in one bar and on 1&, 2& and 3& in the next, each bar rolling legato into the next root on
+ * 4&, tied over the bar line. Every other pair hops up an octave on the on-beat bar's beat 4 and
+ * takes the pickup in that octave. In choruses, the dark sustained bass: the root held for each
+ * chord.
+ *
+ *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
+ *   on       R  -  -  -  R  -  -  -  R  -  -  -  R  -  N  ~
+ *   off      ~  -  R  -  -  -  R  -  -  -  R  -  -  -  N  ~
+ */
+function facesBassLine(ctx: FigureContext, barInSection: number, sustained: boolean): Note[] {
+  if (sustained) {
+    return ctx.slots.map((s) => ({
+      step: s.step,
+      dur: s.length - 0.1,
+      midi: bassRoot("faces", ctx.key, s.chord),
+      vel: 0.9,
+    }));
+  }
+  const offBar = barInSection % 2 === 1;
+  const hop = !offBar && barInSection % 4 === 2;
+  const out: Note[] = [];
+  for (const step of offBar ? [2, 6, 10] : [0, 4, 8, 12]) {
+    // The downbeat is the last bar's 4& tied over.
+    if (step === 0 && ctx.heldIn) continue;
+    const slot = slotAt(ctx.slots, step);
+    if (!slot) continue;
+    const midi = bassRoot("faces", ctx.key, slot.chord) + (hop && step === 12 ? 12 : 0);
+    out.push({ step, dur: 0.9, midi, vel: step % 4 === 0 ? 0.95 : 0.9 });
+  }
+  const last = slotAt(ctx.slots, 14);
+  const next = ctx.next ? bassRoot("faces", ctx.key, ctx.next.chord) : undefined;
+  const pickup = next ?? (last ? bassRoot("faces", ctx.key, last.chord) : undefined);
+  if (pickup !== undefined) {
+    out.push({
+      step: 14,
+      dur: next !== undefined ? 2.4 : 1.8,
+      midi: pickup + (hop ? 12 : 0),
+      vel: 0.9,
+    });
+  }
+  if (ctx.short) for (const n of out) n.dur = Math.min(0.95, n.dur);
+  return out;
+}
+
 /** A diatonic 3rd under a lead note: the stacked voice of You Came's choruses. */
 function thirdBelow(key: Key, slots: readonly ChordSlot[], n: Note): number {
   const slot = slotAt(slots, n.step);
@@ -466,13 +564,32 @@ function buildLadder(key: Key, c: Chord, kind: "chord" | "scale", base: number):
 
 // ── Pad and stabs ─────────────────────────────────────────────────────────────────────────────
 
-function padChords(key: Key, slots: readonly ChordSlot[], vel: number): Note[] {
+/** `octaves`: The Night's pads, the triad stacked an octave up as well (they span C4–A♭6). */
+function padChords(key: Key, slots: readonly ChordSlot[], vel: number, octaves = false): Note[] {
   const out: Note[] = [];
   for (const slot of slots) {
     const pcs = chordPitchClasses(key, slot.chord);
     // No low root: the bass has it, and a C3-area pad note masks the bass's harmonics.
     for (const midi of voiceChord(pcs, 62)) {
       out.push({ step: slot.step, dur: slot.length - 0.1, midi, vel });
+    }
+    if (octaves) {
+      for (const midi of voiceChord(pcs.slice(0, 3), 76)) {
+        out.push({ step: slot.step, dur: slot.length - 0.1, midi, vel: vel * 0.55 });
+      }
+    }
+  }
+  return out;
+}
+
+/** Faces' gated stabs (§7): the chord on every 8th, cut short, the off-beats a little louder. */
+function gatedStabs(key: Key, slots: readonly ChordSlot[]): Note[] {
+  const out: Note[] = [];
+  for (let step = 0; step < 16; step += 2) {
+    const slot = slotAt(slots, step);
+    if (!slot) continue;
+    for (const midi of voiceChord(chordPitchClasses(key, slot.chord), 67)) {
+      out.push({ step, dur: 0.9, midi, vel: step % 4 === 2 ? 0.6 : 0.48 });
     }
   }
   return out;
@@ -507,8 +624,12 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
   const kitMode = mode === "full" || mode === "big" || mode === "hats16";
   const phraseFill = traits.phraseFills && (ctx.fill || (kitMode && barInSection % 8 === 7));
   const phraseStart = traits.phraseFills && kitMode && barInSection > 0 && barInSection % 8 === 0;
-  // The groove carries its own fill in its last bar.
-  const fill = ctx.fill && mode !== "groove" && !phraseFill;
+  // The groove carries its own fill in its last bar. The Night has none; Faces closes every 8 bars
+  // with a snare pickup instead.
+  const fills = traits.fills ?? "random";
+  const fill =
+    ctx.fill && mode !== "groove" && !phraseFill && (fills === "random" || fills === "snare");
+  const pickup8 = fills === "pickup8" && kitMode && (ctx.fill || barInSection % 8 === 7);
   const fillFrom = fill ? (intoChorus ? 8 : 12) : 16;
   const evenBar = barInSection % 2 === 0;
 
@@ -543,7 +664,7 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
     for (const s of [4, 12]) {
       if (s >= fillFrom) continue;
       hit("snare", s, 1);
-      if (mode === "big") hit("clap", s, 0.75);
+      if (mode === "big" || traits.clapAlways) hit("clap", s, 0.75);
     }
   } else if (mode === "half") hit("snare", 8, 0.95);
 
@@ -565,8 +686,27 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
       } else hit("hat", s + humanise(s), (pos === 0 ? 0.55 : 0.7) + rng.next() * 0.12);
     }
   }
-  for (let s = 0; s < 16 && !ycHats; s++) {
+  // Faces' chorus hats: x x x . │ x . x x every two beats, and a kick on 3& every 4th bar.
+  const gallop = mode === "big" && traits.bigHats === "gallop" && !ycHats;
+  if (gallop) {
+    for (let s = 0; s < fillFrom; s++) {
+      if (s % 8 === 3 || s % 8 === 5) continue;
+      hit(
+        "hat",
+        s + humanise(s),
+        (s % 4 === 0 ? 0.5 : s % 2 === 0 ? 0.68 : 0.42) + rng.next() * 0.1,
+      );
+    }
+    if (barInSection % 4 === 3 && fillFrom > 10) hit("kick", 10, 0.85);
+  }
+  // The Italo 8th hats: nothing on the "e" and "a" (Faces' verses open the 3a).
+  const hats8 = traits.hats === "8ths" || traits.hats === "8ths-open3a";
+  for (let s = 0; s < 16 && !ycHats && !gallop; s++) {
     if (s >= fillFrom) break;
+    if (hats8 && s % 2 === 1 && mode !== "hats16") {
+      if (traits.hats === "8ths-open3a" && s === 11 && mode === "full") hit("openhat", s, 0.5);
+      continue;
+    }
     const offbeat8 = s % 4 === 2;
     // TF opens a hat on beat 3 of every other bar (MIDI, intro to outro).
     if (traits.openHatBeat3 && s === 8 && evenBar && mode !== "kick" && mode !== "half") {
@@ -589,19 +729,32 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
     }
   }
 
-  if ((sectionStart || phraseStart) && mode !== "half") hit("crash", 0, 0.8);
+  if ((sectionStart || phraseStart) && mode !== "half" && traits.crashes !== false)
+    hit("crash", 0, 0.8);
 
   // You Came's fill: the snare on 2 and 4 and on every "&", none on 1 and 3.
   if (phraseFill) for (const s of [2, 4, 6, 10, 12, 14]) hit("snare", s, s % 8 === 4 ? 1 : 0.75);
   // …and its pickup snare on 4& in a third of the other bars.
   else if (traits.snarePickup && snare && rng.chance(0.35)) hit("snare", 14, 0.7);
 
+  // Faces: snare on 3&, 4 and 4&.
+  if (pickup8)
+    for (const [s, v] of [
+      [10, 0.6],
+      [12, 1],
+      [14, 0.8],
+    ] as const)
+      hit("snare", s, v);
+
   if (fill) {
-    const kind = rng.weighted([
-      ["snare16", 3],
-      ["toms", 2],
-      ["flam", 1],
-    ] as const);
+    const kind =
+      fills === "snare"
+        ? "snare16"
+        : rng.weighted([
+            ["snare16", 3],
+            ["toms", 2],
+            ["flam", 1],
+          ] as const);
     for (let s = fillFrom; s < 16; s++) {
       const ramp = 0.5 + (0.5 * (s - fillFrom + 1)) / (16 - fillFrom);
       if (kind === "snare16") hit("snare", s, ramp);
