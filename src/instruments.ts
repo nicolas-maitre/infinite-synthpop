@@ -743,7 +743,9 @@ export class Instruments {
         octaves: 2,
       },
       maxPolyphony: 3,
-      volume: -4,
+      // On the record the arpeggio sits about 1 dB under the stab (faces.md §10.4). It's one note
+      // where the stab plays three, and at -4 dB it rendered 14 dB under it at default faders.
+      volume: ARP_STAB_GAIN_DB + 3,
     });
     this.arpPluck.chain(
       new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.6, wet: 0.5 }).start(),
@@ -1007,6 +1009,12 @@ export class Instruments {
     const stab = this.sends.stab;
     if (stab.reverb) stab.reverb.gain.value = pluck ? 0.15 : SENDS.stab.reverb;
     if (stab.delay) stab.delay.gain.value = pluck ? 0 : SENDS.stab.delay;
+    // Its arpeggio (§10.4) is centred on the record, and carries the same echo and little reverb.
+    const arpPluck = voices.arpPatch === "pluck";
+    const arp = this.sends.arp;
+    if (arp.reverb) arp.reverb.gain.value = arpPluck ? 0.15 : SENDS.arp.reverb;
+    if (arp.delay) arp.delay.gain.value = arpPluck ? 0 : SENDS.arp.delay;
+    this.channels.arp.pan.value = arpPluck ? 0 : PANS.arp;
   }
 
   /** Picks the sung lead's sound (LeadPatch). */

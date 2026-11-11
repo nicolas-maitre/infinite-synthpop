@@ -822,6 +822,9 @@ stab, and it enters at **bar 16 (0:32)**. The generator's "Intro · groove" does
   - In the Em–Am bar the Em half is the least clear part of the reading.
   - Whether A arrives on beat 3 (clip 12k) or on 2& with the bass (clip 12l) wasn't decided.
 
+- **Level and pan:** about level with the stab and centred. It sits 0–1.5 dB under the stab in
+  instrumental 1 and verse 2, and about 6 dB under it in verse 1. Measured as the rise in the
+  "other" stem when it enters, both channels alike.
 - **Register:** roots in octave 4, so the line spans E4–A5. It sits on the stab's notes and
   hits on the same 8ths, which is why it hid behind the stab in the first passes.
 - **Where it plays.** Measured by the F4 share of every F bar:
