@@ -8,9 +8,13 @@ analysed to the standard of the You Came section of [`../analysis.md`](../analys
 Two files were measured:
 
 - **"The Night - Original Mix"**, 5:46: the Italian 12″ vocal version (Merak MK 100 lists 5:46).
-- **"The Night (Instrumental)"**, 5:27: no vocal. Its length is closest to the German 12″
-  instrumental (5:30; the Italian 12″ instrumental is listed at 5:39). It is not the original with
-  the voice removed: its second half is arranged differently (§2).
+- **The maxi version**, 5:27 (the file is named "The Night (Instrumental).mp3", but it is not an
+  instrumental). It has the lead vocal in one chorus and is otherwise built from instrumental
+  sections: the original's backing with the voice and the lead synth muted, plus sections of its
+  own (§2). Its length matches the German 12″ maxi's B-side (listed as "Instrumental", 5:30).
+
+The maxi isn't vocal-free, so a clean read of the backing comes from the Demucs stems of both
+files, not from the maxi itself.
 
 Both were separated into drums, bass, "other" and vocals with Demucs (htdemucs; the stems stay local
 in `inspiration/stems/the-night/`). The automatic analysis
@@ -19,14 +23,14 @@ in `inspiration/stems/the-night/`). The automatic analysis
 [`scripts/transcribe_bass.py`](../../scripts/transcribe_bass.py) and
 [`scripts/transcribe_drums.py`](../../scripts/transcribe_drums.py), plus one-off scripts for the
 held-note, tuning and harmonic measurements described in each section. Bar numbers count from 1 at
-the first downbeat; timestamps are in the original mix unless marked "inst". They are accurate to
+the first downbeat; timestamps are in the original mix unless marked "maxi". They are accurate to
 about a beat.
 
 ## 1. Fact sheet (measured)
 
-|                    | Original Mix                                                                       | Instrumental                                                             |
+|                    | Original Mix                                                                       | Maxi version                                                             |
 | ------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Length             | 5:46, 158 bars (the last 6 a fade)                                                 | 5:27, about 149 bars                                                     |
+| Length             | 5:46, 158 bars (the last 6 a fade)                                                 | 5:27, about 146 bars                                                     |
 | Tempo              | **110.26 BPM**, beat scatter 11.7 ms; 110.2–110.4 in every 64-beat window          | 110.18 BPM, scatter 38 ms: the grid jumps at two tape splices (§2)       |
 | Tuning             | **About 42 cents flat** (A4 ≈ 430 Hz) for synths and voice; the bass about 22 flat | the same                                                                 |
 | Tonal centre       | **F minor**, Dorian in the verse; the chorus cadences into A♭ major (the relative) | the same                                                                 |
@@ -34,6 +38,7 @@ about a beat.
 | Bass on            | F 43%, B♭ 13%, C 13%, G♭ 10%, A♭ 10%, E♭ 9% of voiced time                         | F 40%, G♭ 13%, A♭ 13%, E♭ 12%, B♭ 10%, C 10%                             |
 | Kick               | Every beat, nothing in between, from the first beat to the fade                    | the same                                                                 |
 | Bass               | **Root 8ths**, E♭1–G♭2, with octave lifts in fixed places (§5). Not an octave bass | the same part (its stem reads an octave up more often: a mix difference) |
+| Voice              | Verses and all three choruses; a lead synth fills the synth-lead sections          | **One chorus only** (maxi 3:29–4:04); a few lead-synth phrases           |
 | Drums              | Kick 4/4, clap-plus-snare on 2 and 4, quiet closed 8th hats. **No fills anywhere** | the same groove; toms and fills only around the 4:30 splices             |
 
 **The tuning matters for every pitch reading.** The synths and the voice sit about 42 cents below
@@ -55,23 +60,23 @@ The record is built from two 4-bar loops, a verse loop and a chorus loop (§4), 
 intro block. Sections are in 4-bar multiples except the 6-bar intro, the 12-bar verse and the
 2-bar bass drops.
 
-| Bars    | Time   | Section                  | Bars | What happens                                                                                 |
-| ------- | ------ | ------------------------ | ---- | -------------------------------------------------------------------------------------------- |
-| 1–2     | 0:00.7 | Intro, pedal             | 2    | Drums from the first beat, bass on F, pads Fm │ E♭/F                                         |
-| 3–4     | 0:05.0 | Intro, riff              | 2    | Pads drop out; a two-note synth figure (F4–E♭4) in bar 3, silence in bar 4; bass E on beat 4 |
-| 5–6     | 0:09.4 | **Bass drop**            | 2    | Bass out; the riff again, drums continue                                                     |
-| 7–10    | 0:13.8 | Verse loop, instrumental | 4    | Bass, pads and the 16th arpeggio enter                                                       |
-| 11–22   | 0:22.5 | **Verse**                | 12   | The voice (E♭4–C5), sparse: 4 bars sung, 2 rest, 6 sung                                      |
-| 23–38   | 0:48.6 | **Synth lead**           | 16   | No voice: a reverbed lead synth (F3–C4) over the verse loop; the arpeggio drops about 5 dB   |
-| 39–54   | 1:23.4 | **Chorus 1**             | 16   | Chorus loop ×4, the voice in long notes (A♭4–E♭5), off-beat open hat                         |
-| 55–70   | 1:58.2 | Synth lead               | 16   | As bars 23–38; there is no second verse                                                      |
-| 71–86   | 2:33.0 | Chorus 2                 | 16   | As chorus 1                                                                                  |
-| 87–94   | 3:07.9 | Intro reprise            | 8    | Pedal and riff blocks twice (Fm, E♭/F, riff, rest ×2), no voice                              |
-| 95–96   | 3:25.3 | Bass drop                | 2    | As bars 5–6                                                                                  |
-| 97–100  | 3:29.6 | Verse loop, instrumental | 4    |                                                                                              |
-| 101–112 | 3:38.3 | Verse                    | 12   | As bars 11–22                                                                                |
-| 113–128 | 4:04.5 | Synth lead               | 16   |                                                                                              |
-| 129–153 | 4:39.3 | Chorus 3 and fade        | 25   | Chorus loop ×6; fade from about 5:22, bass gone at 5:33, last hats at 5:36                   |
+| Bars    | Time   | Section              | Bars | What happens                                                                                 |
+| ------- | ------ | -------------------- | ---- | -------------------------------------------------------------------------------------------- |
+| 1–2     | 0:00.7 | Intro, pedal         | 2    | Drums from the first beat, bass on F, pads Fm │ E♭/F                                         |
+| 3–4     | 0:05.0 | Intro, riff          | 2    | Pads drop out; a two-note synth figure (F4–E♭4) in bar 3, silence in bar 4; bass E on beat 4 |
+| 5–6     | 0:09.4 | **Bass drop**        | 2    | Bass out; the riff again, drums continue                                                     |
+| 7–10    | 0:13.8 | Verse loop, no voice | 4    | Bass, pads and the 16th arpeggio enter                                                       |
+| 11–22   | 0:22.5 | **Verse**            | 12   | The voice (E♭4–C5), sparse: 4 bars sung, 2 rest, 6 sung                                      |
+| 23–38   | 0:48.6 | **Synth lead**       | 16   | No voice: a reverbed lead synth (F3–C4) over the verse loop; the arpeggio drops about 5 dB   |
+| 39–54   | 1:23.4 | **Chorus 1**         | 16   | Chorus loop ×4, the voice in long notes (A♭4–E♭5), off-beat open hat                         |
+| 55–70   | 1:58.2 | Synth lead           | 16   | As bars 23–38; there is no second verse                                                      |
+| 71–86   | 2:33.0 | Chorus 2             | 16   | As chorus 1                                                                                  |
+| 87–94   | 3:07.9 | Intro reprise        | 8    | Pedal and riff blocks twice (Fm, E♭/F, riff, rest ×2), no voice                              |
+| 95–96   | 3:25.3 | Bass drop            | 2    | As bars 5–6                                                                                  |
+| 97–100  | 3:29.6 | Verse loop, no voice | 4    |                                                                                              |
+| 101–112 | 3:38.3 | Verse                | 12   | As bars 11–22                                                                                |
+| 113–128 | 4:04.5 | Synth lead           | 16   |                                                                                              |
+| 129–153 | 4:39.3 | Chorus 3 and fade    | 25   | Chorus loop ×6; fade from about 5:22, bass gone at 5:33, last hats at 5:36                   |
 
 - **The second half repeats the first**: bars 87–128 (reprise, drop, loop, verse, synth lead) are
   bars 1–38 again with a longer pedal block, then the last chorus fades. The record has no bridge,
@@ -86,38 +91,55 @@ intro block. Sections are in 4-bar multiples except the 6-bar intro, the 12-bar 
   fall on the same 8ths (§5). The second half's verses match the first half's the same way (0.98
   and 0.85). That is a sequencer replaying stored patterns, or the same tape sections reused.
 
-### Instrumental
+### Maxi version, section by section against the original
 
-| Bars    | Time (inst) | Section                | Bars | What happens                                                                              |
-| ------- | ----------- | ---------------------- | ---- | ----------------------------------------------------------------------------------------- |
-| 1–32    | 0:00.3      | Verse loop ×8          | 32   | Starts on the downbeat with everything playing; short lead-synth phrases at 0:13 and 0:31 |
-| 33–48   | 1:10.0      | Chorus 1               | 16   | Chorus loop, **no voice**                                                                 |
-| 49–64   | 1:44.9      | Verse loop ×4          | 16   |                                                                                           |
-| 65–80   | 2:19.7      | Chorus 2               | 16   | No voice                                                                                  |
-| 81–96   | 2:54.6      | **Break**              | 16   | Verse-loop chords on the pads, **no bass**, drums continue                                |
-| 97–112  | 3:29.5      | Chorus 3               | 16   | **With the lead vocal**: the original's chorus vocal, unchanged                           |
-| 113–124 | 4:04.3      | F pedal (intro blocks) | 12   | Fm, E♭/F, riff, rest ×3; drums continue                                                   |
-| 125–128 | 4:30        | Drum fill              | ~4   | No bass; toms and snare fills; **two tape splices** (below)                               |
-| 129–    | 4:39.7      | Chorus 4 and fade      | ~17  | Fade from about 5:10                                                                      |
+Each maxi bar was matched against every bar of the original (spectrogram correlation of the bass
+and "other" stems, 32 steps a bar). Copied bars match at r 0.8–0.9; the maxi's own sections match
+nothing above 0.56. The voice and the lead synth were then read from the vocal stem and checked by
+ear (clips 6b and 10a–10d).
 
-- **Up to 2:54 it is the original minus its 6-bar intro**: inst bars 1–80 line up with original
-  bars 7–86 (the verse's 12 bars and the synth lead's 16 become 28 bars of the bare verse loop), 13.1 s earlier.
-- **After that it is a different arrangement**: a 16-bar bass-less break on the verse chords, an
-  extra chorus, the pedal block (12 bars instead of 8) and a fill, where the original goes back to
-  its intro and runs the verse and the synth lead again.
-- **The tape splices**: from 4:00 the drum hits drift up to 0.1 s late against the machine grid;
-  at about 4:30 the grid jumps by about an 8th, and at about 4:38 by about a beat, before the last
-  chorus starts at 4:39.7. The tom fill sits over the joins. Nothing like it happens in the
-  original. The instrumental was cut together on tape. If its sections came from different mix
-  passes, that would also explain why the chorus vocal survives in its third chorus (an
-  inference, not a measurement).
+| Maxi bars | Time (maxi)   | Original bars                             | What plays                                                                                                                          |
+| --------- | ------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| —         | —             | 1–6, intro and bass drop: **cut**         | The maxi starts straight on the verse loop, with drums, bass, pads and arpeggio from the first downbeat                             |
+| 1–16      | 0:00.3–0:35.2 | 7–22, loop and verse: **copied**          | The backing only: **no voice**; two short lead-synth phrases at 0:13 and 0:31 (clips 10a, 10b)                                      |
+| 17–32     | 0:35.2–1:10.0 | 23–38, synth lead: **copied**             | The backing only, **without the lead synth**: the bare verse loop, arpeggio about 5 dB down as in the original                      |
+| 33–48     | 1:10.0–1:44.9 | 39–54, chorus 1: **copied**               | The chorus backing and open hat, **no voice**                                                                                       |
+| 49–64     | 1:44.9–2:19.7 | 55–70, synth lead: **copied**             | The bare verse loop again, no lead synth                                                                                            |
+| 65–80     | 2:19.7–2:54.6 | 71–86, chorus 2: **copied**               | The chorus backing, no voice; a lead-synth pickup at 2:19 (clip 10c)                                                                |
+| 81–96     | 2:54.6–3:29.4 | **new**                                   | **A 16-bar break**: the verse loop's chords on the pads, the 16th arpeggio and the full drum groove, **no bass**, no voice, no lead |
+| 97–112    | 3:29.4–4:04.3 | 129–144, last chorus: **copied**          | The chorus **with the lead vocal** (clip 6b): the only singing in the maxi                                                          |
+| 113–124   | 4:04.3–4:30   | 1–4 and 87–94, pedal blocks: **extended** | The F-pedal blocks (Fm, E♭/F, riff, rest) three times instead of twice; bass and drums continue                                     |
+| 125–130   | 4:30–4:41.9   | **new**                                   | **A fill without bass**: snare and tom fills, the pads, a lead-synth phrase (clip 10d), and two tape splices                        |
+| 131–146   | 4:41.9–5:20   | 129–144, last chorus: **copied**          | The chorus backing without voice, fading from about 5:10                                                                            |
+
+**What the maxi adds or extends:**
+
+- **A 16-bar bass-less break** (maxi 81–96): new. The pads play the verse chords in root position
+  (Fm │ E♭(add9) │ Cm │ B♭(add9), §4), over the arpeggio and the unchanged drums.
+- **An extra, sung chorus** (maxi 97–112): the original's last chorus, vocal included, moved to the
+  middle of the maxi.
+- **A longer pedal block** (maxi 113–124): 12 bars against the original's 8.
+- **A 5-bar fill before the last chorus** (maxi 125–130): new, the only place with toms and snare
+  fills in either version, cut together on tape.
+- **Backing-only copies**: everything up to 2:54 is the original's backing
+  (maxi 1–80 = original 7–86, 13.1 s earlier), with the voice and the lead synth muted.
+
+**What it drops:** the 6-bar intro and bass drop, the second half's verse and synth-lead sections
+(original 97–128), and the voice everywhere except one chorus. So the maxi is shorter than the
+original (5:27 against 5:46) although most of it is instrumental: it trades the original's verses
+for backing-only repeats, a break and a fill.
+
+**The tape splices:** from 4:00 the maxi's drum hits drift up to 0.1 s late against the machine
+grid. At about 4:30 the grid jumps by about an 8th, and at about 4:38 by about a beat, before the
+last chorus starts at 4:41.9. The fill sits over the joins. Nothing like it happens in the
+original: the maxi was cut together on tape from sections of the multitrack mix.
 
 ## 3. Tonal centre: F minor, Dorian, with a relative-major chorus
 
 The song is in **F minor**:
 
 - The bass sits on F 40–43% of the time, and every intro and pedal block is an F pedal.
-- The whole-song key fit gives F minor (r 0.66 original, 0.73 instrumental), well clear of the
+- The whole-song key fit gives F minor (r 0.66 original, 0.73 maxi), well clear of the
   next candidate (F major 0.46, E♭ major 0.48).
 - The verse loop starts on Fm and every return to the verse lands on it (E♭ → Fm, VII → i).
 
@@ -158,7 +180,7 @@ the 16th arpeggio, whose notes move every 16th. The pads hold each triad in thre
   the 3rd, the standard Italo "♭VII over the tonic" colour.
 - **Bar 4 is major.** D is held in three octaves. The automatic analysis wavers between B♭ and
   B♭m, because the arpeggio passes through D♭ in the top line.
-- Every verse loop is the same; the verse, the synth lead and the instrumental runs don't vary the
+- Every verse loop is the same; the verse, the synth lead and the maxi's backing-only runs don't vary the
   harmony.
 
 **The chorus loop** (bars 39–54, 71–86, 129–153), 4 bars:
@@ -179,10 +201,10 @@ the 16th arpeggio, whose notes move every 16th. The pads hold each triad in thre
   plain major triad (confirmed by ear).
 - Into the chorus, B♭ (IV) goes to A♭; out of it, E♭7 goes to Fm (bar 55, bar 87).
 
-**Intro and pedal blocks** (bars 1–6, 87–96; inst 113–124): Fm │ E♭/F over the F pedal, then two
+**Intro and pedal blocks** (bars 1–6, 87–96; maxi 113–124): Fm │ E♭/F over the F pedal, then two
 bars of the riff alone (F4–E♭4, no chord). The bass drop bars carry only the riff and drums.
 
-**Instrumental break** (inst 81–96): the verse loop's chords on the pads without bass: Fm │
+**Maxi break** (maxi 81–96): the verse loop's chords on the pads without bass: Fm │
 E♭(add9) │ Cm │ B♭(add9), the E♭ now in root position since the F bass is gone.
 
 **Checked by ear** (A/B clips against the record, see the end): D♭/F in chorus bar 2, plain G♭ in
@@ -237,11 +259,11 @@ chorus E♭     E♭1  -    E♭1  -    E♭1  -    E♭1  -    E♭1  -    E♭
   layer, as in You Came. The 3rd is 11–20 dB down, and nothing above the 4th–6th harmonic is within
   22 dB of the fundamental, so the content stops at 150–390 Hz.
 - **Where it plays:** everywhere except the two 2-bar drops (bars 5–6, 95–96) and the
-  instrumental's 16-bar break. In the intro it enters with the drums on the first beat, and in bar
+  maxi's 16-bar break. In the intro it enters with the drums on the first beat, and in bar
   4 it walks F–F–F–E1 into the drop.
-- **The instrumental** carries the same bass part. Its bass stem reads the octave (F2, C3) far
-  more often, for whole half-bars (inst 0:09–0:13 is almost all F2), but by ear the two stems
-  sound the same: the instrumental's mix just has less of the fundamental.
+- **The maxi** carries the same bass part. Its bass stem reads the octave (F2, C3) far more
+  often, for whole half-bars (maxi 0:09–0:13 is almost all F2), but by ear the two stems sound the
+  same (clips 9a, 9b): the maxi's mix just has less of the fundamental.
 
 ## 6. The drums
 
@@ -263,16 +285,16 @@ chorus    .    .    o    .    .    .    o    .    .    .    o    .    .    .    
 - **Closed hats on the 8ths**, quiet: about 20 dB under the backbeat's top end, decaying 40 dB in
   140 ms. They show on the beats and on 1& and 3&. On 2& and 4& the backbeat's tail covers them,
   leaving a 3–5 dB bump, so they are probably there too. The script's threshold misses most of
-  them; the instrumental's mix shows the off-beat ones more clearly.
+  them; the maxi's mix shows the off-beat ones more clearly.
 - **The chorus adds an off-beat open hat**: a hit on every "&" with a long tail, 15–25 dB above
   its surroundings in 3–15 kHz. Demucs puts it in the "other" stem. By ear, the chorus high-passed
   above 4 kHz has a clear off-beat hat that the synth-lead section doesn't have (a filter artefact
   can't be fully excluded). The off-beats are also where the bass is accented (§5), which is what
   stands out in the full mix. It is absent from the verse, the synth lead, the intro and the
-  instrumental's break.
+  maxi's break.
 - **The bass drops** (bars 5–6, 95–96) keep the same drums; with the bass gone, the backbeat's
   tail is exposed and reads as "open".
-- **Toms** appear only in the instrumental's 4:28–4:39 fill, over the splices. The original has
+- **Toms** appear only in the maxi's 4:30–4:42 fill, over the splices. The original has
   none.
 
 | Section               | Kick       | Backbeat | Hats                  | Off-beat accent |
@@ -280,8 +302,8 @@ chorus    .    .    o    .    .    .    o    .    .    .    o    .    .    .    
 | Intro, drops, reprise | every beat | 2, 4     | quiet 8ths            | none            |
 | Verse, synth lead     | every beat | 2, 4     | quiet 8ths            | none            |
 | Chorus                | every beat | 2, 4     | quiet 8ths            | **every "&"**   |
-| Inst break (2:54)     | every beat | 2, 4     | quiet 8ths            | none            |
-| Inst fill (4:28–4:39) | broken     | fills    | 16ths in places, toms | none            |
+| Maxi break (2:54)     | every beat | 2, 4     | quiet 8ths            | none            |
+| Maxi fill (4:30–4:42) | broken     | fills    | 16ths in places, toms | none            |
 
 **The machine** (no source names it):
 
@@ -309,18 +331,18 @@ Roles and registers only; the melodies, the riff and the lyrics are the composit
 | Verse         | as the loop                                   | the arpeggio                                                            | **the voice, sparse**: E♭4–C5, 3–7 onsets a bar, phrases with rests |
 | Synth lead    | as the loop                                   | **a reverbed lead synth**, F3–C4, dense; the arpeggio about 5 dB lower  | none                                                                |
 | Chorus        | A♭(add9) │ D♭/F │ G♭ │ E♭7sus4                | the off-beat open hat; the arpeggio continues                           | **long notes**, A♭4–E♭5, 1–3 onsets a bar, identical each time      |
-| Inst break    | the verse chords, no bass                     | the arpeggio                                                            | none                                                                |
-| Inst chorus 3 | as the chorus                                 | as the chorus                                                           | the same chorus vocal                                               |
+| Maxi break    | the verse chords, no bass                     | the arpeggio                                                            | none                                                                |
+| Maxi chorus 3 | as the chorus                                 | as the chorus                                                           | the same chorus vocal                                               |
 
 - **The chorus vocal is one recorded part, reused.** Its pitch contour is identical, 8th by 8th,
-  in all three choruses of the original and in the instrumental's third chorus. By ear it is the
+  in all three choruses of the original and in the maxi's third chorus. By ear it is the
   single lead vocal, though its pitch is unusually steady (5.7 cents of fast jitter, against 17 in
   the verse), so it may be lightly processed or flown in from one take.
 - **The synth lead fills the slot of a second verse.** Its line sits low (F3–C4, read from the
   vocal stem, which Demucs gave it because it is melodic and reverbed) and dense: it plays 60–95%
   of the time, where the voice in the verse plays in short phrases. It answers the voice rather than
-  doubling it; it never plays under the singing. The instrumental drops it, apart from two short
-  phrases at 0:13 and 0:31.
+  doubling it; it never plays under the singing. The maxi mutes it in the copied synth-lead sections
+  and keeps four short phrases (maxi 0:13, 0:31, 2:19, 4:33; clips 10a–10d).
 - **The vocal register:** the verse sits in a mezzo range (E♭4–C5), the chorus higher (A♭4–E♭5)
   in long notes. The record's credited singer is Dora Carofiglio (§8).
 - **Contrast comes from muting and register**, as in You Came, but there are fewer moves: the bass
@@ -354,15 +376,15 @@ Roles and registers only; the melodies, the riff and the lyrics are the composit
 
 **Corrections:**
 
-| Claim                                            | Measured                                                                                                                   |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| About 112 BPM (AcousticBrainz, automatic)        | **110.26**. librosa's own estimate is also 112.35: the median beat gap snaps to the frame grid, as noted in analysis.md §1 |
-| G♯ major or A♯ minor (AcousticBrainz, automatic) | **F minor**, tuned 42 cents flat. G♯ (A♭) is the chorus's local tonic, and the flat tuning pulls untuned readings sideways |
-| Downbeat (automatic analysis)                    | One beat late: its bar 1 starts on the snare. The bass changes and the snare put bar 1 at 0:00.7, not 0:01.2               |
-| "Cm / C", "B♭ / B♭m" in the verse (automatic)    | **Cm7** (minor, no E natural) and **B♭ major** (D held in three octaves)                                                   |
-| "F♯ / C♯", "C♯ / Fm" in the chorus (automatic)   | **G♭** (♭II) and **D♭/F** (VI⁶), both correct as roots once read as flats                                                  |
-| The single is 4:00 (Wikipedia infobox)           | That is the 7″. The measured file is the 5:46 Italian 12″                                                                  |
-| The instrumental is the B-side of the same mix   | It follows the original only until 2:54; its second half is a different arrangement, cut together with tape splices        |
+| Claim                                             | Measured                                                                                                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| About 112 BPM (AcousticBrainz, automatic)         | **110.26**. librosa's own estimate is also 112.35: the median beat gap snaps to the frame grid, as noted in analysis.md §1                             |
+| G♯ major or A♯ minor (AcousticBrainz, automatic)  | **F minor**, tuned 42 cents flat. G♯ (A♭) is the chorus's local tonic, and the flat tuning pulls untuned readings sideways                             |
+| Downbeat (automatic analysis)                     | One beat late: its bar 1 starts on the snare. The bass changes and the snare put bar 1 at 0:00.7, not 0:01.2                                           |
+| "Cm / C", "B♭ / B♭m" in the verse (automatic)     | **Cm7** (minor, no E natural) and **B♭ major** (D held in three octaves)                                                                               |
+| "F♯ / C♯", "C♯ / Fm" in the chorus (automatic)    | **G♭** (♭II) and **D♭/F** (VI⁶), both correct as roots once read as flats                                                                              |
+| The single is 4:00 (Wikipedia infobox)            | That is the 7″. The measured file is the 5:46 Italian 12″                                                                                              |
+| "The Night (Instrumental).mp3" is an instrumental | It is the **maxi version**: the lead vocal in one chorus, otherwise the original's backing plus its own break and fill, cut together with tape splices |
 
 ## 9. What The Night adds to the generator
 
@@ -403,7 +425,10 @@ octaves, a 16th arpeggio, a minor verse over a tonic pedal and a relative-major 
    - a 16-bar chorus = the chorus loop ×4 with the voice in long notes;
    - a **second half that repeats the first** (reprise, verse, synth lead, chorus) instead of a
      bridge, and a **fade on the chorus loop**;
-   - for an instrumental or 12″ mode: a 16-bar **bass-less break on the verse chords**.
+   - for a 12″/maxi mode (from the maxi, §2): start straight on the loop without the intro;
+     replay the verse and synth-lead sections as backing only; add a 16-bar **bass-less break on
+     the verse chords**, a longer pedal block, and a no-bass fill with toms before the last
+     chorus; keep the voice for one chorus.
 3. **A bass style:** root 8ths ("disco 8ths") **accented on the off-beats**, legato, dark (nothing
    much above 300 Hz), octave-layered, with **octave lifts at fixed 8ths in the pattern** (beats 2–3 of the loop's
    first bar, the last beat before a chord change) and no anticipations. It has the off-beat feel
@@ -430,7 +455,7 @@ octaves, a 16th arpeggio, a minor verse over a tonic pedal and a relative-major 
 | Minor verse, relative-major chorus                         | The ♭II (G♭) in the chorus and the E♭7sus4 cadence            |
 | A tonic-pedal intro, a mid-song reprise of it              | A synth-lead section in place of the second verse             |
 | ~110 BPM                                                   | 42 cents flat tuning, a bass tuned 20 cents sharp of the rest |
-| An open off-beat hat in the chorus                         | The instrumental's tape-spliced second half                   |
+| An open off-beat hat in the chorus                         | The maxi's tape-spliced fill                                  |
 
 ## Ear check
 
@@ -439,17 +464,18 @@ The bars and parts the stems left uncertain were checked by ear against the reco
 with a bar of context either side, then the same with the candidate chord tuned 42 cents flat; for
 parts, the mix, then the Demucs stem alone.
 
-| Time (original)           | Question                       | Candidates                                | By ear                                                                 |
-| ------------------------- | ------------------------------ | ----------------------------------------- | ---------------------------------------------------------------------- |
-| 1:25.6 (chorus bar 2)     | Chord over the F bass          | D♭/F, Fm                                  | **D♭/F**                                                               |
-| 1:27.7 (chorus bar 3)     | G♭, or G♭ with C on top        | G♭, G♭(add♯11)                            | **G♭**                                                                 |
-| 1:29.9 (chorus bar 4)     | The E♭ bar                     | E♭7sus4 → E♭7, E♭7, E♭sus4 → E♭           | Undecided between the two sus4 readings; the measured D♭ keeps the 7th |
-| 0:15.9 (verse bar 2)      | Chord over the F bass          | E♭/F, Fm7                                 | **E♭/F**                                                               |
-| 0:20.3 (verse bar 4)      | B♭ quality                     | B♭, B♭m                                   | **B♭ major**                                                           |
-| 1:23–1:58; inst 3:29–4:04 | The chorus's long-note line    | Lead vocal, choir, vocoder, synth         | **The single lead vocal**                                              |
-| 0:48–1:23                 | The low line (F3–C4)           | The singer low, a second voice, processed | **The lead synth, with reverb**: not a voice                           |
-| 1:23 (every chorus)       | The off-beat accent            | Open hat, synth stab, both                | The sequenced bass on the off-beats; above 4 kHz, an off-beat hat      |
-| inst 0:09–0:13            | The instrumental's bass octave | Same part, or a busier take               | **Same part**: only the mix differs                                    |
+| Clips  | Time                        | Question                           | Candidates                                | By ear                                                                |
+| ------ | --------------------------- | ---------------------------------- | ----------------------------------------- | --------------------------------------------------------------------- |
+| 1a, 1b | 1:25.6 (chorus bar 2)       | Chord over the F bass              | D♭/F, Fm                                  | **D♭/F** (1a)                                                         |
+| 2a–2c  | 1:29.9 (chorus bar 4)       | The E♭ bar                         | E♭7sus4 → E♭7, E♭7, E♭sus4 → E♭           | 2a or 2c, undecided; the measured D♭ keeps the 7th (2a)               |
+| 3a, 3b | 1:27.7 (chorus bar 3)       | G♭, or G♭ with C on top            | G♭, G♭(add♯11)                            | **G♭** (3a)                                                           |
+| 4a, 4b | 0:15.9 (verse bar 2)        | Chord over the F bass              | E♭/F, Fm7                                 | **E♭/F** (4a)                                                         |
+| 5a, 5b | 0:20.3 (verse bar 4)        | B♭ quality                         | B♭, B♭m                                   | **B♭ major** (5a)                                                     |
+| 6a, 6b | 1:23–1:58; maxi 3:29–4:04   | The chorus's long-note line        | Lead vocal, choir, vocoder, synth         | **The single lead vocal**                                             |
+| 7a, 7b | 0:22.5 and 0:48.6           | The low line (F3–C4) in 7b         | The singer low, a second voice, processed | **The lead synth, with reverb** (7b): not a voice                     |
+| 8a–8c  | 1:23 (every chorus)         | The off-beat accent                | Open hat, synth stab, both                | The sequenced bass on the off-beats (8a, 8b); above 4 kHz, a hat (8c) |
+| 9a, 9b | 0:22.5; maxi 0:09–0:13      | The maxi's bass octave             | Same part, or a busier take               | **Same part**: only the mix differs                                   |
+| 10a–d  | maxi 0:13, 0:31, 2:19, 4:33 | Fragments in the maxi's vocal stem | Voice, lead synth                         | **All four are the lead synth**                                       |
 
 ## Sources
 
