@@ -13,7 +13,7 @@ import {
   type SectionKind,
   type Song,
 } from "./composer";
-import type { DrumTraits, Grooves } from "./genres";
+import { GENRES, type DrumTraits, type Grooves } from "./genres";
 import { songSound } from "./profile";
 import { createRng, type Rng } from "./rng";
 import {
@@ -281,9 +281,12 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     const lead = melody.bars[barInSection % melody.bars.length] ?? [];
     notes.lead = lead.map((n) => ({ ...n }));
     if (L.leadStack) {
-      // Across genres, the stacked voice keeps to the chord: a diatonic 3rd can leave it (an A
-      // under C over C/E rubbed against the pads' G in an ear check, 2026-11-12).
-      const below = profile.crossGenre ? chordToneBelow : thirdBelow;
+      // Across genres and in Euro-disco songs, the stacked voice keeps to the chord: a diatonic
+      // 3rd can leave it (an A under C over C/E rubbed against the pads' G in an ear check,
+      // 2026-11-12; Innocent Love's C♭ under E♭ over E♭m sounded better as B♭, 2026-11-13).
+      // You Came's and Self Control's own stacks keep the 3rd: it sounded best there.
+      const below =
+        profile.crossGenre || GENRES[song.genre].stackOnChord ? chordToneBelow : thirdBelow;
       notes.leadOct = lead.map((n) => ({
         ...n,
         midi: below(key, slots, n),
@@ -1037,7 +1040,8 @@ function chordToneBelow(key: Key, slots: readonly ChordSlot[], n: Note): number 
   );
 }
 
-/** A diatonic 3rd under a lead note: the stacked voice of You Came's choruses. */
+/** A diatonic 3rd under a lead note: the stacked voice of You Came's choruses and Self Control's
+ * backing voices. */
 function thirdBelow(key: Key, slots: readonly ChordSlot[], n: Note): number {
   const slot = slotAt(slots, n.step);
   if (!slot) return n.midi - 3;

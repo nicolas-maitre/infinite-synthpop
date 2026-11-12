@@ -789,7 +789,7 @@ exports[`output snapshot > euro seed 1 weights 0/1/0 1`] = `
 
 exports[`output snapshot > euro seed 1 weights 1/0/0 1`] = `
 {
-  "bars": "1f5fcb338e37cccf288457",
+  "bars": "5391ba9430126ba5288457",
   "bassStyle": "innocent",
   "bpm": 114,
   "key": {
@@ -1297,7 +1297,7 @@ exports[`output snapshot > euro seed 7 long 1`] = `
 
 exports[`output snapshot > euro seed 7 short 1`] = `
 {
-  "bars": "1f9ea44031c27105182328",
+  "bars": "c5b44d70c61bbfac182328",
   "bassStyle": "juliet",
   "bpm": 117.5,
   "key": {
@@ -1464,7 +1464,7 @@ exports[`output snapshot > euro seed 7 short 1`] = `
 
 exports[`output snapshot > euro seed 9 hold 1`] = `
 {
-  "bars": "4a8cd5a3a4833b77276007",
+  "bars": "9105dd4316ac2ffa276007",
   "bassStyle": "heaven",
   "bpm": 117.5,
   "key": {
@@ -1640,7 +1640,7 @@ exports[`output snapshot > euro seed 9 hold 1`] = `
 
 exports[`output snapshot > euro seed 9 lift 1`] = `
 {
-  "bars": "134ad499cd506a2b310134",
+  "bars": "c8c9ae399a5a57a0310134",
   "bassStyle": "heaven",
   "bpm": 117.5,
   "key": {
@@ -2300,7 +2300,7 @@ exports[`output snapshot > euro seed 42 weights 0/1/0 1`] = `
 
 exports[`output snapshot > euro seed 42 weights 1/0/0 1`] = `
 {
-  "bars": "2375e995c64023c3312524",
+  "bars": "408f5d3be728325d312524",
   "bassStyle": "innocent",
   "bpm": 114.5,
   "key": {
@@ -2674,7 +2674,7 @@ exports[`output snapshot > euro seed 42 weights auto 1`] = `
 
 exports[`output snapshot > euro seed 1234 weights auto 1`] = `
 {
-  "bars": "e71f05ec15b65dbf207894",
+  "bars": "85fb763c5d937baa207894",
   "bassStyle": "innocent",
   "bpm": 117,
   "key": {
@@ -3255,7 +3255,7 @@ exports[`output snapshot > heaven-can-wait 1`] = `
 
 exports[`output snapshot > innocent-love 1`] = `
 {
-  "bars": "bbe8fa4e422ba3a5335924",
+  "bars": "73b484994e70f6bd335924",
   "bassStyle": "innocent",
   "bpm": 115.2,
   "key": {

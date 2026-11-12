@@ -359,7 +359,29 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
    | 4    | Self Control 50 / Crazy Juliet 50               | Tempo (114.5) and mix right                                                                                                                  | Before rendering: a tie across genres played Get Closer's riff (the Italo default). The first tied reference now brings its own traits                   |
    | 5    | True Faith 40 / The Night 30 / Innocent Love 30 | A rub at the chorus's first high note; with the voice and the pads alone (5c), and gone without the stacked voice (5f)                       | Across genres the stacked voice takes the highest chord tone 3–7 semitones under the lead (5g: "gone, sounds good")                                      |
 
-   Single-genre songs are unchanged (snapshot identical): the stack keeps its measured diatonic
-   3rd in You Came's and Innocent Love's own songs, and their check is a separate task. Clip 4
-   also showed what Crazy Juliet itself does: its chorus's held last bar under a voice that
-   replays the chorus figure. That is not this feature's.
+   Single-genre songs were left unchanged here (snapshot identical): the stack kept its measured
+   diatonic 3rd in You Came's, Self Control's and Innocent Love's own songs, checked as a
+   separate task (below). Clip 4 also showed what Crazy Juliet itself does: its chorus's held
+   last bar under a voice that replays the chorus figure. That is not this feature's.
+
+   **The stack in single-genre songs** (_done 2026-11-13_). A scan of the stacked voice
+   (`leadOct`) against the chords found about half its notes off the chord in every genre's
+   songs. You Came puts F♯ under A over A, Self Control D under F♯ over F♯m, and Innocent Love C♭
+   under E♭ over E♭m. The clips are in `renders/ear-check-single-genre-stack/` (gitignored). Each
+   plays two bars into the first chorus and its first four bars, first in the mix and then with
+   the voice and pads alone. Candidates: (a) the diatonic 3rd, as before; (b) the highest chord
+   tone 3–7 semitones under, the cross-genre fix; (c) a chord tone a 3rd or 6th under, else (b).
+   The brief's other (c), the 3rd when it is a chord tone and else (b), is (b) note for note,
+   since the highest chord tone in that range is the 3rd whenever the 3rd is one.
+
+   | Clip | Song                    | Heard                                |
+   | ---- | ----------------------- | ------------------------------------ |
+   | 1    | You Came, chorus 1      | 1a, the 3rd, best                    |
+   | 2    | Self Control, chorus 1  | 2a, the 3rd, best                    |
+   | 3    | Innocent Love, chorus 1 | 3b and 3c alike, both better than 3a |
+   | 4    | Synthpop seed 5, chorus | No difference                        |
+
+   Change: Euro-disco songs, whose stack is Innocent Love's (`stack: { [IL]: 0.8 }`), take (b)
+   (`Genre.stackOnChord`). You Came's and Self Control's stacks, and so synthpop's and Italo's,
+   keep the 3rd. The snapshot moved for the seven Euro-disco cases that stack (their bar hashes
+   only), and `planner.test.ts` checks both sides.

@@ -35,6 +35,25 @@ function crossSongs(count: number, seed = 1): Song[] {
   );
 }
 
+/** The stacked chorus voice's notes, and how many leave the chord under them. */
+function stackedVoice(songs: readonly Song[]): { seen: number; off: number } {
+  let seen = 0;
+  let off = 0;
+  for (const song of songs) {
+    for (const s of song.sections.filter((x) => x.layers.leadStack && x.layers.lead)) {
+      for (let b = 0; b < s.bars; b++) {
+        const e = arrangeBar(song, s.startBar + b);
+        for (const n of e.notes.leadOct) {
+          const slot = [...e.chords].reverse().find((c) => c.step <= n.step) ?? e.chords[0]!;
+          if (!chordPitchClasses(e.key, slot.chord).map(mod12).includes(mod12(n.midi))) off++;
+          seen++;
+        }
+      }
+    }
+  }
+  return { seen, off };
+}
+
 describe("the merged planner", () => {
   const songs = crossSongs(400);
 
@@ -203,20 +222,8 @@ describe("ear-checked details (2026-11-12)", () => {
   });
 
   it("keeps the stacked voice on the chord in songs across genres", () => {
-    let seen = 0;
-    for (const song of songs) {
-      for (const s of song.sections.filter((x) => x.layers.leadStack && x.layers.lead)) {
-        for (let b = 0; b < s.bars; b++) {
-          const e = arrangeBar(song, s.startBar + b);
-          for (const n of e.notes.leadOct) {
-            const slot = [...e.chords].reverse().find((c) => c.step <= n.step) ?? e.chords[0]!;
-            const pcs = chordPitchClasses(e.key, slot.chord).map(mod12);
-            expect(pcs).toContain(mod12(n.midi));
-            seen++;
-          }
-        }
-      }
-    }
+    const { seen, off } = stackedVoice(songs);
+    expect(off).toBe(0);
     expect(seen).toBeGreaterThan(100);
   });
 
@@ -224,5 +231,31 @@ describe("ear-checked details (2026-11-12)", () => {
     const song = songs.find((s) => s.sections.some((x) => x.layers.padSwell))!;
     const decoded = decodeCreation(encodeCreation({ seed: song.seed, spec: songToSpec(song) }));
     expect(decoded?.spec.sections.some((s) => s.layers.padSwell)).toBe(true);
+  });
+});
+
+describe("the stacked voice in one genre (ear-checked 2026-11-13)", () => {
+  /** A genre's songs, at random points of its polygon. */
+  const genreSongs = (genre: "synthpop" | "italo" | "euro") =>
+    Array.from({ length: 120 }, (_, seed) => compose({ seed, genre, weights: "auto" }));
+
+  it("keeps Innocent Love's stacked voice on the chord, in its own song and Euro-disco's", () => {
+    const { seen, off } = stackedVoice([
+      compose({ seed: 5, reference: "innocent-love" }),
+      ...genreSongs("euro"),
+    ]);
+    expect(off).toBe(0);
+    expect(seen).toBeGreaterThan(100);
+  });
+
+  it("keeps the diatonic 3rd in You Came's and Self Control's stacks, which can leave the chord", () => {
+    for (const songs of [
+      [compose({ seed: 5, reference: "you-came" }), ...genreSongs("synthpop")],
+      [compose({ seed: 5, reference: "self-control" }), ...genreSongs("italo")],
+    ]) {
+      const { seen, off } = stackedVoice(songs);
+      expect(seen).toBeGreaterThan(100);
+      expect(off).toBeGreaterThan(seen / 4);
+    }
   });
 });

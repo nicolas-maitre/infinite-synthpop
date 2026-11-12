@@ -351,6 +351,10 @@ export interface Genre {
    * that suits each record. A track only some references play takes its level as `base`, so a
    * blend with the others doesn't dilute it. */
   mix?: Partial<Record<Track, Blend>>;
+  /** The stacked chorus voice takes the highest chord tone 3–7 semitones under the lead instead of
+   * the diatonic 3rd (arranger.ts `chordToneBelow`): Innocent Love's, by ear (2026-11-13). Songs
+   * across genres always do. */
+  stackOnChord?: boolean;
   /** The parts and sounds when no reference outweighs the others, and per reference while it
    * does. Unset: `SYNTHPOP_VOICES`. */
   voices?: Voices;
@@ -1544,6 +1548,7 @@ export const GENRES: Record<GenreId, Genre> = {
       stack: { by: { [IL]: 0.8 } },
     },
     parts: { stabs: "follow" },
+    stackOnChord: true,
     voices: EURO_VOICES,
     voiceTraits: EURO_VOICE_TRAITS,
     // Innocent Love's verse sits low (A3–F4) and its chorus a 4th up, centred on A♭4; Heaven Can
