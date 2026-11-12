@@ -106,6 +106,10 @@ section), and the stems' attack read on the bass's 8ths. On top of the fit above
   pre-chorus 16ths (arp fader +4) and the chorus chords (their own gain 6 dB up) had sat 4–9 dB
   under the pad. With the pad 5 dB down and those, each sits 2–4 dB over it, and "other" stays
   within about 1 dB of the stem in every section.
+- **Kick:** the record's low end in the verse is its kick (the drum stem carries the 40–120 Hz
+  bands within 1.5 dB of the mix, the bass stem 7–14 dB under). Ours sat 6–7 dB short under 60 Hz,
+  so its sampled kick gets a 10 dB low shelf at 90 Hz (`kickWeight`, new, switched out for every
+  other reference). The whole mix's sub band is now within 1 dB of the record's.
 - **Break stab:** now struck, not swelled: two detuned saws through a drive, a 3 kHz low-pass and
   5 dB of make-up gain, ringing into the reverb. Its level is the stem's within 1 dB, its tone
   within 1–4 dB from 250 Hz to 4 kHz.

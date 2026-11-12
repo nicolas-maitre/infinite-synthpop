@@ -47,6 +47,12 @@ export class DrumKit {
   /** Snare and clap also feed the gated reverb through this. */
   readonly gateSend = new Tone.Gain(1);
   private readonly snareBus = new Tone.Gain(1);
+  /** The sampled kick's path: straight through, or (setKickWeight) through a low shelf. The
+   * straight path stays bit for bit what it was. */
+  private readonly kickBus = new Tone.Gain(1);
+  private readonly kickThrough = new Tone.Gain(1);
+  private readonly kickShelved = new Tone.Gain(0);
+  private readonly kickShelf = new FixedFilter("lowshelf", 90);
   private readonly buffers = new Map<KitName, Map<DrumVoice, Tone.ToneAudioBuffer>>();
   private readonly synth: Record<DrumVoice, SynthVoice>;
   private current: KitName = "synth";
@@ -55,6 +61,9 @@ export class DrumKit {
   constructor() {
     this.snareBus.connect(this.output);
     this.snareBus.connect(this.gateSend);
+    this.kickBus.fan(this.kickThrough, this.kickShelf);
+    this.kickThrough.connect(this.output);
+    this.kickShelf.chain(this.kickShelved, this.output);
     this.synth = buildSynthKit(this.output, this.snareBus);
   }
 
@@ -100,6 +109,14 @@ export class DrumKit {
     this.current = kit;
   }
 
+  /** Lifts the sampled kick under 90 Hz by `db` (0: as sampled). Self Control's kick carries
+   * its record's whole low end (branigan-self-control.md §12). */
+  setKickWeight(db: number): void {
+    this.kickThrough.gain.value = db ? 0 : 1;
+    this.kickShelved.gain.value = db ? 1 : 0;
+    this.kickShelf.input.gain.value = db;
+  }
+
   /** True when the kit has at least one real sample loaded. */
   hasSamples(kit: KitName): boolean {
     return (this.buffers.get(kit)?.size ?? 0) > 0;
@@ -118,7 +135,13 @@ export class DrumKit {
     }
     // In the kit's own context, not Tone's global one, which an offline render may be borrowing.
     const src = new Tone.ToneBufferSource({ url: buffer, context: this.output.context });
-    src.connect(voice === "snare" || voice === "clap" ? this.snareBus : this.output);
+    src.connect(
+      voice === "snare" || voice === "clap"
+        ? this.snareBus
+        : voice === "kick"
+          ? this.kickBus
+          : this.output,
+    );
     src.onended = () => src.dispose();
     src.start(time, 0, undefined, vel ** 1.4);
     if (voice === "openhat") this.openHat = src;

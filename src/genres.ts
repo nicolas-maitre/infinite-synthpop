@@ -77,6 +77,9 @@ export interface DrumTraits {
   bigClaps?: "4-and-3e";
   /** The kick: on every beat (unset), or Self Control's on 1 and 3, with 3& and 3a in its intro. */
   kick?: "1-and-3";
+  /** dB added to the sampled kick under 90 Hz (unset: none): Self Control's kick carries its
+   * record's whole low end: 40–60 Hz sat 6–7 dB under the record's before. */
+  kickWeight?: number;
   /** A backbeat kit played from a pattern table instead of the four-on-the-floor kick and the hat
    * loop (the Euro-disco references). Unset everywhere else. */
   groove?: Grooves;
@@ -1385,7 +1388,13 @@ export const GENRES: Record<GenreId, Genre> = {
       // The kick on 1 and 3, quiet 8th hats in the verses, 16ths from the pre-chorus, the clap on 4
       // and the syncopated one on 3e in the choruses, a few snare 16ths at the section ends
       // (branigan-self-control.md §5, §12).
-      [SC]: { ...ITALO_DRUMS, hats: "quiet-verse", bigClaps: "4-and-3e", kick: "1-and-3" },
+      [SC]: {
+        ...ITALO_DRUMS,
+        hats: "quiet-verse",
+        bigClaps: "4-and-3e",
+        kick: "1-and-3",
+        kickWeight: 10,
+      },
     },
     // The Night's bass is dark and octave-layered, legato; Get Closer's plucked (16 dB down per
     // 8th) and dark; Faces' a bright, plucky saw with its octave partial above the fundamental.

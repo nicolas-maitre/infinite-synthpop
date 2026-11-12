@@ -71,6 +71,7 @@ export async function renderSong(
   inst.setLeadTone(leadTone(genre, song.weights));
   const profile = genreAt(genre, song.weights);
   inst.setSnareGate(profile.drums.gatedSnare);
+  inst.drums.setKickWeight(profile.drums.kickWeight ?? 0);
   inst.setVoices(profile.voices);
   inst.setTempo(song.bpm);
   for (const track of solo) inst.channels[track].solo = true;

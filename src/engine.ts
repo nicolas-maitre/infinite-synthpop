@@ -359,6 +359,7 @@ export class Engine {
     inst.setLeadTone(leadTone(genre, this.song.weights));
     const profile = genreAt(genre, this.song.weights);
     inst.setSnareGate(profile.drums.gatedSnare);
+    inst.drums.setKickWeight(profile.drums.kickWeight ?? 0);
     inst.setVoices(profile.voices);
     inst.setActiveTracks(usedTracks(this.song));
   }
