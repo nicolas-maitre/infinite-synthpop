@@ -34,6 +34,7 @@
             <p class="eyebrow">Now playing</p>
             <h2 id="song-title">Press play</h2>
             <p class="meta" id="song-meta">—</p>
+            <p class="mix-status" id="mix-status" aria-live="polite" hidden></p>
           </div>
           <div class="transport">
             <button id="play" class="btn primary" type="button">▶ Play</button>
@@ -86,6 +87,12 @@
             </button>
             <label class="autoplay" title="Start playing as soon as the page loads">
               <input id="autoplay" type="checkbox" /> Autoplay
+            </label>
+            <label
+              class="autoplay"
+              title="Play each song long enough to get its gist, then mix it into the next one, beat-matched, like a DJ set. Plays render ahead."
+            >
+              <input id="dj" type="checkbox" /> DJ
             </label>
             <label
               class="autoplay"

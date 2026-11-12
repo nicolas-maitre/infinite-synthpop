@@ -25,7 +25,7 @@ import * as Tone from "tone";
 import { arrangeBar, type BarEvents } from "./arranger";
 import type { Song } from "./composer";
 import { songSound } from "./profile";
-import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
+import { autoVolumes, Instruments, softClipper, type LeadPatch, type Track } from "./instruments";
 import { scheduleBar } from "./schedule";
 import type { TempoMap } from "./tempo";
 
@@ -64,6 +64,8 @@ export interface Piece<M> {
   /** The timeline span heard, [start, end). */
   start: number;
   end: number;
+  /** A DJ transition's name, shown while it plays. */
+  label?: string;
 }
 
 export interface AheadEvents<M> {
@@ -803,14 +805,15 @@ async function renderPiece<M>(
   ) => {
     sink.chunk(e.data.frame, e.data.l, e.data.r, e.data.last);
   };
-  context.destination.chain(tap);
-
   // A deck per song, built while the offline context is Tone's global (synchronously: the page's
-  // own engine keeps using the global context meanwhile).
+  // own engine keeps using the global context meanwhile). Two decks' sum gets the master's soft
+  // clipper again, as each deck's own peaks reach just under full scale.
   const original = Tone.getContext();
   const decks = new Map<Deck<M>, Instruments>();
   Tone.setContext(context);
   try {
+    if (piece.decks.length > 1) context.destination.chain(...softClipper(lite), tap);
+    else context.destination.chain(tap);
     for (const deck of piece.decks) decks.set(deck, Instruments.create({ lite }));
   } finally {
     Tone.setContext(original);
@@ -857,6 +860,43 @@ async function renderPiece<M>(
     });
   }
   await raw.startRendering();
+}
+
+/**
+ * Dev only: renders consecutive pieces offline through the same path as playback, joined at their
+ * starts, as one stereo buffer from the first piece's start (for listening checks of DJ
+ * transitions, silently).
+ */
+export async function renderPiecesOffline<M>(
+  pieces: readonly Piece<M>[],
+  mix: RenderMix,
+  sampleRate: number,
+): Promise<{ l: Float32Array<ArrayBuffer>; r: Float32Array<ArrayBuffer> }> {
+  const first = pieces[0];
+  const last = pieces.at(-1);
+  if (!first || !last) return { l: new Float32Array(0), r: new Float32Array(0) };
+  const frames = Math.ceil((last.end - first.start) * sampleRate);
+  const l = new Float32Array(frames);
+  const r = new Float32Array(frames);
+  for (const piece of pieces) {
+    const events = renderEvents(piece);
+    const t0 = Math.min(events[0]?.[0] ?? piece.start, piece.start - FADE) - LEAD;
+    const from = Math.round((piece.start - first.start) * sampleRate);
+    const to = Math.round((piece.end - first.start) * sampleRate);
+    await renderPiece(piece, t0, mix, sampleRate, false, {
+      chunk: (frame, cl, cr) => {
+        for (let i = 0; i < cl.length; i++) {
+          const at = Math.round((t0 - first.start) * sampleRate) + frame + i;
+          if (at < from || at >= to) continue;
+          l[at] = cl[i] ?? 0;
+          r[at] = cr[i] ?? 0;
+        }
+      },
+      gate: () => Promise.resolve(),
+      alive: () => true,
+    });
+  }
+  return { l, r };
 }
 
 /** Points a deck's instruments at its song, with the mixer applied (as engine.ts applySong). */

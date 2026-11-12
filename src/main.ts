@@ -103,6 +103,8 @@ interface Prefs {
   playback: Playback;
   /** Seconds to render ahead; 0 = auto (more on phones). */
   buffer: number;
+  /** DJ mode: each song mixes into the next, like a DJ set (engine.ts, dj.ts). */
+  dj: boolean;
 }
 
 type Playback = "auto" | "live" | "ahead";
@@ -142,6 +144,7 @@ const defaults: Prefs = {
   lead: "voice",
   playback: "auto",
   buffer: 0,
+  dj: false,
 };
 
 function loadPrefs(): Prefs {
@@ -195,6 +198,7 @@ function loadPrefs(): Prefs {
       lead,
       playback,
       buffer,
+      dj: p.dj === true,
     };
   } catch {
     return defaults;
@@ -612,6 +616,7 @@ const engine = new Engine(
     },
     onCue: renderCue,
     onBuffering: renderBufferStatus,
+    onMix: renderMix,
   },
 );
 engine.setInstant(prefs.instant);
@@ -930,9 +935,11 @@ function applyPlayback(): void {
   const ahead = prefs.playback === "ahead" || (prefs.playback === "auto" && AUTO_AHEAD);
   playbackSelect.value = prefs.playback;
   bufferSelect.value = String(prefs.buffer);
-  bufferSelect.disabled = !ahead || !AHEAD_SUPPORTED;
+  // DJ mode renders ahead whatever the Playback setting says.
+  bufferSelect.disabled = !(ahead || prefs.dj) || !AHEAD_SUPPORTED;
   engine.setBufferSeconds(prefs.buffer || AUTO_BUFFER);
   engine.setRenderAhead(ahead);
+  engine.setDj(prefs.dj && AHEAD_SUPPORTED);
 }
 applyPlayback();
 playbackSelect.addEventListener("change", () => {
@@ -945,6 +952,26 @@ bufferSelect.addEventListener("change", () => {
   savePrefs();
   applyPlayback();
 });
+
+const djBox = el<HTMLInputElement>("dj");
+djBox.checked = prefs.dj;
+if (!AHEAD_SUPPORTED) {
+  djBox.disabled = true;
+  djBox.parentElement!.title =
+    "This browser can't render ahead (no AudioWorklet), which DJ mode needs";
+}
+djBox.addEventListener("change", () => {
+  prefs.dj = djBox.checked;
+  savePrefs();
+  applyPlayback();
+});
+
+/** DJ mode: the transition being heard, and the song it mixes into. */
+const mixStatus = el<HTMLParagraphElement>("mix-status");
+function renderMix(mix: { label: string; next: Song } | null): void {
+  mixStatus.hidden = !mix;
+  mixStatus.textContent = mix ? `${mix.label} → ${mix.next.title}` : "";
+}
 
 /** While rendering ahead: how far ahead it is, or that playback waits for it. */
 const bufferStatus = el<HTMLSpanElement>("buffer-status");
@@ -1595,7 +1622,28 @@ document.addEventListener("visibilitychange", () => {
 });
 
 if (import.meta.env.DEV) {
-  void Promise.all([import("tone"), import("./render")]).then(([Tone, { renderToDisk }]) =>
-    Object.assign(window, { engine, Tone, renderToDisk, roll }),
+  void Promise.all([import("tone"), import("./render"), import("./ahead")]).then(
+    ([Tone, { renderToDisk, encodeWav }, { renderPiecesOffline }]) => {
+      /** Renders the DJ transition out of the song with this seed to renders/ (silently). */
+      const renderDjToDisk = async (seed: number, before = 8, after = 16): Promise<string> => {
+        const { pieces, mix } = engine.djPreview(seed, before, after);
+        const rate = 44100;
+        const { l, r } = await renderPiecesOffline(pieces, mix, rate);
+        const audio = new AudioBuffer({ length: l.length, numberOfChannels: 2, sampleRate: rate });
+        audio.copyToChannel(l, 0);
+        audio.copyToChannel(r, 1);
+        const [out, inc] = [pieces[0]!.decks[0]!, pieces.at(-1)!.decks.at(-1)!];
+        const name = `dj-${seed}-to-${inc.song.seed}.wav`;
+        const res = await fetch(`/__renders/${name}`, { method: "POST", body: encodeWav(audio) });
+        const swapAt = pieces.find((p) => p.label)?.decks[1]?.clock.time(0) ?? 0;
+        return [
+          await res.text(),
+          `"${out.song.title}" (${out.song.bpm} BPM, ${keyName(out.song.key)})`,
+          `→ "${inc.song.title}" (${inc.song.bpm} BPM, ${keyName(inc.song.key)})`,
+          `mix-in intro at ${(swapAt - 16 * (240 / out.song.bpm)).toFixed(1)} s, swap at ${swapAt.toFixed(1)} s`,
+        ].join(" · ");
+      };
+      Object.assign(window, { engine, Tone, renderToDisk, renderDjToDisk, roll });
+    },
   );
 }

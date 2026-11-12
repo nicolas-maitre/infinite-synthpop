@@ -43,6 +43,14 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   - **Firefox:** `about:preferences#privacy` → Permissions → Autoplay → Settings…, then add
     `http://localhost:5179` with "Allow Audio and Video".
   - **Safari:** Settings → Websites → Auto-Play → "Allow All Auto-Play" for the site.
+- **DJ** plays each song long enough to get its gist (past its first chorus and about 2 minutes,
+  most often after its second chorus, sometimes to its end), then mixes it into the next one like
+  a DJ set. Over the last 16 bars, the next song's hats fade in, then its whole beat takes over
+  from the drums for 8 bars, and at a section line its bass and chords take over. The next song
+  starts at the current tempo and glides to its own (within 6 %, 1 BPM per 16 bars), in a key that
+  mixes from the current one (the same, a fifth away, or the relative major or minor). "Mixing →
+  title" shows under the song while it plays. DJ mode always renders ahead, whatever Playback
+  says.
 - **Switch** picks when a new song, a section or a bar you pick starts. With **after the bar**
   (the default), it starts at the next bar line, and a dashed ⏭ marks the bar and section waiting
   to play. With **instantly**, it starts at once, about a third of a second after the click (the

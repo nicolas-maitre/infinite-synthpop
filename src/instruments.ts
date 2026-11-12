@@ -218,6 +218,28 @@ export interface InstrumentOptions {
  * tails), before it is disconnected so the browser stops processing it. */
 const UNUSED_TRACK_DELAY_MS = 5000;
 
+/**
+ * The master's soft clipper, in the current context: linear below -2 dBFS, rounding off anything
+ * above toward a -0.5 dBFS ceiling, up to +6 dB in (the halving gain keeps that inside the
+ * shaper's ±1 input). Oversampled, so rounding off bright peaks (the voice's air, the hats)
+ * doesn't alias into harsh distortion; lite skips it for CPU. Oversampling's filters overshoot the
+ * curve's −0.5 dBFS ceiling by up to 0.5 dB (renders of The Night and Faces touched full scale),
+ * so its output comes down 0.6 dB to keep the peaks under 0 dBFS. Also on the sum of a DJ's two
+ * decks (ahead.ts).
+ */
+export function softClipper(lite: boolean): [Tone.Gain, Tone.WaveShaper, Tone.Gain] {
+  const knee = 0.79;
+  const ceiling = 0.944;
+  const softClip = new Tone.WaveShaper((x) => {
+    const v = Math.abs(x * 2);
+    const y = v <= knee ? v : knee + (ceiling - knee) * Math.tanh((v - knee) / (ceiling - knee));
+    return Math.sign(x) * y;
+  }, 4096);
+  if (!lite) softClip.oversample = "2x";
+  const overshoot = new Tone.Gain(lite ? 1 : Tone.dbToGain(-0.6));
+  return [new Tone.Gain(0.5), softClip, overshoot];
+}
+
 export class Instruments {
   readonly channels: Record<Track, Tone.Channel>;
   readonly master = new Tone.Volume(0);
@@ -337,36 +359,13 @@ export class Instruments {
     const comp = new Tone.Compressor({ threshold: -20, ratio: 2.5, attack: 0.02, release: 0.25 });
     const limiter = new Tone.Limiter(-1);
     // Tone's Limiter is a fast compressor, so drum transients overshoot it and clipped (245
-    // full-scale frames in one song). The soft clipper is linear below -2 dBFS and rounds off
-    // anything above toward a -0.5 dBFS ceiling, up to +6 dB in (the halving gain keeps that
-    // inside the shaper's ±1 input).
-    const knee = 0.79;
-    const ceiling = 0.944;
-    const softClip = new Tone.WaveShaper((x) => {
-      const v = Math.abs(x * 2);
-      const y = v <= knee ? v : knee + (ceiling - knee) * Math.tanh((v - knee) / (ceiling - knee));
-      return Math.sign(x) * y;
-    }, 4096);
-    // Oversampled, so rounding off bright peaks (the voice's air, the hats) doesn't alias into
-    // harsh distortion; lite skips it for CPU. Oversampling's filters overshoot the curve's
-    // −0.5 dBFS ceiling by up to 0.5 dB (renders of The Night and Faces touched full scale), so
-    // its output comes down 0.6 dB to keep the peaks under 0 dBFS.
-    if (!lite) softClip.oversample = "2x";
-    const overshoot = new Tone.Gain(lite ? 1 : Tone.dbToGain(-0.6));
+    // full-scale frames in one song): the soft clipper rounds them off.
+    const clip = softClipper(lite);
     // Headroom trim: without it the bus compressor and limiter squashed TF-style songs to a crest
     // factor of 11 dB (the records: 15–18).
     const trim = new Tone.Gain(Tone.dbToGain(-5.5));
-    this.master.chain(
-      trim,
-      eq,
-      comp,
-      limiter,
-      new Tone.Gain(0.5),
-      softClip,
-      overshoot,
-      Tone.getDestination(),
-    );
-    overshoot.fan(this.fft, this.waveform);
+    this.master.chain(trim, eq, comp, limiter, ...clip, Tone.getDestination());
+    clip.at(-1)!.fan(this.fft, this.waveform);
 
     const delay = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.32, wet: 1 });
     const delayFilter = new FixedFilter("highpass", 600);

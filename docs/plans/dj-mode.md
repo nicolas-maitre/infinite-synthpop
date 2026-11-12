@@ -97,4 +97,13 @@ transition again.
 
 ## Status
 
-- Phase 1: in progress.
+- Phase 1: done (`src/tempo.ts`).
+- Phase 2: built (`src/dj.ts`, the DJ switch, the "Mixing →" line), waiting for an ear check of
+  rendered transitions. Changes from the plan:
+  - The mix-in intro's first 8 bars carry only the incoming groove's hats and shakers, not its
+    snare: two backbeats stacked clipped the sum (renders peaked at full scale).
+  - The two decks' sum gets the master's soft clipper again (each deck's own peaks reach just
+    under full scale).
+  - The next song's key is chosen from the key of the section before the swap, not its last bar
+    (an ending's held major chord read as a major key).
+  - A glide runs over at most half the song, and a song mixes out only after its own glide ends.

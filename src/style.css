@@ -120,6 +120,12 @@ h3 {
   font-size: 14px;
 }
 
+.mix-status {
+  margin: 4px 0 0;
+  color: var(--accent-2);
+  font-size: 14px;
+}
+
 .now-head {
   display: flex;
   justify-content: space-between;
