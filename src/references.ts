@@ -966,7 +966,7 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
   // The kit is the closest sample kit to the measured one (§5.1: a dead kick, a clean clap, most
   // likely a LinnDrum). The sections differ by their drums and parts, not their chords: the kick
   // on 1 and 3, quiet 8th hats in the verses, 16ths from the pre-chorus, claps and chord comps in
-  // the choruses, one reverbed hit on beat 2 in the breaks. The verses play a slow bell line; the
+  // the choruses, one reverbed hit on beat 2 in the breaks. The verses play a slow string line; the
   // pre-chorus carries the title line over paired 16ths; the choruses stack the voice (its backing
   // voices); the riff comes back late in the vamp. The arrangement follows the user's MIDI
   // transcription where the user's ears chose it over the stems (§12).

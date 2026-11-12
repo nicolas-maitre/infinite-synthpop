@@ -128,11 +128,11 @@ test keeps 40 more that way. Old Italo links decode with its weight 0.
   (its intro on 1, 3& and 3a); quiet 8th hats in the verses, 16ths from the pre-chorus, 8ths in
   the intro; in the chorus a clap on 4, and every other bar one on 3e and an open hat on 4a; in
   the outro the clap moves to 2.
-- **Parts** (branigan-self-control.md §11, §12): the riff around F♯3 in unison with the bass in
-  the intro (`riff: "unison"`) on a bright saw (`riffPatch: "bright"`), back without the bass for
-  the vamp's second half; the verse's slow line on a bell over bowed strings (`stabPatch:
-"bell"`); the pre-chorus's 16ths in pairs (`arp: "pairs"`); the chorus's two-bar chord comp
-  (`countervoice: "comp"`); and the break's low power chord over the bass's held root.
+- **Parts** (branigan-self-control.md §11–§13): the riff around F♯3 in unison with the bass in
+  the intro (riff `unison`) on a bright saw (riff patch `bright`), back without the bass for the
+  vamp's second half; the verse's slow line on strings (stab patch `strings`); the pre-chorus's
+  16ths in pairs (arp `pairs`); the chorus's two-bar chord comp (countervoice `comp`), also
+  strummed short on the guitar track; and the break's low power chord over the bass's held root.
 - **The MIDI transcription** the user added (2026-11-12) leads the arrangement: where it and the
   stems disagreed (the kick, the verse hats, the bass, the verse line), the user's ears chose it
   every time (branigan-self-control.md §12.3).

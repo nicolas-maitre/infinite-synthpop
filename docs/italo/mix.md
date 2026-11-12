@@ -17,8 +17,8 @@ the default faders (`DEFAULT_VOLUMES`); blank means the default (within 1.5 dB):
 | Pad          | −10     | −8.5      | −8         | −7     | −8           |
 | Riff         | −8      |           | +1.5       | —      | +2           |
 | Countervoice | −9      | (by ear)  | +6         | —      | +8           |
-| Arpeggio     | −9      |           |            |        | +4           |
-| Stabs        | −5      | (−13)     | (−13)      | −11.5  | −13.5        |
+| Arpeggio     | −9      |           |            |        | +7           |
+| Stabs        | −5      | (−13)     | (−13)      | −11.5  | −7.5         |
 | Lead synth   | −8      | +3.5      | (+3.5)     | (+3.5) | (+3.5)       |
 | Voice        | −6      |           | −1         | −1.5   | +1.5         |
 
@@ -100,7 +100,7 @@ section), and the stems' attack read on the bass's 8ths. On top of the fit above
 
 - **Bass:** its level matched; its sound didn't. The fader is 2 dB up (the user's "really
   weak"), and its timbre is rebuilt (below).
-- **The lines over the pad:** the verse's bell line (stab track, its own gain 9 dB up), the
+- **The lines over the pad:** the verse's line (stab track, its own gain 9 dB up), the
   pre-chorus 16ths (arp fader +4) and the chorus chords (their own gain 6 dB up) had sat 4–9 dB
   under the pad. With the pad 5 dB down and those, each sits 2–4 dB over it, and "other" stays
   within about 1 dB of the stem in every section.
@@ -120,6 +120,10 @@ section), and the stems' attack read on the bass's 8ths. On top of the fit above
   chords also strum as short "guitar chunks" on the guitar track under the synth stab (by ear,
   the record's "kinda sound like guitar chunking"), and the break stab now dies away across the
   bar (23 dB from peak to floor, as on the record).
+- **The verse line and the pre-chorus 16ths,** after the rebalance: "a bit too quiet", and the verse
+  line "isn't a bell at all". It now plays on strings alone (a pair of detuned saws, bowed in),
+  the stab fader 6 dB up (the break stab's own gain 6 down to keep its level); the arpeggio fader
+  3 dB up.
 - **Kick:** the record's low end in the verse is its kick (the drum stem carries the 40–120 Hz
   bands within 1.5 dB of the mix, the bass stem 7–14 dB under). Ours sat 6–7 dB short under 60 Hz,
   so its sampled kick gets a 10 dB low shelf at 90 Hz (`kickWeight`, new, switched out for every

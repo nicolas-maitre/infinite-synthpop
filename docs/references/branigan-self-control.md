@@ -689,7 +689,7 @@ arrangement, and the stem readings of §4.1, §5 and §6 that it contradicts are
 - **Hats:** quiet 8ths in the verses.
 - **Bass:** 8ths bouncing between the root and its octave, short, in every section with the
   groove; the tone of §11.3 stands.
-- **Verse line:** the slow three-note line on a bell over bowed strings, in the verses and with the
+- **Verse line:** the slow three-note line (on strings: by ear "not a bell at all"), in the verses and with the
   riff in the outro, in place of the off-beat chops.
 - **Riff:** around F♯3, two octaves over the bass (the MIDI's guitar), not C♯5–C♯6.
 

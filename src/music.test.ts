@@ -1246,7 +1246,7 @@ describe("self control in italo", () => {
     expect(brk.notes.bass.map((n) => [n.step, mod12(n.midi - song.key.tonic)])).toEqual([[4, 0]]);
   });
 
-  it("plays a bell line in the verse, paired 16ths in the pre-chorus, chords in the chorus", () => {
+  it("plays a string line in the verse, paired 16ths in the pre-chorus, chords in the chorus", () => {
     const verse = arrangeBar(song, find("Verse 1").startBar);
     // Three long notes, high: the top, a step under it on the "&", a chord tone lower on 2&.
     expect(verse.notes.stab.map((n) => n.step)).toEqual([0, 2, 6]);
@@ -1868,7 +1868,7 @@ describe("auto mix", () => {
   it("follows each record at its corner, and blends between them", () => {
     expect(mixAt(italo, at("the-night")).bass).toBe(-10.5);
     expect(mixAt(italo, at("faces")).stab).toBe(-11.5);
-    expect(mixAt(italo, at("self-control")).stab).toBe(-13.5);
+    expect(mixAt(italo, at("self-control")).stab).toBe(-7.5);
     const half = italo.references.map((r) => (r === "the-night" || r === "faces" ? 0.5 : 0));
     expect(mixAt(italo, half).pad).toBeCloseTo(-7.75);
   });

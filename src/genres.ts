@@ -157,10 +157,10 @@ export interface Voices {
   pad: "close" | "octaves" | "open";
   /** The stabs' sound: the saw brass with a noise burst (synthpop), or Faces' plucked saw with its
    * 300 ms echo on the right, in close three-note voicings (faces.md §10.1), and its held, open
-   * chorus stab (§10.3); Self Control's verse line, three long notes a bar on a bell over bowed
-   * strings (branigan-self-control.md §12); or Innocent Love's saw stab (sandra-innocent-love.md
+   * chorus stab (§10.3); Self Control's verse line, three long notes a bar on strings
+   * (branigan-self-control.md §12); or Innocent Love's saw stab (sandra-innocent-love.md
    * §12). */
-  stabPatch: "brass" | "pluck" | "bell" | "saw";
+  stabPatch: "brass" | "pluck" | "strings" | "saw";
   /** The arpeggio's sound: the FM bell (synthpop), a softer copy of Faces' pluck through its echo
    * (faces.md §10.4), a soft triangle pluck through a 1.5 kHz low-pass (Crazy Juliet's verse
    * figure, Innocent Love's intro), or a gated saw at 2.9 kHz (Heaven Can Wait's pulse). */
@@ -1369,14 +1369,14 @@ export const GENRES: Record<GenreId, Genre> = {
         stabPatch: "pluck",
         arpPatch: "pluck",
       },
-      // The riff in unison with the bass, brighter than a saw, the bell verse line, the bright
+      // The riff in unison with the bass, brighter than a saw, the verse's string line, the bright
       // chorus comp and the pre-chorus's paired 16ths (branigan-self-control.md §11, §12).
       [SC]: {
         riff: "unison",
         riffPatch: "bright",
         countervoice: "comp",
         pad: "close",
-        stabPatch: "bell",
+        stabPatch: "strings",
         arpPatch: "bell",
         arp: "pairs",
       },
@@ -1445,8 +1445,8 @@ export const GENRES: Record<GenreId, Genre> = {
       pad: { by: { [TN]: -8.5, [GC]: -8, [FC]: -7, [SC]: -8 } },
       riff: { by: { [GC]: 1.5, [SC]: 2 } },
       counter: { by: { [GC]: 6, [SC]: 8 } },
-      arp: { by: { [SC]: 4 } },
-      stab: { base: -13, by: { [FC]: 1.5, [SC]: -0.5 } },
+      arp: { by: { [SC]: 7 } },
+      stab: { base: -13, by: { [FC]: 1.5, [SC]: 5.5 } },
       synth: { base: 3.5 },
       lead: { by: { [GC]: -1, [FC]: -1.5, [SC]: 1.5 } },
     },
