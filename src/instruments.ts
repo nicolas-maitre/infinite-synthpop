@@ -1263,18 +1263,14 @@ export class Instruments {
     this.bassOct.filterEnvelope.baseFrequency = tone.sawCutoff * 2;
     this.bassOctLevel.gain.value = tone.octave;
     this.bassOctOn = tone.octave > 0;
-    const type = this.bassOctOn ? "triangle" : "sawtooth";
+    const type = this.bassOctOn ? "triangle" : tone.pulse > 0 ? "pulse" : "sawtooth";
     if (this.bassSaw.oscillator.type !== type) this.bassSaw.oscillator.type = type;
+    // Tone's pulse width runs from −1 to 1, 0 a square: a duty cycle d is 1 − 2d.
+    if (type === "pulse") this.bassSaw.oscillator.set({ width: 1 - 2 * tone.pulse });
     this.bassSaw.envelope.sustain = tone.sustain;
-    for (const synth of [this.bassSaw, this.bassOct, this.bassFm])
-      synth.envelope.decay = tone.decay;
-    this.bassSaw.filter.Q.value = tone.resonance;
     this.bassSaw.filterEnvelope.octaves = tone.sweep;
-    // Only on a change: setting the rolloff rebuilds the filter's stages.
-    const rolloff = tone.ladder ? -24 : -12;
-    if (this.bassSaw.filter.rolloff !== rolloff) this.bassSaw.filter.rolloff = rolloff;
-    this.bassSaw.filterEnvelope.sustain = tone.ladder ? 0.25 : 0.6;
-    this.bassSaw.filterEnvelope.decay = tone.ladder ? 0.07 : 0.08;
+    this.bassSaw.filterEnvelope.sustain = tone.struck ? 0 : 0.6;
+    this.bassSaw.filterEnvelope.decay = tone.struck ? 0.23 : 0.08;
     const lowCut = this.bassLowCut;
     lowCut.cut.gain.value = tone.lowCut > 0 ? 1 : 0;
     lowCut.through.gain.value = tone.lowCut > 0 ? 0 : 1;

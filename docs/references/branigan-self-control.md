@@ -571,30 +571,44 @@ and adds a **low cut**: two high-passes at 65 Hz (a new `bassTone.lowCut`, switc
 other reference). The fundamentals now sit within 2 dB of the record's, and the harmonics up to
 the 6th within 3 dB on F♯1. C♯1's 4th to 6th are still 4–7 dB too strong.
 
-#### By ear: the bite (2026-11-12)
+#### By ear: the timbre (2026-11-12)
 
-The user heard the bass as lacking punch, "a timbre like in the record", and then, listening to
+The user heard the bass as lacking punch and "a timbre like in the record", and then, listening to
 the bass stem alone, that **the timbre isn't in the stem**: Demucs kept only its low component, and
-the octave notes (as loud as the roots on the record, by ear) are missing from it too. So the
-fit above, made on the stem, matched a low-passed copy of the bass.
+the octave notes (as loud as the roots on the record, by ear) are missing from it too. So the fit
+above, made on the stem, matched a low-passed copy of the bass.
 
-- **Reading the rest of it:** what each note's onset adds to the bass stem and the "other" stem
-  together, at the note's harmonics, on 16ths where nothing else starts (beats 2 and 4 for the
-  roots, 3& and 4& for the octaves). In its first 20 ms a root note carries harmonics up to the
-  8th within 0–12 dB of the loudest; by 20–60 ms they've fallen to −17 to −25 dB beyond the 3rd.
-  A filter struck wide open and shutting fast.
+- **Isolating it:** the instrumental version's bass and "other" stems together (no voice, no
+  drums), through a mask that keeps, frame by frame, only the harmonic series of the bass note
+  playing (the verse loop's roots and octaves, up to 10 kHz). The user confirmed by ear that this
+  carries the timbre (clip F1, verse 1). Where a pad or bell note shares a frequency with a bass
+  harmonic (the 6th, 8th, 12th, 14th, 16th, 18th and 19th of F♯1), it leaks in; those were left out.
+- **What it shows,** on the F♯m bars' root notes, in four windows through each 8th:
+  - A **notch at the 7th and 15th harmonics** that stays put through every note: a **pulse wave**,
+    not a saw. A 1/8 duty cycle's own harmonics fall as the record's do (the 3rd 1.5 dB under the
+    2nd, the 4th 3.5, the 5th 7, the 6th 11, the 7th 24).
+  - A **bright start** (harmonics up to about the 20th within 12–19 dB) that darkens over about
+    150 ms, smoothly, without a resonant "wah".
+  - The level holds for about 100 ms, then falls about 10 dB by the end of the 8th.
 - **The instrument:** no source names the synth on this track (the album credits Nathan East on
   bass, and Faltermeyer and Robbie Buchanan on synthesizers). Faltermeyer called his Moog modular
   "the best for bass", bought in 1978 and still in use (Red Bull Music Academy, 2015), and the
   "Axel F" bass of the same year is credited to a Moog Model 15. The C♯1 floor (§4.2) points to a
-  synth too. So the patch imitates a Moog ladder.
-- **The patch** (`bassTone`, Self Control only): the saw through a 24 dB low-pass with a little
-  resonance (Q 1.5), swept about 5 octaves open on each note and shut to about 110 Hz within
-  70 ms (`ladder`, `sweep`, `resonance`), the one-pole tone opened to 900 Hz, presence +3 dB, the
-  fundamental still cut at 65 Hz; the octave notes now as loud as the roots.
-- **Where it stands:** its notes now start as bright as the record's (harmonics to the 10th within
-  5 dB in their first 40 ms) and close to a held tone whose 3rd and 4th harmonics sit 3–8 dB over
-  the record's estimate. That estimate carries the "other" stem's other parts, so the ear decides.
+  synth too, and a narrow pulse is one of a Moog's oscillator shapes.
+- **The fit:** a model synth (a pulse of free width, a low-pass of 12 or 24 dB per octave whose
+  cutoff falls exponentially from a peak to a held value, a low cut) fitted to those harmonic
+  tables, least squares over the four windows. Best: a **1/8 pulse (0.126), 12 dB per octave,
+  struck open to about 3.3 kHz and closing to 60 Hz with a 77 ms time constant, a 53 Hz low cut**,
+  4.3–4.5 dB mean error. The 24 dB fits came out 0.4 dB worse.
+- **The patch** (`bassTone`, Self Control only): that fit (`pulse`, `sweep`, `struck`, `lowCut`),
+  the level's default 0.25 s fall, the one-pole tone opened to 2.4 kHz.
+- **Where it stands:** through each note its 3rd–7th harmonics sit within about 2 dB of the
+  record's; above the 9th it runs about 10 dB darker late in the note. The user, on the isolated
+  bass (clip H1): "good enough"; in the mix (H2, H3) it sits right.
+
+Along the way, a saw through a resonant ladder sweep (too much "wah", too dark held), steady
+bright filters (duller, wrong attack) and a punchy 0.1 s decay (fitted on the stem) were tried and
+dropped, each by ear against the record.
 
 ### 11.4 The voice
 

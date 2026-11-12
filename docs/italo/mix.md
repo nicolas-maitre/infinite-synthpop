@@ -98,18 +98,17 @@ and pre-chorus lines "almost inaudible", the chorus "missing the chord stabs", a
 renders were measured again the same way (each part against the sum of the solos, K-weighted, per
 section), and the stems' attack read on the bass's 8ths. On top of the fit above:
 
-- **Bass:** its level matched; its envelope didn't. The stem's notes peak within 10 ms and fall
-  about 4 dB by 40 ms and 7 by 80 ms, ringing into the next note; ours were flat 126 ms gates. The
-  notes now last the whole 8th and fall in 0.1 s (`bassTone.decay`, new), and the fader is 2 dB
-  up: about 2–3 dB over the stem's share, at the user's "really weak".
+- **Bass:** its level matched; its sound didn't. The fader is 2 dB up (the user's "really
+  weak"), and its timbre is rebuilt (below).
 - **The lines over the pad:** the verse's bell line (stab track, its own gain 9 dB up), the
   pre-chorus 16ths (arp fader +4) and the chorus chords (their own gain 6 dB up) had sat 4–9 dB
   under the pad. With the pad 5 dB down and those, each sits 2–4 dB over it, and "other" stays
   within about 1 dB of the stem in every section.
 - **Bass timbre:** still "lacking punch". The bass stem turned out to hold only the bass's low
-  part (the user, listening to it alone). Read with the "other" stem, each note starts with a bright,
-  fast-closing filter: the bass now plays a Moog-style ladder sweep (`bassTone.ladder`, `sweep`,
-  `resonance`; branigan-self-control.md §11.3), its octave notes as loud as its roots.
+  part (the user, listening to it alone). Isolated from the instrumental version, harmonic by
+  harmonic, it's a 1/8 pulse through a filter struck open and closing over about 150 ms: the bass
+  now plays that, fitted to the record (`bassTone.pulse`, `sweep`, `struck`;
+  branigan-self-control.md §11.3), its octave notes as loud as its roots.
 - **Kick:** the record's low end in the verse is its kick (the drum stem carries the 40–120 Hz
   bands within 1.5 dB of the mix, the bass stem 7–14 dB under). Ours sat 6–7 dB short under 60 Hz,
   so its sampled kick gets a 10 dB low shelf at 90 Hz (`kickWeight`, new, switched out for every
