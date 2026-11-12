@@ -601,13 +601,13 @@ function facesBassLine(ctx: FigureContext, barInSection: number, sustained: bool
 function breakBass(key: Key, slots: readonly ChordSlot[]): Note[] {
   const slot = slotAt(slots, 4);
   if (!slot) return [];
-  return [{ step: 4, dur: 11, midi: bassRoot("sc", key, slot.chord), vel: 0.9 }];
+  return [{ step: 4, dur: 11, midi: bassRoot("sc", key, slot.chord), vel: 0.5 }];
 }
 
 /**
  * Self Control's bass (branigan-self-control.md §12, by ear): 8ths on the chord's bass note,
- * bouncing between it and its octave, short, the octave softer. Very low (C♯1–B1). Every change
- * lands on beat 1: no anticipations.
+ * bouncing between it and its octave, the octave softer, each struck hard and falling fast. Very
+ * low (C♯1–B1). Every change lands on beat 1: no anticipations.
  *
  *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
  *            R  .  R8 .  R  .  R8 .  R  .  R8 .  R  .  R8 .
@@ -619,7 +619,8 @@ function scBassLine(ctx: FigureContext): Note[] {
     if (!slot) continue;
     const root = bassRoot("sc", ctx.key, slot.chord);
     const up = step % 4 === 2;
-    out.push({ step, dur: 0.9, midi: up ? root + 12 : root, vel: up ? 0.78 : 0.95 });
+    // Each note rings to the next and falls fast (the tone's short decay): the punch.
+    out.push({ step, dur: 1.8, midi: up ? root + 12 : root, vel: up ? 0.82 : 0.95 });
   }
   if (ctx.short) for (const n of out) n.dur = Math.min(0.9, n.dur);
   return out;

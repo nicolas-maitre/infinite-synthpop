@@ -705,7 +705,8 @@ export class Instruments {
         octaves: 0,
       },
       maxPolyphony: lite ? 6 : 9,
-      volume: -13,
+      // 6 dB up from where it was first set: by ear the chorus "is missing the chord stabs".
+      volume: -7,
     }).connect(this.channels.counter);
 
     const arpOptions = {
@@ -820,29 +821,41 @@ export class Instruments {
       envelope: { attack: 0.002, decay: 1.6, sustain: 0.1, release: 0.8 },
       modulationEnvelope: { attack: 0.002, decay: 0.4, sustain: 0.1, release: 0.3 },
       maxPolyphony: 4,
-      volume: ARP_STAB_GAIN_DB - 4,
+      // 9 dB up from where it was first set: by ear it was "almost inaudible", 9 dB under the pad.
+      volume: ARP_STAB_GAIN_DB + 5,
     }).connect(this.channels.stab);
     this.stabBow = new NativeSynth({
       oscillator: { type: "sawtooth", count: 2, spread: 12 },
       envelope: { attack: 0.18, decay: 0.6, sustain: 0.7, release: 0.6 },
       maxPolyphony: 4,
-      volume: ARP_STAB_GAIN_DB - 9,
+      volume: ARP_STAB_GAIN_DB,
     }).chain(new FixedFilter("lowpass", 2500), this.channels.stab);
+    // The break stab hits hard (2026-11-12, by ear: "a powerful sound"; a distorted guitar's power
+    // chord over the bass in the MIDI transcription): two detuned saws struck at once, driven, then
+    // darkened, ringing on into the reverb.
+    const swellBus = new Tone.Gain(1);
+    swellBus.chain(
+      new Tone.Distortion({ distortion: 0.55, oversample: lite ? "none" : "2x", wet: 0.8 }),
+      new FixedFilter("lowpass", 3000, { Q: 0.6 }),
+      // Level after the drive, which flattens what goes in.
+      new Tone.Gain(Tone.dbToGain(5)),
+      this.channels.stab,
+    );
     this.stabSwell = new NativeMonoSynth({
-      oscillator: { type: "sawtooth" },
+      oscillator: { type: "sawtooth", count: 2, spread: 14 },
       filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
-      envelope: { attack: 0.12, decay: 0.6, sustain: 0.7, release: 0.9 },
+      envelope: { attack: 0.004, decay: 1.6, sustain: 0.45, release: 1.2 },
       filterEnvelope: {
         attack: 0.002,
-        decay: 0.1,
-        sustain: 1,
-        release: 0.1,
-        baseFrequency: 1800,
-        octaves: 0,
+        decay: 0.3,
+        sustain: 0.5,
+        release: 0.3,
+        baseFrequency: 1500,
+        octaves: 1.2,
       },
-      maxPolyphony: 4,
-      volume: ARP_STAB_GAIN_DB,
-    }).connect(this.channels.stab);
+      maxPolyphony: lite ? 3 : 6,
+      volume: ARP_STAB_GAIN_DB + 8,
+    }).connect(swellBus);
     const stabNoiseFilter = new FixedFilter("bandpass", 2500);
     this.stabNoise = new Tone.NoiseSynth({
       noise: { type: "pink" },
@@ -1253,6 +1266,8 @@ export class Instruments {
     const type = this.bassOctOn ? "triangle" : "sawtooth";
     if (this.bassSaw.oscillator.type !== type) this.bassSaw.oscillator.type = type;
     this.bassSaw.envelope.sustain = tone.sustain;
+    for (const synth of [this.bassSaw, this.bassOct, this.bassFm])
+      synth.envelope.decay = tone.decay;
     const lowCut = this.bassLowCut;
     lowCut.cut.gain.value = tone.lowCut > 0 ? 1 : 0;
     lowCut.through.gain.value = tone.lowCut > 0 ? 0 : 1;

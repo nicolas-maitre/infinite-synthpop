@@ -282,6 +282,9 @@ export interface BassTone {
   /** A high-pass corner under the bass, Hz, 24 dB per octave (0 = none): Self Control's
    * fundamental sits 4–14 dB under its 2nd harmonic, the lowest notes the most. */
   lowCut: number;
+  /** How long each note takes to fall to its `sustain`, seconds (linearly): 0.25, or Self
+   * Control's punchy 0.1 (about 4 dB down after 40 ms, 7 after 80 on its stem). */
+  decay: number;
 }
 
 /** The sung voice's mix (instruments.ts `setLeadTone`), matched to each record's vocal stem with
@@ -417,6 +420,8 @@ export interface Genre {
     octave: Blend;
     sustain: Blend;
     lowCut: Blend;
+    /** Added to the 0.25 s decay (unset: nothing). */
+    decay?: Blend;
   };
   leadTone: { level: Blend; low: Blend; mid: Blend; high: Blend; air: Blend; width: Blend };
 }
@@ -1401,6 +1406,7 @@ export const GENRES: Record<GenreId, Genre> = {
       octave: { by: { [TN]: 1, [GC]: 0.3, [FC]: 1 } },
       sustain: { by: { [TN]: 0.35, [GC]: 0.15, [FC]: 0.2, [SC]: 0.3 } },
       lowCut: { by: { [SC]: 65 } },
+      decay: { by: { [SC]: -0.15 } },
     },
     // Each record's balance (docs/italo/mix.md): the instrumental tracks fitted to its voice-free
     // material (its instrumental sections, Self Control's instrumental version), then the voice
@@ -1409,11 +1415,14 @@ export const GENRES: Record<GenreId, Genre> = {
     // and countervoice were set by ear.
     mix: {
       drums: { by: { [GC]: 3, [FC]: 3, [SC]: 2 } },
-      bass: { by: { [TN]: -10.5, [GC]: 2, [FC]: -1.5 } },
-      pad: { by: { [TN]: -8.5, [GC]: -8, [FC]: -7 } },
+      // Self Control's bass, pads, pre-chorus 16ths and chorus chords moved by ear over the fit
+      // (2026-11-12: a "really weak" bass, lines "almost inaudible"; docs/italo/mix.md).
+      bass: { by: { [TN]: -10.5, [GC]: 2, [FC]: -1.5, [SC]: 2 } },
+      pad: { by: { [TN]: -8.5, [GC]: -8, [FC]: -7, [SC]: -5 } },
       riff: { by: { [GC]: 1.5, [SC]: 2 } },
-      counter: { by: { [GC]: 6, [SC]: 10 } },
-      stab: { base: -13, by: { [FC]: 1.5, [SC]: -1.5 } },
+      counter: { by: { [GC]: 6, [SC]: 6 } },
+      arp: { by: { [SC]: 4 } },
+      stab: { base: -13, by: { [FC]: 1.5, [SC]: -0.5 } },
       synth: { base: 3.5 },
       lead: { by: { [GC]: -1, [FC]: -1.5 } },
     },
@@ -1696,5 +1705,6 @@ export function bassTone(genre: Genre, at: number | readonly number[]): BassTone
     octave: g.at(genre.bassTone.octave),
     sustain: g.at(genre.bassTone.sustain),
     lowCut: g.at(genre.bassTone.lowCut),
+    decay: 0.25 + g.at(genre.bassTone.decay ?? {}),
   };
 }

@@ -131,6 +131,7 @@ describe("genre profile", () => {
       octave: 0,
       sustain: 0.2,
       lowCut: 0,
+      decay: 0.25,
     });
     expect(bassTone(SYNTHPOP, 1)).toEqual({
       frequency: 160,
@@ -139,6 +140,7 @@ describe("genre profile", () => {
       octave: 0,
       sustain: 0.2,
       lowCut: 0,
+      decay: 0.25,
     });
     expect(bassTone(SYNTHPOP, 0.35)).toEqual({
       frequency: 240 - 80 * 0.35,
@@ -147,6 +149,7 @@ describe("genre profile", () => {
       octave: 0,
       sustain: 0.2,
       lowCut: 0,
+      decay: 0.25,
     });
     // You Came's: darker than TF's, with the octave layer.
     expect(bassTone(SYNTHPOP, [0, 0, 1])).toEqual({
@@ -156,6 +159,7 @@ describe("genre profile", () => {
       octave: 1,
       sustain: 0.35,
       lowCut: 0,
+      decay: 0.25,
     });
   });
 
@@ -168,6 +172,7 @@ describe("genre profile", () => {
       octave: 0,
       sustain: 0.3,
       lowCut: 65,
+      decay: 0.1,
     });
     for (const w of [
       [1, 0, 0],
@@ -1173,7 +1178,7 @@ describe("self control in italo", () => {
       expect(up - root).toBe(12);
       expect(root).toBeGreaterThanOrEqual(25);
       expect(root).toBeLessThanOrEqual(36);
-      for (const n of bass) expect(n.dur).toBeLessThan(1);
+      for (const n of bass) expect(n.dur).toBeLessThanOrEqual(2);
     }
     const riff = find("Intro · riff");
     for (let i = 0; i < riff.bars; i++) {
@@ -1843,7 +1848,7 @@ describe("auto mix", () => {
   it("follows each record at its corner, and blends between them", () => {
     expect(mixAt(italo, at("the-night")).bass).toBe(-10.5);
     expect(mixAt(italo, at("faces")).stab).toBe(-11.5);
-    expect(mixAt(italo, at("self-control")).stab).toBe(-14.5);
+    expect(mixAt(italo, at("self-control")).stab).toBe(-13.5);
     const half = italo.references.map((r) => (r === "the-night" || r === "faces" ? 0.5 : 0));
     expect(mixAt(italo, half).pad).toBeCloseTo(-7.75);
   });
