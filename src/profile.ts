@@ -54,18 +54,24 @@ export type RefWeights = Partial<Record<ReferenceId, number>>;
 /** A blend per part. In simple mode all six are the same. */
 export type PartBlends = Record<Part, RefWeights>;
 
-/** Which part each mixer track's level follows. */
+/**
+ * Which part each mixer track's level follows. A part's own sound sets the level of the drums,
+ * the bass, the riff's lines and the voices: a True Faith bass under a Get Closer song sits right
+ * at True Faith's level, and 2 dB louder (Get Closer's) is too loud. The keys are the bed the
+ * song is arranged on, so their levels follow the song: Faces' pads at Faces' −7 dB were too
+ * quiet in a You Came song, right at You Came's (ear checks, 2026-11-12; cross-genre-blend.md).
+ */
 export const TRACK_PART: Record<Track, Part> = {
   drums: "drums",
   bass: "bass",
   hook: "riff",
   riff: "riff",
   synth: "riff",
-  pad: "keys",
-  stab: "keys",
-  arp: "keys",
-  seq: "keys",
-  guitar: "keys",
+  pad: "song",
+  stab: "song",
+  arp: "song",
+  seq: "song",
+  guitar: "song",
   lead: "voice",
   counter: "voice",
 };
@@ -360,6 +366,8 @@ export interface SongSound {
   leadTone: LeadTone;
   /** Fader offsets on auto, each track's from its own part. */
   mix: Partial<Record<Track, number>>;
+  /** The song part's blend spans genres: the song is laid out by the merged planner. */
+  crossGenre: boolean;
 }
 
 const sounds = new WeakMap<object, SongSound>();
@@ -387,6 +395,7 @@ function readSound(blends: PartBlends, home: GenreId): SongSound {
       ? mixedLeadTone(p.voice)
       : genreLeadTone(p.voice.genre, p.voice.weights),
     mix,
+    crossGenre: p.song.mixed,
   };
 }
 

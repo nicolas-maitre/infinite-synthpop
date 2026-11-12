@@ -200,7 +200,9 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
               : 0.55,
           voices.pad,
         )
-      : [],
+      : L.padSwell && barInSection >= section.bars - 2
+        ? padSwell(padChords(key, slots, 0.55, voices.pad), barInSection - (section.bars - 2))
+        : [],
     riff: !L.riff
       ? []
       : voices.riff === "echo"
@@ -279,9 +281,12 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     const lead = melody.bars[barInSection % melody.bars.length] ?? [];
     notes.lead = lead.map((n) => ({ ...n }));
     if (L.leadStack) {
+      // Across genres, the stacked voice keeps to the chord: a diatonic 3rd can leave it (an A
+      // under C over C/E rubbed against the pads' G in an ear check, 2026-11-12).
+      const below = profile.crossGenre ? chordToneBelow : thirdBelow;
       notes.leadOct = lead.map((n) => ({
         ...n,
-        midi: thirdBelow(key, slots, n),
+        midi: below(key, slots, n),
         vel: n.vel * 0.6,
       }));
     } else if (L.leadDouble)
@@ -1020,6 +1025,18 @@ function pairedArp(
     ]);
 }
 
+/** The highest chord tone 3–7 semitones under a lead note (a 3rd, a 4th or a 5th): the stacked
+ * voice in a song across genres. A triad leaves no gap wider than 5 semitones, so there is always
+ * one; the diatonic 3rd is only a fallback. */
+function chordToneBelow(key: Key, slots: readonly ChordSlot[], n: Note): number {
+  const slot = slotAt(slots, n.step);
+  if (!slot) return n.midi - 3;
+  return (
+    notesInRange(chordPitchClasses(key, slot.chord), n.midi - 7, n.midi - 3).at(-1) ??
+    thirdBelow(key, slots, n)
+  );
+}
+
 /** A diatonic 3rd under a lead note: the stacked voice of You Came's choruses. */
 function thirdBelow(key: Key, slots: readonly ChordSlot[], n: Note): number {
   const slot = slotAt(slots, n.step);
@@ -1137,6 +1154,18 @@ function padChords(
     }
   }
   return out;
+}
+
+/** Bar `i` (0 or 1) of a two-bar pad swell: each beat strikes the chord sounding then, from an
+ * eighth of the pads' level up to all of it. The pads' slow attack and long release run the
+ * strikes together. */
+function padSwell(chords: readonly Note[], i: number): Note[] {
+  return [0, 4, 8, 12].flatMap((step, beat) => {
+    const level = (i * 4 + beat + 1) / 8;
+    return chords
+      .filter((n) => n.step <= step && step < n.step + n.dur + 0.1)
+      .map((n) => ({ ...n, step, dur: Math.min(4, 16 - step) - 0.1, vel: n.vel * level }));
+  });
 }
 
 /**

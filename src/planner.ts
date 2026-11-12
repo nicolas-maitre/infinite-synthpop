@@ -629,6 +629,9 @@ function euroPlan(c: Ctx, genre: Genre, rng: Rng, at: (b: Blend) => number): Gen
         drums: "full",
         bass: true,
         pad: !bare,
+        // A bare verse's pads swell in over its last two bars, so the pre-chorus doesn't land on
+        // them all at once.
+        ...(bare ? { padSwell: true } : {}),
         lead: "verse",
         arp: verseArp,
         ...extra,

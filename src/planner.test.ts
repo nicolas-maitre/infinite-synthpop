@@ -5,7 +5,8 @@ import { GENRES, genreOfReference } from "./genres";
 import { planMerged } from "./planner";
 import { profileOf, REFERENCE_IDS, songSound, type RefWeights } from "./profile";
 import { createRng } from "./rng";
-import { mod12 } from "./theory";
+import { decodeCreation, encodeCreation, songToSpec } from "./spec";
+import { chordPitchClasses, mod12 } from "./theory";
 
 const ENDINGS = ["fade", "lift", "hold"] as const satisfies readonly SongEnding[];
 const FORMS = ["short", "standard", "long"] as const satisfies readonly SongForm[];
@@ -171,5 +172,57 @@ describe("Auto", () => {
       ]);
       expect(song.melodies).toEqual(preset.melodies);
     }
+  });
+});
+
+describe("ear-checked details (2026-11-12)", () => {
+  const songs = crossSongs(300, 7);
+
+  it("swells a bare verse's pads in over its last two bars, louder each beat", () => {
+    let seen = 0;
+    for (const song of songs) {
+      for (const s of song.sections.filter((x) => x.layers.padSwell)) {
+        seen++;
+        expect(s.layers.pad).toBe(false);
+        const vels = [];
+        for (let b = 0; b < s.bars; b++) {
+          const pads = arrangeBar(song, s.startBar + b).notes.pad;
+          if (b < s.bars - 2) expect(pads).toEqual([]);
+          else
+            vels.push(
+              ...[0, 4, 8, 12].map((step) =>
+                Math.max(...pads.filter((n) => n.step === step).map((n) => n.vel)),
+              ),
+            );
+        }
+        expect(vels).toHaveLength(8);
+        for (let i = 1; i < 8; i++) expect(vels[i]).toBeGreaterThan(vels[i - 1]!);
+      }
+    }
+    expect(seen).toBeGreaterThan(10);
+  });
+
+  it("keeps the stacked voice on the chord in songs across genres", () => {
+    let seen = 0;
+    for (const song of songs) {
+      for (const s of song.sections.filter((x) => x.layers.leadStack && x.layers.lead)) {
+        for (let b = 0; b < s.bars; b++) {
+          const e = arrangeBar(song, s.startBar + b);
+          for (const n of e.notes.leadOct) {
+            const slot = [...e.chords].reverse().find((c) => c.step <= n.step) ?? e.chords[0]!;
+            const pcs = chordPitchClasses(e.key, slot.chord).map(mod12);
+            expect(pcs).toContain(mod12(n.midi));
+            seen++;
+          }
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(100);
+  });
+
+  it("keeps a pad swell through a creation's link", () => {
+    const song = songs.find((s) => s.sections.some((x) => x.layers.padSwell))!;
+    const decoded = decodeCreation(encodeCreation({ seed: song.seed, spec: songToSpec(song) }));
+    expect(decoded?.spec.sections.some((s) => s.layers.padSwell)).toBe(true);
   });
 });

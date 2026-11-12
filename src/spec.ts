@@ -236,6 +236,8 @@ interface CompactSection {
   /** A stop bar at the end (`stop`, Euro-disco). */
   sp?: 1;
   st?: 1;
+  /** Pads swelling in over the last two bars (Layers.padSwell). */
+  sw?: 1;
   /** Drum fill at the end: 1 on, 0 off, absent = default. */
   f?: 0 | 1;
   /** Custom melody id. */
@@ -322,6 +324,7 @@ export function encodeCreation({ seed, spec }: Creation): string {
         ...(L.titleLine ? { tl: 1 as const } : {}),
         ...(L.leadSynth ? { ly: 1 as const } : {}),
         ...(L.stop ? { sp: 1 as const } : {}),
+        ...(L.padSwell ? { sw: 1 as const } : {}),
         ...(L.bassShort ? { st: 1 as const } : {}),
         ...(s.fill === undefined ? {} : { f: s.fill ? (1 as const) : (0 as const) }),
         ...(s.melody ? { ml: s.melody } : {}),
@@ -357,6 +360,7 @@ export function decodeCreation(encoded: string): Creation | null {
         ...(s.tl === 1 ? { titleLine: true } : {}),
         ...(s.ly === 1 ? { leadSynth: true } : {}),
         ...(s.sp === 1 ? { stop: true } : {}),
+        ...(s.sw === 1 ? { padSwell: true } : {}),
         bassShort: s.st === 1,
       };
       for (const i of SECTION_INSTRUMENTS) layers[i] = s.on.includes(i);

@@ -344,6 +344,22 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
      - In headless Firefox (Playwright 1.56): the Open and per-part prefs restore, no errors,
        and a cross-genre song renders offline cleanly.
 
-5. **Ear checks.** A handful of cross-genre blends rendered offline. For example: True Faith's
-   bass under Get Closer's echo hook, and You Came's pre-chorus with Faces' stabs. The mix is
-   then tuned where parts from different genres fight.
+5. **Ear checks.** _Done (2026-11-12)._ A handful of cross-genre blends rendered offline. For
+   example: True Faith's bass under Get Closer's echo hook, and You Came's pre-chorus with Faces'
+   stabs. The mix is then tuned where parts from different genres fight.
+
+   The clips are in `renders/ear-check-cross-genre/` (gitignored). Each blend was rendered from a
+   verse into its chorus, with "b"-and-later clips isolating parts or trying fixes.
+
+   | Clip | Blend                                           | Heard                                                                                                                                        | Change                                                                                                                                                   |
+   | ---- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | 1    | Get Closer song, True Faith bass (per part)     | Bass level right, bass and hook fit; Get Closer's own bass level (+2 dB, 1c) too loud                                                        | None: the bass keeps its own record's level                                                                                                              |
+   | 2    | You Came song, Faces keys (per part)            | Pads too quiet at Faces' −7 dB; right at You Came's 0 dB (2e)                                                                                | The keys' faders (pads, stabs, arp, sequence, guitar) follow the Song part; the other tracks their own part (`TRACK_PART`)                               |
+   | 3    | The Different Story 50 / Heaven Can Wait 50     | The bare verse into a pre-chorus with pads and the 16th bell arpeggio at once was jarring; pads all verse (3c) helped but were "omnipresent" | `Layers.padSwell`: a bare verse's pads swell in over its last two bars, struck each beat louder (3e: "works"). Merged planner only; links keep it (`sw`) |
+   | 4    | Self Control 50 / Crazy Juliet 50               | Tempo (114.5) and mix right                                                                                                                  | Before rendering: a tie across genres played Get Closer's riff (the Italo default). The first tied reference now brings its own traits                   |
+   | 5    | True Faith 40 / The Night 30 / Innocent Love 30 | A rub at the chorus's first high note; with the voice and the pads alone (5c), and gone without the stacked voice (5f)                       | Across genres the stacked voice takes the highest chord tone 3–7 semitones under the lead (5g: "gone, sounds good")                                      |
+
+   Single-genre songs are unchanged (snapshot identical): the stack keeps its measured diatonic
+   3rd in You Came's and Innocent Love's own songs, and their check is a separate task. Clip 4
+   also showed what Crazy Juliet itself does: its chorus's held last bar under a voice that
+   replays the chorus figure. That is not this feature's.

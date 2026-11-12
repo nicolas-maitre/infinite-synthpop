@@ -298,3 +298,20 @@ describe("open blends from the generator", () => {
     expect(centreFor(["true-faith", "faces"])).toEqual([0.5, 0.5]);
   });
 });
+
+describe("fader levels per part (ear-checked 2026-11-12)", () => {
+  it("sets the bass by its own record and the keys by the song's", () => {
+    // A True Faith bass in a Get Closer song: True Faith's level, not Get Closer's +2 dB.
+    const gc = songSound(
+      compose({ seed: 2, blend: { "get-closer": 1 }, parts: { bass: { "true-faith": 1 } } }),
+    );
+    expect(gc.mix.bass ?? 0).toBe(0);
+    expect(gc.mix.pad).toBe(-8);
+    // Faces' keys in a You Came song: You Came's pad level, not Faces' −7 dB.
+    const yc = songSound(
+      compose({ seed: 1, blend: { "you-came": 1 }, parts: { keys: { faces: 1 } } }),
+    );
+    expect(yc.mix.pad ?? 0).toBe(0);
+    expect(yc.voices.pad).toBe("open");
+  });
+});

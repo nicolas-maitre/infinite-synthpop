@@ -143,6 +143,10 @@ export interface Layers {
    * the bass cut off early, the way the song's backbeat kit says (genres.ts `Grooves.stop`). Only
    * set when on. */
   stop?: boolean;
+  /** With no pads, they swell in over the section's last two bars, struck on every beat louder
+   * and louder (a bare verse into a busier pre-chorus or chorus, in a form across genres). Only
+   * set when on. */
+  padSwell?: boolean;
 }
 
 export interface Section {
