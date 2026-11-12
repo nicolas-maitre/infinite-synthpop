@@ -177,8 +177,8 @@ export interface Note {
   dur: number;
   midi: number;
   vel: number;
-  /** Played by the track's other voice: Faces' chorus stab, or Self Control's break stab, on the stab
-   * track. Only set then. */
+  /** Played by the track's other voice: Faces' chorus stab or Self Control's break stab on the stab
+   * track, Self Control's guitar layer in its chorus comp on the counter track. Only set then. */
   alt?: true;
 }
 

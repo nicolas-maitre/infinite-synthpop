@@ -697,6 +697,30 @@ arrangement, and the stem readings of §4.1, §5 and §6 that it contradicts are
 from the Sandra songs. Its bass in 8ths and its one-loop form still differ from theirs, and the
 user placed it in Italo for its production; this is noted, not reopened.
 
+## 13. The chorus stabs, by ear
+
+The user heard the chorus chords as "very quaint": on the record they give the chorus its rhythm
+and drive, with the bass. Read on the instrumental version's "other" stem (chorus 1) and the MIDI
+transcription together:
+
+- **Rhythm** (onset strength per 16th, 1–4 kHz): the strongest hit of both bars is the **"a" of
+  4**. Bar A: 1a 0.77, 2 0.75, 3 and 3e 0.84–0.85, 3a 0.93, 4a 1.00, beat 1 weak (0.52). Bar B: the
+  8ths 0.76–0.94, the "&"s as strong as the beats, 4e 0.72, 4a 1.00. The MIDI's guitar and piano
+  play the same: held and syncopated in bar A with a short chord on 4a, straight 8ths and a push on
+  4e in bar B, then the next bar's chord on its 4a, tied over the bar line (so bar A's 1 is weak).
+- **Voicing:** the MIDI's guitar plays close triads around F♯4 (C♯4 F♯4 A4) and its piano the
+  upper structure (E4 A4 C♯5 on F♯m, E G♯ B on C♯m). On the record the hits are higher and
+  brighter: what each onset adds spans G♯3 to G♯6 and peaks at 1–2 kHz, with 4–8 kHz only 5 dB
+  down (ours had peaked at 250–500 Hz, 25 dB down at 4 kHz).
+- **Envelope:** bright for about 50 ms, then fading about 5 dB by 90 ms and 13 by 200 ms.
+
+**What plays now** (`countervoice: "comp"`): the MIDI's two-bar rhythm with the record's accents
+and push; the piano's upper structure in octave 5 on a detuned saw stab (filter struck open from
+5.5 kHz, a 4.5 kHz presence lift, nothing above 8 kHz) layered with an FM piano, over the guitar's
+triad on the FM piano alone. Its onsets match the record's spectrum within about 2 dB from 250 Hz
+to 8 kHz. A version stacked into octave 6 too was, by ear, more than needed; the user asked for the
+stabs a bit louder (+3 dB, the countervoice fader now at the top).
+
 ## Sources
 
 - The recordings in `inspiration/Laura Branigan/` (local only, not in the repo), measured with

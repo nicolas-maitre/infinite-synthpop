@@ -292,8 +292,12 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
       : null;
   if (L.counter && voices.countervoice === "pluck8")
     notes.counter = pluckedCountervoice(key, slots, rng.fork("counter"));
-  if (L.counter && voices.countervoice === "comp")
-    notes.counter = chorusComp(key, slots, barInSection);
+  if (L.counter && voices.countervoice === "comp") {
+    // The push on bar B's 4a takes the next bar's chord, when the comp plays on there.
+    const next = bar + 1 < song.totalBars ? arrangeTarget(song, bar + 1) : undefined;
+    const pushed = next?.section.layers.counter ? next.slots[0] : undefined;
+    notes.counter = chorusComp(key, slots, barInSection, pushed);
+  }
   if (L.counter && voices.countervoice === "arp8") {
     const next = bar + 1 < song.totalBars ? arrangeTarget(song, bar + 1) : undefined;
     notes.counter = arpCountervoice(key, slots, next?.slots[0], rng.fork("counter"));
@@ -929,47 +933,61 @@ function arpCountervoice(
 }
 
 /**
- * Self Control's chorus comp (branigan-self-control.md §11, §12): close chords around E4–C♯5 in a
- * two-bar rhythm, held and syncopated in the first bar, straight 8ths in the second. A minor
- * chord is voiced as its 7th chord without the root (A C♯ E on F♯m, E G♯ B on C♯m), the others as
- * plain triads.
+ * Self Control's chorus comp (branigan-self-control.md §12, §13): the MIDI transcription's clean
+ * guitar and electric piano, in a two-bar rhythm the record accents on the "a" of 4. Bar A holds
+ * and syncopates (1a, 2, 2a, 3, 3e, 3a held, then a short hit on 4a); bar B runs straight 8ths with a
+ * push on 4e, then pushes the next bar's chord on 4a, tied over the bar line, so bar A doesn't
+ * strike its 1 (but the section's first bar does). The piano's upper structure (a minor chord as
+ * its 7th without the root, A C♯ E on F♯m; the others as triads) in octave 5, over the guitar's
+ * close triad around F♯4, marked `alt`.
  *
  *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
- *   bar A    X  -  -  -  X  -  -  x  x  x  -  X  -  -  -  .
- *   bar B    x  .  x  .  x  .  x  .  x  .  x  .  x  X  -  .
+ *   bar A    (~)      x  X  .  .  x  x  x  .  X  .  .  .  X
+ *   bar B    x  .  x  .  x  .  x  .  x  .  x  .  x  X  .  N~
  */
-function chorusComp(key: Key, slots: readonly ChordSlot[], barInSection: number): Note[] {
-  const hits =
-    barInSection % 2 === 0
-      ? [
-          [0, 3, 0.62],
-          [4, 2.4, 0.66],
-          [7, 0.4, 0.5],
-          [8, 0.6, 0.6],
-          [9, 0.8, 0.5],
-          [11, 3.6, 0.64],
-        ]
-      : [
-          [0, 0.8, 0.6],
-          [2, 0.8, 0.52],
-          [4, 0.8, 0.56],
-          [6, 0.8, 0.52],
-          [8, 0.8, 0.6],
-          [10, 0.8, 0.52],
-          [12, 0.8, 0.6],
-          [13, 2, 0.56],
-        ];
+function chorusComp(
+  key: Key,
+  slots: readonly ChordSlot[],
+  barInSection: number,
+  next: ChordSlot | undefined,
+): Note[] {
+  const barA = barInSection % 2 === 0;
+  const hits: (readonly [number, number, number])[] = barA
+    ? [
+        ...(barInSection === 0 ? [[0, 2.9, 0.85] as const] : []),
+        [3, 0.6, 0.72],
+        [4, 2.4, 0.85],
+        [7, 0.4, 0.68],
+        [8, 0.7, 0.9],
+        [9, 0.6, 0.68],
+        [11, 3.6, 0.88],
+        [15, 0.8, 1],
+      ]
+    : [
+        [0, 0.8, 0.82],
+        [2, 0.8, 0.82],
+        [4, 0.8, 0.8],
+        [6, 0.8, 0.8],
+        [8, 0.8, 0.82],
+        [10, 0.8, 0.8],
+        [12, 0.8, 0.8],
+        [13, 1.8, 0.78],
+        [15, 3, 1],
+      ];
   const out: Note[] = [];
-  for (const [step = 0, dur = 1, vel = 0.6] of hits) {
-    const slot = slotAt(slots, step);
+  for (const [step, dur, vel] of hits) {
+    const slot = !barA && step === 15 ? (next ?? slotAt(slots, step)) : slotAt(slots, step);
     if (!slot) continue;
     const pcs = chordPitchClasses(key, slot.chord);
     const iv = intervalsOf(slot.chord);
     const minorTriad = pcs.length === 3 && iv[1] === 3;
-    const tones = minorTriad
+    const upper = minorTriad
       ? [pcs[1] ?? 0, pcs[2] ?? 0, mod12((pcs[0] ?? 0) + 10)]
       : pcs.slice(0, 3);
-    for (const midi of voiceChord(tones, 66)) out.push({ step, dur, midi, vel });
+    // The record's spans G♯3 to G♯6 on C♯m, brightest at 1–2 kHz; by ear, octave 6 isn't needed.
+    for (const midi of voiceChord(upper, 77)) out.push({ step, dur, midi, vel });
+    for (const midi of voiceChord(pcs.slice(0, 3), 65))
+      out.push({ step, dur, midi, vel: vel * 0.5, alt: true });
   }
   return out;
 }

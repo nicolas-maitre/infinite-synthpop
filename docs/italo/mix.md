@@ -16,7 +16,7 @@ the default faders (`DEFAULT_VOLUMES`); blank means the default (within 1.5 dB):
 | Seq bass     | −10     | −10.5     | +2         | −1.5   | +2           |
 | Pad          | −10     | −8.5      | −8         | −7     | −5           |
 | Riff         | −8      |           | +1.5       | —      | +2           |
-| Countervoice | −9      | (by ear)  | +6         | —      | +6           |
+| Countervoice | −9      | (by ear)  | +6         | —      | +9           |
 | Arpeggio     | −9      |           |            |        | +4           |
 | Stabs        | −5      | (−13)     | (−13)      | −11.5  | −13.5        |
 | Lead synth   | −8      | +3.5      | (+3.5)     | (+3.5) | (+3.5)       |
@@ -109,6 +109,9 @@ section), and the stems' attack read on the bass's 8ths. On top of the fit above
   harmonic, it's a 1/8 pulse through a filter struck open and closing over about 150 ms: the bass
   now plays that, fitted to the record (`bassTone.pulse`, `sweep`, `struck`;
   branigan-self-control.md §11.3), its octave notes as loud as its roots.
+- **Chorus stabs:** "very quaint". Rebuilt to the MIDI's rhythm with the record's 4a accent, and
+  pitched and voiced brighter (branigan-self-control.md §13); then 3 dB up by ear (countervoice
+  fader +9, at the top of its travel).
 - **Kick:** the record's low end in the verse is its kick (the drum stem carries the 40–120 Hz
   bands within 1.5 dB of the mix, the bass stem 7–14 dB under). Ours sat 6–7 dB short under 60 Hz,
   so its sampled kick gets a 10 dB low shelf at 90 Hz (`kickWeight`, new, switched out for every

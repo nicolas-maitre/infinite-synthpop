@@ -1267,19 +1267,29 @@ describe("self control in italo", () => {
     const pre = arrangeBar(song, find("Pre-chorus · title line").startBar).notes.arp;
     expect(pre.map((n) => n.step)).toEqual(Array.from({ length: 16 }, (_, i) => i));
     for (let i = 0; i < 16; i += 2) expect(pre[i + 1]?.midi).toBe(pre[i]?.midi);
-    // The comp: i voiced as its 7th without the root (A C♯ E on F♯m), held and syncopated, then
-    // straight 8ths on v (E G♯ B on C♯m).
+    // The comp (the MIDI's guitar and piano): bar A held and syncopated, bar B straight 8ths, both
+    // hitting the "a" of 4; bar B's pushes the next bar's chord, so bar A (but the first) skips its 1.
+    // The piano voices i as its 7th without the root (A C♯ E on F♯m), v as E G♯ B on C♯m; the
+    // guitar (`alt`) plays the triads.
     const rel = (notes: readonly { midi: number }[]) =>
       new Set(notes.map((n) => mod12(n.midi - song.key.tonic)));
     const chorusSection = find("Chorus");
     const comp = (i: number) => arrangeBar(song, chorusSection.startBar + i).notes.counter;
-    expect([...new Set(comp(0).map((n) => n.step))]).toEqual([0, 4, 7, 8, 9, 11]);
-    expect(rel(comp(0))).toEqual(new Set([3, 7, 10]));
-    expect([...new Set(comp(1).map((n) => n.step))]).toEqual([0, 2, 4, 6, 8, 10, 12, 13]);
-    expect(rel(comp(1))).toEqual(new Set([10, 2, 5]));
+    const steps = (i: number) => [...new Set(comp(i).map((n) => n.step))];
+    expect(steps(0)).toEqual([0, 3, 4, 7, 8, 9, 11, 15]);
+    expect(steps(1)).toEqual([0, 2, 4, 6, 8, 10, 12, 13, 15]);
+    expect(steps(2)).toEqual([3, 4, 7, 8, 9, 11, 15]);
+    const piano = (i: number) => comp(i).filter((n) => !n.alt && n.step < 15);
+    const guitar = (i: number) => comp(i).filter((n) => n.alt && n.step < 15);
+    expect(rel(piano(0))).toEqual(new Set([3, 7, 10]));
+    expect(rel(guitar(0))).toEqual(new Set([0, 3, 7]));
+    expect(rel(piano(1))).toEqual(new Set([10, 2, 5]));
+    // Bar B's push on 4a is bar A's chord (i again).
+    expect(rel(comp(1).filter((n) => !n.alt && n.step === 15))).toEqual(new Set([3, 7, 10]));
+    // Two octaves, about C♯4 to C♯6.
     for (const n of [...comp(0), ...comp(1)]) {
       expect(n.midi).toBeGreaterThanOrEqual(59);
-      expect(n.midi).toBeLessThanOrEqual(74);
+      expect(n.midi).toBeLessThanOrEqual(85);
     }
     // The riff comes back in the vamp's second half, without the bass.
     const late = arrangeBar(song, find("Outro · vamp and riff").startBar);

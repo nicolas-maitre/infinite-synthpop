@@ -1442,7 +1442,7 @@ export const GENRES: Record<GenreId, Genre> = {
       bass: { by: { [TN]: -10.5, [GC]: 2, [FC]: -1.5, [SC]: 2 } },
       pad: { by: { [TN]: -8.5, [GC]: -8, [FC]: -7, [SC]: -5 } },
       riff: { by: { [GC]: 1.5, [SC]: 2 } },
-      counter: { by: { [GC]: 6, [SC]: 6 } },
+      counter: { by: { [GC]: 6, [SC]: 9 } },
       arp: { by: { [SC]: 4 } },
       stab: { base: -13, by: { [FC]: 1.5, [SC]: -0.5 } },
       synth: { base: 3.5 },

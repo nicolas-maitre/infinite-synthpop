@@ -296,8 +296,9 @@ export class Instruments {
   private readonly stabBell: NativeFMSynth;
   private readonly stabBow: NativeSynth;
   private readonly stabSwell: NativeMonoSynth;
-  /** Self Control's bright chorus comp, on the counter track (see setVoices). */
+  /** Self Control's chorus comp, a saw stab and an FM piano, on the counter track (setVoices). */
   private readonly counterBright: NativeMonoSynth;
+  private readonly counterEp: NativeFMSynth;
   /** The Euro-disco parts (docs/references/sandra-*.md §12), each on its track (see setVoices). */
   private readonly euro: {
     pad: NativeSynth;
@@ -689,24 +690,39 @@ export class Instruments {
     this.counterSoft = softVoice(-3);
     this.counterSoftNight = softVoice(0);
 
-    // Self Control's chorus comp (branigan-self-control.md §11, §12): close chords around E4–C♯5
-    // whose onsets are as bright as an open saw (the 2 and 4 kHz bands 5–6 dB under the
-    // fundamentals'), falling about 6 dB in 40 ms, then holding near −10 dB until the note ends.
+    // Self Control's chorus comp (branigan-self-control.md §13): bright stabs stacked over three
+    // octaves. The upper chords play a saw stab and an FM piano together, the guitar's triad the
+    // FM piano alone. On the record the hits peak at 1–2 kHz with 4–8 kHz only 5 dB down, stay
+    // bright about 50 ms, then fade: about 5 dB by 90 ms, 13 by 200 ms.
     this.counterBright = new NativeMonoSynth({
-      oscillator: { type: "sawtooth" },
-      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
-      envelope: { attack: 0.003, decay: 0.06, sustain: 0.35, release: 0.15 },
+      oscillator: { type: "sawtooth", count: 2, spread: 10 },
+      filter: { type: "lowpass", rolloff: -12, Q: 0.9 },
+      envelope: { attack: 0.003, decay: 0.3, sustain: 0.15, release: 0.12 },
       filterEnvelope: {
         attack: 0.002,
-        decay: 0.1,
-        sustain: 1,
+        decay: 0.4,
+        sustain: 0.4,
         release: 0.1,
-        baseFrequency: 7000,
-        octaves: 0,
+        baseFrequency: 5500,
+        octaves: 1.2,
       },
-      maxPolyphony: lite ? 6 : 9,
-      // 6 dB up from where it was first set: by ear the chorus "is missing the chord stabs".
-      volume: -7,
+      maxPolyphony: lite ? 8 : 18,
+      volume: -11,
+    }).chain(
+      // The record's stabs carry 4–8 kHz but nothing above.
+      new FixedFilter("peaking", 4500, { Q: 0.9, gain: 6 }),
+      new FixedFilter("lowpass", 8000),
+      this.channels.counter,
+    );
+    this.counterEp = new NativeFMSynth({
+      harmonicity: 1,
+      modulationIndex: 4,
+      oscillator: { type: "sine" },
+      modulation: { type: "sine" },
+      envelope: { attack: 0.002, decay: 1.2, sustain: 0.15, release: 0.3 },
+      modulationEnvelope: { attack: 0.002, decay: 0.35, sustain: 0.15, release: 0.2 },
+      maxPolyphony: lite ? 8 : 24,
+      volume: -9,
     }).connect(this.channels.counter);
 
     const arpOptions = {
@@ -1138,10 +1154,19 @@ export class Instruments {
             ? this.counterSoftNight
             : this.voices.countervoice === "arp8"
               ? this.counterSoft
-              : this.voices.countervoice === "comp"
-                ? this.counterBright
-                : this.counter;
-        for (const n of notes) voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+              : this.counter;
+        for (const n of notes) {
+          // Self Control's comp: the guitar's triad (`alt`) on the saw stab, the piano's on FM.
+          if (this.voices.countervoice === "comp") {
+            // Self Control's comp: the upper chords on the saw stab and the FM piano, the
+            // guitar's triad (`alt`) on the FM piano alone.
+            if (!n.alt)
+              this.counterBright.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+            this.counterEp.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+            continue;
+          }
+          voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
+        }
         break;
       }
       case "riff":
@@ -1403,6 +1428,7 @@ export class Instruments {
       this.stabBow,
       this.stabSwell,
       this.counterBright,
+      this.counterEp,
       this.euro.pad,
       this.euro.riffClick,
       this.euro.riffGlide,
