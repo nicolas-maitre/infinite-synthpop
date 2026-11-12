@@ -82,8 +82,19 @@ export const AHEAD_SUPPORTED = typeof AudioWorkletNode !== "undefined";
 
 /** Half of the crossfade at each join between pieces (seconds). */
 const FADE = 0.02;
-/** Bars rendered before a piece starts, so what rings into it is there. */
-const PREROLL_BARS = 1;
+/** Bars rendered before a piece starts, so what rings into it is there (the longest notes ring
+ * about a bar and a half past their bar's start). */
+const PREROLL_BARS = 2;
+/**
+ * Whether a render can suspend to schedule as it goes. Firefox's can't: the whole render is
+ * scheduled before it starts, which for a song's body blocks the page for seconds and leaves the
+ * render slower than real time under every pending event. There, pieces render in segments of
+ * about this long (seconds), joined as pieces are.
+ */
+const SUSPENDABLE =
+  typeof OfflineAudioContext !== "undefined" &&
+  typeof OfflineAudioContext.prototype.suspend === "function";
+const SEGMENT_SECONDS = 12;
 /** Silence before the first event of a render. */
 const LEAD = 0.05;
 /** Offline seconds scheduled per suspension of the render. */
@@ -151,7 +162,10 @@ const barSeconds = (song: Song) => 240 / song.bpm;
 
 /** A piece being rendered and played. */
 interface Live<M> {
+  /** What this renders: the planned piece, or a segment of it. */
   piece: Piece<M>;
+  /** The planned piece (the engine knows it by identity). */
+  owner: Piece<M>;
   /** Timeline time of the render's frame 0 (on the frame grid). */
   t0: number;
   /** Rendered audio, by frame. */
@@ -347,6 +361,7 @@ export class AheadPlayer<M> {
       if (p.piece.start >= time) this.drop(p);
       else if (p.piece.end > time) {
         p.piece.end = time;
+        p.owner.end = Math.min(p.owner.end, time);
         p.bars = p.bars.filter(([at]) => at < time);
         p.nextBar = Math.min(p.nextBar, p.bars.length);
         this.checkComplete(p);
@@ -361,7 +376,36 @@ export class AheadPlayer<M> {
 
   // ── Planning and rendering ────────────────────────────────────────────────────────────────
 
+  /** Adds a planned piece, in segments where renders can't suspend; returns its first part. */
   private add(piece: Piece<M>, first: boolean): Live<M> {
+    const parts = SUSPENDABLE ? [piece] : this.segments(piece);
+    const head = this.addPart(parts[0]!, piece, first);
+    for (const part of parts.slice(1)) this.addPart(part, piece, false);
+    this.last = piece;
+    return head;
+  }
+
+  /** A one-song piece cut at its bar lines into segments of about SEGMENT_SECONDS. */
+  private segments(piece: Piece<M>): Piece<M>[] {
+    const deck = piece.decks[0];
+    if (piece.decks.length !== 1 || !deck) return [piece];
+    const sec = barSeconds(deck.song);
+    const every = Math.max(1, Math.round(SEGMENT_SECONDS / sec));
+    const parts: Piece<M>[] = [];
+    let start = piece.start;
+    let bar = Math.ceil((start - deck.origin) / sec - 1e-6) + every;
+    // The last segment takes up to one and a half segments, rather than leaving a sliver.
+    while (deck.origin + (bar + every / 2) * sec < piece.end - 1e-6) {
+      const end = this.snap(deck.origin + bar * sec);
+      parts.push({ decks: piece.decks, start, end });
+      start = end;
+      bar += every;
+    }
+    parts.push({ decks: piece.decks, start, end: piece.end });
+    return parts;
+  }
+
+  private addPart(piece: Piece<M>, owner: Piece<M>, first: boolean): Live<M> {
     const events = renderEvents(piece);
     const t0 = this.snap(Math.min(events[0]?.[0] ?? piece.start, piece.start - FADE) - LEAD);
     const bars: Live<M>["bars"] = [];
@@ -380,6 +424,7 @@ export class AheadPlayer<M> {
     const settled = new Promise<void>((done) => (settle = done));
     const live: Live<M> = {
       piece,
+      owner,
       t0,
       chunks: [],
       received: 0,
@@ -398,7 +443,6 @@ export class AheadPlayer<M> {
       timing: null,
     };
     this.pieces.push(live);
-    this.last = piece;
     return live;
   }
 
@@ -550,7 +594,7 @@ export class AheadPlayer<M> {
   private schedule(until: number): void {
     for (const p of this.pieces) {
       if (p.dropped) continue;
-      const piece = p.piece;
+      const { piece, owner } = p;
       const endFrame = Math.min(
         Math.round((until - p.t0) * this.rate),
         Math.round((piece.end + FADE - p.t0) * this.rate),
@@ -570,7 +614,7 @@ export class AheadPlayer<M> {
         const id = setTimeout(
           () => {
             this.timers = this.timers.filter((t) => t.id !== id);
-            this.options.events.onBar(piece, deck, bar, time);
+            this.options.events.onBar(owner, deck, bar, time);
           },
           Math.max(0, (time - this.ctx.currentTime) * 1000),
         );
@@ -675,13 +719,15 @@ function equalPower(x: number): number {
 }
 
 /** The bars a piece's render schedules (with pre-roll and a bar past the end): [timeline time,
- * deck, bar], in time order. */
+ * deck, bar], in time order. A segment renders only the bars around its own span. */
 function renderEvents<M>(piece: Piece<M>): [number, Deck<M>, number][] {
   const events: [number, Deck<M>, number][] = [];
   for (const deck of piece.decks) {
     const sec = barSeconds(deck.song);
-    const from = Math.max(0, deck.from - PREROLL_BARS);
-    const to = Math.min(deck.song.totalBars, deck.to + 1);
+    const first = Math.floor((piece.start - deck.origin) / sec + 1e-6);
+    const last = Math.ceil((piece.end - deck.origin) / sec - 1e-6);
+    const from = Math.max(0, Math.max(deck.from, first) - PREROLL_BARS);
+    const to = Math.min(deck.song.totalBars, Math.min(deck.to, last) + 1);
     for (let bar = from; bar < to; bar++) events.push([deck.origin + bar * sec, deck, bar]);
   }
   return events.sort((a, b) => a[0] - b[0]);
@@ -700,8 +746,8 @@ interface RenderSink {
  * Renders a piece offline, streaming it to `sink`. As render.ts's renderSong: a native
  * OfflineAudioContext suspended every few seconds to schedule what comes next (Chrome's render slows
  * down with every pending automation event), with Tone's clock ticked ahead by hand. Browsers
- * without OfflineAudioContext.suspend() (Firefox) get the whole piece scheduled up front, through
- * the standardized-audio-context wrapper.
+ * without OfflineAudioContext.suspend() (Firefox) render pieces in short segments (`add`), each
+ * scheduled up front a bar at a time, through the standardized-audio-context wrapper.
  */
 async function renderPiece<M>(
   piece: Piece<M>,
@@ -741,7 +787,11 @@ async function renderPiece<M>(
     await raw.audioWorklet.addModule(tapUrl);
     tap = new AudioWorkletNode(raw, TAP, tapOptions);
   } else {
-    await context.addAudioWorkletModule(tapUrl);
+    // On the wrapped context itself, not through Tone's addAudioWorkletModule: Tone loads one
+    // module per context, whatever the URL, so its own worklets (the guitar's comb filters) would
+    // never load.
+    const wrapped = context.rawContext as unknown as { audioWorklet: AudioWorklet };
+    await wrapped.audioWorklet.addModule(tapUrl);
     tap = context.createAudioWorkletNode(TAP, tapOptions) as unknown as AudioWorkletNode;
   }
   tap.port.onmessage = (
@@ -780,7 +830,14 @@ async function renderPiece<M>(
   };
 
   if (!raw) {
-    scheduleUntil(Infinity);
+    // A bar at a time, letting the page breathe in between: the whole segment up front, as this
+    // render can't suspend. To its end, not Infinity, which tickTo would never reach.
+    for (const [at] of events) {
+      if (!sink.alive()) return;
+      scheduleUntil(at - t0 + 1e-6);
+      await new Promise((go) => setTimeout(go, 0));
+    }
+    scheduleUntil(seconds);
     await (context.rawContext as unknown as OfflineAudioContext).startRendering();
     return;
   }
