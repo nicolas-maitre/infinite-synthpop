@@ -5,7 +5,7 @@
  * that reference instead (You Came). The banks and the substitutions live in the genre profiles
  * (genres.ts).
  */
-import { genreAt, weightOf, type Genre } from "./genres";
+import { genreAt, weightOf, type Genre, type Substitution } from "./genres";
 import type { ReferenceId } from "./references";
 import type { Rng } from "./rng";
 import type { Mode } from "./theory";
@@ -40,14 +40,15 @@ export interface PickOptions {
   weights?: readonly number[];
 }
 
-/** Closer entries on the style axis are far more likely, but nothing is ruled out. */
-export function pickProgression(
+/** A genre's bank entries for a kind, each with its chance of being picked (closer entries on the
+ * style axis are far more likely, but nothing is ruled out), and the pool they came from. Entries
+ * at weight 0 are left out rather than weighed at 0, so adding one changes nothing. */
+export function bankEntries(
   genre: Genre,
   kind: ProgressionKind,
   style: number,
-  rng: Rng,
   { mode = "minor", weights = [] }: PickOptions = {},
-): Progression {
+): { pool: readonly BankEntry[]; entries: (readonly [Progression, number])[] } {
   const pool = genre.bank[kind].filter((e) => kind === "lift" || (e.mode ?? "minor") === mode);
   const mixed = pool.some((e) => !e.ref);
   const entries = pool
@@ -61,8 +62,19 @@ export function pickProgression(
       if (e.ref && mixed) w *= REF_LEAN * weightOf(genre, weights, e.ref);
       return [e.bars, w] as const;
     })
-    // Entries at weight 0 are left out rather than weighed at 0, so adding one changes nothing.
     .filter(([, w]) => w > 0);
+  return { pool, entries };
+}
+
+/** Closer entries on the style axis are far more likely, but nothing is ruled out. */
+export function pickProgression(
+  genre: Genre,
+  kind: ProgressionKind,
+  style: number,
+  rng: Rng,
+  opts: PickOptions = {},
+): Progression {
+  const { pool, entries } = bankEntries(genre, kind, style, opts);
   if (!entries.length) return pool[0]?.bars ?? [["i"]];
   return rng.weighted(entries);
 }
@@ -81,8 +93,29 @@ export function mutate(
   amount = 0.3,
   mode: Mode = "minor",
 ): Progression {
-  if (kind === "lift" || kind === "turnaround") return prog;
   const g = genreAt(genre, at);
+  return substitute(
+    genre.substitutions.map((s) => [s, () => g.at(s.chance)] as const),
+    prog,
+    kind,
+    rng,
+    amount,
+    mode,
+  );
+}
+
+/** `mutate` over substitutions whose chances are already resolved: the first that applies and
+ * comes up wins, in order. Several genres' lists can be concatenated (profile.ts). A chance is
+ * read only when its substitution applies, as `mutate` always did. */
+export function substitute(
+  substitutions: readonly (readonly [Substitution, () => number])[],
+  prog: Progression,
+  kind: ProgressionKind,
+  rng: Rng,
+  amount = 0.3,
+  mode: Mode = "minor",
+): Progression {
+  if (kind === "lift" || kind === "turnaround") return prog;
   const bars = prog.map((bar) => [...bar]);
   for (let b = 1; b < bars.length; b++) {
     const bar = bars[b];
@@ -94,15 +127,16 @@ export function mutate(
       if (!rng.chance(amount)) continue;
       const n = bar[c];
       // The first substitution that applies and comes up wins; each draws only if it applies.
-      const sub = genre.substitutions.find(
-        (s) =>
+      const found = substitutions.find(
+        ([s, chance]) =>
           (!s.kinds || s.kinds.includes(kind)) &&
           (!s.lastBar || lastBar) &&
           (!s.mode || s.mode === mode) &&
           (typeof s.to === "string" || chords === 1) &&
           n === s.from &&
-          rng.chance(g.at(s.chance)),
+          rng.chance(chance()),
       );
+      const sub = found?.[0];
       if (sub) bar.splice(c, 1, ...(typeof sub.to === "string" ? [sub.to] : sub.to));
     }
   }

@@ -211,15 +211,42 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
 
 ## Phases
 
-1. **Mixture model and part plumbing, no UI.** Add `REFERENCE_IDS`, `RefWeights`, `PartBlends`,
-   the genre mixture for every kind of value in the table above, and a `ProfileAt` per part.
-   Thread the parts through `compose`, `arranger`, `engine`, `ahead` and `instruments`.
-   `ComposeOptions` gains `blends`. Until phase 2, cross-genre song blends use the dominant
-   genre's planner, internal only. Tests:
+1. **Mixture model and part plumbing, no UI.** _Done (2026-11-12)._ Add `REFERENCE_IDS`,
+   `RefWeights`, `PartBlends`, the genre mixture for every kind of value in the table above, and
+   a profile per part. Thread the parts through `compose`, `arranger`, `engine`, `ahead` and
+   `instruments`. `ComposeOptions` gains `blends`. Until phase 2, cross-genre song blends use the
+   dominant genre's planner, internal only. Tests:
    - the snapshot unchanged
    - the mixture equals the old blend at share 1
    - cross-genre songs compose and arrange for many seeds and random blends, with no NaNs and
      tempos in range
+
+   What was built, and where it differs from the above:
+   - The snapshot first gained the Italo and Euro-disco songs (every melodic track, every
+     original), recorded on the old code. Before that it locked only synthpop.
+   - `src/profile.ts` holds the model.
+     - `profileOf(weights, home)` returns a `Profile`, which extends `GenreAt`, so the planners
+       take it unchanged. It adds `shares`, `mixed`, `mix(pick)`, `options(pick)` and
+       `weighted(pick)`.
+     - `profilesOf(blends, home)` returns all six parts.
+     - `songSound(song)` returns what the engine, render-ahead, offline render, arranger and
+       mixer read: drums, voices, part style, bass tone, lead tone and fader levels. It is cached
+       per song.
+   - `ComposeOptions` gains `blend` (every part) and `parts` (per-part overrides), not `blends`.
+     They don't apply to originals or creations. `Song` gains `blends`. `Song.genre` and
+     `Song.weights` are the song part's dominant genre and that genre's weights (normalised when
+     mixed).
+   - `progressions.ts` splits `bankEntries` out of `pickProgression`, and `substitute` out of
+     `mutate`, so the banks and substitutions of several genres pool into one draw.
+   - The planner's odds, the ending odds and the pre-chorus check read the song part's dominant
+     genre at its own weights until phase 2. So do the form-placed voice devices (stacked voices).
+     The counter-line odds, lead ranges and countervoice follow the Voice part.
+   - On a mixed blend, a genre without a tempo `floor` floors at its range's low end.
+   - Discrete traits on a mixed blend come from the reference that outweighs every other. On a
+     tie, they come from the dominant genre's defaults (the home genre on a tied share).
+   - Not covered by a test: the live engine and render paths, which only swapped their reads for
+     `songSound`. No UI exists yet to reach a cross-genre song in the app.
+
 2. **Merged planner.** First, move the legacy planners to `src/legacy-planners/` with the
    snapshot unchanged. Then build the skeleton, the tagged blocks, the song-wide conventions and
    the dressing flags, on forked streams, and add Auto's occasional open blend. Tests:

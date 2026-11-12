@@ -7,7 +7,6 @@ import {
   DEFAULT_GENRE,
   GENRE_IDS,
   GENRES,
-  genreAt,
   genreOfReference,
   randomWeights,
   referenceWeights,
@@ -18,7 +17,20 @@ import {
   type GenreAt,
   type GenreId,
 } from "./genres";
-import { mutate, pickProgression, type Progression, type ProgressionKind } from "./progressions";
+import {
+  partVoices,
+  pickFromBanks,
+  profilesOf,
+  simpleBlends,
+  substituteFrom,
+  tempoGrid,
+  toRefWeights,
+  type Part,
+  type PartBlends,
+  type Profile,
+  type RefWeights,
+} from "./profile";
+import type { Progression, ProgressionKind } from "./progressions";
 import { REFERENCES, type ReferenceId, type ReferenceSong } from "./references";
 import { createRng, type Rng } from "./rng";
 import {
@@ -218,8 +230,12 @@ export interface Song {
   style: number;
   /** The genre's references' weights the song was generated with, in `references` order. */
   weights: readonly number[];
-  /** The genre whose profile the song was generated with. */
+  /** The genre whose profile the song was generated with: the one holding most of the song
+   * part's weight (profile.ts). */
   genre: GenreId;
+  /** Each part's blend over the references, of any genre (profile.ts). A song made from one
+   * genre's weights has them in every part. */
+  blends: PartBlends;
   kit: KitName;
   bassStyle: BassStyle;
   progressions: Progressions;
@@ -255,6 +271,11 @@ export interface ComposeOptions {
   /** The references' weights, in the genre's `references` order; overrides `style`. "auto" picks
    * a random point of the genre's polygon per song. */
   weights?: readonly number[] | "auto" | null;
+  /** The references' weights across genres (profile.ts), for every part; overrides `genre`,
+   * `style` and `weights`. Not for originals or creations, which keep their own. */
+  blend?: RefWeights | null;
+  /** Per-part blends over `blend` (or over the genre's weights). */
+  parts?: Partial<PartBlends> | null;
   key?: Key | null;
   bpm?: number | null;
   kit?: KitName | "auto";
@@ -302,6 +323,13 @@ function sparsePhrases(melody: Melody): Melody {
 }
 /** The counter-line sits above the sung chorus: TF's MIDI keeps it to F5–C6, reaching to A4 and
  * E6. */
+/** A partial record without its unset entries, so spreading it keeps what it would override. */
+function withoutUnset(parts: Partial<PartBlends>): Partial<PartBlends> {
+  return Object.fromEntries(Object.entries(parts).filter(([, w]) => w !== undefined)) as Partial<
+    Record<Part, RefWeights>
+  >;
+}
+
 export const COUNTER_RANGE = [74, 86] as const;
 
 export function compose(opts: ComposeOptions): Song {
@@ -310,34 +338,48 @@ export function compose(opts: ComposeOptions): Song {
   // Its own stream, so an auto style draws nothing from the others.
   const autoStyle = Math.round(root.fork("style").next() * 100) / 100;
   // A creation plays in its own genre, an original in the one that lists it.
-  const genreId = opts.custom
+  const legacyGenreId = opts.custom
     ? (opts.custom.genre ?? DEFAULT_GENRE)
     : opts.reference
       ? genreOfReference(opts.reference)
       : opts.genre === "auto"
         ? root.fork("genre").pick(GENRE_IDS)
         : (opts.genre ?? DEFAULT_GENRE);
-  const genre = GENRES[genreId];
+  const legacyGenre = GENRES[legacyGenreId];
   // The auto point draws from its own stream too.
   const rngPoint = root.fork("point");
   // With the genre picked per song, the point is too: weights given for one genre don't fit another.
   const weightsOpt =
     opts.genre === "auto" && !opts.custom && !opts.reference ? "auto" : opts.weights;
   const given =
-    weightsOpt === "auto" ? randomWeights(genre, () => rngPoint.next()) : (weightsOpt ?? null);
-  const style = ref
+    weightsOpt === "auto"
+      ? randomWeights(legacyGenre, () => rngPoint.next())
+      : (weightsOpt ?? null);
+  const legacyStyle = ref
     ? ref.style
     : given
       ? styleOf(given)
       : Math.min(1, Math.max(0, opts.style ?? autoStyle));
   // An original plays with all the weight on itself; a creation with its own weights (or its
   // legacy style's).
-  const weights = opts.custom
-    ? specWeights(genre, opts.custom)
+  const legacyWeights = opts.custom
+    ? specWeights(legacyGenre, opts.custom)
     : ref && opts.reference
-      ? soloWeights(genre, opts.reference)
-      : (given ?? referenceWeights(genre, style));
-  const g = genreAt(genre, weights);
+      ? soloWeights(legacyGenre, opts.reference)
+      : (given ?? referenceWeights(legacyGenre, legacyStyle));
+  // The parts' blends: given ones, else the genre's weights in every part.
+  const blended = !ref && (!!opts.blend || !!opts.parts);
+  const blends: PartBlends = {
+    ...simpleBlends(!ref && opts.blend ? opts.blend : toRefWeights(legacyGenre, legacyWeights)),
+    ...(ref ? {} : withoutUnset(opts.parts ?? {})),
+  };
+  const P = profilesOf(blends, legacyGenreId);
+  // The song part decides the genre (until the merged planner, its form too).
+  const g: Profile = { ...P.song, voices: partVoices(P) };
+  const genre = g.genre;
+  const genreId = genre.id;
+  const weights = blended ? g.weights : legacyWeights;
+  const style = blended ? styleOf(weights) : legacyStyle;
   const rngSetup = root.fork("setup");
   // You Came's choices draw from their own streams, so at its weight 0 a song is what it was.
   const rngMode = root.fork("mode");
@@ -346,38 +388,35 @@ export function compose(opts: ComposeOptions): Song {
 
   // The minor tonic is drawn first either way, so the draws after it stay where they were.
   const autoKey = (): Key => {
-    const tonic = rngSetup.weighted(genre.keyWeights);
-    return rngMode.chance(g.at(genre.major))
-      ? { tonic: rngMode.weighted(genre.majorKeyWeights), mode: "major" }
+    const tonic = rngSetup.weighted(P.song.weighted((x) => x.keyWeights));
+    return rngMode.chance(P.song.mix((x) => x.major))
+      ? { tonic: rngMode.weighted(P.song.weighted((x) => x.majorKeyWeights)), mode: "major" }
       : { tonic, mode: "minor" };
   };
   const key: Key = ref?.key ?? opts.key ?? autoKey();
-  const [rangeLo, bpmHi] = genre.tempo.range;
   // A reference may take the range below its usual floor (Self Control): the grid only reaches
   // down there with its weight, so the others' tempos draw as they did.
-  const floor = genre.tempo.floor;
-  const bpmLo = floor ? Math.max(rangeLo, Math.floor(g.at(floor) * 2) / 2) : rangeLo;
+  const tempo = tempoGrid(P.song);
   const autoBpm = rngSetup.weighted(
-    Array.from({ length: (bpmHi - bpmLo) * 2 + 1 }, (_, i) => {
-      const bpm = bpmLo + i / 2;
-      return [bpm, Math.exp(-((bpm - g.at(genre.tempo.center)) ** 2) / 3)] as const;
+    Array.from({ length: (tempo.hi - tempo.lo) * 2 + 1 }, (_, i) => {
+      const bpm = tempo.lo + i / 2;
+      return [bpm, Math.exp(-((bpm - tempo.center) ** 2) / 3)] as const;
     }),
   );
   const bpm = ref?.bpm ?? opts.bpm ?? autoBpm;
-  const autoKit = rngSetup.weighted<KitName>(genre.kits.map(([kit, w]) => [kit, g.at(w)]));
+  const autoKit = rngSetup.weighted<KitName>(P.drums.options((x) => x.kits));
   const kit = ref?.kit ?? (!opts.kit || opts.kit === "auto" ? autoKit : opts.kit);
   const pickedBass = rngSetup.weighted<BassStyle>(
-    genre.bassFigures.map(([figure, w]) => [figure, g.at(w)] as const).filter(([, w]) => w > 0),
+    P.bass.options((x) => x.bassFigures).filter(([, w]) => w > 0),
   );
   const bassStyle = ref?.bassStyle ?? opts.bassStyle ?? pickedBass;
 
   const rngProg = root.fork("progressions");
   const prog = (kind: ProgressionKind, rng = rngProg) =>
-    mutate(
-      genre,
-      pickProgression(genre, kind, style, rng, { mode: key.mode, weights }),
+    substituteFrom(
+      P.song,
+      pickFromBanks(P.song, kind, style, rng, key.mode),
       kind,
-      weights,
       rng,
       0.3,
       key.mode,
@@ -423,11 +462,11 @@ export function compose(opts: ComposeOptions): Song {
             opts.form ?? "standard",
             riffHigh,
           );
-  if (!ref) addCounter(root.fork("counter"), sections, g);
+  if (!ref) addCounter(root.fork("counter"), sections, P.voice);
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 
   const counter = generateCounter(root.fork("counter-line"), key, progressions.chorus);
-  const leadRanges = genre.leadRanges ?? LEAD_RANGES;
+  const leadRanges = P.voice.genre.leadRanges ?? LEAD_RANGES;
   const rngMotif = root.fork("motifs");
   const melodies: Record<MelodyKind, Melody> = {
     verse: generateMelody(root.fork("melody-verse"), key, progressions.verse, leadRanges.verse),
@@ -444,6 +483,7 @@ export function compose(opts: ComposeOptions): Song {
     style,
     weights,
     genre: genreId,
+    blends,
     kit,
     bassStyle,
     progressions,
@@ -1250,8 +1290,8 @@ function planEuro(
  * chorus to fade, in about four TF-style songs out of five and one DS-style song in five. Its own
  * random stream, so adding it changed nothing else about any seed.
  */
-function addCounter(rng: Rng, sections: Section[], g: GenreAt): void {
-  if (!rng.chance(g.at(g.genre.counter))) return;
+function addCounter(rng: Rng, sections: Section[], voice: Profile): void {
+  if (!rng.chance(voice.mix((x) => x.counter))) return;
   for (const s of sections) {
     if (s.kind === "chorus" || (s.kind === "outro" && s.layers.lead === "chorus"))
       s.layers.counter = true;

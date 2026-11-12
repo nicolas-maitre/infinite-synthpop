@@ -24,7 +24,7 @@
 import * as Tone from "tone";
 import { arrangeBar } from "./arranger";
 import type { Song } from "./composer";
-import { bassTone, genreAt, leadTone, mixAt, GENRES } from "./genres";
+import { songSound } from "./profile";
 import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
 import { scheduleBar } from "./schedule";
 
@@ -801,17 +801,16 @@ async function renderPiece<M>(
 function setUpDeck(inst: Instruments, song: Song, mix: RenderMix): void {
   const kit = song.kit !== "synth" && !inst.drums.hasSamples(song.kit) ? "synth" : song.kit;
   inst.drums.use(kit);
-  const genre = GENRES[song.genre];
-  inst.setBassTone(bassTone(genre, song.weights));
-  inst.setLeadTone(leadTone(genre, song.weights));
-  const profile = genreAt(genre, song.weights);
-  inst.setSnareGate(profile.drums.gatedSnare);
-  inst.drums.setKickWeight(profile.drums.kickWeight ?? 0);
-  inst.setVoices(profile.voices);
+  const sound = songSound(song);
+  inst.setBassTone(sound.bassTone);
+  inst.setLeadTone(sound.leadTone);
+  inst.setSnareGate(sound.drums.gatedSnare);
+  inst.drums.setKickWeight(sound.drums.kickWeight ?? 0);
+  inst.setVoices(sound.voices);
   inst.setTempo(song.bpm);
   inst.setLeadPatch(mix.leadPatch);
   for (const track of mix.soloed) inst.channels[track].solo = true;
-  const volumes = { ...autoVolumes(mixAt(genre, song.weights)), ...mix.manual };
+  const volumes = { ...autoVolumes(sound.mix), ...mix.manual };
   for (const [track, db] of Object.entries(volumes) as [Track, number][]) {
     inst.channels[track].volume.value = db;
   }

@@ -38,11 +38,11 @@ import {
 } from "./quality";
 import { BlendPad, initials, weightsSummary } from "./blendpad";
 import { barAtSeconds, mountMediaControls } from "./mediasession";
+import { songSound } from "./profile";
 import {
   DEFAULT_GENRE,
   GENRE_IDS,
   GENRES,
-  mixAt,
   isGenreId,
   isStyleWeights,
   parseWeights,
@@ -1275,10 +1275,10 @@ document.addEventListener("keydown", (e) => {
 
 // ── Mixer ─────────────────────────────────────────────────────────────────────────────────────
 
-/** Each track's level now: by hand, or the playing song's mix (its genre's, at its style) while
+/** Each track's level now: by hand, or the playing song's mix (each part's, at its blend) while
  * on auto. */
 function trackVolumes(): Record<Track, number> {
-  const auto = autoVolumes(mixAt(GENRES[engine.song.genre], engine.song.weights));
+  const auto = autoVolumes(songSound(engine.song).mix);
   return Object.fromEntries(
     TRACKS.map((t) => [t, prefs.manual.includes(t) ? prefs.volumes[t] : auto[t]]),
   ) as Record<Track, number>;

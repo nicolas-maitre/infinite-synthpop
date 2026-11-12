@@ -13,7 +13,8 @@ import {
   type SectionKind,
   type Song,
 } from "./composer";
-import { GENRES, genreAt, type DrumTraits, type Grooves } from "./genres";
+import type { DrumTraits, Grooves } from "./genres";
+import { songSound } from "./profile";
 import { createRng, type Rng } from "./rng";
 import {
   chord,
@@ -136,8 +137,8 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
         nextBar.section.startBar === bar + 1,
     };
   };
-  const parts = GENRES[song.genre].parts;
-  const profile = genreAt(GENRES[song.genre], song.weights);
+  const profile = songSound(song);
+  const parts = profile.parts;
   const voices = profile.voices;
   // Self Control's riff; in the intro the bass plays it too, in unison, two octaves down.
   const unison = L.riff && voices.riff === "unison";

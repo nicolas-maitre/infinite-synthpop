@@ -14,7 +14,8 @@ import * as Tone from "tone";
 import { AHEAD_SUPPORTED, AheadPlayer, type Deck, type Piece, type RenderMix } from "./ahead";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents } from "./arranger";
 import { loadSampleKits, type SampleReport } from "./drums";
-import { bassTone, genreAt, leadTone, mixAt, GENRES, type GenreId } from "./genres";
+import type { GenreId } from "./genres";
+import { songSound } from "./profile";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
@@ -531,20 +532,19 @@ export class Engine {
   private applySong(inst: Instruments): void {
     inst.drums.use(this.effectiveKit());
     inst.setLeadPatch(this.leadPatch);
-    const genre = GENRES[this.song.genre];
-    inst.setBassTone(bassTone(genre, this.song.weights));
-    inst.setLeadTone(leadTone(genre, this.song.weights));
-    const profile = genreAt(genre, this.song.weights);
-    inst.setSnareGate(profile.drums.gatedSnare);
-    inst.drums.setKickWeight(profile.drums.kickWeight ?? 0);
-    inst.setVoices(profile.voices);
+    const sound = songSound(this.song);
+    inst.setBassTone(sound.bassTone);
+    inst.setLeadTone(sound.leadTone);
+    inst.setSnareGate(sound.drums.gatedSnare);
+    inst.drums.setKickWeight(sound.drums.kickWeight ?? 0);
+    inst.setVoices(sound.voices);
     inst.setActiveTracks(usedTracks(this.song));
   }
 
   /** The mixer onto the live instruments: the playing song's own mix for the faders on auto. */
   private applyMix(inst: Instruments): void {
     const volumes = {
-      ...autoVolumes(mixAt(GENRES[this.song.genre], this.song.weights)),
+      ...autoVolumes(songSound(this.song).mix),
       ...this.mix.manual,
     };
     for (const [track, db] of Object.entries(volumes) as [Track, number][]) {

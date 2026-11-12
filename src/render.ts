@@ -5,7 +5,8 @@
 import * as Tone from "tone";
 import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./composer";
-import { bassTone, genreAt, leadTone, mixAt, GENRES, isStyleWeights } from "./genres";
+import { GENRES, isStyleWeights } from "./genres";
+import { songSound } from "./profile";
 import { scheduleBar } from "./schedule";
 import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
 
@@ -72,17 +73,16 @@ export async function renderSong(
   await inst.ready;
   await inst.drums.loadAll();
   inst.drums.use(song.kit);
-  const genre = GENRES[song.genre];
-  inst.setBassTone(bassTone(genre, song.weights));
-  inst.setLeadTone(leadTone(genre, song.weights));
-  const profile = genreAt(genre, song.weights);
-  inst.setSnareGate(profile.drums.gatedSnare);
-  inst.drums.setKickWeight(profile.drums.kickWeight ?? 0);
-  inst.setVoices(profile.voices);
+  const sound = songSound(song);
+  inst.setBassTone(sound.bassTone);
+  inst.setLeadTone(sound.leadTone);
+  inst.setSnareGate(sound.drums.gatedSnare);
+  inst.drums.setKickWeight(sound.drums.kickWeight ?? 0);
+  inst.setVoices(sound.voices);
   inst.setTempo(song.bpm);
   for (const track of solo) inst.channels[track].solo = true;
-  // The faders as on auto (the genre's mix at the song's style), then any levels given.
-  const volumes = { ...autoVolumes(mixAt(genre, song.weights)), ...options.volumes };
+  // The faders as on auto (each part's mix at its blend), then any levels given.
+  const volumes = { ...autoVolumes(sound.mix), ...options.volumes };
   for (const [track, db] of Object.entries(volumes) as [Track, number][]) {
     inst.channels[track].volume.value = db;
   }
