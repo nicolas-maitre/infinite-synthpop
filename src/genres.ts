@@ -48,8 +48,8 @@ export interface DrumTraits {
   bigPercussion: Extract<DrumVoice, "tamb" | "cabasa"> | "none";
   /** The hats: every 16th (TF, DS), or on the beat, the "&" and the "a" with the "a" open in about
    * a third of the bars (You Came, §6.4), or 8ths (The Night, Get Closer), with an open hat on 3a
-   * (Faces' verses), or Self Control's: none in the verses, 16ths from the pre-chorus on but the
-   * "e" after the backbeat, 8ths in the intro. The breaks' `hats16` mode always plays 16ths. */
+   * (Faces' verses), or Self Control's: none in the verses, 16ths from the pre-chorus on with an
+   * open 4a every other big bar, 8ths in the intro. The breaks' `hats16` mode always plays 16ths. */
   hats: "16ths" | "beat-and-a" | "8ths" | "8ths-open3a" | "verse-off";
   /** You Came's fill: snare on every 8th but the downbeats, hats down to 8ths, in the last bar of
    * every 8-bar phrase, then a crash on the next phrase's 1 (the hats skip it). Otherwise fills
@@ -73,7 +73,7 @@ export interface DrumTraits {
    * bars. */
   fills?: "random" | "snare" | "none" | "pickup8";
   /** Big sections' claps: with the snare on 2 and 4 (unset), or Self Control's: one on 4, and every
-   * other bar a syncopated one on 3e with an open hat on 4a; in the outro, on 2 alone. */
+   * other bar a syncopated one on 3e; in the outro, on 2 alone. */
   bigClaps?: "4-and-3e";
   /** A backbeat kit played from a pattern table instead of the four-on-the-floor kick and the hat
    * loop (the Euro-disco references). Unset everywhere else. */
@@ -142,10 +142,10 @@ export interface Voices {
   /** The chorus countervoice: none; The Night's line on the off-beat 8ths, stepping down through
    * each chord's tones in the voice's register (the-night.md §10.2); or Get Closer's 8th arpeggio
    * up and down the chord from beat 2, in C6–B6 (get-closer.md §10), both on Get Closer's soft,
-   * near-sine voice (docs/italo/mix.md); or Self Control's bright chorus part: chord tones in
-   * C♯5–G♯6 on the "&"s and beats 2 and 3, accented on 3a and 4a, the 4a taking the next chord
-   * (branigan-self-control.md §6, §11). */
-  countervoice: "none" | "pluck8" | "arp8" | "sync16";
+   * near-sine voice (docs/italo/mix.md); or Self Control's bright chorus comp: close chords around
+   * E4–C♯5, syncopated in one bar and on the 8ths in the next (branigan-self-control.md §11,
+   * §12). */
+  countervoice: "none" | "pluck8" | "arp8" | "comp";
   /** Pads: one close voicing (synthpop, Get Closer); the triad stacked an octave up too (The
    * Night's span C4–A♭6); or Faces' open voicings, the root in octave 3, the 7th in the middle
    * (faces.md §10.3). */
@@ -162,8 +162,9 @@ export interface Voices {
   arpPatch: "bell" | "pluck" | "triangle" | "saw";
   // The Euro-disco references' parts (docs/references/sandra-*.md §12). Unset: as before.
   /** The 16th part: the song's arpeggio motif (unset), or Heaven Can Wait's pulse, every 16th on
-   * the chord's root and 5th in B♭3–F5. */
-  arp?: "motif" | "pulse";
+   * the chord's root and 5th in B♭3–F5, or Self Control's pre-chorus pairs: the motif read as
+   * scale steps from the root, each 8th struck twice as 16ths (branigan-self-control.md §12). */
+  arp?: "motif" | "pulse" | "pairs";
   /** The pads' low-pass, Hz (unset: 2.8 kHz with a heavier chorus): Crazy Juliet's are far darker
    * (1.2 kHz), Heaven Can Wait's and Innocent Love's about ours (2.5 and 3 kHz). */
   padTone?: number;
@@ -1349,15 +1350,16 @@ export const GENRES: Record<GenreId, Genre> = {
         stabPatch: "pluck",
         arpPatch: "pluck",
       },
-      // The riff in unison with the bass, brighter than a saw, the dark offbeat chop, and the bright
-      // syncopated chorus part (branigan-self-control.md §11).
+      // The riff in unison with the bass, brighter than a saw, the dark offbeat chop, the bright
+      // chorus comp and the pre-chorus's paired 16ths (branigan-self-control.md §11, §12).
       [SC]: {
         riff: "unison",
         riffPatch: "bright",
-        countervoice: "sync16",
+        countervoice: "comp",
         pad: "close",
         stabPatch: "chop",
         arpPatch: "bell",
+        arp: "pairs",
       },
     },
     // The verses sit low (Faces C4–E4, Get Closer G3–A4), the choruses a 5th or so higher (Faces

@@ -120,15 +120,19 @@ test keeps 40 more that way. Old Italo links decode with its weight 0.
   - after each chorus, a 4-bar break on one stab (drum mode `stab`), and after the first, 2 bars
     of drums and voice;
   - a half-length second verse, stacked voices in the choruses;
-  - an i–v vamp to fade after the second chorus's break, in place of the last chorus.
+  - an i–v vamp to fade after the second chorus's break, in place of the last chorus, the riff
+    back for its second 8 bars.
 - **Bass** (`scBassLine`): staccato root quarters, an 8th long, C♯1–B1; some chorus and outro bars
   add the octave on the "&"s. Its tone: a dark saw with its fundamental cut (`bassTone.lowCut`).
 - **Drums** (`hats: "verse-off"`, `bigClaps: "4-and-3e"`): no hats in the verses, 16ths from the
   pre-chorus (not on the "e" after the backbeat), 8ths in the intro; in the chorus a clap on 4,
   and every other bar one on 3e and an open hat on 4a; in the outro the clap moves to 2.
-- **Parts** (branigan-self-control.md §11): the riff in unison with the bass (`riff: "unison"`) on
-  a bright saw (`riffPatch: "bright"`), the offbeat chop on every "&" (`stabPatch: "chop"`), the
-  bright chorus part (`countervoice: "sync16"`), and the break's low held stab.
+- **Parts** (branigan-self-control.md §11, §12, the second checked against the user's MIDI
+  transcription): the riff in unison with the bass in the intro (`riff: "unison"`) on a bright
+  saw (`riffPatch: "bright"`), back without the bass for the vamp's second half; the offbeat chop
+  on every "&" (`stabPatch: "chop"`); the pre-chorus's 16ths in pairs (`arp: "pairs"`); the
+  chorus's two-bar chord comp (`countervoice: "comp"`); and the break's low power chord over the
+  bass's held root.
 - **Voice** (`leadTone`): matched to Branigan's vocal stem with `scripts/compare_voice.py`, within
   the voice boost caps (high shelf +9 dB, breath +6).
 

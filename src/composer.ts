@@ -780,7 +780,7 @@ function placeSections(plan: readonly PlannedSection[], rng: Rng): Section[] {
  * on i–v), a pre-chorus with the title line before the first chorus, a 4-bar break after each
  * chorus (one stab on beat 2, the voice) with 2 bars of drums and voice after the first, a
  * half-length second verse, stacked voices in the choruses, and an i–v vamp to fade in place of the
- * last chorus.
+ * last chorus, the riff back for its second half.
  * The kick never stops: every section has the drums.
  */
 function planItalo(
@@ -891,7 +891,12 @@ function planItalo(
   // Self Control's break: the voice over one reverbed stab on beat 2 of each bar; after the first
   // chorus, 2 bars of the kit and the voice.
   const breakBlock = (first: boolean) => {
-    add("break", "Break · stab on 2", 4, vamp, { drums: "stab", stabs: true, lead: "chorus" });
+    add("break", "Break · stab on 2", 4, vamp, {
+      drums: "stab",
+      bass: true,
+      stabs: true,
+      lead: "chorus",
+    });
     if (first) add("break", "Drums and voice", 2, vamp, { drums: "full", lead: "chorus" });
   };
   // Faces' instrumentals keep the verse world, its sustained line on top; the others play the
@@ -944,6 +949,8 @@ function planItalo(
       pad: true,
       lead: "verse",
       titleLine: true,
+      // Its 16ths in pairs (branigan-self-control.md §12).
+      arp: true,
       stabs,
       ...verseWorld,
     });
@@ -972,14 +979,19 @@ function planItalo(
   if (!vampOutro || breakdown) chorus("Chorus · last", { leadDouble: true });
   if (vampOutro) {
     if (stabBreak) breakBlock(false);
-    add("outro", "Outro · i–v vamp", 16, vamp, {
-      drums: "big",
-      bass: true,
-      pad: true,
-      stabs,
-      lead: "chorus",
-      counter: countervoice,
-    });
+    // The riff comes back for the vamp's second half (branigan-self-control.md §12).
+    const outro = (label: string, riff: boolean) =>
+      add("outro", label, 8, vamp, {
+        drums: "big",
+        bass: true,
+        pad: true,
+        stabs,
+        riff,
+        lead: "chorus",
+        counter: countervoice,
+      });
+    outro("Outro · i–v vamp", false);
+    outro("Outro · vamp and riff", true);
   } else if (ending === "hold") {
     add("outro", "Ending · IV held", 4, [["IV"]], { pad: true });
   } else if (ending === "lift") {

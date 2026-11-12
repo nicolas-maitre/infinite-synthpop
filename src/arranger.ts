@@ -139,36 +139,41 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
   const parts = GENRES[song.genre].parts;
   const profile = genreAt(GENRES[song.genre], song.weights);
   const voices = profile.voices;
-  // Self Control's riff is played by the bass too, in unison, four octaves down.
+  // Self Control's riff; in the intro the bass plays it too, in unison, four octaves down.
   const unison = L.riff && voices.riff === "unison";
   const notes: Record<MelodicTrack, Note[]> = {
     bass: !L.bass
       ? []
-      : song.bassStyle === "sc"
-        ? unison
-          ? motifNotes(song.riff, barInSection, key, slots, "scale", 36, 0.95)
-          : scBassLine(figureContext("bass"), rng.fork("bass"), section.kind)
-        : song.bassStyle === "yc"
-          ? ycBassLine(figureContext("bass"), rng.fork("bass"), section.kind !== "prechorus")
-          : song.bassStyle === "italo" || song.bassStyle === "night"
-            ? italoBassLine(figureContext("bass"), song.bassStyle === "night", barInSection)
-            : song.bassStyle === "faces"
-              ? facesBassLine(
-                  figureContext("bass"),
-                  barInSection,
-                  section.kind === "chorus" || !!L.bassHeld,
-                )
-              : isEuroBass(song.bassStyle)
-                ? euroBassLine(song.bassStyle, figureContext("bass"), {
-                    figure: euroFigure(section.kind),
+      : // Self Control's breaks: only its own bass holds a root under the stab.
+        L.drums === "stab"
+        ? song.bassStyle === "sc"
+          ? breakBass(key, slots)
+          : []
+        : song.bassStyle === "sc"
+          ? unison && section.kind === "intro"
+            ? motifNotes(song.riff, barInSection, key, slots, "scale", 36, 0.95)
+            : scBassLine(figureContext("bass"), rng.fork("bass"), section.kind)
+          : song.bassStyle === "yc"
+            ? ycBassLine(figureContext("bass"), rng.fork("bass"), section.kind !== "prechorus")
+            : song.bassStyle === "italo" || song.bassStyle === "night"
+              ? italoBassLine(figureContext("bass"), song.bassStyle === "night", barInSection)
+              : song.bassStyle === "faces"
+                ? facesBassLine(
+                    figureContext("bass"),
                     barInSection,
-                    sameChord:
-                      barInSection > 0 &&
-                      section.progression[(barInSection - 1) % section.progression.length]?.at(
-                        -1,
-                      ) === section.progression[barInSection % section.progression.length]?.[0],
-                  })
-                : bassLine(song.bassStyle, figureContext("bass")),
+                    section.kind === "chorus" || !!L.bassHeld,
+                  )
+                : isEuroBass(song.bassStyle)
+                  ? euroBassLine(song.bassStyle, figureContext("bass"), {
+                      figure: euroFigure(section.kind),
+                      barInSection,
+                      sameChord:
+                        barInSection > 0 &&
+                        section.progression[(barInSection - 1) % section.progression.length]?.at(
+                          -1,
+                        ) === section.progression[barInSection % section.progression.length]?.[0],
+                    })
+                  : bassLine(song.bassStyle, figureContext("bass")),
     hook: L.hook
       ? motifNotes(
           song.hook,
@@ -229,7 +234,9 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
       ? []
       : voices.arp === "pulse"
         ? pulseNotes(key, slots)
-        : motifNotes(song.arp, barInSection, key, slots, "chord", 72, 0.5),
+        : voices.arp === "pairs"
+          ? pairedArp(song.arp, barInSection, key, slots)
+          : motifNotes(song.arp, barInSection, key, slots, "chord", 72, 0.5),
     stab: !L.stabs
       ? []
       : L.drums === "stab"
@@ -281,10 +288,8 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
       : null;
   if (L.counter && voices.countervoice === "pluck8")
     notes.counter = pluckedCountervoice(key, slots, rng.fork("counter"));
-  if (L.counter && voices.countervoice === "sync16") {
-    const next = bar + 1 < song.totalBars ? arrangeTarget(song, bar + 1) : undefined;
-    notes.counter = syncCountervoice(key, slots, next?.slots[0], rng.fork("counter"));
-  }
+  if (L.counter && voices.countervoice === "comp")
+    notes.counter = chorusComp(key, slots, barInSection);
   if (L.counter && voices.countervoice === "arp8") {
     const next = bar + 1 < song.totalBars ? arrangeTarget(song, bar + 1) : undefined;
     notes.counter = arpCountervoice(key, slots, next?.slots[0], rng.fork("counter"));
@@ -598,6 +603,13 @@ function facesBassLine(ctx: FigureContext, barInSection: number, sustained: bool
  *   loop     R  -  .  .  R  -  .  .  R  -  .  .  R  -  .  .
  *   octaves  R  -  R8 .  R  -  R8 .  R  -  R8 .  R  -  .  .   (some chorus bars)
  */
+/** Self Control's bass in a break: the root from beat 2, held under the stab. */
+function breakBass(key: Key, slots: readonly ChordSlot[]): Note[] {
+  const slot = slotAt(slots, 4);
+  if (!slot) return [];
+  return [{ step: 4, dur: 11, midi: bassRoot("sc", key, slot.chord), vel: 0.9 }];
+}
+
 function scBassLine(ctx: FigureContext, rng: Rng, kind: SectionKind): Note[] {
   const out: Note[] = [];
   const octaves = (kind === "chorus" || kind === "outro") && rng.chance(0.2);
@@ -914,42 +926,68 @@ function arpCountervoice(
 }
 
 /**
- * Self Control's bright chorus part (branigan-self-control.md §6, §11): chord tones in C♯5–G♯6,
- * leaping between the lowest tone and its octave on the "&"s and beats 2 and 3, the top tone on
- * 3a and, on 4a, the next chord's nearest tone, tied over the bar line. 3a and 4a are the accents.
+ * Self Control's chorus comp (branigan-self-control.md §11, §12): close chords around E4–C♯5 in a
+ * two-bar rhythm, held and syncopated in the first bar, straight 8ths in the second. A minor
+ * chord is voiced as its 7th chord without the root (A C♯ E on F♯m, E G♯ B on C♯m), the others as
+ * plain triads.
  *
  *            1  e  &  a  2  e  &  a  3  e  &  a  4  e  &  a
- *            .  .  L  .  O  .  M  .  O  .  .  T  .  .  .  N
+ *   bar A    X  -  -  -  X  -  -  x  x  x  -  X  -  -  -  .
+ *   bar B    x  .  x  .  x  .  x  .  x  .  x  .  x  X  -  .
  */
-function syncCountervoice(
-  key: Key,
-  slots: readonly ChordSlot[],
-  next: ChordSlot | undefined,
-  rng: Rng,
-): Note[] {
+function chorusComp(key: Key, slots: readonly ChordSlot[], barInSection: number): Note[] {
+  const hits =
+    barInSection % 2 === 0
+      ? [
+          [0, 3, 0.62],
+          [4, 2.4, 0.66],
+          [7, 0.4, 0.5],
+          [8, 0.6, 0.6],
+          [9, 0.8, 0.5],
+          [11, 3.6, 0.64],
+        ]
+      : [
+          [0, 0.8, 0.6],
+          [2, 0.8, 0.52],
+          [4, 0.8, 0.56],
+          [6, 0.8, 0.52],
+          [8, 0.8, 0.6],
+          [10, 0.8, 0.52],
+          [12, 0.8, 0.6],
+          [13, 2, 0.56],
+        ];
   const out: Note[] = [];
-  const middle = rng.chance(0.3) ? 2 : 1;
-  for (const [step, vel] of [
-    [2, 0.7],
-    [4, 0.55],
-    [6, 0.7],
-    [8, 0.8],
-    [11, 0.9],
-    [15, 0.95],
-  ] as const) {
+  for (const [step = 0, dur = 1, vel = 0.6] of hits) {
     const slot = slotAt(slots, step);
     if (!slot) continue;
-    const tones = notesInRange(chordPitchClasses(key, slot.chord), 73, 92);
-    const low = tones[0];
-    const top = tones.at(-1);
-    if (low === undefined || top === undefined) continue;
-    const octave = low + 12 <= 92 ? low + 12 : low;
-    let midi = step === 2 ? low : step === 6 ? (tones[middle] ?? low) : step === 11 ? top : octave;
-    if (step === 15)
-      midi = closestTo(notesInRange(chordPitchClasses(key, (next ?? slot).chord), 73, 92), top);
-    out.push({ step, dur: step === 15 ? 2.6 : 1.5, midi, vel });
+    const pcs = chordPitchClasses(key, slot.chord);
+    const iv = intervalsOf(slot.chord);
+    const minorTriad = pcs.length === 3 && iv[1] === 3;
+    const tones = minorTriad
+      ? [pcs[1] ?? 0, pcs[2] ?? 0, mod12((pcs[0] ?? 0) + 10)]
+      : pcs.slice(0, 3);
+    for (const midi of voiceChord(tones, 66)) out.push({ step, dur, midi, vel });
   }
   return out;
+}
+
+/**
+ * Self Control's pre-chorus sequence (branigan-self-control.md §12): 16ths in pairs, each 8th a
+ * scale step from the chord's root struck twice, the second softer, around F♯4 (the song's arp
+ * motif picks the steps).
+ */
+function pairedArp(
+  motif: Motif,
+  barInSection: number,
+  key: Key,
+  slots: readonly ChordSlot[],
+): Note[] {
+  return motifNotes(motif, barInSection, key, slots, "scale", 66, 1)
+    .filter((n) => n.step % 2 === 0)
+    .flatMap((n) => [
+      { step: n.step, dur: 0.5, midi: n.midi, vel: 0.55 },
+      { step: n.step + 1, dur: 0.5, midi: n.midi, vel: 0.4 },
+    ]);
 }
 
 /** A diatonic 3rd under a lead note: the stacked voice of You Came's choruses. */
@@ -1189,13 +1227,14 @@ function chops(key: Key, slots: readonly ChordSlot[]): Note[] {
   return out;
 }
 
-/** Self Control's break (branigan-self-control.md §5, §6): one low chord on beat 2, most of its
- * energy in C2–C3, left to ring into the reverb. */
+/** Self Control's break (branigan-self-control.md §5, §6, §12): one low chord on beat 2, most of
+ * its energy in C2–C3, left to ring into the reverb: the root, its 5th and its octave from about
+ * F♯2. */
 function breakStab(key: Key, slots: readonly ChordSlot[]): Note[] {
   const slot = slotAt(slots, 4);
   if (!slot) return [];
-  const voicing = voiceChord(chordPitchClasses(key, slot.chord).slice(0, 3), 55);
-  return [(voicing[0] ?? 48) - 12, ...voicing].map((midi) => ({
+  const root = nearestWithPc(mod12(key.tonic + (slot.chord.bass ?? slot.chord.root)), 44);
+  return [root, root + 7, root + 12].map((midi) => ({
     step: 4,
     dur: 10,
     midi,
@@ -1372,6 +1411,7 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
   if (mode === "stab") {
     hit("kick", 4, 1);
     hit("snare", 4, 1);
+    hit("toml", 4, 0.8);
   } else if (mode === "half" || (mode === "breakdown" && barInSection < 3)) hit("kick", 0, 1);
   else for (const s of [0, 4, 8, 12]) if (s < fillFrom || s === 12) hit("kick", s, 1);
   if (mode === "big" && traits.bigKick14 && rng.chance(0.4)) hit("kick", 14, 0.7);
@@ -1450,19 +1490,18 @@ function drumBar(mode: DrumMode, rng: Rng, traits: DrumTraits, ctx: DrumBarConte
     }
     if (barInSection % 4 === 3 && fillFrom > 10) hit("kick", 10, 0.85);
   }
-  // Self Control's hats (branigan-self-control.md §5): none in the verses; 8ths in the intro;
-  // from the pre-chorus on, programmed 16ths at one level, without the "e" after the backbeat. In
-  // the chorus every other bar leaves 3e and 3& to the clap and opens the 4a.
+  // Self Control's hats (branigan-self-control.md §5, §12): none in the verses; 8ths in the
+  // intro; from the pre-chorus on, programmed 16ths at one level. In the chorus and the outro
+  // every other bar opens the 4a.
   if (scHats && mode !== "stab" && (ctx.kind !== "verse" || mode === "hats16")) {
     const sixteenths = mode === "hats16" || (!ctx.intro && mode !== "kick" && mode !== "half");
-    const barB = mode === "big" && ctx.kind !== "outro" && !evenBar;
+    const barB = mode === "big" && !evenBar;
     for (let s = 0; s < fillFrom; s++) {
       if (!sixteenths) {
         if (s % 2 === 0)
           hit("hat", s + humanise(s), (s % 4 === 0 ? 0.45 : 0.65) + rng.next() * 0.1);
         continue;
       }
-      if (s === 5 || s === 13 || (barB && (s === 9 || s === 10))) continue;
       if (barB && s === 15) hit("openhat", s, 0.55);
       else hit("hat", s + humanise(s), 0.5 + rng.next() * 0.06);
     }

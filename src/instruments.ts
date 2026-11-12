@@ -294,7 +294,7 @@ export class Instruments {
   /** Self Control's offbeat chop and its break's held stab, on the stab track (see setVoices). */
   private readonly stabChop: NativeMonoSynth;
   private readonly stabSwell: NativeMonoSynth;
-  /** Self Control's bright chorus part, on the counter track (see setVoices). */
+  /** Self Control's bright chorus comp, on the counter track (see setVoices). */
   private readonly counterBright: NativeMonoSynth;
   /** The Euro-disco parts (docs/references/sandra-*.md §12), each on its track (see setVoices). */
   private readonly euro: {
@@ -687,9 +687,9 @@ export class Instruments {
     this.counterSoft = softVoice(-3);
     this.counterSoftNight = softVoice(0);
 
-    // Self Control's chorus part (branigan-self-control.md §11): chord tones in C♯5–G♯6 whose
-    // onsets are as bright as an open saw (the 2 and 4 kHz bands 5–6 dB under the fundamentals'),
-    // falling about 6 dB in 40 ms, then holding near −10 dB until the note ends.
+    // Self Control's chorus comp (branigan-self-control.md §11, §12): close chords around E4–C♯5
+    // whose onsets are as bright as an open saw (the 2 and 4 kHz bands 5–6 dB under the
+    // fundamentals'), falling about 6 dB in 40 ms, then holding near −10 dB until the note ends.
     this.counterBright = new NativeMonoSynth({
       oscillator: { type: "sawtooth" },
       filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
@@ -702,8 +702,8 @@ export class Instruments {
         baseFrequency: 7000,
         octaves: 0,
       },
-      maxPolyphony: 3,
-      volume: -9,
+      maxPolyphony: lite ? 6 : 9,
+      volume: -13,
     }).connect(this.channels.counter);
 
     const arpOptions = {
@@ -1124,7 +1124,7 @@ export class Instruments {
             ? this.counterSoftNight
             : this.voices.countervoice === "arp8"
               ? this.counterSoft
-              : this.voices.countervoice === "sync16"
+              : this.voices.countervoice === "comp"
                 ? this.counterBright
                 : this.counter;
         for (const n of notes) voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);

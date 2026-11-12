@@ -967,7 +967,8 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
   // likely a LinnDrum). The sections differ by their drums and parts, not their chords: no hats in
   // the verses, 16ths from the pre-chorus, claps and the bright high part in the choruses, one
   // reverbed hit on beat 2 in the breaks. The verses play offbeat chops; the pre-chorus carries the
-  // title line; the voice is stacked in the choruses (its backing voices).
+  // title line over paired 16ths; the choruses comp chords and stack the voice (its backing
+  // voices); the riff comes back late in the vamp. The MIDI transcription confirmed the form (§12).
   "self-control": {
     title: "Self Control",
     style: 0.5,
@@ -1004,7 +1005,7 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         label: "Pre-chorus · title line",
         bars: 16,
         progression: SC_LOOP,
-        layers: { ...band, stabs: true, lead: "verse", titleLine: true },
+        layers: { ...band, stabs: true, arp: true, lead: "verse", titleLine: true },
       },
       {
         kind: "chorus",
@@ -1018,7 +1019,7 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         label: "Break · stab on 2",
         bars: 4,
         progression: SC_VAMP,
-        layers: { drums: "stab", stabs: true, lead: "chorus" },
+        layers: { drums: "stab", bass: true, stabs: true, lead: "chorus" },
         fill: true,
       },
       {
@@ -1047,15 +1048,23 @@ export const REFERENCES: Record<ReferenceId, ReferenceSong> = {
         label: "Break · stab on 2",
         bars: 4,
         progression: SC_VAMP,
-        layers: { drums: "stab", stabs: true, lead: "chorus" },
+        layers: { drums: "stab", bass: true, stabs: true, lead: "chorus" },
         fill: true,
       },
       {
         kind: "outro",
         label: "Outro · i–v vamp",
-        bars: 16,
+        bars: 8,
         progression: SC_VAMP,
         layers: { ...band, drums: "big", counter: true, lead: "chorus" },
+      },
+      // The riff comes back for the vamp's second half (the MIDI transcription, §12).
+      {
+        kind: "outro",
+        label: "Outro · vamp and riff",
+        bars: 8,
+        progression: SC_VAMP,
+        layers: { ...band, drums: "big", counter: true, riff: true, lead: "chorus" },
       },
     ],
   },

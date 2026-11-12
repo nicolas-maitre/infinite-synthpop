@@ -522,13 +522,13 @@ So each part was read where it's alone in time:
 | ---------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Riff (bars 4–7)  | 2& 1.00, 1 0.91, 3& 0.87, 1a 0.74                                                                   | a 2-bar figure, the root on 1, 1a and 2&, then one of four shapes on 3–4; the bass plays it 4 octaves down |
 | Verse chop       | the "&"s: 1.00, 0.87, 0.73, 0.61–0.75; the beats 0.37–0.56                                          | a triad around F♯4 over its lowest note an octave down, a 16th long, on every "&"                          |
-| Chorus high part | beat 3 1.00, 4a 0.92–0.97, 2& 0.90, 2 0.80, 1& 0.75, 3a 0.71–0.74 (C5–C7)                           | chord tones in C♯5–G♯6 on 1&, 2, 2&, 3, 3a and 4a; the 4a takes the next chord's tone                      |
-| Break stab       | one onset, on beat 2; the "other" stem swells for 250 ms after it and holds for the rest of the bar | a low triad and its root an octave down on beat 2, held for most of the bar, into the reverb               |
+| Chorus high part | beat 3 1.00, 4a 0.92–0.97, 2& 0.90, 2 0.80, 1& 0.75, 3a 0.71–0.74 (C5–C7)                           | close chords around E4–C♯5 in the MIDI's two-bar comp rhythm (§12); first a single line in C♯5–G♯6         |
+| Break stab       | one onset, on beat 2; the "other" stem swells for 250 ms after it and holds for the rest of the bar | the root, 5th and octave from about F♯2 on beat 2, over the bass's held root (§12), held into the reverb   |
 
-The chorus part's notes, read from a CQT of the "other" stem over chorus 1, are chord tones that
-leap between octaves (C♯5, C♯6, F♯5 over F♯m; G♯6 and E6 near the bar's end), and the last 16th
-already sounds the next chord (E6 and G♯6 before C♯m, B5 before E, D5 before D). The exact notes
-are the composition, so each song writes its own.
+The chorus part's notes, read from a CQT of the "other" stem over chorus 1, looked like chord
+tones leaping between octaves, the last 16th already sounding the next chord. The MIDI
+transcription (§12) reads the same onsets as a chord comp, two chord parts in E4–C♯5, and the
+generator now plays that.
 
 ### 11.2 Tone, record against render
 
@@ -540,7 +540,7 @@ fill are compared.
 | ---------------- | ----------------------------- | ----------------------------- | -------------------------------------------------------------------------- |
 | Riff             | −1.5 · −3.5 · 0 · −4.2        | −0.1 · −2.3 · 0 · −5.2        | a saw with +9 dB at 3.2 kHz, 3 dB down by 250 ms (riff patch "bright")     |
 | Verse chop       | −1.9 · −8.9 · −10.9 · −11.5   | −4.6 · −10.2 · −9.2 · −12.3   | a saw, −5 dB at 1.5 kHz, 6 dB down in 90 ms, 10 dB in 215 ms (stab "chop") |
-| Chorus high part | −4.9 · 0 · −6.2 · −4.9        | −27.9 · 0 · −5.4 · −5.4       | an open saw, 6 dB down in 40 ms, then held near −10 dB (counter "sync16")  |
+| Chorus high part | −4.9 · 0 · −6.2 · −4.9        | −27.9 · 0 · −5.4 · −5.4       | an open saw, 6 dB down in 40 ms, then held near −10 dB (counter "comp")    |
 | Break stab       | −0.4 · −6.3 · −14.9 · −25.1   | −5.4 · −4.0 · −13.5 · −29.4   | a saw through a 12 dB low-pass at 1.8 kHz, a 120 ms swell, a long release  |
 
 The riff is the brightest part, as bright at 2–4 kHz as at its fundamentals: a plain saw read 6 dB
@@ -588,6 +588,53 @@ first 60 bars), over three rounds:
   stops at +5 dB, the most in Italo.
 - **Fill:** her voice dips 18 dB between words, ours 4–8. That comes from the lead's legato and
   reverb, which the genre doesn't set.
+
+## 12. The MIDI transcription
+
+The user added a MIDI file of the song (`inspiration/Laura Branigan/`, local only, not in the
+repo): a karaoke-style type-0 file, 15 channels with General MIDI instruments, a guide melody and
+lyrics, at 110 BPM. It isn't the multitrack: it's someone's arrangement of the record. So it was
+read against the stems: where the two agree, or where the MIDI separates what the stems blend, the
+generator follows it. Where they disagree, the stems stand until an ear check (§12.3).
+
+**Form.** Its bar n is the single's bar n − 1 (it opens with one bar of count-in), and every
+section boundary of §2.1 lands where the MIDI's parts change: pad intro 4, riff 4, verse 16,
+pre-chorus 16, chorus 16, break 4, drums and voice 2, verse 8, chorus 16, break 4, then the vamp.
+
+### 12.1 What it adds, now played
+
+| Section       | The MIDI                                                                                                                                                                                                                                                        | The generator now                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Pre-chorus    | two parts in 16ths an octave apart (a kalimba around F♯4, a muted guitar around F♯3): each 8th a scale step from the root, struck twice, the second softer                                                                                                      | the arp track in pairs (`arp: "pairs"`): the song's arp motif read as scale steps from the root around F♯4, each 8th struck twice |
+| Chorus        | a clean guitar and an electric piano comping chords in E4–C♯5: bar A held and syncopated (1, 2, 2a, 3, 3e, 3a), bar B straight 8ths with a push on 4e; i and v voiced as their 7ths without the root (A C♯ E on F♯m, E G♯ B on C♯m), the others as close triads | the counter track comps the same way (`countervoice: "comp"`), in place of the single line read from the stems                    |
+| Break         | on beat 2, a power chord (F♯2 C♯3 F♯3) on distorted guitar, the bass and a low synth holding the root, a pad note; a low tom with the snare                                                                                                                     | the stab as root, 5th and octave from about F♯2; the bass holds the root from beat 2; a low tom joins the kick and snare          |
+| Outro         | the riff (on guitar, without the bass) comes back for the vamp's second 8 bars                                                                                                                                                                                  | the vamp is 8 bars, then 8 more with the riff; outside the intro the bass doesn't double it                                       |
+| Chorus, outro | the hats run all 16ths; the open hat on 4a every other bar, in the outro too                                                                                                                                                                                    | the same. The stems' gaps on the "e" after the backbeat and under the 3e clap were the snare and clap masking the hats            |
+
+The MIDI agrees with the stems on the chorus claps (on 4 every bar, on 3e every other bar), the
+outro's clap on 2, the riff's rhythm (1, 1a, 2&) and its unison with the bass in the intro, the
+pre-chorus's 16th hats and the break's single hit on beat 2.
+
+The riff's notes in the MIDI step down to the 7th below the root on beat 2 and on 3&, and up to
+the 3rd on 4. They're the composition; the generator keeps writing its own figure.
+
+Its choir part (backing "aahs" in the second half of the pre-chorus and the chorus, and an
+arpeggio up the chord in the breaks) isn't played: the choruses' stacked 3rd stands in for it.
+
+### 12.2 Where it disagrees with the stems
+
+| What            | The MIDI                                                                                  | The stems (§4, §5, §6)                                                             |
+| --------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Kick            | on 1 and 3                                                                                | on every beat (1.00 in every groove section)                                       |
+| Verse hats      | 8ths                                                                                      | none running: a hit with the kick on the beats, an 8th on the "&" in 0–25% of bars |
+| Verse bass      | 8ths, the root and its octave in turn                                                     | one note per beat, on the root (no onset on the "&"s)                              |
+| Verse high part | a 3-note figure in long notes (on 1, 1& or 1a, 2&) in C♯5–A5, on a bell and bowed strings | the strongest onsets on every "&", 10 and 14 included: chords chopped on the "&"s  |
+| Riff register   | F♯3 on the guitar, F♯1 on the bass                                                        | the riff's part read around C♯5–C♯6                                                |
+
+### 12.3 Ear check
+
+These disagreements went to the user as clips of the isolated stems (`renders/ear-check-self-control/`,
+clips 6–8). Until they're answered, the generator keeps the stems' reading.
 
 ## Sources
 

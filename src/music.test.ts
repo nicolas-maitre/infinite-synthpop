@@ -905,7 +905,9 @@ describe("italo genre", () => {
         expect(s.layers.drums).not.toBe("off");
         expect([2, 4, 8, 12, 16]).toContain(s.bars);
       }
-      expect(["Outro · chorus to fade", "Outro · i–v vamp"]).toContain(song.sections.at(-1)?.label);
+      expect(["Outro · chorus to fade", "Outro · vamp and riff"]).toContain(
+        song.sections.at(-1)?.label,
+      );
       // Every bar arranges, chords and all.
       for (let bar = 0; bar < song.totalBars; bar++) {
         const ev = arrangeBar(song, bar);
@@ -1144,7 +1146,8 @@ describe("self control in italo", () => {
       ["Verse 2", 8],
       ["Chorus", 16],
       ["Break · stab on 2", 4],
-      ["Outro · i–v vamp", 16],
+      ["Outro · i–v vamp", 8],
+      ["Outro · vamp and riff", 8],
     ]);
     // One loop under the verse, the pre-chorus and the chorus.
     expect(song.progressions.verse).toEqual(LOOP);
@@ -1199,37 +1202,62 @@ describe("self control in italo", () => {
     expect(hats(verse + 1)).toEqual([]);
     expect(kicks(verse + 1)).toEqual([0, 4, 8, 12]);
     const pre = find("Pre-chorus · title line").startBar;
-    expect(hats(pre + 1)).toEqual([0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 14, 15]);
+    const all16 = Array.from({ length: 16 }, (_, i) => i);
+    expect(hats(pre + 1)).toEqual(all16);
     expect(claps(pre + 1)).toEqual([]);
     const chorus = find("Chorus").startBar;
     expect(claps(chorus + 2)).toEqual([12]);
     expect(claps(chorus + 3)).toEqual([9, 12]);
-    expect(hats(chorus + 3)).toEqual([0, 1, 2, 3, 4, 6, 7, 8, 11, 12, 14, 15]);
+    expect(hats(chorus + 3)).toEqual(all16);
+    const open = (bar: number) =>
+      arrangeBar(song, bar)
+        .drums.filter((h) => h.voice === "openhat")
+        .map((h) => h.step);
+    expect([open(chorus + 2), open(chorus + 3)]).toEqual([[], [15]]);
     const outro = find("Outro · i–v vamp").startBar;
     expect(claps(outro + 1)).toEqual([4]);
-    // The break: kick and snare together on beat 2, one low chord with them, nothing else.
+    expect(open(outro + 1)).toEqual([15]);
+    // The break: kick, snare and low tom together on beat 2, a low power chord over the bass's
+    // held root, nothing else.
     const brk = arrangeBar(song, find("Break · stab on 2").startBar);
-    expect(brk.drums.map((h) => [h.voice, h.step])).toEqual([
-      ["kick", 4],
-      ["snare", 4],
-    ]);
+    expect(brk.drums.map((h) => h.step)).toEqual([4, 4, 4]);
     expect(new Set(brk.notes.stab.map((n) => n.step))).toEqual(new Set([4]));
-    expect(Math.min(...brk.notes.stab.map((n) => n.midi))).toBeLessThan(48);
+    const stab = brk.notes.stab.map((n) => n.midi).sort((a, b) => a - b);
+    expect([(stab[1] ?? 0) - (stab[0] ?? 0), (stab[2] ?? 0) - (stab[0] ?? 0)]).toEqual([7, 12]);
+    expect(stab[0]).toBeLessThan(48);
+    expect(brk.notes.bass.map((n) => [n.step, mod12(n.midi - song.key.tonic)])).toEqual([[4, 0]]);
   });
 
-  it('chops on every "&" in the verse and plays its bright part in the chorus', () => {
+  it("chops in the verse, runs paired 16ths in the pre-chorus and comps chords in the chorus", () => {
     const verse = arrangeBar(song, find("Verse 1").startBar);
     expect(new Set(verse.notes.stab.map((n) => n.step))).toEqual(new Set([2, 6, 10, 14]));
     expect(verse.notes.pad.length).toBeGreaterThan(0);
     expect(verse.notes.counter).toEqual([]);
-    const chorus = arrangeBar(song, find("Chorus").startBar);
-    expect(chorus.notes.counter.map((n) => n.step)).toEqual([2, 4, 6, 8, 11, 15]);
-    for (const n of chorus.notes.counter) {
-      expect(n.midi).toBeGreaterThanOrEqual(73);
-      expect(n.midi).toBeLessThanOrEqual(92);
+    expect(verse.notes.arp).toEqual([]);
+    // Each 8th struck twice.
+    const pre = arrangeBar(song, find("Pre-chorus · title line").startBar).notes.arp;
+    expect(pre.map((n) => n.step)).toEqual(Array.from({ length: 16 }, (_, i) => i));
+    for (let i = 0; i < 16; i += 2) expect(pre[i + 1]?.midi).toBe(pre[i]?.midi);
+    // The comp: i voiced as its 7th without the root (A C♯ E on F♯m), held and syncopated, then
+    // straight 8ths on v (E G♯ B on C♯m).
+    const rel = (notes: readonly { midi: number }[]) =>
+      new Set(notes.map((n) => mod12(n.midi - song.key.tonic)));
+    const chorusSection = find("Chorus");
+    const comp = (i: number) => arrangeBar(song, chorusSection.startBar + i).notes.counter;
+    expect([...new Set(comp(0).map((n) => n.step))]).toEqual([0, 4, 7, 8, 9, 11]);
+    expect(rel(comp(0))).toEqual(new Set([3, 7, 10]));
+    expect([...new Set(comp(1).map((n) => n.step))]).toEqual([0, 2, 4, 6, 8, 10, 12, 13]);
+    expect(rel(comp(1))).toEqual(new Set([10, 2, 5]));
+    for (const n of [...comp(0), ...comp(1)]) {
+      expect(n.midi).toBeGreaterThanOrEqual(59);
+      expect(n.midi).toBeLessThanOrEqual(74);
     }
+    // The riff comes back in the vamp's second half, without the bass.
+    const late = arrangeBar(song, find("Outro · vamp and riff").startBar);
+    expect(late.notes.riff.length).toBeGreaterThan(0);
+    expect(late.notes.bass.map((n) => n.step)).toEqual([0, 4, 8, 12]);
     // Backing voices: a 3rd under the lead.
-    expect(chorus.section.layers.leadStack).toBe(true);
+    expect(arrangeBar(song, chorusSection.startBar).section.layers.leadStack).toBe(true);
   });
 
   it("changes nothing about the other corners' songs while its weight is 0", () => {
@@ -1254,7 +1282,7 @@ describe("self control in italo", () => {
     expect(sc.weights).toEqual([0, 0, 0, 1]);
     expect(sc.key).toEqual({ tonic: 6, mode: "minor" });
     expect([sc.bpm, sc.kit, sc.bassStyle, sc.totalBars]).toEqual([106.7, "linndrum", "sc", 106]);
-    expect(sc.sections.map((s) => s.bars)).toEqual([4, 4, 16, 16, 16, 4, 2, 8, 16, 4, 16]);
+    expect(sc.sections.map((s) => s.bars)).toEqual([4, 4, 16, 16, 16, 4, 2, 8, 16, 4, 8, 8]);
     expect(sc.sections.at(-1)?.fade).toBe(true);
     // F♯m, C♯m, E, Bm, D, A: the bass on the roots, C♯1–B1.
     const verse = sc.sections.find((s) => s.label === "Verse 1");
