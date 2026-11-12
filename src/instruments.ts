@@ -111,8 +111,9 @@ const SENDS: Record<Track, { reverb: number; delay: number }> = {
   counter: { reverb: 0.45, delay: 0.15 },
   arp: { reverb: 0.4, delay: 0.3 },
   stab: { reverb: 0.5, delay: 0.1 },
-  // The Night's lead synth: a short room only; its dotted-8th echo is its own (see the constructor).
-  synth: { reverb: 0.15, delay: 0 },
+  // The Night's lead synth: Get Closer's hook patch with its own echo, sent like the riff it came
+  // from (picked by ear that way, clip 6b2 in docs/italo/mix.md).
+  synth: { reverb: 0.3, delay: 0.25 },
 };
 
 /**
@@ -268,16 +269,14 @@ export class Instruments {
   };
   private leadSettings: LeadSettings = LEAD_SETTINGS.synth;
   private readonly counter: NativeFMSynth;
-  /** The Night's plucked chorus countervoice, on the counter track (see setVoices). */
-  private readonly counterPluck: NativeMonoSynth;
-  /** …and its electric-piano layer. */
-  private readonly counterPluckEp: NativeFMSynth;
   /** The Night's bright saw for its two-note riff, on the riff track (see setVoices). */
   private readonly riffPlain: NativeSynth;
-  /** The Night's lead synth. */
-  private readonly synth: NativeFMSynth;
+  /** The Night's lead synth: Get Closer's hook patch, on the synth track. */
+  private readonly synth: NativeMonoSynth;
   /** Get Closer's chorus countervoice, on the counter track (see setVoices). */
   private readonly counterSoft: NativeSynth;
+  /** The same voice for The Night's chorus line, louder. */
+  private readonly counterSoftNight: NativeSynth;
   /** Self Control's riff, on the riff track (see setVoices). */
   private readonly riffBright: NativeSynth;
   /** Get Closer's hook: a gated narrow pulse into its own echo and chorus, on the riff track. */
@@ -527,37 +526,46 @@ export class Instruments {
     // through a fixed 12 dB low-pass at 3.5 kHz, gated at 70% of a 16th by the notes. Then a
     // dotted-8th echo whose repeats fall about 4 dB each and darken (a 2.5 kHz low-pass in the
     // feedback loop, as on an analog or tape delay), and a stereo chorus as wide as the pads.
-    const riffChorus = new Tone.Chorus({ frequency: 0.8, delayTime: 3.5, depth: 0.5, wet: 0.5 });
-    riffChorus.start().connect(this.channels.riff);
-    const echoIn = new Tone.Gain(1);
-    const echoDelay = new Tone.Delay(0.4, 1);
-    const echoTone = new FixedFilter("lowpass", 2500);
-    const echoFeedback = new Tone.Gain(0.63);
-    echoIn.connect(riffChorus);
-    echoIn.connect(echoDelay);
-    echoDelay.chain(echoTone, echoFeedback, echoDelay);
-    echoTone.connect(new Tone.Gain(0.63).connect(riffChorus));
-    this.echoTimes.push(echoDelay.delayTime);
-    this.riffPulse = new NativeMonoSynth({
-      oscillator: {
-        type: "square",
-        partials: [
-          1, 0.93, 0.82, 0.68, 0.52, 0.35, 0.19, 0.04, 0.08, 0.16, 0.21, 0.22, 0.21, 0.16, 0.11,
-          0.04,
-        ],
-      },
-      filter: { type: "lowpass", rolloff: -12, Q: 1 },
-      envelope: { attack: 0.002, decay: 0.3, sustain: 0.6, release: 0.04 },
-      filterEnvelope: {
-        attack: 0.002,
-        decay: 0.1,
-        sustain: 1,
-        release: 0.05,
-        baseFrequency: 3500,
-        octaves: 0,
-      },
-      maxPolyphony: 4,
-    }).connect(echoIn);
+    // The Night's lead synth plays the same patch on its own track: its measured nearly-sine tone
+    // (the-night.md §10.1) sounded nothing like the record by ear (docs/italo/mix.md).
+    const hookPulse = (out: Tone.ToneAudioNode, volume: number) => {
+      const chorus = new Tone.Chorus({ frequency: 0.8, delayTime: 3.5, depth: 0.5, wet: 0.5 });
+      chorus.start().connect(out);
+      const echoIn = new Tone.Gain(1);
+      const echoDelay = new Tone.Delay(0.4, 1);
+      const echoTone = new FixedFilter("lowpass", 2500);
+      const echoFeedback = new Tone.Gain(0.63);
+      echoIn.connect(chorus);
+      echoIn.connect(echoDelay);
+      echoDelay.chain(echoTone, echoFeedback, echoDelay);
+      echoTone.connect(new Tone.Gain(0.63).connect(chorus));
+      this.echoTimes.push(echoDelay.delayTime);
+      return new NativeMonoSynth({
+        oscillator: {
+          type: "square",
+          partials: [
+            1, 0.93, 0.82, 0.68, 0.52, 0.35, 0.19, 0.04, 0.08, 0.16, 0.21, 0.22, 0.21, 0.16, 0.11,
+            0.04,
+          ],
+        },
+        filter: { type: "lowpass", rolloff: -12, Q: 1 },
+        envelope: { attack: 0.002, decay: 0.3, sustain: 0.6, release: 0.04 },
+        filterEnvelope: {
+          attack: 0.002,
+          decay: 0.1,
+          sustain: 1,
+          release: 0.05,
+          baseFrequency: 3500,
+          octaves: 0,
+        },
+        maxPolyphony: 4,
+        volume,
+      }).connect(echoIn);
+    };
+    this.riffPulse = hookPulse(this.channels.riff, 0);
+    // By ear (clips 6b2 and 8), 8 dB above the old tone's measured balance (the Italo mix's lead
+    // synth).
+    this.synth = hookPulse(this.channels.synth, -6);
     const riffFilter = new FixedFilter("lowpass", 3200);
     this.riffSaw = new NativeSynth({
       volume: -6,
@@ -663,46 +671,19 @@ export class Instruments {
       maxPolyphony: lite ? 2 : 4,
     }).connect(this.channels.counter);
 
-    // The Night's chorus countervoice (the-night.md §10.2, found by ear, clips 20–22): an open saw
-    // pluck, bright and ringing for most of a bar, layered at equal loudness with TF's FM electric
-    // piano, both with a softened 12 ms attack, under heavy reverb (an extra send on top of the
-    // counter track's, about 0.65 in all) and no delay.
-    const nightCounter = new Tone.Gain(1);
-    nightCounter.fan(this.channels.counter, new Tone.Gain(0.2).connect(reverb));
-    this.counterPluck = new NativeMonoSynth({
-      oscillator: { type: "sawtooth" },
-      filter: { type: "lowpass", rolloff: -12, Q: 0.8 },
-      envelope: { attack: 0.012, decay: 1.4, sustain: 0.05, release: 0.35 },
-      filterEnvelope: {
-        attack: 0.002,
-        decay: 0.12,
-        sustain: 0.3,
-        release: 0.15,
-        baseFrequency: 5000,
-        octaves: 0.5,
-      },
-      maxPolyphony: lite ? 3 : 6,
-      volume: -9,
-    }).connect(nightCounter);
-    this.counterPluckEp = new NativeFMSynth({
-      harmonicity: 1,
-      modulationIndex: 1.6,
-      oscillator: { type: "sine", partials: [1, 0.56, 0.28, 0.14, 0.08, 0.056, 0.018, 0.016] },
-      modulation: { type: "sine" },
-      envelope: { attack: 0.012, decay: 7.3, sustain: 0.15, release: 0.35 },
-      modulationEnvelope: { attack: 0.002, decay: 0.9, sustain: 0, release: 0.2 },
-      volume: 0,
-      maxPolyphony: lite ? 3 : 6,
-    }).connect(nightCounter);
-
     // Get Closer's chorus countervoice (get-closer.md §10): soft and nearly sine-like (h2 and h3
     // about 18 dB down), rising in about 30 ms and settling 8–10 dB down; near-mono, no effects.
-    this.counterSoft = new NativeSynth({
-      oscillator: { type: "sine", partials: [1, 0.12, 0.1] },
-      envelope: { attack: 0.025, decay: 0.25, sustain: 0.35, release: 0.35 },
-      maxPolyphony: 4,
-      volume: -3,
-    }).connect(this.channels.counter);
+    // The Night's line plays on it too, 3 dB louder by ear (clip 9): its own pluck sounded no
+    // closer to the record (docs/italo/mix.md).
+    const softVoice = (volume: number) =>
+      new NativeSynth({
+        oscillator: { type: "sine", partials: [1, 0.12, 0.1] },
+        envelope: { attack: 0.025, decay: 0.25, sustain: 0.35, release: 0.35 },
+        maxPolyphony: 4,
+        volume,
+      }).connect(this.channels.counter);
+    this.counterSoft = softVoice(-3);
+    this.counterSoftNight = softVoice(0);
 
     // Self Control's chorus part (branigan-self-control.md §11): chord tones in C♯5–G♯6 whose
     // onsets are as bright as an open saw (the 2 and 4 kHz bands 5–6 dB under the fundamentals'),
@@ -722,24 +703,6 @@ export class Instruments {
       maxPolyphony: 3,
       volume: -9,
     }).connect(this.channels.counter);
-
-    // The Night's lead synth (the-night.md §10.1): a nearly pure tone (h2 −10 dB, h3 −19.5) struck
-    // hard: a 1:1 FM whose index falls from about 2.4 to 0.6, a 3 Hz vibrato of ±18 cents, and a
-    // dotted-8th echo about 8.5 dB down. The shared delay is high-passed at 600 Hz, which would
-    // take most of a tone whose fundamental sits at 310–520 Hz, so it has its own.
-    const synthVibrato = new Tone.Vibrato({ frequency: 3, depth: 0.22 });
-    const synthEcho = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.25, wet: 0.3 });
-    synthVibrato.chain(synthEcho, this.channels.synth);
-    this.echoTimes.push(synthEcho.delayTime);
-    this.synth = new NativeFMSynth({
-      harmonicity: 1,
-      modulationIndex: 7.5,
-      oscillator: { type: "sine" },
-      modulation: { type: "sine" },
-      envelope: { attack: 0.004, decay: 0.15, sustain: 0.35, release: 0.1 },
-      modulationEnvelope: { attack: 0.002, decay: 0.08, sustain: 0.25, release: 0.1 },
-      maxPolyphony: 2,
-    }).connect(synthVibrato);
 
     const arpOptions = {
       harmonicity: 4,
@@ -806,7 +769,10 @@ export class Instruments {
         octaves: 1.5,
       },
       maxPolyphony: lite ? 8 : 12,
-      volume: ARP_STAB_GAIN_DB - 6,
+      // 13 dB over the pluck's level: against the record's stems the pluck (like Self Control's
+      // stabs) rendered 12 dB too loud and this one about right, and Italo's stab fader takes the
+      // 12 dB off (docs/italo/mix.md).
+      volume: ARP_STAB_GAIN_DB + 7,
     }).connect(pluckBus);
     const arpBus = new Tone.Gain(1);
     arpBus.connect(this.channels.arp);
@@ -824,8 +790,9 @@ export class Instruments {
       },
       maxPolyphony: 3,
       // On the record the arpeggio sits about 1 dB under the stab (faces.md §10.4). It's one note
-      // where the stab plays three, and at -4 dB it rendered 14 dB under it at default faders.
-      volume: ARP_STAB_GAIN_DB + 3,
+      // where the stab plays three, and at +9 dB it rendered 3 dB under it at default faders;
+      // with Italo's stab fader 12 dB down (docs/italo/mix.md), it comes down 10.
+      volume: ARP_STAB_GAIN_DB - 7,
     });
     this.arpPluck.chain(
       new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.6, wet: 0.5 }).start(),
@@ -1152,17 +1119,13 @@ export class Instruments {
       case "counter": {
         const voice =
           this.voices.countervoice === "pluck8"
-            ? this.counterPluck
+            ? this.counterSoftNight
             : this.voices.countervoice === "arp8"
               ? this.counterSoft
               : this.voices.countervoice === "sync16"
                 ? this.counterBright
                 : this.counter;
-        for (const n of notes) {
-          voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
-          if (voice === this.counterPluck)
-            this.counterPluckEp.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
-        }
+        for (const n of notes) voice.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
       }
       case "riff":
@@ -1402,9 +1365,8 @@ export class Instruments {
       this.riffSaw,
       this.arp,
       this.counter,
-      this.counterPluck,
-      this.counterPluckEp,
       this.counterSoft,
+      this.counterSoftNight,
       this.riffPlain,
       this.riffPulse,
       this.riffBright,

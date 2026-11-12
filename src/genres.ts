@@ -140,10 +140,11 @@ export interface Voices {
    * kHz lifted, as bright there as at its fundamentals (branigan-self-control.md §11). */
   riffPatch: "fm" | "saw" | "pulse" | "bright" | "click" | "glide";
   /** The chorus countervoice: none; The Night's line on the off-beat 8ths, stepping down through
-   * each chord's tones in the voice's register (the-night.md §10.2); or Get Closer's soft,
-   * near-sine 8th arpeggio up and down the chord from beat 2, in C6–B6 (get-closer.md §10); or
-   * Self Control's bright chorus part: chord tones in C♯5–G♯6 on the "&"s and beats 2 and 3,
-   * accented on 3a and 4a, the 4a taking the next chord (branigan-self-control.md §6, §11). */
+   * each chord's tones in the voice's register (the-night.md §10.2); or Get Closer's 8th arpeggio
+   * up and down the chord from beat 2, in C6–B6 (get-closer.md §10), both on Get Closer's soft,
+   * near-sine voice (docs/italo/mix.md); or Self Control's bright chorus part: chord tones in
+   * C♯5–G♯6 on the "&"s and beats 2 and 3, accented on 3a and 4a, the 4a taking the next chord
+   * (branigan-self-control.md §6, §11). */
   countervoice: "none" | "pluck8" | "arp8" | "sync16";
   /** Pads: one close voicing (synthpop, Get Closer); the triad stacked an octave up too (The
    * Night's span C4–A♭6); or Faces' open voicings, the root in octave 3, the 7th in the middle
@@ -1394,6 +1395,11 @@ export const GENRES: Record<GenreId, Genre> = {
       sustain: { by: { [TN]: 0.35, [GC]: 0.15, [FC]: 0.2, [SC]: 0.3 } },
       lowCut: { by: { [SC]: 65 } },
     },
+    // Fitted to the four records' Demucs stems section by section, each record weighted equally
+    // (docs/italo/mix.md): the drums lead these records and the pads sit further back. Faces'
+    // pluck and Self Control's chops and break stab all rendered 11–13 dB too loud (Faces' chorus
+    // stab makes up the difference in its own gain). The Night's lead synth is set by ear.
+    mix: { drums: 0, pad: -13.5, stab: -17, synth: -4.5 },
   },
   euro: {
     id: "euro",
