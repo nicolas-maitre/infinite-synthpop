@@ -22,11 +22,12 @@
  * it is more than the buffer ahead of what is heard.
  */
 import * as Tone from "tone";
-import { arrangeBar } from "./arranger";
+import { arrangeBar, type BarEvents } from "./arranger";
 import type { Song } from "./composer";
 import { songSound } from "./profile";
 import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
 import { scheduleBar } from "./schedule";
+import type { TempoMap } from "./tempo";
 
 /** The mixer as the renders apply it. */
 export interface RenderMix {
@@ -40,11 +41,17 @@ export interface RenderMix {
 /** One song in a piece, on its own instruments. */
 export interface Deck<M> {
   song: Song;
-  /** Timeline time (seconds) where the song's bar 0 starts. */
-  origin: number;
+  /** When each bar starts on the timeline, and its tempo. */
+  clock: TempoMap;
   /** The bars it plays in the piece, [from, to). */
   from: number;
   to: number;
+  /** The earliest bar it has (a pre-roll goes no further back): 0, or below for a DJ's mix-in
+   * intro. */
+  first?: number;
+  /** What it plays in a bar; the song's own bar by default. A DJ filters the bars around a
+   * handoff, and plays a groove before bar 0. */
+  arrange?: (bar: number) => BarEvents;
   /** The bars reported as playing (onBar), [from, to). Overlapping decks report one at a time. */
   shown: [number, number];
   /** The engine's own data about the song (where it came from). */
@@ -157,8 +164,6 @@ class Tap extends AudioWorkletProcessor {
 registerProcessor("${TAP}", Tap);
 `;
 let tapUrl: string | null = null;
-
-const barSeconds = (song: Song) => 240 / song.bpm;
 
 /** A piece being rendered and played. */
 interface Live<M> {
@@ -317,9 +322,8 @@ export class AheadPlayer<M> {
     for (const { piece } of this.pieces) {
       if (piece.end <= time) continue;
       for (const deck of piece.decks) {
-        const sec = barSeconds(deck.song);
-        const bar = Math.max(deck.shown[0], Math.ceil((time - deck.origin) / sec - 1e-6));
-        const at = deck.origin + bar * sec;
+        const bar = Math.max(deck.shown[0], Math.ceil(deck.clock.barAt(time) - 1e-6));
+        const at = deck.clock.time(bar);
         if (bar >= deck.shown[1] || at >= piece.end || at < piece.start) continue;
         if (!best || at < best.time) best = { time: at, deck, bar };
       }
@@ -389,14 +393,14 @@ export class AheadPlayer<M> {
   private segments(piece: Piece<M>): Piece<M>[] {
     const deck = piece.decks[0];
     if (piece.decks.length !== 1 || !deck) return [piece];
-    const sec = barSeconds(deck.song);
-    const every = Math.max(1, Math.round(SEGMENT_SECONDS / sec));
+    const { clock } = deck;
+    const every = Math.max(1, Math.round(SEGMENT_SECONDS / clock.barSeconds(deck.from)));
     const parts: Piece<M>[] = [];
     let start = piece.start;
-    let bar = Math.ceil((start - deck.origin) / sec - 1e-6) + every;
+    let bar = Math.ceil(clock.barAt(start) - 1e-6) + every;
     // The last segment takes up to one and a half segments, rather than leaving a sliver.
-    while (deck.origin + (bar + every / 2) * sec < piece.end - 1e-6) {
-      const end = this.snap(deck.origin + bar * sec);
+    while (clock.barAt(piece.end) - 1e-6 > bar + every / 2) {
+      const end = this.snap(clock.time(bar));
       parts.push({ decks: piece.decks, start, end });
       start = end;
       bar += every;
@@ -415,7 +419,7 @@ export class AheadPlayer<M> {
         bar < Math.min(deck.to, deck.shown[1]);
         bar++
       ) {
-        const at = deck.origin + bar * barSeconds(deck.song);
+        const at = deck.clock.time(bar);
         if (at >= piece.start - 1e-6 && at < piece.end) bars.push([at, deck, bar]);
       }
     }
@@ -723,12 +727,12 @@ function equalPower(x: number): number {
 function renderEvents<M>(piece: Piece<M>): [number, Deck<M>, number][] {
   const events: [number, Deck<M>, number][] = [];
   for (const deck of piece.decks) {
-    const sec = barSeconds(deck.song);
-    const first = Math.floor((piece.start - deck.origin) / sec + 1e-6);
-    const last = Math.ceil((piece.end - deck.origin) / sec - 1e-6);
-    const from = Math.max(0, Math.max(deck.from, first) - PREROLL_BARS);
+    const { clock } = deck;
+    const first = Math.floor(clock.barAt(piece.start) + 1e-6);
+    const last = Math.ceil(clock.barAt(piece.end) - 1e-6);
+    const from = Math.max(deck.first ?? 0, Math.max(deck.from, first) - PREROLL_BARS);
     const to = Math.min(deck.song.totalBars, Math.min(deck.to, last) + 1);
-    for (let bar = from; bar < to; bar++) events.push([deck.origin + bar * sec, deck, bar]);
+    for (let bar = from; bar < to; bar++) events.push([clock.time(bar), deck, bar]);
   }
   return events.sort((a, b) => a[0] - b[0]);
 }
@@ -814,7 +818,7 @@ async function renderPiece<M>(
   for (const [deck, inst] of decks) {
     await inst.ready;
     await inst.drums.loadAll();
-    setUpDeck(inst, deck.song, mix);
+    setUpDeck(inst, deck.song, deck.clock.bpmAt(deck.from), mix);
   }
 
   const events = renderEvents(piece);
@@ -824,7 +828,8 @@ async function renderPiece<M>(
       const [at, deck, bar] = events[next]!;
       if (at - t0 >= offline) break;
       const inst = decks.get(deck);
-      if (inst) scheduleBar(inst, arrangeBar(deck.song, bar), at - t0, deck.song.bpm);
+      const ev = deck.arrange ? deck.arrange(bar) : arrangeBar(deck.song, bar);
+      if (inst) scheduleBar(inst, ev, at - t0, deck.clock.bpmAt(bar));
     }
     tickTo(offline);
   };
@@ -855,7 +860,7 @@ async function renderPiece<M>(
 }
 
 /** Points a deck's instruments at its song, with the mixer applied (as engine.ts applySong). */
-function setUpDeck(inst: Instruments, song: Song, mix: RenderMix): void {
+function setUpDeck(inst: Instruments, song: Song, bpm: number, mix: RenderMix): void {
   const kit = song.kit !== "synth" && !inst.drums.hasSamples(song.kit) ? "synth" : song.kit;
   inst.drums.use(kit);
   const sound = songSound(song);
@@ -864,7 +869,7 @@ function setUpDeck(inst: Instruments, song: Song, mix: RenderMix): void {
   inst.setSnareGate(sound.drums.gatedSnare);
   inst.drums.setKickWeight(sound.drums.kickWeight ?? 0);
   inst.setVoices(sound.voices);
-  inst.setTempo(song.bpm);
+  inst.setTempo(bpm);
   inst.setLeadPatch(mix.leadPatch);
   for (const track of mix.soloed) inst.channels[track].solo = true;
   const volumes = { ...autoVolumes(sound.mix), ...mix.manual };

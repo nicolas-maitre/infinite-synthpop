@@ -24,6 +24,7 @@ import { newSongId, type Creation, type SongSpec } from "./spec";
 import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
 import { LATENCY, LITE, LITE_SAMPLE_RATE } from "./quality";
 import { createRng } from "./rng";
+import { TempoMap } from "./tempo";
 import type { Key } from "./theory";
 
 export interface EngineSettings {
@@ -585,34 +586,34 @@ export class Engine {
       const next = this.following(song, meta);
       return this.planFrom(next.song, 0, next.meta, at);
     }
-    const sec = barSeconds(song);
-    const origin = at - bar * sec;
+    const clock = TempoMap.steady(song.bpm, bar, at);
     const last = song.totalBars - 1;
     if (bar < last) {
       return {
-        decks: [{ song, origin, from: bar, to: last, shown: [bar, last], meta }],
+        decks: [{ song, clock, from: bar, to: last, shown: [bar, last], meta }],
         start: at,
-        end: origin + last * sec,
+        end: clock.time(last),
       };
     }
     // The last bar, with the next song's first bars under its tails.
-    const end = origin + song.totalBars * sec;
+    const end = clock.time(song.totalBars);
     const next = this.following(song, meta);
     const bars = Math.min(HANDOFF_BARS, next.song.totalBars - 1);
+    const nextClock = TempoMap.steady(next.song.bpm, 0, end);
     return {
       decks: [
-        { song, origin, from: last, to: song.totalBars, shown: [last, song.totalBars], meta },
-        { song: next.song, origin: end, from: 0, to: bars, shown: [0, bars], meta: next.meta },
+        { song, clock, from: last, to: song.totalBars, shown: [last, song.totalBars], meta },
+        { song: next.song, clock: nextClock, from: 0, to: bars, shown: [0, bars], meta: next.meta },
       ],
-      start: origin + last * sec,
-      end: end + bars * barSeconds(next.song),
+      start: clock.time(last),
+      end: nextClock.time(bars),
     };
   }
 
   /** What follows a piece: the rest of its last deck's song (or what follows that). */
   private planAfter(piece: Piece<SongMeta>): Piece<SongMeta> {
     const deck = piece.decks.at(-1)!;
-    const bar = Math.round((piece.end - deck.origin) / barSeconds(deck.song));
+    const bar = Math.round(deck.clock.barAt(piece.end));
     return this.planFrom(deck.song, bar, deck.meta, piece.end);
   }
 
@@ -687,7 +688,7 @@ export class Engine {
     const song = this.song;
     const ev = arrangeBar(song, Math.min(bar, song.totalBars - 1));
     this.bar = bar + 1;
-    this.scheduled.push({ bar, time, seconds: barSeconds(song) });
+    this.scheduled.push({ bar, time, seconds: deck.clock.barSeconds(bar) });
     if (this.scheduled.length > 16) this.scheduled.shift();
     this.events.onBar?.(ev, song);
   }
@@ -794,10 +795,6 @@ function usedTracks(song: Song): Set<Track> {
  */
 function atAudioTime(time: number, callback: () => void): void {
   setTimeout(callback, Math.max(0, (time - Tone.now()) * 1000));
-}
-
-function barSeconds(song: Song): number {
-  return (60 / song.bpm) * 4;
 }
 
 function sectionIndex(song: Song, bar: number): number {
