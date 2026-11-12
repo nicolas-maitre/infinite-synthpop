@@ -1164,28 +1164,28 @@ describe("self control in italo", () => {
     expect(again.sectionMelodies[pre]).toEqual(song.sectionMelodies[pre]);
   });
 
-  it("plays staccato root quarters, very low, and the riff in unison with the bass", () => {
+  it("bounces the bass between root and octave on the 8ths, and doubles the riff in the intro", () => {
     const verse = find("Verse 1");
     for (let i = 0; i < 8; i++) {
       const bass = arrangeBar(song, verse.startBar + i).notes.bass;
-      expect(bass.map((n) => n.step)).toEqual([0, 4, 8, 12]);
-      for (const n of bass) {
-        expect(n.dur).toBeLessThanOrEqual(2);
-        expect(n.midi).toBeGreaterThanOrEqual(25);
-        expect(n.midi).toBeLessThanOrEqual(36);
-      }
+      expect(bass.map((n) => n.step)).toEqual([0, 2, 4, 6, 8, 10, 12, 14]);
+      const [root = 0, up = 0] = bass.map((n) => n.midi);
+      expect(up - root).toBe(12);
+      expect(root).toBeGreaterThanOrEqual(25);
+      expect(root).toBeLessThanOrEqual(36);
+      for (const n of bass) expect(n.dur).toBeLessThan(1);
     }
     const riff = find("Intro · riff");
     for (let i = 0; i < riff.bars; i++) {
       const ev = arrangeBar(song, riff.startBar + i);
       expect(ev.notes.riff.map((n) => n.step)).toEqual(ev.notes.bass.map((n) => n.step));
-      expect(ev.notes.riff.map((n) => n.midi)).toEqual(ev.notes.bass.map((n) => n.midi + 48));
+      expect(ev.notes.riff.map((n) => n.midi)).toEqual(ev.notes.bass.map((n) => n.midi + 24));
       // 1, 1a and 2&: the push.
       expect(ev.notes.bass.slice(0, 3).map((n) => n.step)).toEqual([0, 3, 6]);
     }
   });
 
-  it("drops the hats in the verse, runs 16ths from the pre-chorus, claps on 4 and 3e in the chorus", () => {
+  it("kicks on 1 and 3, plays quiet verse hats, 16ths from the pre-chorus, claps on 4 and 3e", () => {
     const hats = (bar: number) =>
       arrangeBar(song, bar)
         .drums.filter((h) => h.voice === "hat" || h.voice === "openhat")
@@ -1199,9 +1199,12 @@ describe("self control in italo", () => {
         .drums.filter((h) => h.voice === "kick")
         .map((h) => h.step);
     const verse = find("Verse 1").startBar;
-    expect(hats(verse + 1)).toEqual([]);
-    expect(kicks(verse + 1)).toEqual([0, 4, 8, 12]);
+    expect(hats(verse + 1)).toEqual([0, 2, 4, 6, 8, 10, 12, 14]);
+    const verseHats = arrangeBar(song, verse + 1).drums.filter((h) => h.voice === "hat");
+    expect(Math.max(...verseHats.map((h) => h.vel))).toBeLessThan(0.35);
+    expect(kicks(verse + 1)).toEqual([0, 8]);
     const pre = find("Pre-chorus · title line").startBar;
+    expect(kicks(pre + 1)).toEqual([0, 8]);
     const all16 = Array.from({ length: 16 }, (_, i) => i);
     expect(hats(pre + 1)).toEqual(all16);
     expect(claps(pre + 1)).toEqual([]);
@@ -1228,9 +1231,20 @@ describe("self control in italo", () => {
     expect(brk.notes.bass.map((n) => [n.step, mod12(n.midi - song.key.tonic)])).toEqual([[4, 0]]);
   });
 
-  it("chops in the verse, runs paired 16ths in the pre-chorus and comps chords in the chorus", () => {
+  it("plays a bell line in the verse, paired 16ths in the pre-chorus, chords in the chorus", () => {
     const verse = arrangeBar(song, find("Verse 1").startBar);
-    expect(new Set(verse.notes.stab.map((n) => n.step))).toEqual(new Set([2, 6, 10, 14]));
+    // Three long notes, high: the top, a step under it on the "&", a chord tone lower on 2&.
+    expect(verse.notes.stab.map((n) => n.step)).toEqual([0, 2, 6]);
+    const [top = 0, step = 0, low = 0] = verse.notes.stab.map((n) => n.midi);
+    expect([top - step >= 1 && top - step <= 2, step - low >= 4]).toEqual([true, true]);
+    for (const n of verse.notes.stab) {
+      expect(n.midi).toBeGreaterThanOrEqual(64);
+      expect(n.midi).toBeLessThanOrEqual(81);
+    }
+    expect(arrangeBar(song, find("Verse 1").startBar + 1).notes.stab[1]?.step).toBe(3);
+    // None in the pre-chorus or the chorus.
+    expect(arrangeBar(song, find("Pre-chorus · title line").startBar).notes.stab).toEqual([]);
+    expect(arrangeBar(song, find("Chorus").startBar).notes.stab).toEqual([]);
     expect(verse.notes.pad.length).toBeGreaterThan(0);
     expect(verse.notes.counter).toEqual([]);
     expect(verse.notes.arp).toEqual([]);
@@ -1255,7 +1269,8 @@ describe("self control in italo", () => {
     // The riff comes back in the vamp's second half, without the bass.
     const late = arrangeBar(song, find("Outro · vamp and riff").startBar);
     expect(late.notes.riff.length).toBeGreaterThan(0);
-    expect(late.notes.bass.map((n) => n.step)).toEqual([0, 4, 8, 12]);
+    expect(late.notes.bass.map((n) => n.step)).toEqual([0, 2, 4, 6, 8, 10, 12, 14]);
+    expect(late.notes.stab.length).toBe(3);
     // Backing voices: a 3rd under the lead.
     expect(arrangeBar(song, chorusSection.startBar).section.layers.leadStack).toBe(true);
   });

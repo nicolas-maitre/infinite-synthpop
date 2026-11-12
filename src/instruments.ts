@@ -291,8 +291,10 @@ export class Instruments {
   private readonly stabHeld: NativeMonoSynth;
   /** Faces' arpeggio, a softer copy of its pluck, on the arp track. */
   private readonly arpPluck: NativeMonoSynth;
-  /** Self Control's offbeat chop and its break's held stab, on the stab track (see setVoices). */
-  private readonly stabChop: NativeMonoSynth;
+  /** Self Control's verse line (a bell over bowed strings) and its break's held stab, on the stab
+   * track (see setVoices). */
+  private readonly stabBell: NativeFMSynth;
+  private readonly stabBow: NativeSynth;
   private readonly stabSwell: NativeMonoSynth;
   /** Self Control's bright chorus comp, on the counter track (see setVoices). */
   private readonly counterBright: NativeMonoSynth;
@@ -512,9 +514,9 @@ export class Instruments {
       envelope: { attack: 0.002, decay: 0.2, sustain: 0.5, release: 0.08 },
       volume: -4,
     }).chain(new FixedFilter("lowpass", 6000), this.channels.riff);
-    // Self Control's riff (branigan-self-control.md §11): its 2–4 kHz as loud as its
-    // fundamentals in C♯5–C♯6, about 6 dB over a plain saw's, and slow to fade: 3 dB down after
-    // about 250 ms, 6 dB after 500 ms. A guitar on the record, by the sources.
+    // Self Control's riff (branigan-self-control.md §11, §12): a guitar on the record, played
+    // around F♯3 (the MIDI transcription). Its 2–4 kHz as loud as its 500 Hz band, about 6 dB over
+    // a plain saw's, and slow to fade: 3 dB down after about 250 ms, 6 dB after 500 ms.
     this.riffBright = new NativeSynth({
       oscillator: { type: "sawtooth" },
       envelope: { attack: 0.002, decay: 0.7, sustain: 0.45, release: 0.08 },
@@ -806,27 +808,26 @@ export class Instruments {
       new Tone.Gain(0.8),
       arpBus,
     );
-    // Self Control's chop (branigan-self-control.md §11): a short triad around F♯4 over its lowest
-    // note an octave down, dark against a saw in the 1 kHz band (7 dB under the fundamentals') but
-    // with its upper harmonics kept, about 6 dB down in 90 ms and 10 dB in 215 ms. Its break stab is the same chord low and held,
-    // darker (−15 dB at 2 kHz, −25 at 4 kHz), swelling in over 250 ms into the reverb.
-    const chopBus = new Tone.Gain(1);
-    chopBus.chain(new FixedFilter("peaking", 1500, { Q: 0.9, gain: -5 }), this.channels.stab);
-    this.stabChop = new NativeMonoSynth({
-      oscillator: { type: "sawtooth" },
-      filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
-      envelope: { attack: 0.002, decay: 0.12, sustain: 0.25, release: 0.06 },
-      filterEnvelope: {
-        attack: 0.002,
-        decay: 0.1,
-        sustain: 1,
-        release: 0.1,
-        baseFrequency: 5000,
-        octaves: 0,
-      },
-      maxPolyphony: lite ? 4 : 8,
-      volume: ARP_STAB_GAIN_DB - 2,
-    }).connect(chopBus);
+    // Self Control's verse line (branigan-self-control.md §12, by ear; on a glockenspiel and bowed
+    // strings in the MIDI transcription): an FM bell struck over a slow-bowed pair of saws, darkened.
+    // Its break stab is a low chord held and darker (−15 dB at 2 kHz, −25 at 4 kHz), swelling in
+    // over 250 ms into the reverb (§11.2).
+    this.stabBell = new NativeFMSynth({
+      harmonicity: 3.5,
+      modulationIndex: 2.5,
+      oscillator: { type: "sine" },
+      modulation: { type: "sine" },
+      envelope: { attack: 0.002, decay: 1.6, sustain: 0.1, release: 0.8 },
+      modulationEnvelope: { attack: 0.002, decay: 0.4, sustain: 0.1, release: 0.3 },
+      maxPolyphony: 4,
+      volume: ARP_STAB_GAIN_DB - 4,
+    }).connect(this.channels.stab);
+    this.stabBow = new NativeSynth({
+      oscillator: { type: "sawtooth", count: 2, spread: 12 },
+      envelope: { attack: 0.18, decay: 0.6, sustain: 0.7, release: 0.6 },
+      maxPolyphony: 4,
+      volume: ARP_STAB_GAIN_DB - 9,
+    }).chain(new FixedFilter("lowpass", 2500), this.channels.stab);
     this.stabSwell = new NativeMonoSynth({
       oscillator: { type: "sawtooth" },
       filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
@@ -1193,10 +1194,14 @@ export class Instruments {
             voice.triggerAttackRelease(freqs, len(first), at(first), first.vel);
             continue;
           }
-          if (this.voices.stabPatch === "chop") {
+          if (this.voices.stabPatch === "bell") {
             // The break's stab (marked `alt`) swells and rings for most of the bar.
-            const synth = first.alt ? this.stabSwell : this.stabChop;
-            synth.triggerAttackRelease(freqs, len(first), at(first), first.vel);
+            if (first.alt) {
+              this.stabSwell.triggerAttackRelease(freqs, len(first), at(first), first.vel);
+              continue;
+            }
+            this.stabBell.triggerAttackRelease(freqs, len(first), at(first), first.vel);
+            this.stabBow.triggerAttackRelease(freqs, len(first), at(first), first.vel);
             continue;
           }
           if (this.voices.stabPatch === "saw") {
@@ -1259,14 +1264,14 @@ export class Instruments {
    * plays the riff and the counter track. */
   setVoices(voices: Voices): void {
     this.voices = voices;
-    // Faces' pluck has its own echo and little reverb (faces.md §10.1). Self Control's chop is
-    // drier than the brass, and has no echo.
+    // Faces' pluck has its own echo and little reverb (faces.md §10.1). Self Control's verse
+    // line is drier than the brass, and has no echo.
     const pluck = voices.stabPatch === "pluck";
-    const chop = voices.stabPatch === "chop";
+    const bell = voices.stabPatch === "bell";
     const stab = this.sends.stab;
-    if (stab.reverb) stab.reverb.gain.value = pluck ? 0.15 : chop ? 0.3 : SENDS.stab.reverb;
+    if (stab.reverb) stab.reverb.gain.value = pluck ? 0.15 : bell ? 0.3 : SENDS.stab.reverb;
     if (stab.delay)
-      stab.delay.gain.value = pluck || chop || voices.stabPatch === "saw" ? 0 : SENDS.stab.delay;
+      stab.delay.gain.value = pluck || bell || voices.stabPatch === "saw" ? 0 : SENDS.stab.delay;
     // Faces' arpeggio (§10.4) is centred on the record, with the pluck's echo and little reverb.
     const arpPluck = voices.arpPatch === "pluck";
     const arp = this.sends.arp;
@@ -1376,7 +1381,8 @@ export class Instruments {
       this.stabPluck,
       this.stabHeld,
       this.arpPluck,
-      this.stabChop,
+      this.stabBell,
+      this.stabBow,
       this.stabSwell,
       this.counterBright,
       this.euro.pad,

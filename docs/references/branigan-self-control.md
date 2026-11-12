@@ -184,6 +184,9 @@ V–ii–IV–I, a descent through the major key that lands on A, then turns bac
 
 ### 4.1 The figure
 
+> Corrected by ear (§12.3): the bass plays 8ths, the root and its octave in turn, as the MIDI
+> transcription has it. The reading below is the stems'.
+
 Neither an octave bass nor a sequenced 16th figure: **one note on every beat, on the root, an 8th
 long, then silence**. It doubles the kick, a disco "pump".
 
@@ -246,6 +249,9 @@ there (−29 to −33 dB). It is either a part the single leaves out, or the sin
 mixed differently. It doesn't recur.
 
 ## 5. The drums
+
+> Corrected by ear (§12.3): the kick plays on 1 and 3, and the verse has quiet 8th hats, as the
+> MIDI transcription has it. The readings below are the stems'.
 
 Transcribed from the drum stem with `transcribe_drums.py`. The numbers are shares of a section's
 bars with a hit on that 16th.
@@ -518,12 +524,12 @@ So each part was read where it's alone in time:
 
 ### 11.1 The parts
 
-| Part             | Where, measured (onset strength, 1.00 = strongest 16th)                                             | What the generator plays                                                                                   |
-| ---------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Riff (bars 4–7)  | 2& 1.00, 1 0.91, 3& 0.87, 1a 0.74                                                                   | a 2-bar figure, the root on 1, 1a and 2&, then one of four shapes on 3–4; the bass plays it 4 octaves down |
-| Verse chop       | the "&"s: 1.00, 0.87, 0.73, 0.61–0.75; the beats 0.37–0.56                                          | a triad around F♯4 over its lowest note an octave down, a 16th long, on every "&"                          |
-| Chorus high part | beat 3 1.00, 4a 0.92–0.97, 2& 0.90, 2 0.80, 1& 0.75, 3a 0.71–0.74 (C5–C7)                           | close chords around E4–C♯5 in the MIDI's two-bar comp rhythm (§12); first a single line in C♯5–G♯6         |
-| Break stab       | one onset, on beat 2; the "other" stem swells for 250 ms after it and holds for the rest of the bar | the root, 5th and octave from about F♯2 on beat 2, over the bass's held root (§12), held into the reverb   |
+| Part             | Where, measured (onset strength, 1.00 = strongest 16th)                                             | What the generator plays                                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Riff (bars 4–7)  | 2& 1.00, 1 0.91, 3& 0.87, 1a 0.74                                                                   | a 2-bar figure, the root on 1, 1a and 2&, then one of four shapes on 3–4; the bass plays it 2 octaves down (the riff around F♯3, §12.3) |
+| Verse chop       | the "&"s: 1.00, 0.87, 0.73, 0.61–0.75; the beats 0.37–0.56                                          | first a chop on every "&"; by ear the verse has the slow bell line instead (§12.3)                                                      |
+| Chorus high part | beat 3 1.00, 4a 0.92–0.97, 2& 0.90, 2 0.80, 1& 0.75, 3a 0.71–0.74 (C5–C7)                           | close chords around E4–C♯5 in the MIDI's two-bar comp rhythm (§12); first a single line in C♯5–G♯6                                      |
+| Break stab       | one onset, on beat 2; the "other" stem swells for 250 ms after it and holds for the rest of the bar | the root, 5th and octave from about F♯2 on beat 2, over the bass's held root (§12), held into the reverb                                |
 
 The chorus part's notes, read from a CQT of the "other" stem over chorus 1, looked like chord
 tones leaping between octaves, the last 16th already sounding the next chord. The MIDI
@@ -536,12 +542,12 @@ Octave bands, dB under each part's loudest band. The record's "other" stem holds
 bass's bleed in its lowest bands and an MP3's cut above 16 kHz, so only the bands each part's notes
 fill are compared.
 
-| Part             | Record: 500 · 1k · 2k · 4k Hz | Render: 500 · 1k · 2k · 4k Hz | Patch                                                                      |
-| ---------------- | ----------------------------- | ----------------------------- | -------------------------------------------------------------------------- |
-| Riff             | −1.5 · −3.5 · 0 · −4.2        | −0.1 · −2.3 · 0 · −5.2        | a saw with +9 dB at 3.2 kHz, 3 dB down by 250 ms (riff patch "bright")     |
-| Verse chop       | −1.9 · −8.9 · −10.9 · −11.5   | −4.6 · −10.2 · −9.2 · −12.3   | a saw, −5 dB at 1.5 kHz, 6 dB down in 90 ms, 10 dB in 215 ms (stab "chop") |
-| Chorus high part | −4.9 · 0 · −6.2 · −4.9        | −27.9 · 0 · −5.4 · −5.4       | an open saw, 6 dB down in 40 ms, then held near −10 dB (counter "comp")    |
-| Break stab       | −0.4 · −6.3 · −14.9 · −25.1   | −5.4 · −4.0 · −13.5 · −29.4   | a saw through a 12 dB low-pass at 1.8 kHz, a 120 ms swell, a long release  |
+| Part             | Record: 500 · 1k · 2k · 4k Hz | Render: 500 · 1k · 2k · 4k Hz | Patch                                                                                          |
+| ---------------- | ----------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| Riff             | −1.5 · −3.5 · 0 · −4.2        | −0.1 · −2.3 · 0 · −5.2        | a saw with +9 dB at 3.2 kHz, 3 dB down by 250 ms (riff patch "bright")                         |
+| Verse chop       | −1.9 · −8.9 · −10.9 · −11.5   | −4.6 · −10.2 · −9.2 · −12.3   | a saw, −5 dB at 1.5 kHz, 6 dB down in 90 ms, 10 dB in 215 ms (the chop, since replaced, §12.3) |
+| Chorus high part | −4.9 · 0 · −6.2 · −4.9        | −27.9 · 0 · −5.4 · −5.4       | an open saw, 6 dB down in 40 ms, then held near −10 dB (counter "comp")                        |
+| Break stab       | −0.4 · −6.3 · −14.9 · −25.1   | −5.4 · −4.0 · −13.5 · −29.4   | a saw through a 12 dB low-pass at 1.8 kHz, a 120 ms swell, a long release                      |
 
 The riff is the brightest part, as bright at 2–4 kHz as at its fundamentals: a plain saw read 6 dB
 darker there. The sources call it a guitar (§6); a bright synth stands in. The chop is the
@@ -621,20 +627,36 @@ the 3rd on 4. They're the composition; the generator keeps writing its own figur
 Its choir part (backing "aahs" in the second half of the pre-chorus and the chorus, and an
 arpeggio up the chord in the breaks) isn't played: the choruses' stacked 3rd stands in for it.
 
-### 12.2 Where it disagrees with the stems
+### 12.2 Where it disagrees with the stems, and what the ear said
 
-| What            | The MIDI                                                                                  | The stems (§4, §5, §6)                                                             |
-| --------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Kick            | on 1 and 3                                                                                | on every beat (1.00 in every groove section)                                       |
-| Verse hats      | 8ths                                                                                      | none running: a hit with the kick on the beats, an 8th on the "&" in 0–25% of bars |
-| Verse bass      | 8ths, the root and its octave in turn                                                     | one note per beat, on the root (no onset on the "&"s)                              |
-| Verse high part | a 3-note figure in long notes (on 1, 1& or 1a, 2&) in C♯5–A5, on a bell and bowed strings | the strongest onsets on every "&", 10 and 14 included: chords chopped on the "&"s  |
-| Riff register   | F♯3 on the guitar, F♯1 on the bass                                                        | the riff's part read around C♯5–C♯6                                                |
+| What            | The MIDI                                                                                  | The stems (§4, §5, §6)                                                             | By ear (clip)                                 |
+| --------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------- |
+| Kick            | on 1 and 3                                                                                | on every beat (1.00 in every groove section)                                       | **on 1 and 3** (6)                            |
+| Verse hats      | 8ths                                                                                      | none running: a hit with the kick on the beats, an 8th on the "&" in 0–25% of bars | **8ths, quiet** (6)                           |
+| Verse bass      | 8ths, the root and its octave in turn                                                     | one note per beat, on the root (no onset on the "&"s)                              | **8ths, root and octave in turn** (8)         |
+| Verse high part | a 3-note figure in long notes (on 1, 1& or 1a, 2&) in C♯5–A5, on a bell and bowed strings | the strongest onsets on every "&", 10 and 14 included: chords chopped on the "&"s  | **the slow high line, no off-beat chops** (7) |
+| Riff register   | F♯3 on the guitar, F♯1 on the bass                                                        | the riff's part read around C♯5–C♯6                                                | not asked; the MIDI followed (see below)      |
 
 ### 12.3 Ear check
 
-These disagreements went to the user as clips of the isolated stems (`renders/ear-check-self-control/`,
-clips 6–8). Until they're answered, the generator keeps the stems' reading.
+The clips (`renders/ear-check-self-control/`) played the record's verse 1 at 0:18, the mix and
+then one isolated stem: 6 the drums, 7 the "other" stem, 8 the bass. The user heard the MIDI's
+version every time, and added that **all in all the MIDI is very accurate**. So it now leads the
+arrangement, and the stem readings of §4.1, §5 and §6 that it contradicts are superseded:
+
+- **Kick:** on 1 and 3 in every groove section (the MIDI's; its intro: 1, 3&, 3a and 4e every
+  other bar, the snare on 2 and 4). The stems' "kick on every beat" was most likely the bass's
+  low notes on the beats bleeding into the drum stem's kick band.
+- **Hats:** quiet 8ths in the verses.
+- **Bass:** 8ths bouncing between the root and its octave, short, in every section with the
+  groove; the tone of §11.3 stands.
+- **Verse line:** the slow three-note line on a bell over bowed strings, in the verses and with the
+  riff in the outro, in place of the off-beat chops.
+- **Riff:** around F♯3, two octaves over the bass (the MIDI's guitar), not C♯5–C♯6.
+
+**Placement (§9).** The kick on 1 and 3 is one of the traits §9 used to set Self Control apart
+from the Sandra songs. Its bass in 8ths and its one-loop form still differ from theirs, and the
+user placed it in Italo for its production; this is noted, not reopened.
 
 ## Sources
 

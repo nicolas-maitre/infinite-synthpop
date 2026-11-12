@@ -48,9 +48,9 @@ export interface DrumTraits {
   bigPercussion: Extract<DrumVoice, "tamb" | "cabasa"> | "none";
   /** The hats: every 16th (TF, DS), or on the beat, the "&" and the "a" with the "a" open in about
    * a third of the bars (You Came, §6.4), or 8ths (The Night, Get Closer), with an open hat on 3a
-   * (Faces' verses), or Self Control's: none in the verses, 16ths from the pre-chorus on with an
-   * open 4a every other big bar, 8ths in the intro. The breaks' `hats16` mode always plays 16ths. */
-  hats: "16ths" | "beat-and-a" | "8ths" | "8ths-open3a" | "verse-off";
+   * (Faces' verses), or Self Control's: quiet 8ths in the verses, 16ths from the pre-chorus on
+   * with an open 4a every other big bar, 8ths in the intro. The breaks' `hats16` mode always plays 16ths. */
+  hats: "16ths" | "beat-and-a" | "8ths" | "8ths-open3a" | "quiet-verse";
   /** You Came's fill: snare on every 8th but the downbeats, hats down to 8ths, in the last bar of
    * every 8-bar phrase, then a crash on the next phrase's 1 (the hats skip it). Otherwise fills
    * come only at section ends, as one of the random snare, tom or flam fills. */
@@ -75,6 +75,8 @@ export interface DrumTraits {
   /** Big sections' claps: with the snare on 2 and 4 (unset), or Self Control's: one on 4, and every
    * other bar a syncopated one on 3e; in the outro, on 2 alone. */
   bigClaps?: "4-and-3e";
+  /** The kick: on every beat (unset), or Self Control's on 1 and 3, with 3& and 3a in its intro. */
+  kick?: "1-and-3";
   /** A backbeat kit played from a pattern table instead of the four-on-the-floor kick and the hat
    * loop (the Euro-disco references). Unset everywhere else. */
   groove?: Grooves;
@@ -152,10 +154,10 @@ export interface Voices {
   pad: "close" | "octaves" | "open";
   /** The stabs' sound: the saw brass with a noise burst (synthpop), or Faces' plucked saw with its
    * 300 ms echo on the right, in close three-note voicings (faces.md §10.1), and its held, open
-   * chorus stab (§10.3); Self Control's short, dark chord chop on every "&"
-   * (branigan-self-control.md §6, §11); or Innocent Love's saw stab (sandra-innocent-love.md
+   * chorus stab (§10.3); Self Control's verse line, three long notes a bar on a bell over bowed
+   * strings (branigan-self-control.md §12); or Innocent Love's saw stab (sandra-innocent-love.md
    * §12). */
-  stabPatch: "brass" | "pluck" | "chop" | "saw";
+  stabPatch: "brass" | "pluck" | "bell" | "saw";
   /** The arpeggio's sound: the FM bell (synthpop), a softer copy of Faces' pluck through its echo
    * (faces.md §10.4), a soft triangle pluck through a 1.5 kHz low-pass (Crazy Juliet's verse
    * figure, Innocent Love's intro), or a gated saw at 2.9 kHz (Heaven Can Wait's pulse). */
@@ -1300,7 +1302,7 @@ export const GENRES: Record<GenreId, Genre> = {
       reprise: { by: { [TN]: 0.7 } },
       // None measured: The Night's "arpeggio" was its lead synth (the-night.md §10.3).
       verseArp: {},
-      // Faces' gated stabs, Self Control's offbeat chops.
+      // Faces' gated stabs, Self Control's verse line.
       stabs: { base: 0.1, by: { [FC]: 0.9, [SC]: 0.9 } },
       bareFirstVerse: { by: { [FC]: 0.7 } },
       afterChorus: { base: 0.2, by: { [FC]: 0.8, [GC]: 0.6, [SC]: -0.2 } },
@@ -1350,14 +1352,14 @@ export const GENRES: Record<GenreId, Genre> = {
         stabPatch: "pluck",
         arpPatch: "pluck",
       },
-      // The riff in unison with the bass, brighter than a saw, the dark offbeat chop, the bright
+      // The riff in unison with the bass, brighter than a saw, the bell verse line, the bright
       // chorus comp and the pre-chorus's paired 16ths (branigan-self-control.md §11, §12).
       [SC]: {
         riff: "unison",
         riffPatch: "bright",
         countervoice: "comp",
         pad: "close",
-        stabPatch: "chop",
+        stabPatch: "bell",
         arpPatch: "bell",
         arp: "pairs",
       },
@@ -1375,9 +1377,10 @@ export const GENRES: Record<GenreId, Genre> = {
       // 8ths with an open 3a, the galloping 16th cell in the choruses, the 3&–4–4& snare pickup
       // every 8 bars, no claps (faces.md §6).
       [FC]: { ...ITALO_DRUMS, hats: "8ths-open3a", bigHats: "gallop", fills: "pickup8" },
-      // No hats in the verses, 16ths from the pre-chorus, the clap on 4 and the syncopated one on
-      // 3e in the choruses, a few snare 16ths at the section ends (branigan-self-control.md §5).
-      [SC]: { ...ITALO_DRUMS, hats: "verse-off", bigClaps: "4-and-3e" },
+      // The kick on 1 and 3, quiet 8th hats in the verses, 16ths from the pre-chorus, the clap on 4
+      // and the syncopated one on 3e in the choruses, a few snare 16ths at the section ends
+      // (branigan-self-control.md §5, §12).
+      [SC]: { ...ITALO_DRUMS, hats: "quiet-verse", bigClaps: "4-and-3e", kick: "1-and-3" },
     },
     // The Night's bass is dark and octave-layered, legato; Get Closer's plucked (16 dB down per
     // 8th) and dark; Faces' a bright, plucky saw with its octave partial above the fundamental.

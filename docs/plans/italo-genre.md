@@ -122,17 +122,20 @@ test keeps 40 more that way. Old Italo links decode with its weight 0.
   - a half-length second verse, stacked voices in the choruses;
   - an i–v vamp to fade after the second chorus's break, in place of the last chorus, the riff
     back for its second 8 bars.
-- **Bass** (`scBassLine`): staccato root quarters, an 8th long, C♯1–B1; some chorus and outro bars
-  add the octave on the "&"s. Its tone: a dark saw with its fundamental cut (`bassTone.lowCut`).
-- **Drums** (`hats: "verse-off"`, `bigClaps: "4-and-3e"`): no hats in the verses, 16ths from the
-  pre-chorus (not on the "e" after the backbeat), 8ths in the intro; in the chorus a clap on 4,
-  and every other bar one on 3e and an open hat on 4a; in the outro the clap moves to 2.
-- **Parts** (branigan-self-control.md §11, §12, the second checked against the user's MIDI
-  transcription): the riff in unison with the bass in the intro (`riff: "unison"`) on a bright
-  saw (`riffPatch: "bright"`), back without the bass for the vamp's second half; the offbeat chop
-  on every "&" (`stabPatch: "chop"`); the pre-chorus's 16ths in pairs (`arp: "pairs"`); the
-  chorus's two-bar chord comp (`countervoice: "comp"`); and the break's low power chord over the
-  bass's held root.
+- **Bass** (`scBassLine`): 8ths bouncing between the root and its octave, short, C♯1–B1. Its
+  tone: a dark saw with its fundamental cut (`bassTone.lowCut`).
+- **Drums** (`hats: "quiet-verse"`, `kick: "1-and-3"`, `bigClaps: "4-and-3e"`): the kick on 1 and 3
+  (its intro on 1, 3& and 3a); quiet 8th hats in the verses, 16ths from the pre-chorus, 8ths in
+  the intro; in the chorus a clap on 4, and every other bar one on 3e and an open hat on 4a; in
+  the outro the clap moves to 2.
+- **Parts** (branigan-self-control.md §11, §12): the riff around F♯3 in unison with the bass in
+  the intro (`riff: "unison"`) on a bright saw (`riffPatch: "bright"`), back without the bass for
+  the vamp's second half; the verse's slow line on a bell over bowed strings (`stabPatch:
+"bell"`); the pre-chorus's 16ths in pairs (`arp: "pairs"`); the chorus's two-bar chord comp
+  (`countervoice: "comp"`); and the break's low power chord over the bass's held root.
+- **The MIDI transcription** the user added (2026-11-12) leads the arrangement: where it and the
+  stems disagreed (the kick, the verse hats, the bass, the verse line), the user's ears chose it
+  every time (branigan-self-control.md §12.3).
 - **Voice** (`leadTone`): matched to Branigan's vocal stem with `scripts/compare_voice.py`, within
   the voice boost caps (high shelf +9 dB, breath +6).
 

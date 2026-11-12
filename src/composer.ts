@@ -860,10 +860,10 @@ function planItalo(
     });
   // The Night's plucked countervoice plays in every chorus and nowhere else.
   const countervoice = g.voices.countervoice !== "none";
-  // Faces' verse world: stabs instead of pads, which the chorus brings in. Self Control's offbeat
-  // chops play over the pads.
-  const chops = g.voices.stabPatch === "chop";
-  const verseWorld: Partial<Layers> = stabs && !chops ? { pad: false, held: true } : {};
+  // Faces' verse world: stabs instead of pads, which the chorus brings in. Self Control's verse
+  // line plays over the pads.
+  const bellLine = g.voices.stabPatch === "bell";
+  const verseWorld: Partial<Layers> = stabs && !bellLine ? { pad: false, held: true } : {};
   const verse = (label: string, bars: number, extra: Partial<Layers> = {}) =>
     add("verse", label, bars, p.verse, {
       drums: "full",
