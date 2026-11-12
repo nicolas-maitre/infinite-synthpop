@@ -771,10 +771,10 @@ export class Instruments {
         octaves: 1.5,
       },
       maxPolyphony: lite ? 8 : 12,
-      // 13 dB over the pluck's level: against the record's stems the pluck (like Self Control's
-      // stabs) rendered 12 dB too loud and this one about right, and Italo's stab fader takes the
-      // 12 dB off (docs/italo/mix.md).
-      volume: ARP_STAB_GAIN_DB + 7,
+      // 9 dB over the pluck's level: against the record's stems the pluck (like Self Control's
+      // stabs) rendered about 12 dB too loud, this one about 3 dB, and Faces' stab fader takes
+      // the pluck's 12 dB off (docs/italo/mix.md).
+      volume: ARP_STAB_GAIN_DB + 3,
     }).connect(pluckBus);
     const arpBus = new Tone.Gain(1);
     arpBus.connect(this.channels.arp);

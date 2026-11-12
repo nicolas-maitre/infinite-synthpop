@@ -1798,22 +1798,22 @@ describe("auto mix", () => {
   const at = (ref: string) => italo.references.map((r) => (r === ref ? 1 : 0));
 
   it("follows each record at its corner, and blends between them", () => {
-    expect(mixAt(italo, at("the-night")).bass).toBe(-8);
-    expect(mixAt(italo, at("faces")).stab).toBe(-11);
-    expect(mixAt(italo, at("self-control")).stab).toBe(-14);
+    expect(mixAt(italo, at("the-night")).bass).toBe(-10.5);
+    expect(mixAt(italo, at("faces")).stab).toBe(-11.5);
+    expect(mixAt(italo, at("self-control")).stab).toBe(-14.5);
     const half = italo.references.map((r) => (r === "the-night" || r === "faces" ? 0.5 : 0));
-    expect(mixAt(italo, half).pad).toBeCloseTo(-1);
+    expect(mixAt(italo, half).pad).toBeCloseTo(-7.75);
   });
 
   it("keeps a track only some records play at their level elsewhere", () => {
     expect(mixAt(italo, at("get-closer")).synth).toBe(3.5);
-    expect(mixAt(italo, at("get-closer")).stab).toBe(-12);
+    expect(mixAt(italo, at("get-closer")).stab).toBe(-13);
   });
 
   it("adds the offsets to the defaults, within the faders' travel", () => {
     const v = autoVolumes(mixAt(italo, at("faces")));
     expect(v.drums).toBe(0);
-    expect(v.stab).toBe(DEFAULT_VOLUMES.stab - 11);
+    expect(v.stab).toBe(DEFAULT_VOLUMES.stab - 11.5);
     expect(autoVolumes(mixAt(GENRES.synthpop, [1, 0, 0]))).toEqual(DEFAULT_VOLUMES);
   });
 });

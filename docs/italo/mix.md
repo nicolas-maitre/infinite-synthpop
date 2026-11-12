@@ -12,55 +12,68 @@ the default faders (`DEFAULT_VOLUMES`); blank means the default (within 1.5 dB):
 
 | Track        | Default | The Night | Get Closer | Faces  | Self Control |
 | ------------ | ------- | --------- | ---------- | ------ | ------------ |
-| Drums        | −3      | +3        |            | +4.5   | +2.5         |
-| Seq bass     | −10     | −8        |            |        |              |
-| Pad          | −10     | −8        | −4         | +6     | −2.5         |
-| Riff         | −8      | +1.5      | −3.5       | —      |              |
-| Countervoice | −9      |           |            | —      | +6.5         |
-| Stabs        | −5      | (−12)     | (−12)      | −11    | −14          |
+| Drums        | −3      |           | +3         | +3     | +2           |
+| Seq bass     | −10     | −10.5     | +2         | −1.5   |              |
+| Pad          | −10     | −8.5      | −8         | −7     |              |
+| Riff         | −8      |           | +1.5       | —      | +2           |
+| Countervoice | −9      | (by ear)  | +6         | —      | +10          |
+| Stabs        | −5      | (−13)     | (−13)      | −11.5  | −14.5        |
 | Lead synth   | −8      | +3.5      | (+3.5)     | (+3.5) | (+3.5)       |
+| Voice        | −6      |           | −1         | −1.5   |              |
 
 — the record has no such part. In brackets: the track's `base`, the level a record that doesn't
 play the part lends a blend, so a blend doesn't water down the records that do. Faces' drums want
-+4.5 but the fader stops at 0 dB (+3).
-
-The first version (one level per genre: drums 0, pad −13.5, stabs −17, lead synth −4.5) left The
-Night's bass 5–6 dB too loud and couldn't serve Faces' loud chorus pads and The Night's quiet ones
-at once.
++4.5 and Get Closer's +4, past the fader's top (0 dB): their other tracks and voice come down
+1.5 and 1 dB instead, which keeps the balance.
 
 ## How it was measured
 
-- **Records:** the Demucs (htdemucs) stems of Faces (12″), The Night (Original Mix), Get Closer
-  (single) and Self Control (single), cut into each record's sections on its bar grid, the first
-  and last bar of each section left out.
-- **Renders:** each original (`renderToDisk({seed: 7, genre: 'italo', reference})`), whole and one
-  track at a time, at the default faders, cut into the same sections.
-- **Levels:** K-weighted (BS.1770 filters), each stem against the sum of the stems, each track
-  against the sum of the solos (the real mix differs by under 1 dB of bus glue).
-- **Stems to tracks:** drums → Drums; bass → Seq bass; vocals → Voice, and The Night's lead synth
-  (Demucs puts it with the voice: the vocal stem reads −15 dB in its sections, which have no
-  voice); other → everything else (pad, stab, arp, riff, countervoice).
-- **Fit:** one dB offset per track and record, so that each stem's share of each section matches
-  the record, least squares with a soft-L1 loss and a weak pull towards 0, the voice held at 0
-  (`leadTone` already sets it per record). Faces' verse 1 bass and "other" are left out: Demucs put
-  its held bass roots in "other" (faces.md). Faces' arpeggio is tied to the pluck, 2 dB above it,
-  so it sits 1 dB under the pluck as on the record (faces.md §10.4); The Night's lead synth and
-  countervoice were set by ear (below).
+Demucs puts high synth lines that sound like a voice (the countervoices, The Night's lead synth)
+into its "vocals" stem in sung sections, and pads with them: in The Night's first verse its
+"other" stem sits 14 dB under the drums, in the same bars of the instrumental maxi only 7 dB
+under. A first fit that read the "vocals" stem as the voice mixed the two up. So the mix is
+measured in two steps, the instrumental tracks first and the voice on top of them.
 
-Median mismatch per record and stem, render minus record (dB), at the default faders and at the
-record's own mix:
+1. **Instrumental balance**, from voice-free material only: the records' instrumental sections
+   (intros, instrumentals, breaks, outros) and Self Control's instrumental version, which is the
+   single bar for bar without the voice (0.17 s later, 2 dB quieter). There Demucs's "vocals" stem
+   is silent or holds synth, so it counts with "other" as the synths. Buckets: drums, bass,
+   synths; one offset per track, least squares with a soft-L1 loss and a weak pull towards 0.
+   The Night's maxi is left out: it is a different mix (its bass 3 dB louder against the drums).
+2. **The voice on top**, in the sung sections: the record's instrumental level is predicted from
+   its drum stem (the best-separated one) and the render's instrumental balance at the fitted
+   offsets; the voice is what the mix holds above it. Self Control cross-checks it against its
+   instrumental version (vocal version minus instrumental, the drums level-matched): the two agree
+   within 0.6 dB. The Night's and Faces' choruses give no reading (their instrumental level is
+   unknown there), so their voices come from the verses.
+3. **Faces' choruses** have no instrumental counterpart. With the voice at its verse level, the
+   chorus mix against its drum stem puts the chorus stab 4 dB under where it was (`stabHeld`).
 
-| Record       | Drums       | Bass        | Voice       | Other       |
-| ------------ | ----------- | ----------- | ----------- | ----------- |
-| Faces        | −7.0 → +0.8 | −1.4 → +0.1 | +2.2 → +1.5 | +6.0 → +0.5 |
-| The Night    | −3.7 → +0.5 | +6.4 → +0.2 | −1.4 → +0.3 | +3.6 → +0.2 |
-| Get Closer   | −0.7 → +0.4 | +0.1 → +0.1 | +0.6 → +0.5 | +2.0 → +0.3 |
-| Self Control | −1.4 → +1.2 | −1.2 → −0.1 | +0.6 → +0.7 | +3.9 → +0.1 |
+The voice is then held at its level (`leadTone` already sets it per record) and the instrumental
+offsets move with it, except where the drums run out of fader.
+
+Instrumental mismatch at the default faders, median per bucket, render minus record (dB); after
+the fit every bucket matches within 0.1 dB:
+
+| Record       | Drums | Bass | Synths |
+| ------------ | ----- | ---- | ------ |
+| Faces        | −8.3  | −3.8 | +5.6   |
+| The Night    | −4.0  | +6.7 | +2.3   |
+| Get Closer   | −1.6  | −0.7 | +3.4   |
+| Self Control | −1.9  | −1.4 | +2.1   |
+
+The voice against the instrumental tracks, per sung section (dB to move the voice at the default
+faders): Faces −4.4, −4.7 (verses); The Night −2.2, +1.1, −1.0 (verses); Get Closer −4.1, −4.3,
++1.2, −4.4; Self Control −5.3, −0.8, −2.1, −5.8, −2.4, −0.8 (quieter in the verses).
 
 **The stab track's sounds disagree.** Faces' pluck and Self Control's chop and break stab rendered
-11–14 dB too loud, Faces' chorus stab about right. The fader takes the difference off and the
-chorus stab's own gain puts 13 dB back (`stabHeld`). The arpeggio's own gain comes down 10 with
-the pluck (`arpPluck`), its fader unchanged.
+11–15 dB too loud, Faces' chorus stab about 3 dB. The stab fader takes the pluck's level off and
+the chorus stab's own gain puts 9 dB back (`stabHeld`). Faces' arpeggio's own gain came down 10
+with the pluck (`arpPluck`), its fader unchanged.
+
+The two earlier versions, kept for comparison: one level per genre (drums 0, pad −13.5, stabs −17,
+lead synth −4.5), then per record from the full stems (The Night's pads and bass −8, Faces' pads
++6), which took The Night's synths in the "vocals" stem for its voice.
 
 ## The Night's sounds, by ear
 

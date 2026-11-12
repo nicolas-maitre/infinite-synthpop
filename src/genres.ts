@@ -1397,19 +1397,20 @@ export const GENRES: Record<GenreId, Genre> = {
       sustain: { by: { [TN]: 0.35, [GC]: 0.15, [FC]: 0.2, [SC]: 0.3 } },
       lowCut: { by: { [SC]: 65 } },
     },
-    // Each record's balance, fitted to its Demucs stems section by section (docs/italo/mix.md).
-    // The drums lead all but Get Closer; The Night's bass and pads sit far back; Faces' pads come
-    // up in its choruses. Faces' pluck and Self Control's chops and break stab rendered 11–14 dB
-    // too loud (Faces' chorus stab makes up the difference in its own gain). The Night's lead
-    // synth was set by ear.
+    // Each record's balance (docs/italo/mix.md): the instrumental tracks fitted to its voice-free
+    // material (its instrumental sections, Self Control's instrumental version), then the voice
+    // measured on top of them in its sung sections. Faces' and Get Closer's drums want more than
+    // the fader gives, so their other tracks and voice come down instead. The Night's lead synth
+    // and countervoice were set by ear.
     mix: {
-      drums: { by: { [TN]: 3, [FC]: 4.5, [SC]: 2.5 } },
-      bass: { by: { [TN]: -8 } },
-      pad: { by: { [TN]: -8, [GC]: -4, [FC]: 6, [SC]: -2.5 } },
-      riff: { by: { [TN]: 1.5, [GC]: -3.5 } },
-      counter: { by: { [SC]: 6.5 } },
-      stab: { base: -12, by: { [FC]: 1, [SC]: -2 } },
+      drums: { by: { [GC]: 3, [FC]: 3, [SC]: 2 } },
+      bass: { by: { [TN]: -10.5, [GC]: 2, [FC]: -1.5 } },
+      pad: { by: { [TN]: -8.5, [GC]: -8, [FC]: -7 } },
+      riff: { by: { [GC]: 1.5, [SC]: 2 } },
+      counter: { by: { [GC]: 6, [SC]: 10 } },
+      stab: { base: -13, by: { [FC]: 1.5, [SC]: -1.5 } },
       synth: { base: 3.5 },
+      lead: { by: { [GC]: -1, [FC]: -1.5 } },
     },
   },
   euro: {
