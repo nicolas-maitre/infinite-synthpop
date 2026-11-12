@@ -1436,17 +1436,19 @@ export const GENRES: Record<GenreId, Genre> = {
     // the fader gives, so their other tracks and voice come down instead. The Night's lead synth
     // and countervoice were set by ear.
     mix: {
-      drums: { by: { [GC]: 3, [FC]: 3, [SC]: 2 } },
-      // Self Control's bass, pads, pre-chorus 16ths and chorus chords moved by ear over the fit
-      // (2026-11-12: a "really weak" bass, lines "almost inaudible"; docs/italo/mix.md).
-      bass: { by: { [TN]: -10.5, [GC]: 2, [FC]: -1.5, [SC]: 2 } },
-      pad: { by: { [TN]: -8.5, [GC]: -8, [FC]: -7, [SC]: -5 } },
+      drums: { by: { [GC]: 3, [FC]: 3, [SC]: 3 } },
+      // Self Control's levels moved by ear over the fit, then re-measured section by section
+      // (2026-11-12: lines "almost inaudible", chorus stabs louder, then "messy and drowned":
+      // drums, stabs, bass and voice in front, the pad back, the bright pulse bass 6 dB down;
+      // docs/italo/mix.md).
+      bass: { by: { [TN]: -10.5, [GC]: 2, [FC]: -1.5, [SC]: -6 } },
+      pad: { by: { [TN]: -8.5, [GC]: -8, [FC]: -7, [SC]: -8 } },
       riff: { by: { [GC]: 1.5, [SC]: 2 } },
-      counter: { by: { [GC]: 6, [SC]: 9 } },
+      counter: { by: { [GC]: 6, [SC]: 8 } },
       arp: { by: { [SC]: 4 } },
       stab: { base: -13, by: { [FC]: 1.5, [SC]: -0.5 } },
       synth: { base: 3.5 },
-      lead: { by: { [GC]: -1, [FC]: -1.5 } },
+      lead: { by: { [GC]: -1, [FC]: -1.5, [SC]: 1.5 } },
     },
   },
   euro: {

@@ -297,6 +297,14 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     const next = bar + 1 < song.totalBars ? arrangeTarget(song, bar + 1) : undefined;
     const pushed = next?.section.layers.counter ? next.slots[0] : undefined;
     notes.counter = chorusComp(key, slots, barInSection, pushed);
+    // By ear the record's stabs "kinda sound like guitar chunking": the same chords strummed short
+    // on the guitar track too, under the synth stab.
+    notes.guitar = notes.counter.map((n) => ({
+      step: n.step,
+      dur: Math.min(n.dur, 1),
+      midi: n.midi,
+      vel: n.vel,
+    }));
   }
   if (L.counter && voices.countervoice === "arp8") {
     const next = bar + 1 < song.totalBars ? arrangeTarget(song, bar + 1) : undefined;

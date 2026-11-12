@@ -860,7 +860,8 @@ export class Instruments {
     this.stabSwell = new NativeMonoSynth({
       oscillator: { type: "sawtooth", count: 2, spread: 14 },
       filter: { type: "lowpass", rolloff: -12, Q: 0.7 },
-      envelope: { attack: 0.004, decay: 1.6, sustain: 0.45, release: 1.2 },
+      // Falls away to silence across the bar, as the record's does (23 dB from peak to floor).
+      envelope: { attack: 0.004, decay: 1.1, sustain: 0.05, release: 0.8 },
       filterEnvelope: {
         attack: 0.002,
         decay: 0.3,
@@ -870,7 +871,7 @@ export class Instruments {
         octaves: 1.2,
       },
       maxPolyphony: lite ? 3 : 6,
-      volume: ARP_STAB_GAIN_DB + 8,
+      volume: ARP_STAB_GAIN_DB + 12,
     }).connect(swellBus);
     const stabNoiseFilter = new FixedFilter("bandpass", 2500);
     this.stabNoise = new Tone.NoiseSynth({

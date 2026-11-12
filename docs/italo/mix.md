@@ -12,15 +12,15 @@ the default faders (`DEFAULT_VOLUMES`); blank means the default (within 1.5 dB):
 
 | Track        | Default | The Night | Get Closer | Faces  | Self Control |
 | ------------ | ------- | --------- | ---------- | ------ | ------------ |
-| Drums        | −3      |           | +3         | +3     | +2           |
-| Seq bass     | −10     | −10.5     | +2         | −1.5   | +2           |
-| Pad          | −10     | −8.5      | −8         | −7     | −5           |
+| Drums        | −3      |           | +3         | +3     | +3           |
+| Seq bass     | −10     | −10.5     | +2         | −1.5   | −6           |
+| Pad          | −10     | −8.5      | −8         | −7     | −8           |
 | Riff         | −8      |           | +1.5       | —      | +2           |
-| Countervoice | −9      | (by ear)  | +6         | —      | +9           |
+| Countervoice | −9      | (by ear)  | +6         | —      | +8           |
 | Arpeggio     | −9      |           |            |        | +4           |
 | Stabs        | −5      | (−13)     | (−13)      | −11.5  | −13.5        |
 | Lead synth   | −8      | +3.5      | (+3.5)     | (+3.5) | (+3.5)       |
-| Voice        | −6      |           | −1         | −1.5   |              |
+| Voice        | −6      |           | −1         | −1.5   | +1.5         |
 
 — the record has no such part. In brackets: the track's `base`, the level a record that doesn't
 play the part lends a blend, so a blend doesn't water down the records that do. Faces' drums want
@@ -112,6 +112,14 @@ section), and the stems' attack read on the bass's 8ths. On top of the fit above
 - **Chorus stabs:** "very quaint". Rebuilt to the MIDI's rhythm with the record's 4a accent, and
   pitched and voiced brighter (branigan-self-control.md §13); then 3 dB up by ear (countervoice
   fader +9, at the top of its travel).
+- **"Messy and drowned"** (after the bass got its pulse timbre and the stabs their boost): on the
+  record drums, stabs, bass and voice stand out. Measured again per section, the bright pulse
+  bass ran about 6 dB over the record's bass and "other" stems together (the bass's harmonics sit
+  in "other"), and the drums and voice 2–4 dB under. Now: bass −6, drums +3, voice +1.5, pad −8,
+  chorus chords +8; drums and voice within about 1–2 dB of the record in every section. The chorus
+  chords also strum as short "guitar chunks" on the guitar track under the synth stab (by ear,
+  the record's "kinda sound like guitar chunking"), and the break stab now dies away across the
+  bar (23 dB from peak to floor, as on the record).
 - **Kick:** the record's low end in the verse is its kick (the drum stem carries the 40–120 Hz
   bands within 1.5 dB of the mix, the bass stem 7–14 dB under). Ours sat 6–7 dB short under 60 Hz,
   so its sampled kick gets a 10 dB low shelf at 90 Hz (`kickWeight`, new, switched out for every

@@ -721,6 +721,10 @@ triad on the FM piano alone. Its onsets match the record's spectrum within about
 to 8 kHz. A version stacked into octave 6 too was, by ear, more than needed; the user asked for the
 stabs a bit louder (+3 dB, the countervoice fader now at the top).
 
+Then, by ear, they "kinda sound like guitar chunking, but not exactly": the same chords now also
+strum short on the guitar track (its Karplus–Strong strings, driven), under the synth stab, and the
+mix was rebalanced around drums, stabs, bass and voice (docs/italo/mix.md).
+
 ## Sources
 
 - The recordings in `inspiration/Laura Branigan/` (local only, not in the repo), measured with
