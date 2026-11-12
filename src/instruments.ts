@@ -294,6 +294,7 @@ export class Instruments {
   /** Self Control's verse line (a glockenspiel) and its break's stab, on the stab track. */
   private readonly stabGlock: NativeFMSynth;
   private readonly stabGlockTop: NativeFMSynth;
+  private readonly stabGlockAir: Tone.NoiseSynth;
   private readonly stabSwell: NativeMonoSynth;
   /** Self Control's chorus comp, a saw stab and an FM piano, on the counter track (setVoices). */
   private readonly counterBright: NativeMonoSynth;
@@ -840,18 +841,33 @@ export class Instruments {
       maxPolyphony: 6,
       volume: ARP_STAB_GAIN_DB + 8,
     }).connect(this.channels.stab);
-    // Its piercing top (by ear, the record's bell has "high frequencies that pierce through"): a
-    // brighter metallic layer, its modulator at an inharmonic 7.1, fading in about half a second.
+    // Its piercing top (by ear, the record's bell has "high frequencies that pierce through"; its
+    // onsets carry 3–12 kHz within 4–16 dB of their loudest band): a brighter metallic layer, its
+    // modulator at an inharmonic 7.1, lifted at 5 kHz, fading in about half a second.
     this.stabGlockTop = new NativeFMSynth({
       harmonicity: 7.1,
-      modulationIndex: 2.5,
+      modulationIndex: 4,
       oscillator: { type: "sine" },
       modulation: { type: "sine" },
       envelope: { attack: 0.001, decay: 0.6, sustain: 0, release: 0.4 },
       modulationEnvelope: { attack: 0.001, decay: 0.3, sustain: 0.2, release: 0.2 },
       maxPolyphony: 6,
-      volume: ARP_STAB_GAIN_DB + 2,
-    }).chain(new FixedFilter("highpass", 1500), this.channels.stab);
+      volume: ARP_STAB_GAIN_DB + 18,
+    }).chain(
+      new FixedFilter("highpass", 2500),
+      new FixedFilter("peaking", 5000, { Q: 1, gain: 6 }),
+      this.channels.stab,
+    );
+    // And its shimmer above 6 kHz, wherever the note sits: a short burst of noise struck with it.
+    this.stabGlockAir = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.001, decay: 0.35, sustain: 0, release: 0.1 },
+      volume: ARP_STAB_GAIN_DB - 6,
+    }).chain(
+      new FixedFilter("highpass", 6000),
+      new FixedFilter("lowpass", 12000),
+      this.channels.stab,
+    );
     // The break stab hits hard (2026-11-12, by ear: "a powerful sound"; a distorted guitar's power
     // chord over the bass in the MIDI transcription): two detuned saws struck at once, driven, then
     // darkened, ringing on into the reverb.
@@ -1249,6 +1265,7 @@ export class Instruments {
             // The bell, struck: it rings out on its own (by ear, no strings trailing under it).
             for (const bell of [this.stabGlock, this.stabGlockTop])
               bell.triggerAttackRelease(freqs, Math.max(len(first), 1.5), at(first), first.vel);
+            this.stabGlockAir.triggerAttackRelease(0.3, at(first), first.vel);
             continue;
           }
           if (this.voices.stabPatch === "saw") {

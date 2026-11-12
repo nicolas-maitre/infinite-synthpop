@@ -131,7 +131,10 @@ section), and the stems' attack read on the bass's 8ths. On top of the fit above
   bell, more deep": it plays at the line's own pitch (no longer an octave up), struck a little
   harder and ringing about 3 s. Then "missing some high frequencies that pierce through": a brighter
   metallic layer (modulator at an inharmonic 7.1, high-passed at 1.5 kHz) strikes with it and fades
-  in about half a second.
+  in about half a second. Then "not piercing enough": measured on the instrumental's "other" stem,
+  the record's line onsets carry 3–12 kHz within 4–16 dB of their loudest band, ours 25–40 dB
+  under. The top layer is now 16 dB louder, lifted at 5 kHz, with a short burst of noise between
+  6 and 12 kHz struck with each hit: within about 3–7 dB of the record from 4 to 12 kHz.
 - **Kick:** the record's low end in the verse is its kick (the drum stem carries the 40–120 Hz
   bands within 1.5 dB of the mix, the bass stem 7–14 dB under). Ours sat 6–7 dB short under 60 Hz,
   so its sampled kick gets a 10 dB low shelf at 90 Hz (`kickWeight`, new, switched out for every
