@@ -134,6 +134,17 @@ h3 {
   align-items: flex-start;
 }
 
+.buffer-status {
+  align-self: center;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.buffer-status.waiting {
+  opacity: 1;
+}
+
 .originals {
   flex-basis: 100%;
   display: flex;

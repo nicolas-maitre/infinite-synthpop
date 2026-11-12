@@ -61,6 +61,13 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   rate and 30 fps drawing, so phones play without breaking up. **auto** (the default) uses lite on
   touch devices and machines with 4 cores or fewer. The choice is kept per device, and changing it
   reloads the page. `?quality=full` or `?quality=lite` in the address still overrides it.
+- **Playback** plays the synths **live**, or **render ahead**: the music is rendered offline a
+  little ahead of what you hear (into the next song too) and played back from there, so a busy
+  device doesn't break the music up. When the render falls behind, playback pauses for a few
+  seconds to let it catch up. A change (a fader, a setting, another song) is rendered again from a
+  bar line, so it takes a moment longer to be heard than live. **Buffer** sets how far ahead it
+  renders. **auto** renders ahead on phones (with a 1-minute buffer; 20 s elsewhere). Creator mode
+  always plays live, since recording needs the live synths.
 - **My songs** lists the songs kept in this browser. Every creation (creator mode, the wizard, a
   link you open) keeps itself there and updates as you edit. **♡ Save** keeps a generated song or
   an original too. Click a song to play it, ⤴ to copy its link, × to delete it (with undo).

@@ -73,35 +73,14 @@ export class DrumKit {
 
   /**
    * Loads every sample kit, each voice from the site, else GitHub, else leaving it to the synth.
-   * `onProgress` hears how many of the voices are settled.
+   * `onProgress` hears how many of the voices are settled. The samples are loaded once per page
+   * and shared by every kit after (the live one, each offline render's).
    */
   async loadAll(
     onProgress?: (done: number, total: number) => void,
   ): Promise<Record<string, SampleReport>> {
-    const report: Record<string, SampleReport> = {};
-    const total = SAMPLE_KITS.length * DRUM_VOICES.length;
-    let done = 0;
-    await Promise.all(
-      SAMPLE_KITS.map(async (kit) => {
-        const map = new Map<DrumVoice, Tone.ToneAudioBuffer>();
-        const kitReport: SampleReport = { local: 0, remote: 0, missing: [] };
-        report[kit] = kitReport;
-        await Promise.all(
-          DRUM_VOICES.map(async (voice) => {
-            const local = `${import.meta.env.BASE_URL}samples/${kit}/${voice}.wav`;
-            const remote = remoteUrl(kit, voice);
-            const here = __LOCAL_SAMPLES__ ? await load(local) : null;
-            const buffer = here ?? (remote ? await load(remote) : null);
-            if (buffer) {
-              map.set(voice, buffer);
-              kitReport[here ? "local" : "remote"]++;
-            } else kitReport.missing.push(voice);
-            onProgress?.(++done, total);
-          }),
-        );
-        this.buffers.set(kit, map);
-      }),
-    );
+    const { buffers, report } = await loadSampleKits(onProgress);
+    for (const [kit, map] of buffers) this.buffers.set(kit, map);
     return report;
   }
 
@@ -149,6 +128,48 @@ export class DrumKit {
 }
 
 /** A sample, or null when it isn't there (a 404, or a page served in its place). */
+type LoadedKits = {
+  buffers: Map<KitName, Map<DrumVoice, Tone.ToneAudioBuffer>>;
+  report: Record<string, SampleReport>;
+};
+let loadedKits: Promise<LoadedKits> | null = null;
+
+/** Every sample kit, loaded on the first call; later calls share it. Only the first call's
+ * `onProgress` hears the loading. */
+export function loadSampleKits(
+  onProgress?: (done: number, total: number) => void,
+): Promise<LoadedKits> {
+  loadedKits ??= (async () => {
+    const buffers: LoadedKits["buffers"] = new Map();
+    const report: Record<string, SampleReport> = {};
+    const total = SAMPLE_KITS.length * DRUM_VOICES.length;
+    let done = 0;
+    await Promise.all(
+      SAMPLE_KITS.map(async (kit) => {
+        const map = new Map<DrumVoice, Tone.ToneAudioBuffer>();
+        const kitReport: SampleReport = { local: 0, remote: 0, missing: [] };
+        report[kit] = kitReport;
+        await Promise.all(
+          DRUM_VOICES.map(async (voice) => {
+            const local = `${import.meta.env.BASE_URL}samples/${kit}/${voice}.wav`;
+            const remote = remoteUrl(kit, voice);
+            const here = __LOCAL_SAMPLES__ ? await load(local) : null;
+            const buffer = here ?? (remote ? await load(remote) : null);
+            if (buffer) {
+              map.set(voice, buffer);
+              kitReport[here ? "local" : "remote"]++;
+            } else kitReport.missing.push(voice);
+            onProgress?.(++done, total);
+          }),
+        );
+        buffers.set(kit, map);
+      }),
+    );
+    return { buffers, report };
+  })();
+  return loadedKits;
+}
+
 async function load(url: string): Promise<Tone.ToneAudioBuffer | null> {
   try {
     return await new Tone.ToneAudioBuffer().load(url);

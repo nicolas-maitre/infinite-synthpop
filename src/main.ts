@@ -2,6 +2,7 @@ import "./style.css";
 import { chordSlots } from "./arranger";
 import type { BassStyle, DrumMode, ImportedTracks, KitName, Song } from "./composer";
 import { KIT_LABELS } from "./drums";
+import { AHEAD_SUPPORTED } from "./ahead";
 import { Engine, type EngineSettings } from "./engine";
 import {
   autoVolumes,
@@ -77,7 +78,18 @@ interface Prefs {
   instant: boolean;
   /** The sung lead's sound: a formant voice, or the original lead synth. */
   lead: LeadPatch;
+  /** Play the synths live, or render the music ahead (engine.ts); auto renders ahead on phones. */
+  playback: Playback;
+  /** Seconds to render ahead; 0 = auto (more on phones). */
+  buffer: number;
 }
+
+type Playback = "auto" | "live" | "ahead";
+const PLAYBACKS: readonly Playback[] = ["auto", "live", "ahead"];
+const BUFFERS = [0, 10, 20, 30, 60, 120];
+/** Phones (the lite guess) render ahead, with a long buffer. */
+const AUTO_AHEAD = DEVICE_QUALITY === "lite";
+const AUTO_BUFFER = AUTO_AHEAD ? 60 : 20;
 
 const PREFS_KEY = "infinite-synthpop:prefs:v1";
 /** A genre's references, as named at its style polygon's vertices. */
@@ -112,6 +124,8 @@ const defaults: Prefs = {
   autoplay: false,
   instant: false,
   lead: "voice",
+  playback: "auto",
+  buffer: 0,
 };
 
 function loadPrefs(): Prefs {
@@ -139,7 +153,9 @@ function loadPrefs(): Prefs {
     const manual = Array.isArray(p.manual)
       ? TRACKS.filter((t) => p.manual!.includes(t))
       : TRACKS.filter((t) => volumes[t] !== DEFAULT_VOLUMES[t]);
-    return { ...defaults, ...p, volumes, manual, genre, weights, lead };
+    const playback = PLAYBACKS.find((x) => x === p.playback) ?? defaults.playback;
+    const buffer = BUFFERS.find((x) => x === p.buffer) ?? defaults.buffer;
+    return { ...defaults, ...p, volumes, manual, genre, weights, lead, playback, buffer };
   } catch {
     return defaults;
   }
@@ -322,6 +338,8 @@ function setCreator(on: boolean): void {
     const id = library.findFrom(songOrigin(song))?.id;
     engine.playCustom({ seed: song.seed, spec: songToSpec(song), ...(id ? { id } : {}) }, true);
   }
+  // Creator mode plays live: recording needs the live synths.
+  engine.setLiveOnly(on);
   creator.setActive(on);
   roll.setCreatorMode(on);
   creatorToggle.setAttribute("aria-pressed", String(on));
@@ -537,6 +555,7 @@ const engine = new Engine(
       ui.play.setAttribute("aria-pressed", String(playing));
     },
     onCue: renderCue,
+    onBuffering: renderBufferStatus,
   },
 );
 engine.setInstant(prefs.instant);
@@ -842,6 +861,49 @@ leadSelect.addEventListener("change", () => {
   engine.setLeadPatch(prefs.lead);
 });
 
+const playbackSelect = el<HTMLSelectElement>("playback");
+const bufferSelect = el<HTMLSelectElement>("buffer");
+const autoPlayback = playbackSelect.querySelector<HTMLOptionElement>('option[value="auto"]');
+if (autoPlayback) autoPlayback.textContent = `auto (${AUTO_AHEAD ? "render ahead" : "live"} here)`;
+const autoBuffer = bufferSelect.querySelector<HTMLOptionElement>('option[value="0"]');
+if (autoBuffer) autoBuffer.textContent = `auto (${AUTO_BUFFER} s here)`;
+if (!AHEAD_SUPPORTED) {
+  playbackSelect.disabled = true;
+  playbackSelect.title = "This browser can't render ahead (no AudioWorklet)";
+}
+function applyPlayback(): void {
+  const ahead = prefs.playback === "ahead" || (prefs.playback === "auto" && AUTO_AHEAD);
+  playbackSelect.value = prefs.playback;
+  bufferSelect.value = String(prefs.buffer);
+  bufferSelect.disabled = !ahead || !AHEAD_SUPPORTED;
+  engine.setBufferSeconds(prefs.buffer || AUTO_BUFFER);
+  engine.setRenderAhead(ahead);
+}
+applyPlayback();
+playbackSelect.addEventListener("change", () => {
+  prefs.playback = PLAYBACKS.find((x) => x === playbackSelect.value) ?? "auto";
+  savePrefs();
+  applyPlayback();
+});
+bufferSelect.addEventListener("change", () => {
+  prefs.buffer = BUFFERS.find((x) => x === Number(bufferSelect.value)) ?? 0;
+  savePrefs();
+  applyPlayback();
+});
+
+/** While rendering ahead: how far ahead it is, or that playback waits for it. */
+const bufferStatus = el<HTMLSpanElement>("buffer-status");
+function renderBufferStatus(): void {
+  const status = engine.aheadStatus;
+  bufferStatus.hidden = !status;
+  if (!status) return;
+  bufferStatus.classList.toggle("waiting", status.buffering);
+  bufferStatus.textContent = status.buffering
+    ? "Rendering…"
+    : `${Math.floor(status.seconds)} s rendered ahead`;
+}
+setInterval(renderBufferStatus, 500);
+
 // Lite or full sound is set up when the page loads (quality.ts), so a change reloads the page.
 const qualitySelect = el<HTMLSelectElement>("quality");
 const autoQuality = qualitySelect.querySelector<HTMLOptionElement>('option[value="auto"]');
@@ -941,7 +1003,7 @@ function renderSectionDetail(song: Song, index: number): void {
 }
 
 function renderKitStatus(): void {
-  if (!engine.instruments) {
+  if (!Object.keys(engine.samples).length) {
     ui.kitStatus.textContent = "Drum samples load on first play: from this site, else from GitHub.";
     return;
   }
@@ -1232,15 +1294,12 @@ function applyMixer(): void {
     slider.disabled = auto;
     if (auto) slider.value = String(volumes[t]);
   }
-  const inst = engine.instruments;
-  if (!inst) return;
-  for (const t of TRACKS) {
-    const ch = inst.channels[t];
-    ch.volume.value = volumes[t];
-    ch.mute = prefs.muted.includes(t);
-    ch.solo = soloed.has(t);
-  }
-  inst.master.volume.value = prefs.master;
+  engine.setMix({
+    manual: Object.fromEntries(prefs.manual.map((t) => [t, prefs.volumes[t]])),
+    muted: [...prefs.muted],
+    soloed: [...soloed],
+    master: prefs.master,
+  });
 }
 
 function mixRow(
@@ -1370,11 +1429,7 @@ if (linked) {
 else renderSong(engine.song);
 renderKitStatus();
 autoplay();
-startVisualizer(ui.viz, () =>
-  engine.instruments && engine.playing
-    ? { fft: engine.instruments.fft, waveform: engine.instruments.waveform }
-    : null,
-);
+startVisualizer(ui.viz, () => engine.analysers);
 
 if (SHOW_AUDIO_STATS) mountAudioStats();
 

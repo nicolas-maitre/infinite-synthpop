@@ -3,17 +3,23 @@
  * synths a 16th at a time on the Tone.js clock (so an instant switch has nothing left to cancel
  * beyond the clock's look-ahead). When a song ends, composes the next one from a seed derived from
  * the last.
+ *
+ * Or, in render-ahead mode (ahead.ts), renders the music offline ahead of the speaker and plays the
+ * rendered audio, pausing to let the render catch up rather than breaking up. The engine plans what
+ * plays (`planFrom`): a song's body, then the transition into the next song. Creator mode and
+ * section loops play live (recording needs the live synths).
  */
 import { AudioContext as StandardAudioContext } from "standardized-audio-context";
 import * as Tone from "tone";
+import { AHEAD_SUPPORTED, AheadPlayer, type Deck, type Piece, type RenderMix } from "./ahead";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents } from "./arranger";
-import type { SampleReport } from "./drums";
-import { bassTone, genreAt, leadTone, GENRES, type GenreId } from "./genres";
+import { loadSampleKits, type SampleReport } from "./drums";
+import { bassTone, genreAt, leadTone, mixAt, GENRES, type GenreId } from "./genres";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import type { ReferenceId } from "./references";
 import { newSongId, type Creation, type SongSpec } from "./spec";
-import { Instruments, type LeadPatch, type Track } from "./instruments";
+import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
 import { LATENCY, LITE, LITE_SAMPLE_RATE } from "./quality";
 import { createRng } from "./rng";
 import type { Key } from "./theory";
@@ -37,7 +43,30 @@ export interface EngineEvents {
   onStateChange?: (playing: boolean) => void;
   /** A switch is waiting for the next bar line (the bar it will play), or no longer is (null). */
   onCue?: (bar: number | null) => void;
+  /** Render-ahead playback paused to let the render catch up, or went on again. */
+  onBuffering?: (buffering: boolean) => void;
 }
+
+/** The mixer: faders set by hand (the others follow each song's own mix), mutes, solos, master. */
+export interface EngineMix {
+  manual: Partial<Record<Track, number>>;
+  muted: readonly Track[];
+  soloed: readonly Track[];
+  master: number;
+}
+
+/** Where a song in the render-ahead plan came from. `serial` tells one playing of a song from the
+ * next; a song recomposed in place (a settings change) keeps it. */
+interface SongMeta {
+  serial: number;
+  reference: ReferenceId | null;
+  custom: Creation | null;
+}
+
+/** Bars of the next song in a transition piece: enough for the outgoing song's tails to ring out. */
+const HANDOFF_BARS = 2;
+/** A change to the mixer re-renders once the faders have been still this long. */
+const REMIX_DELAY_MS = 300;
 
 /** Fixed seeds for the originals' generated parts (lead melodies, riffs), so each plays the same. */
 const REFERENCE_SEEDS: Record<ReferenceId, number> = {
@@ -86,6 +115,19 @@ export class Engine {
   /** Parts loaded from the user's MIDI files, per original (midi.ts). */
   private readonly imported: Partial<Record<ReferenceId, ImportedTracks>> = {};
   private appliedBpm = 0;
+  private contextReady = false;
+  /** Render-ahead (ahead.ts): asked for, and held off (creator mode plays live). */
+  private renderAhead = false;
+  private liveOnly = false;
+  private bufferSeconds = 20;
+  private player: AheadPlayer<SongMeta> | null = null;
+  private mix: EngineMix = { manual: {}, muted: [], soloed: [], master: 0 };
+  private remixTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The playing song's serial (SongMeta), and the last one handed out. */
+  private serial = 0;
+  private serials = 0;
+  /** In render-ahead mode, the piece a cued switch starts. */
+  private cuedPiece: Piece<SongMeta> | null = null;
 
   constructor(
     private settings: EngineSettings,
@@ -96,7 +138,71 @@ export class Engine {
   }
 
   get playing(): boolean {
-    return this.repeatId !== null;
+    return this.repeatId !== null || this.player !== null;
+  }
+
+  /** The spectrum and waveform of what plays, for the visualizer; null when stopped. */
+  get analysers(): { fft: Tone.Analyser; waveform: Tone.Analyser } | null {
+    if (this.player) return this.player;
+    return this.instruments && this.repeatId !== null ? this.instruments : null;
+  }
+
+  /** While rendering ahead: seconds rendered ahead of the speaker, and whether it is paused for
+   * the render to catch up. Null when playing live or stopped. */
+  get aheadStatus(): { seconds: number; buffering: boolean } | null {
+    return this.player
+      ? { seconds: this.player.ahead(), buffering: this.player.isBuffering }
+      : null;
+  }
+
+  /** Render the music ahead of the speaker instead of playing the synths live (when the browser
+   * can, and outside creator mode and loops). */
+  setRenderAhead(on: boolean): void {
+    this.renderAhead = on;
+    this.syncMode();
+  }
+
+  /** Holds render-ahead off (creator mode: recording needs the live synths). */
+  setLiveOnly(on: boolean): void {
+    this.liveOnly = on;
+    this.syncMode();
+  }
+
+  /** How far ahead to render (seconds). */
+  setBufferSeconds(seconds: number): void {
+    this.bufferSeconds = seconds;
+    this.player?.setWindow(seconds);
+  }
+
+  /**
+   * The mixer. Live, it applies at once; rendering ahead, a change re-renders from a bar line a
+   * few seconds on (the master volume still applies at once).
+   */
+  setMix(mix: EngineMix): void {
+    const changed =
+      JSON.stringify({ ...mix, master: 0 }) !== JSON.stringify({ ...this.mix, master: 0 });
+    this.mix = { ...mix, manual: { ...mix.manual } };
+    if (this.instruments && this.repeatId !== null) this.applyMix(this.instruments);
+    this.player?.setMaster(mix.master);
+    if (changed && this.player) {
+      if (this.remixTimer !== null) clearTimeout(this.remixTimer);
+      this.remixTimer = setTimeout(() => {
+        this.remixTimer = null;
+        this.rerender();
+      }, REMIX_DELAY_MS);
+    }
+  }
+
+  private wantsAhead(): boolean {
+    return AHEAD_SUPPORTED && this.renderAhead && !this.liveOnly && this.loop === null;
+  }
+
+  /** Moves playback between live and render-ahead when the mode changes while playing, from the
+   * next bar. */
+  private syncMode(): void {
+    if (!this.playing || this.wantsAhead() === (this.player !== null)) return;
+    this.halt();
+    void this.run().catch((error: unknown) => console.error("Couldn't switch playback", error));
   }
 
   /**
@@ -142,8 +248,25 @@ export class Engine {
    */
   async start(onProgress?: (done: number, total: number) => void): Promise<void> {
     if (this.playing) return;
-    if (!this.instruments) useListeningContext();
+    await this.run(onProgress);
+    this.events.onStateChange?.(true);
+  }
+
+  /** Starts playing from `this.bar`, live or rendering ahead. */
+  private async run(onProgress?: (done: number, total: number) => void): Promise<void> {
+    if (!this.contextReady) {
+      useListeningContext();
+      this.contextReady = true;
+    }
     await Tone.start();
+    if (this.wantsAhead()) {
+      // The renders load the samples too; loading them here reports them (and their progress).
+      if (!Object.keys(this.samples).length) {
+        this.samples = (await loadSampleKits(onProgress)).report;
+      }
+      this.startAhead();
+      return;
+    }
     if (!this.instruments) {
       const inst = Instruments.create({ lite: LITE });
       await inst.ready;
@@ -151,12 +274,29 @@ export class Engine {
       this.samples = await inst.drums.loadAll(onProgress);
     }
     this.applySong(this.instruments);
+    this.applyMix(this.instruments);
     const transport = Tone.getTransport();
+    this.appliedBpm = 0;
     this.applyBpm(Tone.now());
     this.step = 0;
     this.repeatId = transport.scheduleRepeat(this.tick, "16n", 0);
     transport.start("+0.1");
-    this.events.onStateChange?.(true);
+  }
+
+  private startAhead(): void {
+    const player = new AheadPlayer<SongMeta>({
+      lite: LITE,
+      window: this.bufferSeconds,
+      mix: this.renderMix(),
+      master: this.mix.master,
+      events: {
+        plan: (after) => this.planAfter(after),
+        onBar: (piece, deck, bar, time) => this.aheadBar(piece, deck, bar, time),
+        onBuffering: (buffering) => this.events.onBuffering?.(buffering),
+      },
+    });
+    this.player = player;
+    player.start(this.planFrom(this.song, this.bar, this.meta(), 0));
   }
 
   /**
@@ -178,20 +318,35 @@ export class Engine {
 
   stop(): void {
     if (!this.playing) return;
-    const transport = Tone.getTransport();
-    transport.stop();
-    transport.cancel();
-    this.repeatId = null;
-    this.current = null;
+    this.halt();
     if (this.cue !== null) {
       this.cue = null;
       this.events.onCue?.(null);
     }
-    this.instruments?.releaseAll();
     // Resume from the top of the section we stopped in.
     this.bar =
       this.song.sections[sectionIndex(this.song, Math.max(0, this.bar - 1))]?.startBar ?? 0;
     this.events.onStateChange?.(false);
+  }
+
+  /** Stops the sound, live or rendered, leaving the play position where it is. */
+  private halt(): void {
+    if (this.repeatId !== null) {
+      const transport = Tone.getTransport();
+      transport.stop();
+      transport.cancel();
+      this.repeatId = null;
+      this.current = null;
+      this.instruments?.releaseAll();
+    }
+    if (this.player) {
+      this.player.stop();
+      this.player = null;
+      this.cuedPiece = null;
+      if (this.remixTimer !== null) clearTimeout(this.remixTimer);
+      this.remixTimer = null;
+      this.events.onBuffering?.(false);
+    }
   }
 
   /** Jumps to a new song (random or given seed) at the next bar line. */
@@ -199,6 +354,7 @@ export class Engine {
     this.reference = null;
     this.custom = null;
     this.loop = null;
+    this.serial = ++this.serials;
     this.song = this.compose(seed);
     this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
@@ -214,6 +370,7 @@ export class Engine {
     this.custom = null;
     this.loop = null;
     this.reference = id;
+    this.serial = ++this.serials;
     this.song = this.compose(REFERENCE_SEEDS[id]);
     this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
@@ -232,7 +389,10 @@ export class Engine {
     this.song = this.compose(creation.seed);
     if (!keepPosition || this.bar >= this.song.totalBars) this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
-    if (!keepPosition) this.switched();
+    if (!keepPosition) {
+      this.serial = ++this.serials;
+      this.switched();
+    } else this.rerender();
     this.events.onSong?.(this.song);
   }
 
@@ -243,6 +403,7 @@ export class Engine {
     this.song = this.compose(this.custom.seed);
     if (this.bar >= this.song.totalBars) this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
+    this.rerender();
     this.events.onSong?.(this.song);
   }
 
@@ -254,6 +415,7 @@ export class Engine {
       this.bar = section.startBar;
       this.switched();
     }
+    this.syncMode();
   }
 
   /** Continues from this bar: at the next bar line, or at once in instant mode. */
@@ -278,7 +440,10 @@ export class Engine {
   private switched(): void {
     this.cue = this.playing ? this.bar : null;
     if (this.cue !== null && this.instant) this.restart();
-    else this.events.onCue?.(this.cue);
+    else {
+      if (this.cue !== null && this.player) this.cutAhead(false);
+      this.events.onCue?.(this.cue);
+    }
   }
 
   /**
@@ -288,6 +453,11 @@ export class Engine {
    * release once they have.
    */
   private restart(): void {
+    if (this.player) {
+      this.cue = null;
+      this.cutAhead(true);
+      return;
+    }
     const inst = this.instruments;
     if (!this.playing || !inst) return;
     const transport = Tone.getTransport();
@@ -313,6 +483,7 @@ export class Engine {
   setLeadPatch(patch: LeadPatch): void {
     this.leadPatch = patch;
     this.instruments?.setLeadPatch(patch);
+    this.rerender();
   }
 
   update(settings: Partial<EngineSettings>): void {
@@ -321,18 +492,23 @@ export class Engine {
     if (this.bar >= this.song.totalBars) this.bar = this.song.sections.at(-1)?.startBar ?? 0;
     if (this.instruments) this.applySong(this.instruments);
     // A new tempo starts at the next bar line (applyBpm), keeping the bar's 16ths even.
+    this.rerender();
     this.events.onSong?.(this.song);
   }
 
-  private compose(seed: number): Song {
+  private compose(
+    seed: number,
+    reference: ReferenceId | null = this.reference,
+    custom: Creation | null = this.custom,
+  ): Song {
     const song = compose({
       seed,
       ...this.settings,
       weights: this.settings.weights ?? "auto",
-      reference: this.reference,
-      custom: this.custom?.spec ?? null,
+      reference,
+      custom: custom?.spec ?? null,
     });
-    const imported = this.reference ? this.imported[this.reference] : undefined;
+    const imported = reference ? this.imported[reference] : undefined;
     if (imported) song.imported = imported;
     return song;
   }
@@ -345,6 +521,7 @@ export class Engine {
     if (this.reference === id) {
       this.song = this.compose(this.song.seed);
       if (this.instruments) this.applySong(this.instruments);
+      this.rerender();
       this.events.onSong?.(this.song);
     }
   }
@@ -362,6 +539,149 @@ export class Engine {
     inst.drums.setKickWeight(profile.drums.kickWeight ?? 0);
     inst.setVoices(profile.voices);
     inst.setActiveTracks(usedTracks(this.song));
+  }
+
+  /** The mixer onto the live instruments: the playing song's own mix for the faders on auto. */
+  private applyMix(inst: Instruments): void {
+    const volumes = {
+      ...autoVolumes(mixAt(GENRES[this.song.genre], this.song.weights)),
+      ...this.mix.manual,
+    };
+    for (const [track, db] of Object.entries(volumes) as [Track, number][]) {
+      const ch = inst.channels[track];
+      ch.volume.value = db;
+      ch.mute = this.mix.muted.includes(track);
+      ch.solo = this.mix.soloed.includes(track);
+    }
+    inst.master.volume.value = this.mix.master;
+  }
+
+  // ── Render-ahead: planning what plays ─────────────────────────────────────────────────────
+
+  private meta(): SongMeta {
+    return { serial: this.serial, reference: this.reference, custom: this.custom };
+  }
+
+  private renderMix(): RenderMix {
+    const { manual, muted, soloed } = this.mix;
+    return { manual, muted, soloed, leadPatch: this.leadPatch };
+  }
+
+  /**
+   * The piece that plays `song` from `bar`, starting at `at` on the timeline: the song's body up
+   * to its last bar, or, from there, the transition into the next song. This is where a DJ mode
+   * would plan its own transitions (longer overlaps, a mix-out point).
+   */
+  private planFrom(song: Song, bar: number, meta: SongMeta, at: number): Piece<SongMeta> {
+    if (bar >= song.totalBars) {
+      const next = this.following(song, meta);
+      return this.planFrom(next.song, 0, next.meta, at);
+    }
+    const sec = barSeconds(song);
+    const origin = at - bar * sec;
+    const last = song.totalBars - 1;
+    if (bar < last) {
+      return {
+        decks: [{ song, origin, from: bar, to: last, shown: [bar, last], meta }],
+        start: at,
+        end: origin + last * sec,
+      };
+    }
+    // The last bar, with the next song's first bars under its tails.
+    const end = origin + song.totalBars * sec;
+    const next = this.following(song, meta);
+    const bars = Math.min(HANDOFF_BARS, next.song.totalBars - 1);
+    return {
+      decks: [
+        { song, origin, from: last, to: song.totalBars, shown: [last, song.totalBars], meta },
+        { song: next.song, origin: end, from: 0, to: bars, shown: [0, bars], meta: next.meta },
+      ],
+      start: origin + last * sec,
+      end: end + bars * barSeconds(next.song),
+    };
+  }
+
+  /** What follows a piece: the rest of its last deck's song (or what follows that). */
+  private planAfter(piece: Piece<SongMeta>): Piece<SongMeta> {
+    const deck = piece.decks.at(-1)!;
+    const bar = Math.round((piece.end - deck.origin) / barSeconds(deck.song));
+    return this.planFrom(deck.song, bar, deck.meta, piece.end);
+  }
+
+  /** The song after this one: a creation loops; otherwise a new song from the next seed. */
+  private following(song: Song, meta: SongMeta): { song: Song; meta: SongMeta } {
+    if (meta.custom) return { song, meta };
+    const serial = ++this.serials;
+    return {
+      song: this.compose(nextSeed(song.seed), null, null),
+      meta: { serial, reference: null, custom: null },
+    };
+  }
+
+  /**
+   * A switch (another song, a jump) while rendering ahead: from the next bar line, or at once,
+   * the timeline is planned again from `this.bar` of `this.song`.
+   */
+  private cutAhead(now: boolean): void {
+    const player = this.player;
+    if (!player) return;
+    const soon = player.playhead() + 0.1;
+    const time = now ? soon : (player.barLineAfter(soon)?.time ?? soon);
+    const piece = this.planFrom(this.song, this.bar, this.meta(), time);
+    this.cuedPiece = now ? null : piece;
+    player.cut(time, piece);
+  }
+
+  /**
+   * A change to what plays here and now (settings, the mixer, the lead sound) while rendering
+   * ahead: everything is rendered again from the first bar line the new render can reach in time,
+   * keeping the position.
+   */
+  private rerender(): void {
+    const player = this.player;
+    if (!player) return;
+    player.setMix(this.renderMix());
+    // A pending switch is re-planned with the change.
+    if (this.cue !== null) {
+      this.cutAhead(false);
+      return;
+    }
+    // Late enough for the new render to be ready by then, so playback doesn't pause for it.
+    const line = player.barLineAfter(player.readyAfter()) ?? player.barLineAfter(player.playhead());
+    if (!line) return;
+    const { deck, bar } = line;
+    // The playing song as just recomposed; a later one (already planned) recomposed the same way.
+    const song =
+      deck.meta.serial === this.serial
+        ? this.song
+        : this.compose(deck.song.seed, deck.meta.reference, deck.meta.custom);
+    const meta = deck.meta.serial === this.serial ? this.meta() : deck.meta;
+    player.cut(line.time, this.planFrom(song, bar, meta, line.time));
+  }
+
+  /** A bar starts being heard (render-ahead): the engine follows it as the live clock does. */
+  private aheadBar(piece: Piece<SongMeta>, deck: Deck<SongMeta>, bar: number, time: number): void {
+    if (this.cue !== null) {
+      // Bars of what played before a cued switch are stale once the switch is due.
+      if (piece !== this.cuedPiece) return;
+      this.cue = null;
+      this.cuedPiece = null;
+      this.events.onCue?.(null);
+    }
+    if (deck.meta.serial !== this.serial) {
+      // The next song, as the live engine moves on to it.
+      this.serial = deck.meta.serial;
+      this.song = deck.song;
+      this.reference = deck.meta.reference;
+      this.custom = deck.meta.custom;
+      this.events.onSong?.(this.song);
+    }
+    const song = this.song;
+    const ev = arrangeBar(song, Math.min(bar, song.totalBars - 1));
+    this.bar = bar + 1;
+    this.scheduled.push({ bar, time, seconds: barSeconds(song) });
+    if (this.scheduled.length > 16) this.scheduled.shift();
+    this.events.onBar?.(ev, song);
   }
 
   private effectiveKit(): KitName {
@@ -466,6 +786,10 @@ function usedTracks(song: Song): Set<Track> {
  */
 function atAudioTime(time: number, callback: () => void): void {
   setTimeout(callback, Math.max(0, (time - Tone.now()) * 1000));
+}
+
+function barSeconds(song: Song): number {
+  return (60 / song.bpm) * 4;
 }
 
 function sectionIndex(song: Song, bar: number): number {

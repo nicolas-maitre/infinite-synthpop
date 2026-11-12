@@ -37,6 +37,7 @@
           </div>
           <div class="transport">
             <button id="play" class="btn primary" type="button">▶ Play</button>
+            <span id="buffer-status" class="buffer-status" aria-live="polite" hidden></span>
             <button
               id="new-song"
               class="btn"
@@ -104,6 +105,28 @@
               <select id="lead-sound">
                 <option value="voice">voice</option>
                 <option value="synth">synth</option>
+              </select>
+            </label>
+            <label
+              class="autoplay"
+              title="Live plays the synths as you listen. Render ahead renders the music a little ahead and plays that back: smooth on slow devices, pausing for a moment when the render falls behind. Changes take over at a bar line a few seconds on, once rendered. Creator mode always plays live."
+            >
+              Playback
+              <select id="playback">
+                <option value="auto">auto</option>
+                <option value="live">live</option>
+                <option value="ahead">render ahead</option>
+              </select>
+            </label>
+            <label class="autoplay" title="How far ahead of what you hear to render">
+              Buffer
+              <select id="buffer">
+                <option value="0">auto</option>
+                <option value="10">10 s</option>
+                <option value="20">20 s</option>
+                <option value="30">30 s</option>
+                <option value="60">1 min</option>
+                <option value="120">2 min</option>
               </select>
             </label>
             <label
