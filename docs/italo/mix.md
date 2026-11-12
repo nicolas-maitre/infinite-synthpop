@@ -6,15 +6,27 @@
 The fader levels Italo songs play at on auto (`mix` in `src/genres.ts`), measured on the four
 records against renders of the originals, and the sound changes the ear checks asked for.
 
-| Track      | Default | Italo     | Why                                                                      |
-| ---------- | ------- | --------- | ------------------------------------------------------------------------ |
-| Drums      | −3      | **0**     | 3 dB too quiet against every record but Get Closer                       |
-| Pad        | −10     | **−13.5** | 3.5 dB too loud                                                          |
-| Stabs      | −5      | **−17**   | Faces' pluck, Self Control's chops and break stab: 11–13 dB too loud     |
-| Lead synth | −8      | **−4.5**  | The Night's lead synth, about 4 dB too quiet (then raised by ear, below) |
+**Each record has its own balance**, blended by the song's style like the rest of the profile
+(`mixAt`): an original plays its record's levels, a blend sits between them. Offsets in dB over
+the default faders (`DEFAULT_VOLUMES`); blank means the default (within 1.5 dB):
 
-Bass (−1 dB), riff, countervoice and voice came out within 1.5 dB of the defaults and keep them.
-Synthpop keeps the defaults too (below).
+| Track        | Default | The Night | Get Closer | Faces  | Self Control |
+| ------------ | ------- | --------- | ---------- | ------ | ------------ |
+| Drums        | −3      | +3        |            | +4.5   | +2.5         |
+| Seq bass     | −10     | −8        |            |        |              |
+| Pad          | −10     | −8        | −4         | +6     | −2.5         |
+| Riff         | −8      | +1.5      | −3.5       | —      |              |
+| Countervoice | −9      |           |            | —      | +6.5         |
+| Stabs        | −5      | (−12)     | (−12)      | −11    | −14          |
+| Lead synth   | −8      | +3.5      | (+3.5)     | (+3.5) | (+3.5)       |
+
+— the record has no such part. In brackets: the track's `base`, the level a record that doesn't
+play the part lends a blend, so a blend doesn't water down the records that do. Faces' drums want
++4.5 but the fader stops at 0 dB (+3).
+
+The first version (one level per genre: drums 0, pad −13.5, stabs −17, lead synth −4.5) left The
+Night's bass 5–6 dB too loud and couldn't serve Faces' loud chorus pads and The Night's quiet ones
+at once.
 
 ## How it was measured
 
@@ -28,30 +40,27 @@ Synthpop keeps the defaults too (below).
 - **Stems to tracks:** drums → Drums; bass → Seq bass; vocals → Voice, and The Night's lead synth
   (Demucs puts it with the voice: the vocal stem reads −15 dB in its sections, which have no
   voice); other → everything else (pad, stab, arp, riff, countervoice).
-- **Fit:** one dB offset per track, so that each stem's share of each section matches the record,
-  least squares with a soft-L1 loss, each record weighted equally, the voice held at 0. Faces'
-  verse 1 bass and "other" are left out: Demucs put its held bass roots in "other" (faces.md).
-  The arpeggio is tied to the stab (it can't be told from the pads in "other"), 2 dB above it, so
-  it sits 1 dB under the pluck as on the record (faces.md §10.4).
+- **Fit:** one dB offset per track and record, so that each stem's share of each section matches
+  the record, least squares with a soft-L1 loss and a weak pull towards 0, the voice held at 0
+  (`leadTone` already sets it per record). Faces' verse 1 bass and "other" are left out: Demucs put
+  its held bass roots in "other" (faces.md). Faces' arpeggio is tied to the pluck, 2 dB above it,
+  so it sits 1 dB under the pluck as on the record (faces.md §10.4); The Night's lead synth and
+  countervoice were set by ear (below).
 
-Median mismatch per record and stem, render minus record (dB), at the defaults and at the Italo
-mix:
+Median mismatch per record and stem, render minus record (dB), at the default faders and at the
+record's own mix:
 
 | Record       | Drums       | Bass        | Voice       | Other       |
 | ------------ | ----------- | ----------- | ----------- | ----------- |
-| Faces        | −7.0 → +0.1 | −1.4 → +1.3 | +2.2 → +1.4 | +6.0 → +1.2 |
-| The Night    | −3.8 → −1.2 | +6.4 → +5.6 | −2.0 → −1.1 | +3.6 → +1.6 |
-| Get Closer   | −0.7 → +1.7 | +0.1 → −1.3 | +0.7 → +0.2 | +2.0 → +0.5 |
-| Self Control | −1.4 → +1.6 | −1.2 → −1.2 | +0.6 → +0.6 | +3.9 → −1.1 |
+| Faces        | −7.0 → +0.8 | −1.4 → +0.1 | +2.2 → +1.5 | +6.0 → +0.5 |
+| The Night    | −3.7 → +0.5 | +6.4 → +0.2 | −1.4 → +0.3 | +3.6 → +0.2 |
+| Get Closer   | −0.7 → +0.4 | +0.1 → +0.1 | +0.6 → +0.5 | +2.0 → +0.3 |
+| Self Control | −1.4 → +1.2 | −1.2 → −0.1 | +0.6 → +0.7 | +3.9 → +0.1 |
 
-What a fader can't fix:
-
-- **The Night's bass is 5–6 dB too loud** and Get Closer's 1 dB too quiet: a level for The Night's
-  bass tone (genres.ts `bassTone`) would fix it; one fader can't.
-- **The stab track's sounds disagree.** Faces' pluck and Self Control's chop and break stab
-  rendered 11–13 dB too loud, Faces' chorus stab about right. The fader takes 12 dB off and the
-  chorus stab's own gain puts 13 back (`stabHeld`). The arpeggio's own gain comes down 10 with
-  the pluck (`arpPluck`), its fader unchanged.
+**The stab track's sounds disagree.** Faces' pluck and Self Control's chop and break stab rendered
+11–14 dB too loud, Faces' chorus stab about right. The fader takes the difference off and the
+chorus stab's own gain puts 13 dB back (`stabHeld`). The arpeggio's own gain comes down 10 with
+the pluck (`arpPluck`), its fader unchanged.
 
 ## The Night's sounds, by ear
 
@@ -71,4 +80,4 @@ Its three originals were measured the same way, over the whole song (their refer
 line up bar for bar with every record). Drums, voice and "other" sit within 2.4 dB of the records.
 Only the bass disagrees, and not consistently: +12.7 dB (True Faith), +6.9 (You Came), +1.3 (The
 Different Story). True Faith's sequenced and melodic basses split between Demucs's bass and
-"other" stems, so that reading isn't a level. Synthpop keeps the defaults.
+"other" stems, so that reading isn't a level. Synthpop keeps the defaults (no `mix`).

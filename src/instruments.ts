@@ -59,11 +59,13 @@ export const DEFAULT_VOLUMES: Record<Track, number> = {
 };
 
 /**
- * The fader levels a song plays at while its faders are on auto: the defaults, with the genre's
- * own mix (genres.ts `mix`) over them.
+ * The fader levels a song plays at while its faders are on auto: the defaults, moved by its
+ * genre's mix at its style (genres.ts `mixAt`), and kept within the fader's travel.
  */
-export function autoVolumes(mix: Partial<Record<Track, number>> = {}): Record<Track, number> {
-  return { ...DEFAULT_VOLUMES, ...mix };
+export function autoVolumes(offsets: Partial<Record<Track, number>> = {}): Record<Track, number> {
+  return Object.fromEntries(
+    TRACKS.map((t) => [t, Math.min(0, DEFAULT_VOLUMES[t] + (offsets[t] ?? 0))]),
+  ) as Record<Track, number>;
 }
 
 /**

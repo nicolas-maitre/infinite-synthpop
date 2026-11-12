@@ -331,10 +331,12 @@ export interface Genre {
   italo?: ItaloForm;
   euro?: EuroForm;
   parts?: PartStyle;
-  /** Its songs' fader levels (dB) on auto, where they differ from instruments.ts
-   * `DEFAULT_VOLUMES`. Each voice's own gain makes it as loud as the voice it replaces at the
-   * same fader; this is the balance between the tracks that suits the genre. */
-  mix?: Partial<Record<Track, number>>;
+  /** Its songs' fader levels on auto, in dB over instruments.ts `DEFAULT_VOLUMES`, blended by
+   * the song's references like the rest of the profile (`mixAt`). Each voice's own gain makes it
+   * as loud as the voice it replaces at the same fader; this is the balance between the tracks
+   * that suits each record. A track only some references play takes its level as `base`, so a
+   * blend with the others doesn't dilute it. */
+  mix?: Partial<Record<Track, Blend>>;
   /** The parts and sounds when no reference outweighs the others, and per reference while it
    * does. Unset: `SYNTHPOP_VOICES`. */
   voices?: Voices;
@@ -1395,11 +1397,20 @@ export const GENRES: Record<GenreId, Genre> = {
       sustain: { by: { [TN]: 0.35, [GC]: 0.15, [FC]: 0.2, [SC]: 0.3 } },
       lowCut: { by: { [SC]: 65 } },
     },
-    // Fitted to the four records' Demucs stems section by section, each record weighted equally
-    // (docs/italo/mix.md): the drums lead these records and the pads sit further back. Faces'
-    // pluck and Self Control's chops and break stab all rendered 11–13 dB too loud (Faces' chorus
-    // stab makes up the difference in its own gain). The Night's lead synth is set by ear.
-    mix: { drums: 0, pad: -13.5, stab: -17, synth: -4.5 },
+    // Each record's balance, fitted to its Demucs stems section by section (docs/italo/mix.md).
+    // The drums lead all but Get Closer; The Night's bass and pads sit far back; Faces' pads come
+    // up in its choruses. Faces' pluck and Self Control's chops and break stab rendered 11–14 dB
+    // too loud (Faces' chorus stab makes up the difference in its own gain). The Night's lead
+    // synth was set by ear.
+    mix: {
+      drums: { by: { [TN]: 3, [FC]: 4.5, [SC]: 2.5 } },
+      bass: { by: { [TN]: -8 } },
+      pad: { by: { [TN]: -8, [GC]: -4, [FC]: 6, [SC]: -2.5 } },
+      riff: { by: { [TN]: 1.5, [GC]: -3.5 } },
+      counter: { by: { [SC]: 6.5 } },
+      stab: { base: -12, by: { [FC]: 1, [SC]: -2 } },
+      synth: { base: 3.5 },
+    },
   },
   euro: {
     id: "euro",
@@ -1657,6 +1668,17 @@ export function leadTone(genre: Genre, at: number | readonly number[]): LeadTone
     air: g.at(genre.leadTone.air),
     width: g.at(genre.leadTone.width),
   };
+}
+
+/** The fader offsets (dB over the defaults) a song plays at on auto, at its references' weights. */
+export function mixAt(
+  genre: Genre,
+  at: number | readonly number[],
+): Partial<Record<Track, number>> {
+  const g = genreAt(genre, at);
+  return Object.fromEntries(
+    Object.entries(genre.mix ?? {}).map(([track, b]) => [track, g.at(b)]),
+  ) as Partial<Record<Track, number>>;
 }
 
 export function bassTone(genre: Genre, at: number | readonly number[]): BassTone {

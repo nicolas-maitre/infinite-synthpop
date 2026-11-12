@@ -5,7 +5,7 @@
 import * as Tone from "tone";
 import { arrangeBar } from "./arranger";
 import { compose, type ComposeOptions, type ImportedTracks, type Song } from "./composer";
-import { bassTone, genreAt, leadTone, GENRES, isStyleWeights } from "./genres";
+import { bassTone, genreAt, leadTone, mixAt, GENRES, isStyleWeights } from "./genres";
 import { scheduleBar } from "./schedule";
 import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
 
@@ -74,8 +74,8 @@ export async function renderSong(
   inst.setVoices(profile.voices);
   inst.setTempo(song.bpm);
   for (const track of solo) inst.channels[track].solo = true;
-  // The faders as on auto (the genre's mix), then any levels given.
-  const volumes = { ...autoVolumes(genre.mix), ...options.volumes };
+  // The faders as on auto (the genre's mix at the song's style), then any levels given.
+  const volumes = { ...autoVolumes(mixAt(genre, song.weights)), ...options.volumes };
   for (const [track, db] of Object.entries(volumes) as [Track, number][]) {
     inst.channels[track].volume.value = db;
   }

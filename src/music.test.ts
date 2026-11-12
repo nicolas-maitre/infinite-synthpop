@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { arrangeBar, MELODIC_TRACKS } from "./arranger";
+import { autoVolumes, DEFAULT_VOLUMES } from "./instruments";
 import { compose, COUNTER_RANGE, LEAD_RANGES, type Layers } from "./composer";
 import {
   bassTone,
   genreAt,
+  mixAt,
   genreOfReference,
   GENRE_IDS,
   GENRES,
@@ -1788,5 +1790,30 @@ describe("euro-disco genre", () => {
     );
     expect([...titles].filter((t) => others.has(t)).length).toBeLessThan(5);
     expect(at(corners[0], 42).title).toBe(euroTitle(createRng(42).fork("title")));
+  });
+});
+
+describe("auto mix", () => {
+  const italo = GENRES.italo;
+  const at = (ref: string) => italo.references.map((r) => (r === ref ? 1 : 0));
+
+  it("follows each record at its corner, and blends between them", () => {
+    expect(mixAt(italo, at("the-night")).bass).toBe(-8);
+    expect(mixAt(italo, at("faces")).stab).toBe(-11);
+    expect(mixAt(italo, at("self-control")).stab).toBe(-14);
+    const half = italo.references.map((r) => (r === "the-night" || r === "faces" ? 0.5 : 0));
+    expect(mixAt(italo, half).pad).toBeCloseTo(-1);
+  });
+
+  it("keeps a track only some records play at their level elsewhere", () => {
+    expect(mixAt(italo, at("get-closer")).synth).toBe(3.5);
+    expect(mixAt(italo, at("get-closer")).stab).toBe(-12);
+  });
+
+  it("adds the offsets to the defaults, within the faders' travel", () => {
+    const v = autoVolumes(mixAt(italo, at("faces")));
+    expect(v.drums).toBe(0);
+    expect(v.stab).toBe(DEFAULT_VOLUMES.stab - 11);
+    expect(autoVolumes(mixAt(GENRES.synthpop, [1, 0, 0]))).toEqual(DEFAULT_VOLUMES);
   });
 });

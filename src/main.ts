@@ -41,6 +41,7 @@ import {
   DEFAULT_GENRE,
   GENRE_IDS,
   GENRES,
+  mixAt,
   isGenreId,
   isStyleWeights,
   parseWeights,
@@ -1212,9 +1213,10 @@ document.addEventListener("keydown", (e) => {
 
 // ── Mixer ─────────────────────────────────────────────────────────────────────────────────────
 
-/** Each track's level now: by hand, or the playing song's genre mix while on auto. */
+/** Each track's level now: by hand, or the playing song's mix (its genre's, at its style) while
+ * on auto. */
 function trackVolumes(): Record<Track, number> {
-  const auto = autoVolumes(GENRES[engine.song.genre].mix);
+  const auto = autoVolumes(mixAt(GENRES[engine.song.genre], engine.song.weights));
   return Object.fromEntries(
     TRACKS.map((t) => [t, prefs.manual.includes(t) ? prefs.volumes[t] : auto[t]]),
   ) as Record<Track, number>;
