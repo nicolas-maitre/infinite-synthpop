@@ -132,6 +132,9 @@ describe("genre profile", () => {
       sustain: 0.2,
       lowCut: 0,
       decay: 0.25,
+      resonance: 0.7,
+      sweep: 0.6,
+      ladder: false,
     });
     expect(bassTone(SYNTHPOP, 1)).toEqual({
       frequency: 160,
@@ -141,6 +144,9 @@ describe("genre profile", () => {
       sustain: 0.2,
       lowCut: 0,
       decay: 0.25,
+      resonance: 0.7,
+      sweep: 0.6,
+      ladder: false,
     });
     expect(bassTone(SYNTHPOP, 0.35)).toEqual({
       frequency: 240 - 80 * 0.35,
@@ -150,6 +156,9 @@ describe("genre profile", () => {
       sustain: 0.2,
       lowCut: 0,
       decay: 0.25,
+      resonance: 0.7,
+      sweep: 0.6,
+      ladder: false,
     });
     // You Came's: darker than TF's, with the octave layer.
     expect(bassTone(SYNTHPOP, [0, 0, 1])).toEqual({
@@ -160,26 +169,33 @@ describe("genre profile", () => {
       sustain: 0.35,
       lowCut: 0,
       decay: 0.25,
+      resonance: 0.7,
+      sweep: 0.6,
+      ladder: false,
     });
   });
 
-  it("gives Self Control's bass a dark saw with its fundamental cut, and nobody else's", () => {
+  it("gives Self Control's bass a struck ladder filter with its fundamental cut, and nobody else's", () => {
     const italo = GENRES.italo;
-    expect(bassTone(italo, [0, 0, 0, 1])).toEqual({
-      frequency: 80,
-      presence: 1,
-      sawCutoff: 120,
-      octave: 0,
-      sustain: 0.3,
-      lowCut: 65,
-      decay: 0.1,
-    });
+    const sc = bassTone(italo, [0, 0, 0, 1]);
+    expect(sc).toMatchObject({ frequency: 900, presence: 4, octave: 0, sustain: 0.3, lowCut: 65 });
+    expect(sc.ladder).toBe(true);
+    expect(sc.decay).toBeCloseTo(0.1);
+    expect(sc.sawCutoff).toBeCloseTo(46);
+    expect(sc.resonance).toBeCloseTo(1.5);
+    expect(sc.sweep).toBeCloseTo(5.05);
     for (const w of [
       [1, 0, 0],
       [0, 1, 0],
       [0, 0, 1],
     ])
-      expect(bassTone(italo, [...w, 0]).lowCut).toBe(0);
+      expect(bassTone(italo, [...w, 0])).toMatchObject({
+        lowCut: 0,
+        decay: 0.25,
+        resonance: 0.7,
+        sweep: 0.6,
+        ladder: false,
+      });
   });
 });
 

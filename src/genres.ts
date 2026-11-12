@@ -288,6 +288,14 @@ export interface BassTone {
   /** How long each note takes to fall to its `sustain`, seconds (linearly): 0.25, or Self
    * Control's punchy 0.1 (about 4 dB down after 40 ms, 7 after 80 on its stem). */
   decay: number;
+  /** The saw's filter: its resonance (Q, 0.7 by default), how far each note sweeps it open, in
+   * octaves over the cutoff (0.6 by default), and whether it's a Moog-style ladder: 24 dB per
+   * octave, snapping shut to a quarter of the sweep in 70 ms (else 12 dB, 0.6 of it in 80 ms).
+   * Self Control's bass bites that way: Faltermeyer played his basses on a Moog modular
+   * (branigan-self-control.md §11.3). */
+  resonance: number;
+  sweep: number;
+  ladder: boolean;
 }
 
 /** The sung voice's mix (instruments.ts `setLeadTone`), matched to each record's vocal stem with
@@ -423,8 +431,12 @@ export interface Genre {
     octave: Blend;
     sustain: Blend;
     lowCut: Blend;
-    /** Added to the 0.25 s decay (unset: nothing). */
+    /** Added to the 0.25 s decay, the 0.7 resonance and the 0.6-octave sweep (unset: nothing). */
     decay?: Blend;
+    resonance?: Blend;
+    sweep?: Blend;
+    /** A ladder filter from 0.5 (unset: never). */
+    ladder?: Blend;
   };
   leadTone: { level: Blend; low: Blend; mid: Blend; high: Blend; air: Blend; width: Blend };
 }
@@ -1398,6 +1410,8 @@ export const GENRES: Record<GenreId, Genre> = {
     },
     // The Night's bass is dark and octave-layered, legato; Get Closer's plucked (16 dB down per
     // 8th) and dark; Faces' a bright, plucky saw with its octave partial above the fundamental.
+    // Self Control's is a Moog-style ladder struck wide open on every 8th and shut to about
+    // 110 Hz within 70 ms, its fundamental cut (branigan-self-control.md §11.3).
     // The Night's voice is the brightest in the presence band and the widest (a long, wide
     // reverb); Get Closer's narrow and dark up top; Faces' thin low down and airy.
     leadTone: {
@@ -1409,13 +1423,16 @@ export const GENRES: Record<GenreId, Genre> = {
       width: { by: { [TN]: 1.1, [GC]: 0.28, [FC]: 0.42, [SC]: 0.79 } },
     },
     bassTone: {
-      frequency: { base: 160, by: { [FC]: 100, [SC]: -80 } },
-      presence: { base: 1, by: { [FC]: 5 } },
-      sawCutoff: { base: 520, by: { [FC]: 1500, [SC]: -400 } },
+      frequency: { base: 160, by: { [FC]: 100, [SC]: 740 } },
+      presence: { base: 1, by: { [FC]: 5, [SC]: 3 } },
+      sawCutoff: { base: 520, by: { [FC]: 1500, [SC]: -474 } },
       octave: { by: { [TN]: 1, [GC]: 0.3, [FC]: 1 } },
       sustain: { by: { [TN]: 0.35, [GC]: 0.15, [FC]: 0.2, [SC]: 0.3 } },
       lowCut: { by: { [SC]: 65 } },
       decay: { by: { [SC]: -0.15 } },
+      resonance: { by: { [SC]: 0.8 } },
+      sweep: { by: { [SC]: 4.45 } },
+      ladder: { by: { [SC]: 1 } },
     },
     // Each record's balance (docs/italo/mix.md): the instrumental tracks fitted to its voice-free
     // material (its instrumental sections, Self Control's instrumental version), then the voice
@@ -1715,5 +1732,8 @@ export function bassTone(genre: Genre, at: number | readonly number[]): BassTone
     sustain: g.at(genre.bassTone.sustain),
     lowCut: g.at(genre.bassTone.lowCut),
     decay: 0.25 + g.at(genre.bassTone.decay ?? {}),
+    resonance: 0.7 + g.at(genre.bassTone.resonance ?? {}),
+    sweep: 0.6 + g.at(genre.bassTone.sweep ?? {}),
+    ladder: g.at(genre.bassTone.ladder ?? {}) >= 0.5,
   };
 }

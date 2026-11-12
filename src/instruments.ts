@@ -1268,6 +1268,13 @@ export class Instruments {
     this.bassSaw.envelope.sustain = tone.sustain;
     for (const synth of [this.bassSaw, this.bassOct, this.bassFm])
       synth.envelope.decay = tone.decay;
+    this.bassSaw.filter.Q.value = tone.resonance;
+    this.bassSaw.filterEnvelope.octaves = tone.sweep;
+    // Only on a change: setting the rolloff rebuilds the filter's stages.
+    const rolloff = tone.ladder ? -24 : -12;
+    if (this.bassSaw.filter.rolloff !== rolloff) this.bassSaw.filter.rolloff = rolloff;
+    this.bassSaw.filterEnvelope.sustain = tone.ladder ? 0.25 : 0.6;
+    this.bassSaw.filterEnvelope.decay = tone.ladder ? 0.07 : 0.08;
     const lowCut = this.bassLowCut;
     lowCut.cut.gain.value = tone.lowCut > 0 ? 1 : 0;
     lowCut.through.gain.value = tone.lowCut > 0 ? 0 : 1;

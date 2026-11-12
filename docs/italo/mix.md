@@ -106,6 +106,10 @@ section), and the stems' attack read on the bass's 8ths. On top of the fit above
   pre-chorus 16ths (arp fader +4) and the chorus chords (their own gain 6 dB up) had sat 4–9 dB
   under the pad. With the pad 5 dB down and those, each sits 2–4 dB over it, and "other" stays
   within about 1 dB of the stem in every section.
+- **Bass timbre:** still "lacking punch". The bass stem turned out to hold only the bass's low
+  part (the user, listening to it alone). Read with the "other" stem, each note starts with a bright,
+  fast-closing filter: the bass now plays a Moog-style ladder sweep (`bassTone.ladder`, `sweep`,
+  `resonance`; branigan-self-control.md §11.3), its octave notes as loud as its roots.
 - **Kick:** the record's low end in the verse is its kick (the drum stem carries the 40–120 Hz
   bands within 1.5 dB of the mix, the bass stem 7–14 dB under). Ours sat 6–7 dB short under 60 Hz,
   so its sampled kick gets a 10 dB low shelf at 90 Hz (`kickWeight`, new, switched out for every

@@ -571,6 +571,31 @@ and adds a **low cut**: two high-passes at 65 Hz (a new `bassTone.lowCut`, switc
 other reference). The fundamentals now sit within 2 dB of the record's, and the harmonics up to
 the 6th within 3 dB on F♯1. C♯1's 4th to 6th are still 4–7 dB too strong.
 
+#### By ear: the bite (2026-11-12)
+
+The user heard the bass as lacking punch, "a timbre like in the record", and then, listening to
+the bass stem alone, that **the timbre isn't in the stem**: Demucs kept only its low component, and
+the octave notes (as loud as the roots on the record, by ear) are missing from it too. So the
+fit above, made on the stem, matched a low-passed copy of the bass.
+
+- **Reading the rest of it:** what each note's onset adds to the bass stem and the "other" stem
+  together, at the note's harmonics, on 16ths where nothing else starts (beats 2 and 4 for the
+  roots, 3& and 4& for the octaves). In its first 20 ms a root note carries harmonics up to the
+  8th within 0–12 dB of the loudest; by 20–60 ms they've fallen to −17 to −25 dB beyond the 3rd.
+  A filter struck wide open and shutting fast.
+- **The instrument:** no source names the synth on this track (the album credits Nathan East on
+  bass, and Faltermeyer and Robbie Buchanan on synthesizers). Faltermeyer called his Moog modular
+  "the best for bass", bought in 1978 and still in use (Red Bull Music Academy, 2015), and the
+  "Axel F" bass of the same year is credited to a Moog Model 15. The C♯1 floor (§4.2) points to a
+  synth too. So the patch imitates a Moog ladder.
+- **The patch** (`bassTone`, Self Control only): the saw through a 24 dB low-pass with a little
+  resonance (Q 1.5), swept about 5 octaves open on each note and shut to about 110 Hz within
+  70 ms (`ladder`, `sweep`, `resonance`), the one-pole tone opened to 900 Hz, presence +3 dB, the
+  fundamental still cut at 65 Hz; the octave notes now as loud as the roots.
+- **Where it stands:** its notes now start as bright as the record's (harmonics to the 10th within
+  5 dB in their first 40 ms) and close to a held tone whose 3rd and 4th harmonics sit 3–8 dB over
+  the record's estimate. That estimate carries the "other" stem's other parts, so the ear decides.
+
 ### 11.4 The voice
 
 `scripts/compare_voice.py`, the single's vocal stem against our lead at the corner (the original,
@@ -668,6 +693,10 @@ user placed it in Italo for its production; this is noted, not reopened.
 - Wikipedia, "Self Control (album)": https://en.wikipedia.org/wiki/Self_Control_(album)
 - Wikipedia, "Harold Faltermeyer": https://en.wikipedia.org/wiki/Harold_Faltermeyer
 - Wikipedia, "Axel F" (Faltermeyer's 1984 instruments): https://en.wikipedia.org/wiki/Axel_F
+- Red Bull Music Academy, "Harold Faltermeyer's Favorite Synths" (2015), the Moog modular for bass:
+  https://daily.redbullmusicacademy.com/2015/07/harold-faltermeyer-favorite-synths
+- MusicRadar, "Get the sound of Harold Faltermeyer's Axel F" (the Moog modular bass):
+  https://www.musicradar.com/tuition/tech/get-the-sound-of-harold-faltermeyers-axel-f-541573
 - SessionDays, "1984 Laura Branigan – Self Control": https://sessiondays.com/?p=15052
 - Hooktheory TheoryTab, "Self Control": https://www.hooktheory.com/theorytab/view/laura-branigan/self-control
 - Karaoke Version (key and tempo): https://www.karaoke-version.com/karaoke/laura-branigan/self-control.html
