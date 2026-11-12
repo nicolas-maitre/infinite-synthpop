@@ -31,6 +31,10 @@ const WINDOW_BARS = 2;
  * pending. Tone's own clock (which PolySynth uses for just-in-time scheduling) is ticked ahead to
  * the end of each window, the way OfflineContext.render() would have ticked it.
  *
+ * Firefox has no OfflineAudioContext.suspend(), nor the AudioListener.positionX Tone needs (which
+ * the standardized-audio-context wrapper polyfills). There the render goes through the wrapper,
+ * with the whole song scheduled up front.
+ *
  * `solo` renders only those tracks (stems), with their effect sends.
  */
 export async function renderSong(
@@ -43,9 +47,11 @@ export async function renderSong(
   const barSeconds = (60 / song.bpm) * 4;
   const barTime = (bar: number) => 0.05 + bar * barSeconds;
   const original = Tone.getContext();
+  const seconds = barTime(bars) + 3;
+  const windowed = typeof OfflineAudioContext.prototype.suspend === "function";
   // A native context: the standardized-audio-context wrapper Tone creates has no suspend().
-  const raw = new OfflineAudioContext(2, Math.ceil((barTime(bars) + 3) * 44100), 44100);
-  const context = new Tone.OfflineContext(raw);
+  const raw = windowed ? new OfflineAudioContext(2, Math.ceil(seconds * 44100), 44100) : null;
+  const context = raw ? new Tone.OfflineContext(raw) : new Tone.OfflineContext(2, seconds, 44100);
   const clock = context as unknown as { _currentTime: number };
   const tickTo = (time: number) => {
     while (clock._currentTime < time) {
@@ -85,13 +91,24 @@ export async function renderSong(
   if (options.master !== undefined) inst.master.volume.value = options.master;
   inst.setLeadPatch(options.leadPatch ?? "voice");
   const scheduleWindow = (from: number) => {
-    options.onProgress?.(from / bars);
+    if (raw) options.onProgress?.(from / bars);
     const to = Math.min(bars, from + WINDOW_BARS);
     for (let bar = from; bar < to; bar++) {
       scheduleBar(inst, arrangeBar(song, bar), barTime(bar), song.bpm);
     }
     tickTo(barTime(to));
   };
+  if (!raw) {
+    for (let from = 0; from < bars; from += WINDOW_BARS) scheduleWindow(from);
+    // Progress follows the render's clock, which Firefox advances as it goes.
+    const rendering = context.rawContext as OfflineAudioContext;
+    const progress = setInterval(() => options.onProgress?.(rendering.currentTime / seconds), 500);
+    try {
+      return await rendering.startRendering();
+    } finally {
+      clearInterval(progress);
+    }
+  }
   scheduleWindow(0);
   for (let from = WINDOW_BARS; from < bars; from += WINDOW_BARS) {
     void raw.suspend(barTime(from) - 0.25).then(() => {
