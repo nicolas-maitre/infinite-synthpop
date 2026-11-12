@@ -96,11 +96,16 @@ describe("blends across genres", () => {
     expect(p.genre.id).toBe("italo");
     expect(p.voices).toBe(GENRES.italo.voiceTraits?.faces);
     expect(p.drums).toBe(GENRES.italo.drumTraits.faces);
-    // A tie between genres falls to the home genre's defaults.
-    const tie = profileOf({ "true-faith": 0.5, "the-night": 0.5 }, "synthpop");
-    expect(tie.genre.id).toBe("synthpop");
-    expect(tie.voices).toBe(SYNTHPOP_VOICES);
-    expect(tie.drums).toBe(GENRES.synthpop.drums);
+    // A tie between genres: the first tied reference's own, never a genre default from a record
+    // outside the blend (Italo's defaults are Get Closer's).
+    const tie = profileOf({ "self-control": 0.5, "crazy-juliet": 0.5 }, "synthpop");
+    expect(tie.genre.id).toBe("italo");
+    expect(tie.voices).toBe(GENRES.italo.voiceTraits?.["self-control"]);
+    expect(tie.drums).toBe(GENRES.italo.drumTraits["self-control"]);
+    const synthTie = profileOf({ "true-faith": 0.5, "the-night": 0.5 }, "synthpop");
+    expect(synthTie.genre.id).toBe("synthpop");
+    expect(synthTie.voices).toBe(SYNTHPOP_VOICES);
+    expect(synthTie.drums).toBe(GENRES.synthpop.drumTraits["true-faith"]);
   });
 
   it("plays each part from its own blend", () => {

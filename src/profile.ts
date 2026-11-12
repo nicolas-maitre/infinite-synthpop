@@ -197,9 +197,10 @@ export function profileOf(weights: RefWeights, home: GenreId): Profile {
     weights: raw.map((w) => w / sum),
   }));
   const own = shares.find((s) => s.genre === dominant.genre)!;
-  // Discrete traits: the reference that outweighs every other one, of any genre, brings its own;
-  // without one, the dominant genre's defaults.
-  const ref = dominantRef(weights);
+  // Discrete traits: the reference with the most weight, of any genre, brings its own. On a tie,
+  // the first of the tied references: a genre's defaults could be a reference's that isn't in the
+  // blend at all (Italo's are Get Closer's).
+  const ref = leadingRef(weights);
   const refGenre = ref ? GENRES[genreOfReference(ref)] : undefined;
   return {
     genre: own.genre,
@@ -227,10 +228,13 @@ export function profileOf(weights: RefWeights, home: GenreId): Profile {
   };
 }
 
-/** The reference that outweighs every other one, if any. */
-function dominantRef(weights: RefWeights): ReferenceId | undefined {
-  const entries = REFERENCE_IDS.map((r) => [r, weights[r] ?? 0] as const);
-  return entries.find(([r, w]) => w > 0 && entries.every(([o, x]) => o === r || w > x))?.[0];
+/** The reference with the most weight; on a tie, the first of them in reference order. */
+function leadingRef(weights: RefWeights): ReferenceId | undefined {
+  let best: ReferenceId | undefined;
+  for (const r of REFERENCE_IDS) {
+    if ((weights[r] ?? 0) > (best ? (weights[best] ?? 0) : 0)) best = r;
+  }
+  return best;
 }
 
 /** A song's six part profiles. */
@@ -278,7 +282,7 @@ export function partVoices(p: Profiles): Voices {
  * genre's. */
 export function partStyle(p: Profile, weights: RefWeights): PartStyle | undefined {
   if (!p.mixed) return p.genre.parts;
-  const ref = dominantRef(weights);
+  const ref = leadingRef(weights);
   return (ref ? GENRES[genreOfReference(ref)] : p.genre).parts;
 }
 
