@@ -29,6 +29,16 @@ The genre becomes a preset, not a boundary.
   tempo centres are more than about 10 BPM apart.
 - **Backward compatibility is exact.** Old links, saved songs and settings map onto the new
   model, and `snapshot.test.ts` keeps every existing song byte-identical.
+- **The lead synth belongs to Riff.** The Night's and Crazy Juliet's lead-synth sections are
+  placed by the form, and their sound and line come from the Riff part's blend.
+- **Tempo follows the Song part**, with form, chords and key. Drums from a 123 BPM record can
+  play at 110.
+- **Auto sometimes draws a cross-genre blend.** Mostly it picks a random preset as today. About
+  1 song in 5 gets a random open blend of 2–3 references from at least two genres, still in simple
+  mode.
+- **The legacy planners stay, in their own folder.** `planSections`, `planItalo` and `planEuro`
+  move to `src/legacy-planners/` and keep serving single-genre form blends, so those songs never
+  change. The merged planner serves blends that span genres.
 
 ## How the current model works (what changes)
 
@@ -84,7 +94,7 @@ Each part group gets its own blend over the global references:
 | **Song**  | form (the merged planner's odds), chords (bank, substitutions), key, tempo, ending, title        |
 | **Drums** | kit, `DrumTraits` (pattern, hats, fills, grooves, kick weight), the drums fader                  |
 | **Bass**  | bass figure, `BassTone`, the bass fader                                                          |
-| **Riff**  | riff kind and patch, the hook, the lead synth's patch, the riff/hook/synth faders                |
+| **Riff**  | riff kind and patch, the hook, the lead synth (patch and line), the riff/hook/synth faders       |
 | **Keys**  | pads, stabs, arp, sequencer, guitar: their patches, `parts.stabs`, `padTone`, `arp` kind, faders |
 | **Voice** | `LeadTone`, lead ranges, countervoice, the counter-line odds, stacked voices, voice faders       |
 
@@ -147,9 +157,17 @@ Examples:
 - You Came stacks its chorus voices.
 
 **Byte-identity.** A single-genre form blend keeps calling its genre's legacy planner unchanged.
-The merged planner runs only when the form blend spans genres. The cost is keeping the legacy
-planners. Once the merged planner is proven, we can try reproducing each legacy planner's draws
-inside it, but snapshot identity is not a goal for that step.
+The merged planner runs only when the form blend spans genres. The legacy planners are kept for
+good, but apart:
+
+- `src/legacy-planners/` holds one file per planner: `synthpop.ts` (`planSections`), `italo.ts`
+  (`planItalo`) and `euro.ts` (`planEuro`).
+- The pieces they share with the merged planner move to a common form module: `LAYERS_OFF`,
+  `PlannedSection`, `placeSections` and `intoTonic`.
+- The merged planner can reuse the legacy planners' block bodies only by copying them into
+  tagged blocks, never by calling into the folder. That way an edit to a merged block can't move
+  a single-genre song.
+- The move itself is a pure code move, made first in phase 2 and checked against the snapshot.
 
 ## Data model
 
@@ -185,7 +203,11 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
 - **Tempo warning**: in the existing tempo note, when the song blend's references span more than
   about 10 BPM of tempo centres.
 - **Creator** (`creator.ts`): the same controls, stored on the creation's spec.
-- **Auto** keeps its meaning: a random preset and a random point, per song, in simple mode.
+- **Auto**: a random preset and a random point per song, as today. About 1 song in 5 instead
+  gets a random open blend of 2–3 references from at least two genres, in simple mode. That chance
+  draws on its own forked stream, so the preset songs draw as before. Auto seeds that land on an
+  open blend do play differently from today. That touches nothing stored: Auto-genre songs aren't
+  in the snapshot, and saved songs and links record the concrete blend.
 
 ## Phases
 
@@ -198,8 +220,9 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
    - the mixture equals the old blend at share 1
    - cross-genre songs compose and arrange for many seeds and random blends, with no NaNs and
      tempos in range
-2. **Merged planner.** The skeleton, the tagged blocks, the song-wide conventions and the
-   dressing flags, on forked streams. Tests:
+2. **Merged planner.** First, move the legacy planners to `src/legacy-planners/` with the
+   snapshot unchanged. Then build the skeleton, the tagged blocks, the song-wide conventions and
+   the dressing flags, on forked streams, and add Auto's occasional open blend. Tests:
    - every block reachable
    - each solo reference's merged plan has the right shape against its legacy planner (section
      kinds in order)
@@ -211,11 +234,3 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
 5. **Ear checks.** A handful of cross-genre blends rendered offline. For example: True Faith's
    bass under Get Closer's echo hook, and You Came's pre-chorus with Faces' stabs. The mix is
    then tuned where parts from different genres fight.
-
-## Open points
-
-- The part grouping above is a proposal. Should the lead synth go with Riff or Keys? Should
-  tempo go with Song or Drums?
-- Auto mode: should it ever draw an open, cross-genre blend, or only presets?
-- Once phase 2 is proven, whether to retire the legacy planners at the cost of a snapshot
-  update.
