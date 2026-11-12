@@ -8,7 +8,7 @@
  * next to a readable summary of the song.
  */
 import { describe, expect, it } from "vitest";
-import { arrangeBar, type MelodicTrack } from "./arranger";
+import { arrangeBar, MELODIC_TRACKS, type MelodicTrack } from "./arranger";
 import { compose, type ComposeOptions, type Song } from "./composer";
 import { GENRES } from "./genres";
 import { decodeCreation, encodeCreation, songToSpec } from "./spec";
@@ -47,13 +47,15 @@ const LOCKED_TRACKS = [
   "guitar",
 ] as const satisfies readonly MelodicTrack[];
 
-function summarise(song: Song) {
+/** `tracks`: the tracks digested. The synthpop cases keep `LOCKED_TRACKS`; the Italo and
+ * Euro-disco cases, added later, lock every melodic track. */
+function summarise(song: Song, tracks: readonly MelodicTrack[] = LOCKED_TRACKS) {
   const bars = Array.from({ length: song.totalBars }, (_, bar) => {
     const e = arrangeBar(song, bar);
     for (const [track, notes] of Object.entries(e.notes)) {
-      if (!(LOCKED_TRACKS as readonly string[]).includes(track)) expect(notes).toEqual([]);
+      if (!(tracks as readonly string[]).includes(track)) expect(notes).toEqual([]);
     }
-    const notes = Object.fromEntries(LOCKED_TRACKS.map((t) => [t, e.notes[t]]));
+    const notes = Object.fromEntries(tracks.map((t) => [t, e.notes[t]]));
     return { chords: e.chords, drums: e.drums, notes, key: e.key };
   });
   return {
@@ -121,9 +123,48 @@ const CASES: [string, ComposeOptions][] = [
   ]),
 ];
 
+/** The Italo and Euro-disco songs, locked before cross-genre blending (docs/plans/
+ * cross-genre-blend.md) so that refactor can't move them: seeds at each corner, the centre and a
+ * random point, short and long forms, and every original. */
+const GENRE_CASES: [string, ComposeOptions][] = (["italo", "euro"] as const).flatMap((genre) => {
+  const n = GENRES[genre].references.length;
+  const corners = GENRES[genre].references.map((_, i) =>
+    Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)),
+  );
+  const centre = Array.from({ length: n }, () => Math.round(100 / n) / 100);
+  return [
+    ...[...corners, centre].flatMap((weights) =>
+      [1, 42].map((seed): [string, ComposeOptions] => [
+        `${genre} seed ${seed} weights ${weights.join("/")}`,
+        { seed, genre, weights },
+      ]),
+    ),
+    ...[1, 42, 1234].map((seed): [string, ComposeOptions] => [
+      `${genre} seed ${seed} weights auto`,
+      { seed, genre, weights: "auto" },
+    ]),
+    ...(["short", "long"] as const).map((form): [string, ComposeOptions] => [
+      `${genre} seed 7 ${form}`,
+      { seed: 7, genre, weights: centre, form },
+    ]),
+    ...(["lift", "hold"] as const).map((ending): [string, ComposeOptions] => [
+      `${genre} seed 9 ${ending}`,
+      { seed: 9, genre, weights: centre, ending },
+    ]),
+    ...GENRES[genre].references.map((reference): [string, ComposeOptions] => [
+      reference,
+      { seed: 5, reference },
+    ]),
+  ];
+});
+
 describe("output snapshot", () => {
   it.each(CASES)("%s", (_, opts) => {
     expect(summarise(compose(opts))).toMatchSnapshot();
+  });
+
+  it.each(GENRE_CASES)("%s", (_, opts) => {
+    expect(summarise(compose(opts), MELODIC_TRACKS)).toMatchSnapshot();
   });
 
   it("round-trips a creation through a share link", () => {
