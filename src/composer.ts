@@ -14,10 +14,13 @@ import {
   specWeights,
   styleOf,
   type Blend,
+  type Genre,
   type GenreId,
 } from "./genres";
 import {
+  AUTO_OPEN_CHANCE,
   partVoices,
+  randomOpenBlend,
   pickFromBanks,
   profilesOf,
   simpleBlends,
@@ -34,6 +37,7 @@ import { LAYERS_OFF } from "./form";
 import { planEuro } from "./legacy-planners/euro";
 import { planItalo } from "./legacy-planners/italo";
 import { planSections } from "./legacy-planners/synthpop";
+import { planMerged } from "./planner";
 import { REFERENCES, type ReferenceId, type ReferenceSong } from "./references";
 import { createRng, type Rng } from "./rng";
 import {
@@ -370,10 +374,18 @@ export function compose(opts: ComposeOptions): Song {
     : ref && opts.reference
       ? soloWeights(legacyGenre, opts.reference)
       : (given ?? referenceWeights(legacyGenre, legacyStyle));
+  // Auto (a genre per song) sometimes plays an open blend across genres instead, drawn from its
+  // own stream so the preset songs draw as before.
+  const rngOpen = root.fork("open");
+  const autoOpen =
+    opts.genre === "auto" && !ref && !opts.blend && !opts.parts && rngOpen.chance(AUTO_OPEN_CHANCE)
+      ? randomOpenBlend(rngOpen)
+      : null;
+  const givenBlend = ref ? null : (opts.blend ?? autoOpen);
   // The parts' blends: given ones, else the genre's weights in every part.
-  const blended = !ref && (!!opts.blend || !!opts.parts);
+  const blended = !ref && (!!givenBlend || !!opts.parts);
   const blends: PartBlends = {
-    ...simpleBlends(!ref && opts.blend ? opts.blend : toRefWeights(legacyGenre, legacyWeights)),
+    ...simpleBlends(givenBlend ?? toRefWeights(legacyGenre, legacyWeights)),
     ...(ref ? {} : withoutUnset(opts.parts ?? {})),
   };
   const P = profilesOf(blends, legacyGenreId);
@@ -387,7 +399,9 @@ export function compose(opts: ComposeOptions): Song {
   // You Came's choices draw from their own streams, so at its weight 0 a song is what it was.
   const rngMode = root.fork("mode");
   const rngYc = root.fork("you-came");
-  const yc = (b: Blend) => rngYc.chance(g.at(b));
+  // The song's form odds: its genre's, or mixed across genres when its blend spans them.
+  const formOdds = (pick: (x: Genre) => Blend) =>
+    P.song.mixed ? P.song.mix(pick) : g.at(pick(genre));
 
   // The minor tonic is drawn first either way, so the draws after it stay where they were.
   const autoKey = (): Key => {
@@ -432,39 +446,50 @@ export function compose(opts: ComposeOptions): Song {
     bridge: prog("bridge"),
     lift: prog("lift"),
   };
-  if (key.mode === "major" || g.at(genre.form.preChorus) > 0)
+  if (key.mode === "major" || formOdds((x) => x.form.preChorus) > 0)
     progressions.prechorus = prog("prechorus", root.fork("prechorus"));
   // You Came's verse is its chorus loop.
-  if (yc(genre.form.verseOnLoop)) progressions.verse = progressions.chorus;
+  if (rngYc.chance(formOdds((x) => x.form.verseOnLoop))) progressions.verse = progressions.chorus;
   Object.assign(progressions, opts.progressions);
   if (ref) {
     progressions.verse = ref.verse;
     progressions.chorus = ref.chorus;
   }
-  const riffHigh = yc(genre.form.chorusRiff);
+  const riffHigh = rngYc.chance(formOdds((x) => x.form.chorusRiff));
 
   const rngForm = root.fork("form");
   const liftKey: Key = { tonic: mod12(key.tonic + 5), mode: "major" };
-  const liftChance = rngForm.chance(g.at(genre.liftEnding));
-  const holdChance = yc(genre.form.holdEnding);
+  const liftChance = rngForm.chance(formOdds((x) => x.liftEnding));
+  const holdChance = rngYc.chance(formOdds((x) => x.form.holdEnding));
   const ending: SongEnding = opts.ending ?? (holdChance ? "hold" : liftChance ? "lift" : "fade");
   const sections = ref
     ? referenceSections(ref)
-    : genre.planner === "italo"
-      ? planItalo(rngForm, key, liftKey, ending, progressions, g, opts.form ?? "standard")
-      : genre.planner === "euro"
-        ? planEuro(rngForm, key, liftKey, ending, progressions, g, opts.form ?? "standard")
-        : planSections(
-            rngForm,
-            rngYc,
-            key,
-            liftKey,
-            ending,
-            progressions,
-            g,
-            opts.form ?? "standard",
-            riffHigh,
-          );
+    : P.song.mixed
+      ? planMerged(
+          rngForm,
+          key,
+          liftKey,
+          ending,
+          progressions,
+          P.song,
+          g.voices,
+          opts.form ?? "standard",
+        )
+      : genre.planner === "italo"
+        ? planItalo(rngForm, key, liftKey, ending, progressions, g, opts.form ?? "standard")
+        : genre.planner === "euro"
+          ? planEuro(rngForm, key, liftKey, ending, progressions, g, opts.form ?? "standard")
+          : planSections(
+              rngForm,
+              rngYc,
+              key,
+              liftKey,
+              ending,
+              progressions,
+              g,
+              opts.form ?? "standard",
+              riffHigh,
+            );
   if (!ref) addCounter(root.fork("counter"), sections, P.voice);
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 

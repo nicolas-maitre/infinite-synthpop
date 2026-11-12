@@ -32,6 +32,7 @@ import {
   type Voices,
 } from "./genres";
 import type { Track } from "./instruments";
+import { polygonVertices, quantize, randomPoint, weightsAt } from "./polygon";
 import { bankEntries, pickProgression, substitute } from "./progressions";
 import type { Progression, ProgressionKind } from "./progressions";
 import type { ReferenceId } from "./references";
@@ -72,6 +73,34 @@ export const TRACK_PART: Record<Track, Part> = {
 /** A genre's weights array (in its `references` order) as reference weights. */
 export function toRefWeights(genre: Genre, weights: readonly number[]): RefWeights {
   return Object.fromEntries(genre.references.map((r, i) => [r, weights[i] ?? 0]));
+}
+
+/** How often Auto (a genre per song) plays an open blend across genres instead of a preset. */
+export const AUTO_OPEN_CHANCE = 0.2;
+
+/** Auto's open blend: two or three references from at least two genres, at a random point of
+ * their polygon (rounded to hundredths, as the pad's are). */
+export function randomOpenBlend(rng: Rng): RefWeights {
+  const first = rng.pick(REFERENCE_IDS);
+  const second = rng.pick(
+    REFERENCE_IDS.filter((r) => genreOfReference(r) !== genreOfReference(first)),
+  );
+  const refs = [first, second];
+  if (rng.chance(0.5)) refs.push(rng.pick(REFERENCE_IDS.filter((r) => !refs.includes(r))));
+  const vertices = polygonVertices(refs.length);
+  // Every chosen reference keeps some weight, so the blend really spans genres: a point by a
+  // vertex can round the others to 0.
+  const draw = () =>
+    quantize(
+      weightsAt(
+        vertices,
+        randomPoint(vertices, () => rng.next()),
+      ),
+    );
+  let w = draw();
+  for (let tries = 1; tries < 20 && !w.every((x) => x > 0); tries++) w = draw();
+  if (!w.every((x) => x > 0)) w = refs.map(() => Math.floor(100 / refs.length) / 100);
+  return Object.fromEntries(refs.map((r, i) => [r, w[i] ?? 0]));
 }
 
 /** The same blend for every part (simple mode). */

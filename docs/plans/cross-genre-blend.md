@@ -247,13 +247,41 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
    - Not covered by a test: the live engine and render paths, which only swapped their reads for
      `songSound`. No UI exists yet to reach a cross-genre song in the app.
 
-2. **Merged planner.** First, move the legacy planners to `src/legacy-planners/` with the
-   snapshot unchanged. Then build the skeleton, the tagged blocks, the song-wide conventions and
-   the dressing flags, on forked streams, and add Auto's occasional open blend. Tests:
+2. **Merged planner.** _Done (2026-11-12)._ First, move the legacy planners to
+   `src/legacy-planners/` with the snapshot unchanged. Then build the skeleton, the tagged blocks,
+   the song-wide conventions and the dressing flags, on forked streams, and add Auto's occasional
+   open blend. Tests:
    - every block reachable
    - each solo reference's merged plan has the right shape against its legacy planner (section
      kinds in order)
    - the snapshot unchanged
+
+   What was built, and where it differs from the above:
+   - The move came first: `src/legacy-planners/{synthpop,italo,euro}.ts`, with the shared pieces
+     in `src/form.ts`. It is a commit of its own, with the snapshot identical.
+   - `src/planner.ts` (`planMerged`) runs when the song part's blend spans genres.
+     - Blocks aren't tagged by reference. Each slot draws a **genre** in proportion to its share,
+       and that genre's measured odds pick the block at the genre's own weights. The slots are
+       opening, after chorus 1, after chorus 2, middle, third verse, late and finale. Within a
+       genre, the blend works exactly as its own planner weighs it.
+     - A body genre, drawn once, dresses every verse, pre-chorus and chorus. That covers the
+       verse and chorus lengths, the pre-chorus kind, stabs, arp, stacked voices and the Euro
+       stop bar. So the song-wide conventions and dressing flags are simply that genre's.
+     - Each genre's song-wide choices are drawn once, on a stream of their own, the first time a
+       slot uses that genre.
+     - The countervoice plays in every chorus wherever the Voice part has one, whatever genre
+       dressed the chorus.
+   - The test for solo references checks that a reference run through the merged planner uses
+     only section labels its own legacy planner produces. It doesn't compare the order of
+     section kinds: the two planners draw from different streams.
+   - On a mixed song blend, `compose` also mixes the ending odds (lift, hold), the pre-chorus
+     check, You Came's verse on the loop, and the high chorus riff across genres.
+   - Auto: `AUTO_OPEN_CHANCE` (0.2) on the `open` stream. `randomOpenBlend` picks two references
+     from different genres, plus a third half the time, at a polygon point where none rounds to 0. A test checks the other Auto songs are identical to the same genre and seed without it.
+   - Checked in the browser: an Auto seed landing on an open blend (seed 5: The Different Story,
+     Crazy Juliet and Get Closer) loads, shows its sections, and renders offline cleanly. The
+     pad still shows the dominant genre's polygon until phase 4.
+
 3. **Links, storage and the creator.** `b` / `b.<part>` encoding, prefs and saved songs, and
    `songOrigin`. Tests: round-trips, and the legacy links decoding unchanged.
 4. **UI.** The Open picker, the n-reference polygon, the simple/per-part toggle and its rows, the
