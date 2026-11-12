@@ -134,7 +134,7 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   _Faces_ (120 BPM, a build from bass and kick, gated stabs, a staccato on-beat/off-beat bass,
   a parallel-major chorus with galloping hats, a breakdown) and _Self Control_ (107 BPM, the
   glossiest: one Aeolian loop under every sung section, the kick on 1 and 3, a very low bass
-  bouncing between root and octave, a slow string line in the verse, a pre-chorus on the title line
+  bouncing between root and octave, a slow glockenspiel line in the verse, a pre-chorus on the title line
   over paired 16ths, claps on 4 and 3e and chord comps in the chorus, 4-bar breaks on one stab, an
   i–v vamp to fade, all checked against a MIDI transcription;
   [docs/references/branigan-self-control.md](docs/references/branigan-self-control.md)). Its

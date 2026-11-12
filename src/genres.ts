@@ -157,10 +157,10 @@ export interface Voices {
   pad: "close" | "octaves" | "open";
   /** The stabs' sound: the saw brass with a noise burst (synthpop), or Faces' plucked saw with its
    * 300 ms echo on the right, in close three-note voicings (faces.md §10.1), and its held, open
-   * chorus stab (§10.3); Self Control's verse line, three long notes a bar on strings
+   * chorus stab (§10.3); Self Control's verse line, three long notes a bar on a glockenspiel
    * (branigan-self-control.md §12); or Innocent Love's saw stab (sandra-innocent-love.md
    * §12). */
-  stabPatch: "brass" | "pluck" | "strings" | "saw";
+  stabPatch: "brass" | "pluck" | "glockenspiel" | "saw";
   /** The arpeggio's sound: the FM bell (synthpop), a softer copy of Faces' pluck through its echo
    * (faces.md §10.4), a soft triangle pluck through a 1.5 kHz low-pass (Crazy Juliet's verse
    * figure, Innocent Love's intro), or a gated saw at 2.9 kHz (Heaven Can Wait's pulse). */
@@ -1376,7 +1376,7 @@ export const GENRES: Record<GenreId, Genre> = {
         riffPatch: "bright",
         countervoice: "comp",
         pad: "close",
-        stabPatch: "strings",
+        stabPatch: "glockenspiel",
         arpPatch: "bell",
         arp: "pairs",
       },

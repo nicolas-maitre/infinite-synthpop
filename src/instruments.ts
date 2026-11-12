@@ -291,8 +291,8 @@ export class Instruments {
   private readonly stabHeld: NativeMonoSynth;
   /** Faces' arpeggio, a softer copy of its pluck, on the arp track. */
   private readonly arpPluck: NativeMonoSynth;
-  /** Self Control's verse line (strings) and its break's stab, on the stab track (see setVoices). */
-  private readonly stabBow: NativeSynth;
+  /** Self Control's verse line (a glockenspiel) and its break's stab, on the stab track. */
+  private readonly stabGlock: NativeFMSynth;
   private readonly stabSwell: NativeMonoSynth;
   /** Self Control's chorus comp, a saw stab and an FM piano, on the counter track (setVoices). */
   private readonly counterBright: NativeMonoSynth;
@@ -823,14 +823,22 @@ export class Instruments {
       new Tone.Gain(0.8),
       arpBus,
     );
-    // Self Control's verse line (branigan-self-control.md §12, by ear: strings, "not a bell at
-    // all"): a pair of detuned saws, bowed in, darkened. Its break stab, below, is a low chord.
-    this.stabBow = new NativeSynth({
-      oscillator: { type: "sawtooth", count: 2, spread: 12 },
-      envelope: { attack: 0.18, decay: 0.6, sustain: 0.7, release: 0.6 },
-      maxPolyphony: 4,
-      volume: ARP_STAB_GAIN_DB,
-    }).chain(new FixedFilter("lowpass", 2500), this.channels.stab);
+    // Self Control's verse line (branigan-self-control.md §12; a glockenspiel in the MIDI
+    // transcription; by ear the first bell "isn't a bell at all", then "it should be one", and
+    // strings under it trailed on where a bell only decays; then "a bigger bell, more deep"): a
+    // struck FM bell at the line's own pitch, its modulator at an inharmonic 2.76 (a metal bar's
+    // second mode) and dying fast, ringing out over about 3 s.
+    // Its break stab, below, is a low chord.
+    this.stabGlock = new NativeFMSynth({
+      harmonicity: 2.76,
+      modulationIndex: 4,
+      oscillator: { type: "sine" },
+      modulation: { type: "sine" },
+      envelope: { attack: 0.001, decay: 3.2, sustain: 0, release: 1.6 },
+      modulationEnvelope: { attack: 0.001, decay: 0.25, sustain: 0.05, release: 0.3 },
+      maxPolyphony: 6,
+      volume: ARP_STAB_GAIN_DB + 8,
+    }).connect(this.channels.stab);
     // The break stab hits hard (2026-11-12, by ear: "a powerful sound"; a distorted guitar's power
     // chord over the bass in the MIDI transcription): two detuned saws struck at once, driven, then
     // darkened, ringing on into the reverb.
@@ -1219,13 +1227,19 @@ export class Instruments {
             voice.triggerAttackRelease(freqs, len(first), at(first), first.vel);
             continue;
           }
-          if (this.voices.stabPatch === "strings") {
+          if (this.voices.stabPatch === "glockenspiel") {
             // The break's stab (marked `alt`) swells and rings for most of the bar.
             if (first.alt) {
               this.stabSwell.triggerAttackRelease(freqs, len(first), at(first), first.vel);
               continue;
             }
-            this.stabBow.triggerAttackRelease(freqs, len(first), at(first), first.vel);
+            // The bell, struck: it rings out on its own (by ear, no strings trailing under it).
+            this.stabGlock.triggerAttackRelease(
+              freqs,
+              Math.max(len(first), 1.5),
+              at(first),
+              first.vel,
+            );
             continue;
           }
           if (this.voices.stabPatch === "saw") {
@@ -1296,11 +1310,11 @@ export class Instruments {
     // Faces' pluck has its own echo and little reverb (faces.md §10.1). Self Control's verse
     // line is drier than the brass, and has no echo.
     const pluck = voices.stabPatch === "pluck";
-    const strings = voices.stabPatch === "strings";
+    const glock = voices.stabPatch === "glockenspiel";
     const stab = this.sends.stab;
-    if (stab.reverb) stab.reverb.gain.value = pluck ? 0.15 : strings ? 0.3 : SENDS.stab.reverb;
+    if (stab.reverb) stab.reverb.gain.value = pluck ? 0.15 : glock ? 0.3 : SENDS.stab.reverb;
     if (stab.delay)
-      stab.delay.gain.value = pluck || strings || voices.stabPatch === "saw" ? 0 : SENDS.stab.delay;
+      stab.delay.gain.value = pluck || glock || voices.stabPatch === "saw" ? 0 : SENDS.stab.delay;
     // Faces' arpeggio (§10.4) is centred on the record, with the pluck's echo and little reverb.
     const arpPluck = voices.arpPatch === "pluck";
     const arp = this.sends.arp;
@@ -1410,7 +1424,7 @@ export class Instruments {
       this.stabPluck,
       this.stabHeld,
       this.arpPluck,
-      this.stabBow,
+      this.stabGlock,
       this.stabSwell,
       this.counterBright,
       this.counterEp,

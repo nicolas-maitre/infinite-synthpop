@@ -242,7 +242,7 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
       ? []
       : L.drums === "stab"
         ? breakStab(key, slots)
-        : voices.stabPatch === "strings"
+        : voices.stabPatch === "glockenspiel"
           ? // Self Control's verse line, in the verses and with the riff in the outro.
             section.kind === "verse" || (section.kind === "outro" && L.riff)
             ? verseLine(key, slots, barInSection)
@@ -1243,7 +1243,7 @@ function chorusStabs(key: Key, slots: readonly ChordSlot[]): Note[] {
 
 /**
  * Self Control's verse line (branigan-self-control.md §12, by ear): three long notes a bar in
- * C♯5–A5 on strings. The highest chord tone up to A5, a scale step under it on the
+ * C♯5–A5 on a glockenspiel. The highest chord tone up to A5, a scale step under it on the
  * "&" (on the "a" every other bar), then a chord tone a 4th or so lower on 2&, held to the bar's
  * end: A G♯ C♯ on F♯m, G♯ F♯ C♯ on C♯m.
  *

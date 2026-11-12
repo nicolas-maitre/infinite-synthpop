@@ -862,8 +862,8 @@ function planItalo(
   const countervoice = g.voices.countervoice !== "none";
   // Faces' verse world: stabs instead of pads, which the chorus brings in. Self Control's verse
   // line plays over the pads.
-  const stringLine = g.voices.stabPatch === "strings";
-  const verseWorld: Partial<Layers> = stabs && !stringLine ? { pad: false, held: true } : {};
+  const glockLine = g.voices.stabPatch === "glockenspiel";
+  const verseWorld: Partial<Layers> = stabs && !glockLine ? { pad: false, held: true } : {};
   const verse = (label: string, bars: number, extra: Partial<Layers> = {}) =>
     add("verse", label, bars, p.verse, {
       drums: "full",
