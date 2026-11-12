@@ -5,6 +5,7 @@
  * docs/references/sandra-*.md; section lengths rounded to whole phrases). The lead melodies, riffs and melodic bass are generated, not transcribed: those are
  * the copyrighted compositions, while harmony, form and groove are what the generator studies.
  */
+import type { PartBlends } from "./profile";
 import type { BassStyle, CustomMelody, KitName, Layers, SectionKind } from "./composer";
 import type { GenreId } from "./genres";
 import type { Progression } from "./progressions";
@@ -49,6 +50,10 @@ export interface ReferenceSong {
   /** The genre whose profile a creation plays with (genres.ts). Unset: synthpop (everything made
    * before genres existed). An original plays in the genre that lists it. */
   genre?: GenreId;
+  /** A creation's part blends across genres (profile.ts), when they say more than `genre` and
+   * `weights`: those then name the song part's dominant genre and its weights. An original plays
+   * in its own genre whatever this says. */
+  blends?: PartBlends;
   key: Key;
   bpm: number;
   kit: KitName;

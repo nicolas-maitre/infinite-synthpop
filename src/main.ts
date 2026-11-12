@@ -38,7 +38,7 @@ import {
 } from "./quality";
 import { BlendPad, initials, weightsSummary } from "./blendpad";
 import { barAtSeconds, mountMediaControls } from "./mediasession";
-import { songSound } from "./profile";
+import { blendsKey, isGenreBlends, songSound } from "./profile";
 import {
   DEFAULT_GENRE,
   GENRE_IDS,
@@ -259,9 +259,13 @@ function songOrigin(song: Song): string {
     : `w${song.weights.join(",")}`;
   // Synthpop songs keep the form they had before genres.
   const genre = song.genre === DEFAULT_GENRE ? "" : `${song.genre}/`;
+  // A blend across genres or per part says more than the genre and weights.
+  const blends = isGenreBlends(song.blends, GENRES[song.genre], song.weights)
+    ? ""
+    : `/b${blendsKey(song.blends)}`;
   return song.reference
     ? `ref:${song.reference}`
-    : `seed:${song.seed}/${genre}${style}/${song.key.tonic}/${song.bpm}/${song.kit}`;
+    : `seed:${song.seed}/${genre}${style}/${song.key.tonic}/${song.bpm}/${song.kit}${blends}`;
 }
 
 /** The library entry for what's playing, if it has one. */

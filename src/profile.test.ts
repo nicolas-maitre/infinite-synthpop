@@ -14,8 +14,10 @@ import {
   SYNTHPOP_VOICES,
 } from "./genres";
 import {
+  blendsKey,
   PARTS,
   profileOf,
+  sameWeights,
   REFERENCE_IDS,
   simpleBlends,
   songSound,
@@ -24,6 +26,7 @@ import {
   type RefWeights,
 } from "./profile";
 import { createRng } from "./rng";
+import { decodeCreation, encodeCreation, songToSpec } from "./spec";
 
 /** What a song plays, for comparing two ways of making it. */
 function played(song: Song) {
@@ -143,5 +146,102 @@ describe("blends across genres", () => {
       const text = JSON.stringify([song.bpm, song.key, bars, songSound(song)]);
       expect(text).not.toContain("null");
     }
+  });
+});
+
+describe("blends in creations, links and saves", () => {
+  /** Every bar as it plays, and how it sounds. */
+  const arrangement = (song: Song) =>
+    JSON.stringify([
+      song.sections,
+      Array.from({ length: song.totalBars }, (_, b) => arrangeBar(song, b)),
+      songSound(song),
+    ]);
+  const encoded = (song: Song) => encodeCreation({ seed: song.seed, spec: songToSpec(song) });
+
+  const songs = [
+    compose({
+      seed: 5,
+      blend: { "different-story": 0.67, "crazy-juliet": 0.27, "get-closer": 0.06 },
+    }),
+    compose({ seed: 8, blend: { "true-faith": 0.5, faces: 0.5 }, form: "long" }),
+    // One genre, per part: Get Closer with True Faith's bass and Heaven Can Wait's drums.
+    compose({
+      seed: 9,
+      genre: "italo",
+      weights: [0, 1, 0, 0],
+      parts: { bass: { "true-faith": 1 }, drums: { "heaven-can-wait": 1 } },
+    }),
+  ];
+
+  it("turns a blended song into a spec that plays the same, through the link too", () => {
+    for (const song of songs) {
+      const spec = songToSpec(song);
+      expect(spec.blends).toEqual(song.blends);
+      expect(arrangement(compose({ seed: song.seed, custom: spec }))).toBe(arrangement(song));
+      const decoded = decodeCreation(encoded(song));
+      expect(decoded?.spec.blends).toBeDefined();
+      for (const part of PARTS)
+        expect(sameWeights(decoded!.spec.blends![part], song.blends[part]), part).toBe(true);
+      expect(arrangement(compose({ seed: song.seed, custom: decoded!.spec }))).toBe(
+        arrangement(song),
+      );
+    }
+  });
+
+  it("writes only the parts that differ from the song's blend", () => {
+    const raw = (song: Song) =>
+      JSON.parse(atob(encoded(song).replace(/-/g, "+").replace(/_/g, "/"))) as {
+        b?: unknown;
+        bp?: Record<string, unknown>;
+      };
+    expect(raw(songs[0]!).bp).toBeUndefined();
+    expect(Object.keys(raw(songs[2]!).bp ?? {}).sort()).toEqual(["bass", "drums"]);
+    expect(raw(songs[2]!).b).toEqual({ "get-closer": 1 });
+  });
+
+  it("keeps single-genre songs in the old form", () => {
+    for (const song of [
+      compose({ seed: 3, style: 0.4 }),
+      compose({ seed: 4, genre: "euro", weights: [0.2, 0.5, 0.3] }),
+      compose({ seed: 6, genre: "auto" }),
+    ]) {
+      if (Object.keys(song.blends.song).some((r) => genreOfReference(r as never) !== song.genre))
+        continue;
+      expect(songToSpec(song).blends).toBeUndefined();
+      expect(decodeCreation(encoded(song))?.spec.blends).toBeUndefined();
+    }
+  });
+
+  it("drops a malformed blend and plays the song part's genre and weights", () => {
+    const link = encoded(songs[0]!);
+    const json = JSON.parse(atob(link.replace(/-/g, "+").replace(/_/g, "/"))) as Record<
+      string,
+      unknown
+    >;
+    for (const b of [{ nope: 1 }, { "true-faith": -1 }, { "true-faith": 0 }, [1, 2], "x"]) {
+      const bad = btoa(JSON.stringify({ ...json, b })).replace(/=+$/, "");
+      const decoded = decodeCreation(bad);
+      expect(decoded).not.toBeNull();
+      expect(decoded?.spec.blends).toBeUndefined();
+      expect(decoded?.spec.genre).toBe(
+        "synthpop" === songs[0]!.genre ? undefined : songs[0]!.genre,
+      );
+    }
+    // A bad part falls back to the song part's blend.
+    const badPart = btoa(JSON.stringify({ ...json, bp: { bass: { nope: 1 } } })).replace(/=+$/, "");
+    expect(decodeCreation(badPart)?.spec.blends?.bass).toEqual(
+      decodeCreation(link)?.spec.blends?.song,
+    );
+  });
+
+  it("names a blend the same way whatever order it was written in", () => {
+    const a = simpleBlends({ faces: 0.5, "true-faith": 0.5 });
+    const b = simpleBlends({ "true-faith": 0.5, faces: 0.5, "you-came": 0 });
+    expect(blendsKey(a)).toBe(blendsKey(b));
+    expect(blendsKey(a)).toBe("true-faith:0.5,faces:0.5");
+    expect(blendsKey({ ...a, bass: { "you-came": 1 } })).toBe(
+      "true-faith:0.5,faces:0.5;bass=you-came:1",
+    );
   });
 });

@@ -1461,3 +1461,9 @@ button.link {
 .blendpad.compact .blendpad-label {
   font-size: 10px;
 }
+
+.blend-note {
+  max-width: 28em;
+  font-size: 11px;
+  color: var(--muted);
+}

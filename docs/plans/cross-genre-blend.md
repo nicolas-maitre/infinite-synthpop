@@ -184,10 +184,10 @@ good, but apart:
   record (the issue's step 1) is a later tidy-up: the mixture makes it unnecessary for blending.
 
 **Links and storage.** Old `g` + `w`/`st` decode to a single-genre blend for every part, with
-the exact old weights. New links write:
+the exact old weights. New links write (as built in phase 3, inside the creation's JSON):
 
-- `b`: the simple-mode blend, as `ref:w` pairs, e.g. `b=tf:.5,gc:.5`
-- `b.<part>`: only for the parts that differ from it
+- `b`: the song part's blend, by reference id, e.g. `{"true-faith":0.5,"get-closer":0.5}`
+- `bp`: only the parts that differ from it
 
 A single-genre simple-mode song still writes the old `g`/`w` form, so its links don't change.
 `legacy-links.json` keeps decoding.
@@ -282,8 +282,35 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
      Crazy Juliet and Get Closer) loads, shows its sections, and renders offline cleanly. The
      pad still shows the dominant genre's polygon until phase 4.
 
-3. **Links, storage and the creator.** `b` / `b.<part>` encoding, prefs and saved songs, and
-   `songOrigin`. Tests: round-trips, and the legacy links decoding unchanged.
+3. **Links, storage and the creator.** _Done (2026-11-12)._ `b` / `b.<part>` encoding, prefs and
+   saved songs, and `songOrigin`. Tests: round-trips, and the legacy links decoding unchanged.
+
+   What was built, and where it differs from the above:
+   - Links are creations (`#song=`, base64 JSON), so the blends are fields of the creation's
+     JSON:
+     - `b`: the song part's weights by full reference id, e.g.
+       `{"true-faith":0.5,"faces":0.5}`, not `tf:.5` pairs.
+     - `bp`: only the parts whose blend differs from `b`.
+     - `g` and `w` still name the song part's dominant genre and its weights, so a version
+       without blends plays the nearest single-genre song.
+   - The spec (`ReferenceSong`) gains `blends`. `songToSpec` sets it only when the blends say more
+     than the genre and weights. A creation with blends composes from them (`compose`'s
+     `custom.blends`) and keeps its own style. Single-genre creations and every legacy link
+     encode and decode exactly as before.
+   - Saved songs store the encoded creation, so they keep blends with no change of their own.
+     ♡ Save's identity (`songOrigin`) appends `/b` and `blendsKey(blends)` for such songs.
+   - Prefs are not touched yet. The generator's settings gain blends with the phase 4 controls.
+   - The creator shows a cross-genre blend under the Feel pad as text: "Blend: The Different
+     Story 67 · Crazy Juliet 27 · Get Closer 6. Moving the genre or the feel replaces it." Its
+     genre select and Feel pad drop the blend. Real per-part controls come with phase 4.
+   - Tests: a cross-genre song, a long one, and a single-genre song with per-part blends each
+     arrange identically through their spec and through the link. `bp` holds only the differing
+     parts. Single-genre songs keep the old form. Malformed `b`/`bp` are ignored. `blendsKey`
+     doesn't depend on order.
+   - Checked in the browser: Auto seed 5's link opens as the same song with the same sound, and
+     the creator shows its blend. Opening the link also saved it to My songs, as links already
+     did.
+
 4. **UI.** The Open picker, the n-reference polygon, the simple/per-part toggle and its rows, the
    tempo warning. Checked in the browser, Firefox included.
 5. **Ear checks.** A handful of cross-genre blends rendered offline. For example: True Faith's

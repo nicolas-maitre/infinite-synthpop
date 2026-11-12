@@ -10,6 +10,11 @@
  *
  * A spec also names its genre (`g` in links), whose references the weights are for. Links without
  * one are synthpop, which is all there was before genres; synthpop creations still leave it out.
+ *
+ * A creation blended across genres (profile.ts) also carries its part blends: `b`, the song
+ * part's weights by reference id, and `bp`, the parts whose blend differs from it. `g` and `w`
+ * then name the song part's dominant genre and its weights, so a version without blends still
+ * plays the nearest single-genre song. Creations within one genre leave both out.
  */
 import {
   isBassStyle,
@@ -26,6 +31,16 @@ import type { Progression } from "./progressions";
 import type { ReferenceSection, ReferenceSong } from "./references";
 import { chord, type Key, type Mode } from "./theory";
 import { DEFAULT_GENRE, GENRES, isGenreId, isStyleWeights, parseWeights } from "./genres";
+import {
+  compactWeights,
+  isGenreBlends,
+  parseRefWeights,
+  PARTS,
+  simpleBlends,
+  splitBlends,
+  type PartBlends,
+  type RefWeights,
+} from "./profile";
 
 export type SongSpec = ReferenceSong;
 export type SectionSpec = ReferenceSection;
@@ -136,6 +151,10 @@ export function songToSpec(song: Song): SongSpec {
     weights: [...song.weights],
     // Synthpop stays implicit, the way links and old saves have it.
     ...(song.genre !== DEFAULT_GENRE ? { genre: song.genre } : {}),
+    // Blends across genres or per part; a song within one genre needs only the two above.
+    ...(isGenreBlends(song.blends, GENRES[song.genre], song.weights)
+      ? {}
+      : { blends: structuredClone(song.blends) }),
     key: { ...song.key },
     bpm: song.bpm,
     kit: song.kit,
@@ -235,6 +254,10 @@ interface CompactCreation {
   w?: number[];
   /** The genre (genres.ts), when it isn't synthpop. */
   g?: string;
+  /** The song part's blend across genres (profile.ts), by reference id. */
+  b?: RefWeights;
+  /** The other parts' blends, where they differ from `b`. */
+  bp?: Partial<PartBlends>;
   key: [number, Mode];
   bpm: number;
   kit: KitName;
@@ -259,6 +282,7 @@ export function encodeCreation({ seed, spec }: Creation): string {
       ? { w: [...spec.weights] }
       : {}),
     ...(genre !== DEFAULT_GENRE ? { g: genre } : {}),
+    ...(spec.blends ? compactBlends(spec.blends) : {}),
     key: [spec.key.tonic, spec.key.mode],
     bpm: spec.bpm,
     kit: spec.kit,
@@ -350,6 +374,7 @@ export function decodeCreation(encoded: string): Creation | null {
     });
     const first = (kind: SectionKind) => sections.find((s) => s.kind === kind)?.progression;
     const weights = c.w === undefined ? null : parseWeights(GENRES[genre], c.w);
+    const blends = parseBlends(c.b, c.bp);
     return {
       seed: clampInt(c.seed, 0, 999_999),
       spec: {
@@ -357,6 +382,7 @@ export function decodeCreation(encoded: string): Creation | null {
         style: Math.min(1, Math.max(0, Number(c.st) || 0)),
         ...(weights ? { weights } : {}),
         ...(genre !== DEFAULT_GENRE ? { genre } : {}),
+        ...(blends ? { blends } : {}),
         key,
         bpm: Math.min(160, Math.max(60, Number(c.bpm) || 118.5)),
         kit: KITS.includes(c.kit) ? c.kit : "sp12",
@@ -370,6 +396,29 @@ export function decodeCreation(encoded: string): Creation | null {
   } catch {
     return null;
   }
+}
+
+/** Part blends as a link writes them: the song part's, and the parts that differ from it. */
+function compactBlends(blends: PartBlends): Pick<CompactCreation, "b" | "bp"> {
+  const { blend, parts } = splitBlends(blends);
+  const bp = Object.fromEntries(Object.entries(parts).map(([p, w]) => [p, compactWeights(w)]));
+  return { b: compactWeights(blend), ...(Object.keys(bp).length ? { bp } : {}) };
+}
+
+/** A link's part blends; null without a valid `b`. A part whose blend doesn't parse plays the
+ * song part's. */
+function parseBlends(b: unknown, bp: unknown): PartBlends | null {
+  const blend = parseRefWeights(b);
+  if (!blend) return null;
+  const blends = simpleBlends(blend);
+  if (bp && typeof bp === "object") {
+    for (const part of PARTS) {
+      if (part === "song") continue;
+      const w = parseRefWeights((bp as Record<string, unknown>)[part]);
+      if (w) blends[part] = w;
+    }
+  }
+  return blends;
 }
 
 function round2(n: number): number {

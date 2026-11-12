@@ -390,3 +390,63 @@ function mixedLeadTone(p: Profile): LeadTone {
     width: p.mix((g) => g.leadTone.width),
   };
 }
+
+// ── Blends in specs, links and saved songs ───────────────────────────────────────────────────
+
+/** Two blends with the same weight on every reference. */
+export function sameWeights(a: RefWeights, b: RefWeights): boolean {
+  return REFERENCE_IDS.every((r) => (a[r] ?? 0) === (b[r] ?? 0));
+}
+
+/** Do these part blends say no more than a genre's weights would? (Then specs and links keep the
+ * old form, the genre and its weights.) */
+export function isGenreBlends(
+  blends: PartBlends,
+  genre: Genre,
+  weights: readonly number[],
+): boolean {
+  const own = toRefWeights(genre, weights);
+  return PARTS.every((p) => sameWeights(blends[p], own));
+}
+
+/** Reference weights read from a link or storage: known references, finite, non-negative, at most
+ * 1, not all 0; null otherwise. */
+export function parseRefWeights(raw: unknown): RefWeights | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const out: RefWeights = {};
+  for (const [r, v] of Object.entries(raw as Record<string, unknown>)) {
+    const ref = REFERENCE_IDS.find((x) => x === r);
+    const w = Number(v);
+    if (!ref || !Number.isFinite(w) || w < 0) return null;
+    if (w > 0) out[ref] = Math.min(1, w);
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/** Part blends as a song blend plus the parts that differ from it. */
+export function splitBlends(blends: PartBlends): {
+  blend: RefWeights;
+  parts: Partial<PartBlends>;
+} {
+  const blend = blends.song;
+  const parts = Object.fromEntries(
+    PARTS.filter((p) => !sameWeights(blends[p], blend)).map((p) => [p, blends[p]]),
+  ) as Partial<PartBlends>;
+  return { blend, parts };
+}
+
+/** A blend's weights in reference order, without the zeros: `{ "true-faith": 0.5 }` → the same,
+ * keys always in the same order (for links and saved-song identities). */
+export function compactWeights(w: RefWeights): RefWeights {
+  return Object.fromEntries(REFERENCE_IDS.filter((r) => (w[r] ?? 0) > 0).map((r) => [r, w[r]]));
+}
+
+/** A stable text for part blends, for ♡ Save's song identity. */
+export function blendsKey(blends: PartBlends): string {
+  const text = (w: RefWeights) =>
+    Object.entries(compactWeights(w))
+      .map(([r, x]) => `${r}:${x}`)
+      .join(",");
+  const { blend, parts } = splitBlends(blends);
+  return [text(blend), ...Object.entries(parts).map(([p, w]) => `${p}=${text(w)}`)].join(";");
+}

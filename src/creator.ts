@@ -26,6 +26,8 @@ import {
   weightsAtPoint,
 } from "./genres";
 import { CENTRE } from "./polygon";
+import { compactWeights, PARTS, type RefWeights } from "./profile";
+import type { ReferenceId } from "./references";
 import {
   assignMelody,
   fromBars,
@@ -727,6 +729,8 @@ export function mountCreator(
           // Another genre has other references: its feel starts from the centre.
           n.weights = weightsAtPoint(GENRES[v], CENTRE);
           n.style = styleOf(n.weights);
+          // A genre picked here replaces a blend across genres.
+          delete n.blends;
         }),
     );
     // The song's style polygon, small: which reference's drum details, bass tone and riff
@@ -743,6 +747,7 @@ export function mountCreator(
         update((n) => {
           n.weights = w;
           n.style = styleOf(w);
+          delete n.blends;
         }),
     });
     feel.element.title = "Feel: the references' drum details, bass tone and riff register";
@@ -751,6 +756,15 @@ export function mountCreator(
     const feelName = el("span");
     feelName.textContent = "Feel";
     feelField.append(feelName, feel.element);
+    // A blend across genres or per part: shown, and replaced by a move of the genre or the feel
+    // (their own controls come with the blend UI).
+    if (s.blends) {
+      const note = el("span", "blend-note");
+      note.textContent = `Blend: ${blendText(s.blends.song)}${
+        PARTS.some((p) => s.blends?.[p] !== s.blends?.song) ? " (per part)" : ""
+      }. Moving the genre or the feel replaces it.`;
+      feelField.append(note);
+    }
 
     const copy = button("Copy link", () => {
       void host.copyLink().then((ok) => {
@@ -982,4 +996,14 @@ function labelled(text: string, ...controls: HTMLElement[]): HTMLElement {
   span.textContent = text;
   l.append(span, ...controls);
   return l;
+}
+
+/** "The Different Story 67 · Crazy Juliet 27 · Get Closer 6": a blend's references by weight. */
+function blendText(w: RefWeights): string {
+  const entries = Object.entries(compactWeights(w)) as [ReferenceId, number][];
+  const total = entries.reduce((a, [, x]) => a + x, 0) || 1;
+  return entries
+    .sort((a, b) => b[1] - a[1])
+    .map(([r, x]) => `${styleName(r)} ${Math.round((x / total) * 100)}`)
+    .join(" · ");
 }

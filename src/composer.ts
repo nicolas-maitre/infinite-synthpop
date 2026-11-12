@@ -382,9 +382,11 @@ export function compose(opts: ComposeOptions): Song {
       ? randomOpenBlend(rngOpen)
       : null;
   const givenBlend = ref ? null : (opts.blend ?? autoOpen);
+  // A creation across genres carries its own blends.
+  const specBlends = opts.custom?.blends ?? null;
   // The parts' blends: given ones, else the genre's weights in every part.
-  const blended = !ref && (!!givenBlend || !!opts.parts);
-  const blends: PartBlends = {
+  const blended = !!specBlends || (!ref && (!!givenBlend || !!opts.parts));
+  const blends: PartBlends = specBlends ?? {
     ...simpleBlends(givenBlend ?? toRefWeights(legacyGenre, legacyWeights)),
     ...(ref ? {} : withoutUnset(opts.parts ?? {})),
   };
@@ -394,7 +396,7 @@ export function compose(opts: ComposeOptions): Song {
   const genre = g.genre;
   const genreId = genre.id;
   const weights = blended ? g.weights : legacyWeights;
-  const style = blended ? styleOf(weights) : legacyStyle;
+  const style = blended && !ref ? styleOf(weights) : legacyStyle;
   const rngSetup = root.fork("setup");
   // You Came's choices draw from their own streams, so at its weight 0 a song is what it was.
   const rngMode = root.fork("mode");
