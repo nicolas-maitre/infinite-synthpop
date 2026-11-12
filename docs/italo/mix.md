@@ -134,7 +134,11 @@ section), and the stems' attack read on the bass's 8ths. On top of the fit above
   in about half a second. Then "not piercing enough": measured on the instrumental's "other" stem,
   the record's line onsets carry 3–12 kHz within 4–16 dB of their loudest band, ours 25–40 dB
   under. The top layer is now 16 dB louder, lifted at 5 kHz, with a short burst of noise between
-  6 and 12 kHz struck with each hit: within about 3–7 dB of the record from 4 to 12 kHz.
+  6 and 12 kHz struck with each hit: within about 3–7 dB of the record from 4 to 12 kHz. Then still not "high pitched" enough, "too soft": the record's bell sounds an
+  octave over the written line, its 3rd and 4th harmonics far stronger than its fundamental (on
+  the written G♯5: G♯6 20 dB under 5.0 and 6.6 kHz). The top layer is now that: an octave up, its
+  partials written as measured, struck with a touch of FM; the noise is gone, the deep bell 6 dB
+  down under it.
 - **Kick:** the record's low end in the verse is its kick (the drum stem carries the 40–120 Hz
   bands within 1.5 dB of the mix, the bass stem 7–14 dB under). Ours sat 6–7 dB short under 60 Hz,
   so its sampled kick gets a 10 dB low shelf at 90 Hz (`kickWeight`, new, switched out for every

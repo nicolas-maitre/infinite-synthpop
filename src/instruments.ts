@@ -294,7 +294,6 @@ export class Instruments {
   /** Self Control's verse line (a glockenspiel) and its break's stab, on the stab track. */
   private readonly stabGlock: NativeFMSynth;
   private readonly stabGlockTop: NativeFMSynth;
-  private readonly stabGlockAir: Tone.NoiseSynth;
   private readonly stabSwell: NativeMonoSynth;
   /** Self Control's chorus comp, a saw stab and an FM piano, on the counter track (setVoices). */
   private readonly counterBright: NativeMonoSynth;
@@ -839,35 +838,24 @@ export class Instruments {
       envelope: { attack: 0.001, decay: 3.2, sustain: 0, release: 1.6 },
       modulationEnvelope: { attack: 0.001, decay: 0.25, sustain: 0.05, release: 0.3 },
       maxPolyphony: 6,
-      volume: ARP_STAB_GAIN_DB + 8,
+      volume: ARP_STAB_GAIN_DB + 2,
     }).connect(this.channels.stab);
-    // Its piercing top (by ear, the record's bell has "high frequencies that pierce through"; its
-    // onsets carry 3–12 kHz within 4–16 dB of their loudest band): a brighter metallic layer, its
-    // modulator at an inharmonic 7.1, lifted at 5 kHz, fading in about half a second.
+    // Its bright, high voice (by ear the record's bell is "piercing" and "high pitched", ours "too
+    // soft"): on the record the bell sounds an octave over the written line, its fundamental 20 dB
+    // under its strong 3rd and 4th harmonics (G♯6 under 5.0 and 6.6 kHz on the written G♯5). A
+    // harmonic FM tone an octave up, struck hard and rich in those harmonics, fading in about a
+    // second over the deep bell's body.
     this.stabGlockTop = new NativeFMSynth({
-      harmonicity: 7.1,
-      modulationIndex: 4,
-      oscillator: { type: "sine" },
+      harmonicity: 1,
+      modulationIndex: 1.5,
+      // Partials as measured: the fundamental 20 dB and the 2nd 14 dB under the 3rd, the 4th 3 dB.
+      oscillator: { type: "sine", partials: [0.1, 0.2, 1, 0.7, 0.3, 0.2, 0.1] },
       modulation: { type: "sine" },
-      envelope: { attack: 0.001, decay: 0.6, sustain: 0, release: 0.4 },
-      modulationEnvelope: { attack: 0.001, decay: 0.3, sustain: 0.2, release: 0.2 },
+      envelope: { attack: 0.001, decay: 1.1, sustain: 0, release: 0.5 },
+      modulationEnvelope: { attack: 0.001, decay: 0.3, sustain: 0.2, release: 0.3 },
       maxPolyphony: 6,
-      volume: ARP_STAB_GAIN_DB + 18,
-    }).chain(
-      new FixedFilter("highpass", 2500),
-      new FixedFilter("peaking", 5000, { Q: 1, gain: 6 }),
-      this.channels.stab,
-    );
-    // And its shimmer above 6 kHz, wherever the note sits: a short burst of noise struck with it.
-    this.stabGlockAir = new Tone.NoiseSynth({
-      noise: { type: "white" },
-      envelope: { attack: 0.001, decay: 0.35, sustain: 0, release: 0.1 },
-      volume: ARP_STAB_GAIN_DB - 6,
-    }).chain(
-      new FixedFilter("highpass", 6000),
-      new FixedFilter("lowpass", 12000),
-      this.channels.stab,
-    );
+      volume: ARP_STAB_GAIN_DB + 5,
+    }).connect(this.channels.stab);
     // The break stab hits hard (2026-11-12, by ear: "a powerful sound"; a distorted guitar's power
     // chord over the bass in the MIDI transcription): two detuned saws struck at once, driven, then
     // darkened, ringing on into the reverb.
@@ -1263,9 +1251,14 @@ export class Instruments {
               continue;
             }
             // The bell, struck: it rings out on its own (by ear, no strings trailing under it).
-            for (const bell of [this.stabGlock, this.stabGlockTop])
-              bell.triggerAttackRelease(freqs, Math.max(len(first), 1.5), at(first), first.vel);
-            this.stabGlockAir.triggerAttackRelease(0.3, at(first), first.vel);
+            const ring = Math.max(len(first), 1.5);
+            this.stabGlock.triggerAttackRelease(freqs, ring, at(first), first.vel);
+            this.stabGlockTop.triggerAttackRelease(
+              freqs.map((f) => f * 2),
+              ring,
+              at(first),
+              first.vel,
+            );
             continue;
           }
           if (this.voices.stabPatch === "saw") {
