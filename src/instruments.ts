@@ -293,6 +293,7 @@ export class Instruments {
   private readonly arpPluck: NativeMonoSynth;
   /** Self Control's verse line (a glockenspiel) and its break's stab, on the stab track. */
   private readonly stabGlock: NativeFMSynth;
+  private readonly stabGlockTop: NativeFMSynth;
   private readonly stabSwell: NativeMonoSynth;
   /** Self Control's chorus comp, a saw stab and an FM piano, on the counter track (setVoices). */
   private readonly counterBright: NativeMonoSynth;
@@ -839,6 +840,18 @@ export class Instruments {
       maxPolyphony: 6,
       volume: ARP_STAB_GAIN_DB + 8,
     }).connect(this.channels.stab);
+    // Its piercing top (by ear, the record's bell has "high frequencies that pierce through"): a
+    // brighter metallic layer, its modulator at an inharmonic 7.1, fading in about half a second.
+    this.stabGlockTop = new NativeFMSynth({
+      harmonicity: 7.1,
+      modulationIndex: 2.5,
+      oscillator: { type: "sine" },
+      modulation: { type: "sine" },
+      envelope: { attack: 0.001, decay: 0.6, sustain: 0, release: 0.4 },
+      modulationEnvelope: { attack: 0.001, decay: 0.3, sustain: 0.2, release: 0.2 },
+      maxPolyphony: 6,
+      volume: ARP_STAB_GAIN_DB + 2,
+    }).chain(new FixedFilter("highpass", 1500), this.channels.stab);
     // The break stab hits hard (2026-11-12, by ear: "a powerful sound"; a distorted guitar's power
     // chord over the bass in the MIDI transcription): two detuned saws struck at once, driven, then
     // darkened, ringing on into the reverb.
@@ -1234,12 +1247,8 @@ export class Instruments {
               continue;
             }
             // The bell, struck: it rings out on its own (by ear, no strings trailing under it).
-            this.stabGlock.triggerAttackRelease(
-              freqs,
-              Math.max(len(first), 1.5),
-              at(first),
-              first.vel,
-            );
+            for (const bell of [this.stabGlock, this.stabGlockTop])
+              bell.triggerAttackRelease(freqs, Math.max(len(first), 1.5), at(first), first.vel);
             continue;
           }
           if (this.voices.stabPatch === "saw") {
@@ -1425,6 +1434,7 @@ export class Instruments {
       this.stabHeld,
       this.arpPluck,
       this.stabGlock,
+      this.stabGlockTop,
       this.stabSwell,
       this.counterBright,
       this.counterEp,

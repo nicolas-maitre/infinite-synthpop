@@ -129,7 +129,9 @@ section), and the stems' attack read on the bass's 8ths. On top of the fit above
   strings, as the MIDI transcription's glockenspiel over bowed strings. The strings' long trail
   "doesn't make sense for a bell": they're gone, the glockenspiel 6 dB up, alone. Then "a bigger
   bell, more deep": it plays at the line's own pitch (no longer an octave up), struck a little
-  harder and ringing about 3 s.
+  harder and ringing about 3 s. Then "missing some high frequencies that pierce through": a brighter
+  metallic layer (modulator at an inharmonic 7.1, high-passed at 1.5 kHz) strikes with it and fades
+  in about half a second.
 - **Kick:** the record's low end in the verse is its kick (the drum stem carries the 40–120 Hz
   bands within 1.5 dB of the mix, the bass stem 7–14 dB under). Ours sat 6–7 dB short under 60 Hz,
   so its sampled kick gets a 10 dB low shelf at 90 Hz (`kickWeight`, new, switched out for every
