@@ -311,8 +311,39 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
      the creator shows its blend. Opening the link also saved it to My songs, as links already
      did.
 
-4. **UI.** The Open picker, the n-reference polygon, the simple/per-part toggle and its rows, the
-   tempo warning. Checked in the browser, Firefox included.
+4. **UI.** _Done (2026-11-12), except the creator._ The Open picker, the n-reference polygon,
+   the simple/per-part toggle and its rows, the tempo warning. Checked in the browser, Firefox
+   included.
+
+   What was built, and where it differs from the above:
+   - **Genre select:** Auto, the three presets, and "Open (pick references)". Open shows chips for
+     the ten references grouped by genre, with at least two kept ticked. The style pad becomes
+     their polygon: a slider for two, a triangle for three, a square for four, and so on. "Auto (a
+     new point each song)" works in Open too: a random point of the chosen references' polygon per
+     song (`ComposeOptions.blendRefs`, on the `open-point` stream).
+   - **Auto genre:** the pad follows each song's references, its genre's or, for a cross-genre
+     Auto song, its own.
+   - **Per part:** a "Blend each part on its own" checkbox opens five rows (Drums, Bass, Riff &
+     lead synth, Keys, Voice). The Song part is the style pad itself. Each row is "Same as the
+     style", a genre preset with its own small pad, or Open with its own chips and pad. Rows
+     have no auto point.
+   - **Tempo note:** shown only for Open, under the tempo control, when the ticked records'
+     measured tempos (`REFERENCES[r].bpm`) span more than 10 BPM. The tempo hint lists the
+     union of the genres' ranges and where the records run.
+   - **Prefs:** they gain `openRefs`, `partsOn` and `parts`, and `genre` may be "open". Old prefs
+     load as before.
+   - `EngineSettings` gains `blend`, `blendRefs` and `parts`. A preset genre still sends its genre
+     and weights, so preset songs are unchanged.
+   - New module `src/blendpicker.ts`: the chips, the part rows, and parsing for stored values.
+   - **Not done: the creator's controls.** It still shows a cross-genre blend as text and
+     replaces it when its genre or Feel pad moves.
+   - **Checked:**
+     - In the app's browser: Open with four references, the warning, a hand-placed point
+       composing the expected song, and Drums set to Euro-disco switching to the backbeat kit.
+     - At phone width, with no horizontal scroll.
+     - In headless Firefox (Playwright 1.56): the Open and per-part prefs restore, no errors,
+       and a cross-genre song renders offline cleanly.
+
 5. **Ear checks.** A handful of cross-genre blends rendered offline. For example: True Faith's
    bass under Get Closer's echo hook, and You Came's pre-chorus with Faces' stabs. The mix is
    then tuned where parts from different genres fight.

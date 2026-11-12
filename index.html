@@ -261,6 +261,7 @@
           <span>Genre</span>
           <select id="genre"></select>
         </label>
+        <div id="open-refs" hidden></div>
         <div class="field" role="group" aria-labelledby="style-label">
           <span class="row spread"
             ><span id="style-label">Style</span><output id="style-out"></output
@@ -270,6 +271,12 @@
             ><input id="style-auto" type="checkbox" />
             <span>Auto (a new point each song)</span></label
           >
+        </div>
+        <div class="field parts-field">
+          <label class="row"
+            ><input id="parts-on" type="checkbox" /> <span>Blend each part on its own</span></label
+          >
+          <div id="part-rows" class="part-rows" hidden></div>
         </div>
         <label class="field">
           <span class="row spread"><span>Tempo</span><output id="bpm-out"></output></span>
@@ -281,6 +288,7 @@
             ></span
           >
         </label>
+        <p class="note tempo-warning" id="tempo-warning" hidden></p>
         <label class="field">
           <span>Key</span>
           <select id="key"></select>

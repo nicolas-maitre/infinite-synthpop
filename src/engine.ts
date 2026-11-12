@@ -14,6 +14,7 @@ import * as Tone from "tone";
 import { AHEAD_SUPPORTED, AheadPlayer, type Deck, type Piece, type RenderMix } from "./ahead";
 import { arrangeBar, MELODIC_TRACKS, type BarEvents } from "./arranger";
 import { loadSampleKits, type SampleReport } from "./drums";
+import type { PartBlends, RefWeights } from "./profile";
 import type { GenreId } from "./genres";
 import { songSound } from "./profile";
 import { scheduleStep } from "./schedule";
@@ -31,6 +32,13 @@ export interface EngineSettings {
   genre: GenreId | "auto";
   /** The genre's references' weights (genres.ts); null = a random point of its polygon per song. */
   weights: readonly number[] | null;
+  /** A blend across genres (profile.ts), overriding `genre` and `weights`; null: none. */
+  blend: RefWeights | null;
+  /** With no `blend`: a random point of these references' polygon per song (an open blend on
+   * auto); null: none. */
+  blendRefs: readonly ReferenceId[] | null;
+  /** Per-part blends over the song's (profile.ts); null: every part plays the song's blend. */
+  parts: Partial<PartBlends> | null;
   /** null = pick per song. */
   key: Key | null;
   /** null = pick per song. */

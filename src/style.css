@@ -1467,3 +1467,62 @@ button.link {
   font-size: 11px;
   color: var(--muted);
 }
+
+/* Blends across genres: the open blend's reference chips and the per-part rows. */
+#open-refs {
+  margin: -8px 0 16px;
+}
+
+.ref-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ref-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.ref-chip-genre {
+  min-width: 6.5em;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ref-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.part-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+
+.part-rows[hidden] {
+  display: none;
+}
+
+.part-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.part-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tempo-warning {
+  margin: -8px 0 16px;
+  color: var(--accent);
+}

@@ -25,6 +25,7 @@ import {
   type PartBlends,
   type RefWeights,
 } from "./profile";
+import { centreFor, parsePadWeights, parsePartValue, parseRefs, partBlend } from "./blendpicker";
 import { createRng } from "./rng";
 import { decodeCreation, encodeCreation, songToSpec } from "./spec";
 
@@ -243,5 +244,52 @@ describe("blends in creations, links and saves", () => {
     expect(blendsKey({ ...a, bass: { "you-came": 1 } })).toBe(
       "true-faith:0.5,faces:0.5;bass=you-came:1",
     );
+  });
+});
+
+describe("open blends from the generator", () => {
+  const refs = ["true-faith", "get-closer", "crazy-juliet"] as const;
+
+  it("puts an auto point on the chosen references only, a new one per song", () => {
+    const points = new Set<string>();
+    for (let seed = 0; seed < 30; seed++) {
+      const song = compose({ seed, blendRefs: refs });
+      const used = Object.keys(song.blends.song).filter(
+        (r) => (song.blends.song[r as never] ?? 0) > 0,
+      );
+      expect(used.every((r) => (refs as readonly string[]).includes(r))).toBe(true);
+      points.add(JSON.stringify(song.blends.song));
+      expect(compose({ seed, blendRefs: refs }).blends).toEqual(song.blends);
+    }
+    expect(points.size).toBeGreaterThan(20);
+  });
+
+  it("reads the pad's settings back from storage, rejecting what doesn't fit", () => {
+    expect(parseRefs(["get-closer", "true-faith", "nope", "get-closer"])).toEqual([
+      "true-faith",
+      "get-closer",
+    ]);
+    expect(parseRefs(["true-faith"])).toBeNull();
+    expect(parsePadWeights([0.5, 0.5], 2)).toEqual([0.5, 0.5]);
+    expect(parsePadWeights([0.5, 0.5], 3)).toBeNull();
+    expect(parsePadWeights([0, 0], 2)).toBeNull();
+    expect(parsePartValue({ kind: "genre", genre: "euro", weights: [0.2, 0.3, 0.5] })).toEqual({
+      kind: "genre",
+      genre: "euro",
+      weights: [0.2, 0.3, 0.5],
+    });
+    expect(parsePartValue({ kind: "genre", genre: "euro", weights: [1, 0] })).toBeNull();
+    expect(
+      parsePartValue({ kind: "open", refs: ["faces", "you-came"], weights: [0.4, 0.6] }),
+    ).toEqual({
+      kind: "open",
+      refs: ["you-came", "faces"],
+      weights: [0.4, 0.6],
+    });
+    expect(partBlend({ kind: "open", refs: ["you-came", "faces"], weights: [0.4, 0.6] })).toEqual({
+      "you-came": 0.4,
+      faces: 0.6,
+    });
+    expect(centreFor(["true-faith", "faces"])).toEqual([0.5, 0.5]);
   });
 });

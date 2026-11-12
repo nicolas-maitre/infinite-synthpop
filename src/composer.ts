@@ -20,6 +20,7 @@ import {
 import {
   AUTO_OPEN_CHANCE,
   partVoices,
+  randomBlendOver,
   randomOpenBlend,
   pickFromBanks,
   profilesOf,
@@ -281,6 +282,9 @@ export interface ComposeOptions {
   /** The references' weights across genres (profile.ts), for every part; overrides `genre`,
    * `style` and `weights`. Not for originals or creations, which keep their own. */
   blend?: RefWeights | null;
+  /** A random point of these references' polygon per song, when `blend` is unset (an open
+   * blend's "auto" style). */
+  blendRefs?: readonly ReferenceId[] | null;
   /** Per-part blends over `blend` (or over the genre's weights). */
   parts?: Partial<PartBlends> | null;
   key?: Key | null;
@@ -381,7 +385,12 @@ export function compose(opts: ComposeOptions): Song {
     opts.genre === "auto" && !ref && !opts.blend && !opts.parts && rngOpen.chance(AUTO_OPEN_CHANCE)
       ? randomOpenBlend(rngOpen)
       : null;
-  const givenBlend = ref ? null : (opts.blend ?? autoOpen);
+  // An open blend's auto point, on its own stream.
+  const openPoint =
+    !ref && !opts.blend && opts.blendRefs && opts.blendRefs.length > 1
+      ? randomBlendOver(opts.blendRefs, root.fork("open-point"))
+      : null;
+  const givenBlend = ref ? null : (opts.blend ?? openPoint ?? autoOpen);
   // A creation across genres carries its own blends.
   const specBlends = opts.custom?.blends ?? null;
   // The parts' blends: given ones, else the genre's weights in every part.

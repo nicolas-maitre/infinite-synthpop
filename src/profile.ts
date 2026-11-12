@@ -103,6 +103,26 @@ export function randomOpenBlend(rng: Rng): RefWeights {
   return Object.fromEntries(refs.map((r, i) => [r, w[i] ?? 0]));
 }
 
+/** Weights in the order of a list of references (a pad's vertices), as reference weights. */
+export function refsBlend(refs: readonly ReferenceId[], weights: readonly number[]): RefWeights {
+  return Object.fromEntries(refs.map((r, i) => [r, weights[i] ?? 0]));
+}
+
+/** A random point of the polygon of these references, as reference weights rounded to
+ * hundredths (the "auto" style of an open blend). */
+export function randomBlendOver(refs: readonly ReferenceId[], rng: Rng): RefWeights {
+  const vertices = polygonVertices(refs.length);
+  return refsBlend(
+    refs,
+    quantize(
+      weightsAt(
+        vertices,
+        randomPoint(vertices, () => rng.next()),
+      ),
+    ),
+  );
+}
+
 /** The same blend for every part (simple mode). */
 export function simpleBlends(weights: RefWeights): PartBlends {
   return Object.fromEntries(PARTS.map((p) => [p, weights])) as PartBlends;

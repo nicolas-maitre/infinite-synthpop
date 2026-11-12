@@ -36,13 +36,28 @@ import {
   saveQualityChoice,
   SHOW_AUDIO_STATS,
 } from "./quality";
-import { BlendPad, initials, weightsSummary } from "./blendpad";
+import { BlendPad, initials } from "./blendpad";
 import { barAtSeconds, mountMediaControls } from "./mediasession";
-import { blendsKey, isGenreBlends, songSound } from "./profile";
+import { blendsKey, isGenreBlends, refsBlend, songSound, type Part } from "./profile";
+import {
+  blendRefsFor,
+  centreFor,
+  onPad,
+  parsePadWeights,
+  parsePartValue,
+  parseRefs,
+  partBlend,
+  PART_ROWS,
+  PartRow,
+  refChips,
+  refsLabel,
+  type PartValue,
+} from "./blendpicker";
 import {
   DEFAULT_GENRE,
   GENRE_IDS,
   GENRES,
+  genreOfReference,
   isGenreId,
   isStyleWeights,
   parseWeights,
@@ -57,10 +72,16 @@ import { CENTRE } from "./polygon";
 
 interface Prefs {
   /** The genre generated songs come from (genres.ts). */
-  /** "auto": a genre per song. */
-  genre: GenreId | "auto";
-  /** That genre's references' weights (genres.ts), set with the style polygon. */
+  /** "auto": a genre per song. "open": a blend of `openRefs`, of any genres. */
+  genre: GenreId | "auto" | "open";
+  /** The style pad's weights: the genre's references' (genres.ts), or with "open" `openRefs`'. */
   weights: number[];
+  /** The references an open blend runs between (2–10), in reference order. */
+  openRefs: ReferenceId[];
+  /** Blend the parts on their own (`parts`), not all from the style. */
+  partsOn: boolean;
+  /** Each part's own blend; a part left out plays the style's. */
+  parts: Partial<Record<Exclude<Part, "song">, PartValue>>;
   styleAuto: boolean;
   bpm: number;
   bpmAuto: boolean;
@@ -92,16 +113,8 @@ const AUTO_AHEAD = DEVICE_QUALITY === "lite";
 const AUTO_BUFFER = AUTO_AHEAD ? 60 : 20;
 
 const PREFS_KEY = "infinite-synthpop:prefs:v1";
-/** A genre's references, as named at its style polygon's vertices. */
-function refNames(genre: GenreId): string[] {
-  return GENRES[genre].references.map(styleName);
-}
-
-/** "TF 30 · DS 30 · YC 40" for a genre's weights. */
-function weightsLabel(genre: GenreId, weights: readonly number[]): string {
-  const names = refNames(genre);
-  return weightsSummary(names, initials(names), weights);
-}
+/** Records further apart than this (BPM) get the tempo note. */
+const TEMPO_SPREAD = 10;
 
 /** A genre's style polygon at its centre: an equal mix of its references. */
 function centreWeights(genre: GenreId): number[] {
@@ -112,6 +125,9 @@ function centreWeights(genre: GenreId): number[] {
 const defaults: Prefs = {
   genre: "auto",
   weights: centreWeights(DEFAULT_GENRE),
+  openRefs: ["true-faith", "get-closer"],
+  partsOn: false,
+  parts: {},
   styleAuto: true,
   bpm: 118,
   bpmAuto: true,
@@ -134,15 +150,26 @@ function loadPrefs(): Prefs {
     if (!raw) return defaults;
     const p = JSON.parse(raw) as Partial<Prefs> & { style?: unknown };
     // Saved before genres: synthpop.
-    const genre = p.genre === "auto" || isGenreId(p.genre) ? p.genre : DEFAULT_GENRE;
+    const genre =
+      p.genre === "auto" || p.genre === "open" || isGenreId(p.genre) ? p.genre : DEFAULT_GENRE;
+    const openRefs = parseRefs(p.openRefs) ?? defaults.openRefs;
+    const parts = Object.fromEntries(
+      PART_ROWS.flatMap(([part]) => {
+        const v = parsePartValue(p.parts?.[part]);
+        return v ? [[part, v]] : [];
+      }),
+    );
+    const partsOn = p.partsOn === true;
     const volumes = { ...defaults.volumes, ...p.volumes };
     // Saved before the triangle: only a style, which plays as [1 − style, style, 0].
     const style = typeof p.style === "number" ? Math.min(1, Math.max(0, p.style)) : null;
     // With the genre picked per song, the weights are too: these are kept for a fixed genre only.
-    const fixed = genre === "auto" ? DEFAULT_GENRE : genre;
+    const fixed = genre === "auto" || genre === "open" ? DEFAULT_GENRE : genre;
     const weights =
-      parseWeights(GENRES[fixed], p.weights) ??
-      (style === null ? centreWeights(fixed) : [...referenceWeights(GENRES[fixed], style)]);
+      genre === "open"
+        ? (parsePadWeights(p.weights, openRefs.length) ?? centreFor(openRefs))
+        : (parseWeights(GENRES[fixed], p.weights) ??
+          (style === null ? centreWeights(fixed) : [...referenceWeights(GENRES[fixed], style)]));
     delete p.style;
     // Faders left at an old default follow the new one.
     for (const [t, old] of Object.entries(PREVIOUS_DEFAULT_VOLUMES) as [Track, number][]) {
@@ -155,7 +182,20 @@ function loadPrefs(): Prefs {
       : TRACKS.filter((t) => volumes[t] !== DEFAULT_VOLUMES[t]);
     const playback = PLAYBACKS.find((x) => x === p.playback) ?? defaults.playback;
     const buffer = BUFFERS.find((x) => x === p.buffer) ?? defaults.buffer;
-    return { ...defaults, ...p, volumes, manual, genre, weights, lead, playback, buffer };
+    return {
+      ...defaults,
+      ...p,
+      volumes,
+      manual,
+      genre,
+      weights,
+      openRefs,
+      partsOn,
+      parts,
+      lead,
+      playback,
+      buffer,
+    };
   } catch {
     return defaults;
   }
@@ -210,6 +250,10 @@ const ui = {
   key: el<HTMLSelectElement>("key"),
   kit: el<HTMLSelectElement>("kit"),
   genre: el<HTMLSelectElement>("genre"),
+  openRefs: el("open-refs"),
+  partsOn: el<HTMLInputElement>("parts-on"),
+  partRows: el("part-rows"),
+  tempoWarning: el("tempo-warning"),
   kitStatus: el("kit-status"),
   mixer: el("mixer-rows"),
   mixerReset: el<HTMLButtonElement>("mixer-reset"),
@@ -516,8 +560,16 @@ function isReferenceId(id: string | null | undefined): id is ReferenceId {
 
 function engineSettings(): EngineSettings {
   return {
-    genre: prefs.genre,
-    weights: prefs.styleAuto || prefs.genre === "auto" ? null : prefs.weights,
+    // An open blend plays across genres: its blend (or, on auto, a point of its references'
+    // polygon per song) overrides the genre.
+    genre: prefs.genre === "open" ? DEFAULT_GENRE : prefs.genre,
+    weights: prefs.genre === "open" || styleIsAuto() ? null : prefs.weights,
+    blend:
+      prefs.genre === "open" && !prefs.styleAuto ? refsBlend(prefs.openRefs, prefs.weights) : null,
+    blendRefs: prefs.genre === "open" && prefs.styleAuto ? prefs.openRefs : null,
+    parts: prefs.partsOn
+      ? Object.fromEntries(Object.entries(prefs.parts).map(([part, v]) => [part, partBlend(v)]))
+      : null,
     key: prefs.key === null ? null : { tonic: prefs.key, mode: "minor" },
     bpm: prefs.bpmAuto ? null : prefs.bpm,
     kit: prefs.kit,
@@ -658,19 +710,18 @@ function renderSong(song: Song): void {
     ...(engine.creation ? ["your creation (loops)"] : []),
   ].join(" · ");
   ui.seed.value = String(song.seed);
-  // Genre auto: the pad and the tempo hint follow each song's genre.
-  if (prefs.genre === "auto" && song.genre !== padGenre) {
-    padGenre = song.genre;
+  // Genre auto: the pad and the tempo hint follow each song's references.
+  if (prefs.genre === "auto" && !onPad(song.blends.song, padRefs)) {
+    padRefs = blendRefsFor(song.blends.song, song.genre);
     stylePad = newStylePad();
     showStylePad();
     showTempoHint();
   }
-  // Auto: the pad shows where this song's point landed (when the song is from the pad's genre).
-  if (styleIsAuto() && song.genre === padGenre) {
-    stylePad.setWeights(song.weights);
-    ui.styleOut.value = song.reference
-      ? REFERENCES[song.reference].title
-      : weightsLabel(song.genre, song.weights);
+  // Auto: the pad shows where this song's point landed (when the song is on the pad).
+  if (styleIsAuto() && onPad(song.blends.song, padRefs)) {
+    const w = padRefs.map((r) => song.blends.song[r] ?? 0);
+    stylePad.setWeights(w);
+    ui.styleOut.value = song.reference ? REFERENCES[song.reference].title : refsLabel(padRefs, w);
   }
   if (prefs.bpmAuto) {
     ui.bpm.value = String(song.bpm);
@@ -1032,22 +1083,27 @@ function renderKitStatus(): void {
 
 ui.genre.append(new Option("Auto (a genre per song)", "auto"));
 for (const id of GENRE_IDS) ui.genre.append(new Option(GENRES[id].name, id));
+ui.genre.append(new Option("Open (pick references)", "open"));
 ui.genre.value = prefs.genre;
 ui.genre.addEventListener("change", () => {
   const value = ui.genre.value;
-  if (value !== "auto" && !isGenreId(value)) return;
+  if (value !== "auto" && value !== "open" && !isGenreId(value)) return;
   prefs.genre = value;
-  padGenre = value === "auto" ? engine.song.genre : value;
-  // Another genre has other references: its polygon starts from the centre.
-  if (value !== "auto") prefs.weights = centreWeights(value);
+  // Other references: the polygon starts from the centre.
+  if (value === "open") prefs.weights = centreFor(prefs.openRefs);
+  else if (value !== "auto") prefs.weights = centreWeights(value);
+  padRefs =
+    value === "auto"
+      ? blendRefsFor(engine.song.blends.song, engine.song.genre)
+      : value === "open"
+        ? prefs.openRefs
+        : GENRES[value].references;
   stylePad = newStylePad();
   showStylePad();
+  showOpenRefs();
   showTempoHint();
   savePrefs();
-  engine.update({
-    genre: prefs.genre,
-    weights: styleIsAuto() ? null : prefs.weights,
-  });
+  engine.update(engineSettings());
 });
 
 /** Whether the style point is picked per song: by choice, or because the genre is. */
@@ -1055,27 +1111,48 @@ function styleIsAuto(): boolean {
   return prefs.styleAuto || prefs.genre === "auto";
 }
 
-/** The auto tempo's range and where the genre's records sit. */
+/** The auto tempo's range and where the pad's records sit. References whose records sit far
+ * apart get a note: a blend's tempo lands between them. */
 function showTempoHint(): void {
-  const { range, note } = GENRES[padGenre].tempo;
-  const genre = prefs.genre === "auto" ? `${GENRES[padGenre].name} now: ` : "";
-  ui.bpmHint.textContent = `Auto (varies per song, ${genre}${range[0]}–${range[1]}; ${note})`;
+  const genres = [...new Set(padRefs.map(genreOfReference))];
+  const one = genres.length === 1 && prefs.genre !== "open" ? genres[0] : undefined;
+  const now = prefs.genre === "auto" ? (one ? `${GENRES[one].name} now: ` : "this song: ") : "";
+  const bpms = padRefs.map((r) => REFERENCES[r].bpm);
+  const [lo, hi] = [Math.min(...bpms), Math.max(...bpms)];
+  if (one) {
+    const { range, note } = GENRES[one].tempo;
+    ui.bpmHint.textContent = `Auto (varies per song, ${now}${range[0]}–${range[1]}; ${note})`;
+  } else {
+    const range = [
+      Math.min(...genres.map((g) => GENRES[g].tempo.range[0])),
+      Math.max(...genres.map((g) => GENRES[g].tempo.range[1])),
+    ];
+    ui.bpmHint.textContent = `Auto (varies per song, ${now}${range[0]}–${range[1]}; these records run at ${lo}–${hi})`;
+  }
+  // Warn, don't limit: blends of far-apart records the user picked play at a tempo between them.
+  const spread = prefs.genre === "open" && hi - lo > TEMPO_SPREAD;
+  ui.tempoWarning.hidden = !spread;
+  ui.tempoWarning.textContent = spread
+    ? `These records are ${Math.round(hi - lo)} BPM apart (${lo}–${hi}): a blend plays at a tempo between them, which none of them has.`
+    : "";
 }
 
-/** The style polygon for the genre the pad shows: a triangle for three references, a slider for
- * two. */
+/** The style polygon over the pad's references: a slider for two, a triangle for three, and so
+ * on. */
 function newStylePad(): BlendPad {
-  const genre = padGenre;
+  const refs = padRefs;
+  const names = refs.map(styleName);
   return new BlendPad({
-    names: refNames(genre),
-    weights: prefs.weights,
+    names,
+    short: refs.length > 4 ? initials(names) : undefined,
+    weights: prefs.weights.length === refs.length ? prefs.weights : centreFor(refs),
     label: "Style",
-    onInput: (w) => (ui.styleOut.value = weightsLabel(genre, w)),
+    onInput: (w) => (ui.styleOut.value = refsLabel(refs, w)),
     onChange: (w) => {
-      ui.styleOut.value = weightsLabel(genre, w);
+      ui.styleOut.value = refsLabel(refs, w);
       prefs.weights = w;
       savePrefs();
-      engine.update({ weights: prefs.weights });
+      engine.update(engineSettings());
     },
   });
 }
@@ -1087,13 +1164,39 @@ function showStylePad(): void {
   stylePad.disabled = styleIsAuto();
   ui.styleAuto.disabled = prefs.genre === "auto";
   ui.styleAuto.checked = styleIsAuto();
-  ui.styleOut.value = styleIsAuto() ? "" : weightsLabel(padGenre, prefs.weights);
+  ui.styleOut.value = styleIsAuto() ? "" : refsLabel(padRefs, prefs.weights);
 }
 
-/** The genre the style pad and tempo hint show: the chosen one, or with auto the current song's. */
-let padGenre: GenreId = prefs.genre === "auto" ? DEFAULT_GENRE : prefs.genre;
+/** The open blend's reference chips, under the genre select while it says "Open". */
+function showOpenRefs(): void {
+  ui.openRefs.hidden = prefs.genre !== "open";
+  ui.openRefs.replaceChildren(
+    ...(prefs.genre === "open"
+      ? [
+          refChips(prefs.openRefs, (refs) => {
+            prefs.openRefs = refs;
+            prefs.weights = centreFor(refs);
+            padRefs = refs;
+            stylePad = newStylePad();
+            showStylePad();
+            showTempoHint();
+            savePrefs();
+            engine.update(engineSettings());
+          }),
+        ]
+      : []),
+  );
+}
+
+/** The references the style pad shows: the chosen genre's, the open blend's, or with auto the
+ * current song's (its genre's, or its own when it blends across genres). */
+let padRefs: readonly ReferenceId[] =
+  prefs.genre === "open"
+    ? prefs.openRefs
+    : GENRES[prefs.genre === "auto" ? DEFAULT_GENRE : prefs.genre].references;
 let stylePad = newStylePad();
 showStylePad();
+showOpenRefs();
 showTempoHint();
 ui.styleAuto.addEventListener("change", () => {
   prefs.styleAuto = ui.styleAuto.checked;
@@ -1101,7 +1204,28 @@ ui.styleAuto.addEventListener("change", () => {
   if (!prefs.styleAuto) prefs.weights = stylePad.weights;
   stylePad.disabled = prefs.styleAuto;
   savePrefs();
-  engine.update({ weights: prefs.styleAuto ? null : prefs.weights });
+  engine.update(engineSettings());
+});
+
+// Per part: each part's own blend over the style's (profile.ts parts).
+ui.partsOn.checked = prefs.partsOn;
+ui.partRows.hidden = !prefs.partsOn;
+ui.partRows.replaceChildren(
+  ...PART_ROWS.map(
+    ([part, label]) =>
+      new PartRow(label, prefs.parts[part] ?? null, (value) => {
+        if (value) prefs.parts[part] = structuredClone(value);
+        else delete prefs.parts[part];
+        savePrefs();
+        if (prefs.partsOn) engine.update(engineSettings());
+      }).element,
+  ),
+);
+ui.partsOn.addEventListener("change", () => {
+  prefs.partsOn = ui.partsOn.checked;
+  ui.partRows.hidden = !prefs.partsOn;
+  savePrefs();
+  engine.update(engineSettings());
 });
 
 ui.bpm.value = String(prefs.bpm);
