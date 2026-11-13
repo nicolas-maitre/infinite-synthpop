@@ -106,6 +106,13 @@ function arrangeTarget(song: Song, bar: number): { section: Section; slots: Chor
   return { section, slots: chordSlots(section, bar - section.startBar) };
 }
 
+/** Close pads on the chords of `song`'s bar `bar`, at `vel` (a DJ's outgoing pads playing the
+ * incoming song's chords). */
+export function padChordsAt(song: Song, bar: number, vel: number): Note[] {
+  const { section, slots } = arrangeTarget(song, bar);
+  return padChords(section.key, slots, vel);
+}
+
 export function arrangeBar(song: Song, bar: number): BarEvents {
   const sectionIndex = sectionIndexAt(song, bar);
   const section = song.sections[sectionIndex];

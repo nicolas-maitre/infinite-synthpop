@@ -751,7 +751,7 @@ export class Engine {
           to: Math.min(swap + PAD_FADE_BARS, song.totalBars),
           shown: [bar, swap],
           meta,
-          arrange: outgoingArrange(song, swap),
+          arrange: outgoingArrange(song, swap, next.song),
         },
         {
           song: next.song,

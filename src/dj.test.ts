@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrangeBar } from "./arranger";
+import { arrangeBar, padChordsAt } from "./arranger";
 import { compose } from "./composer";
 import {
   compatibleKeys,
@@ -100,7 +100,8 @@ describe("the decks around a handoff", () => {
   it("sheds the outgoing drums and melody, then its figures, keeping its bass and pads", () => {
     const song = songs[3]!;
     const swap = swapBar(song, createRng(1));
-    const play = outgoingArrange(song, swap);
+    const next = songs[7]!;
+    const play = outgoingArrange(song, swap, next);
     const before = swap - DRUM_SWAP_BARS - 1;
     expect(play(before)).toEqual(arrangeBar(song, before));
     for (let bar = swap - DRUM_SWAP_BARS; bar < swap; bar++) {
@@ -112,19 +113,22 @@ describe("the decks around a handoff", () => {
       expect(notes.pad).toEqual(own.pad);
       expect(notes.arp).toEqual(bar < swap - DRUM_SWAP_BARS / 2 ? own.arp : []);
     }
-    // Past the swap, its pads alone, fading out.
-    if (swap + PAD_FADE_BARS <= song.totalBars) {
-      let last = Infinity;
-      for (let bar = swap; bar < swap + PAD_FADE_BARS; bar++) {
-        const { drums, notes } = play(bar);
-        expect(drums).toEqual([]);
-        expect(notes.bass).toEqual([]);
-        const vel = Math.max(0, ...notes.pad.map((n) => n.vel));
-        if (notes.pad.length) expect(vel).toBeLessThan(last);
-        last = notes.pad.length ? vel : last;
-      }
+    // Past the swap, its pads alone (if they reached it), fading out on the next song's chords.
+    const reached = play(swap - 1).notes.pad.length > 0;
+    let last = Infinity;
+    for (let bar = swap; bar < swap + PAD_FADE_BARS; bar++) {
+      const { drums, notes } = play(bar);
+      expect(drums).toEqual([]);
+      expect(notes.bass).toEqual([]);
+      expect(notes.pad.length > 0).toBe(reached);
+      const vel = Math.max(0, ...notes.pad.map((n) => n.vel));
+      if (reached) expect(vel).toBeLessThan(last);
+      last = vel;
+      expect(notes.pad.map((n) => n.midi)).toEqual(
+        reached ? padChordsAt(next, bar - swap, 1).map((n) => n.midi) : [],
+      );
     }
-    expect(Object.values(play(song.totalBars).notes).flat()).toEqual([]);
+    expect(Object.values(play(swap + PAD_FADE_BARS).notes).flat()).toEqual([]);
   });
 
   it("plays the incoming groove before bar 0: no kick and fading in, then all of it", () => {
