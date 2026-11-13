@@ -79,8 +79,8 @@ playing song turns into the next one's sound, then hands over at a section line.
 - **Morph window.** The last 32 bars before the swap bar `S` (the same mix-out point as a
   crossfade), so the change is slow enough to drift rather than be heard as a step. Over it, the
   outgoing song's continuous sound glides bar by bar toward the next song's: the fader levels
-  (`mix`), the bass tone, the voice's mix (lead tone), and the tempo (at most 1 BPM per 16 bars,
-  the rest gliding on in the next song as after a crossfade).
+  (`mix`), the bass tone and the voice's mix (lead tone). The tempo glides in the next song, as
+  after a crossfade (a song's clock has one glide, and the window is too short for much of one).
 - **The last phrase thins out** as in a crossfade (melody lines, then figures), leaving bass, pads
   and drums: a built-in breakdown into the swap.
 - **At `S`** the next song starts from its intro (bar 0): intros build up, so the handoff reads as
@@ -137,3 +137,5 @@ time.
     outgoing pads now fade out over the incoming song's first 4 bars. "Smoother, but clashes a
     bit": the fading pads keep their own voicing, each note moving to the nearest note of the
     incoming song's chords (preferred over close pads on the new chords, which blended worse).
+- Phase 3: built (`morphArrange`, `morphSound`, `autoTransition` in `src/dj.ts`, the Transition
+  select), waiting for an ear check of a rendered morph. The tempo glides only in the next song.
