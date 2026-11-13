@@ -24,6 +24,7 @@
 import * as Tone from "tone";
 import { arrangeBar, type BarEvents } from "./arranger";
 import type { Song } from "./composer";
+import type { BassTone, LeadTone } from "./genres";
 import { songSound } from "./profile";
 import { autoVolumes, Instruments, softClipper, type LeadPatch, type Track } from "./instruments";
 import { scheduleBar } from "./schedule";
@@ -36,6 +37,14 @@ export interface RenderMix {
   muted: readonly Track[];
   soloed: readonly Track[];
   leadPatch: LeadPatch;
+}
+
+/** The continuous part of a song's sound, which can change from bar to bar: the auto faders
+ * (dB, before manual ones), the bass tone and the voice's mix. */
+export interface DeckSound {
+  volumes: Record<Track, number>;
+  bassTone: BassTone;
+  leadTone: LeadTone;
 }
 
 /** One song in a piece, on its own instruments. */
@@ -52,6 +61,9 @@ export interface Deck<M> {
   /** What it plays in a bar; the song's own bar by default. A DJ filters the bars around a
    * handoff, and plays a groove before bar 0. */
   arrange?: (bar: number) => BarEvents;
+  /** Its sound in a bar, gliding from bar to bar (a DJ's morph); the song's own throughout by
+   * default. */
+  sound?: (bar: number) => DeckSound;
   /** The bars reported as playing (onBar), [from, to). Overlapping decks report one at a time. */
   shown: [number, number];
   /** The engine's own data about the song (where it came from). */
@@ -66,6 +78,8 @@ export interface Piece<M> {
   end: number;
   /** A DJ transition's name, shown while it plays. */
   label?: string;
+  /** The song a DJ transition leads into, while it has no deck of its own yet (a morph). */
+  into?: Song;
 }
 
 export interface AheadEvents<M> {
@@ -822,6 +836,7 @@ async function renderPiece<M>(
     await inst.ready;
     await inst.drums.loadAll();
     setUpDeck(inst, deck.song, deck.clock.bpmAt(deck.from), mix);
+    if (deck.sound) applySound(inst, deck.sound(deck.from), mix, null);
   }
 
   const events = renderEvents(piece);
@@ -832,6 +847,7 @@ async function renderPiece<M>(
       if (at - t0 >= offline) break;
       const inst = decks.get(deck);
       const ev = deck.arrange ? deck.arrange(bar) : arrangeBar(deck.song, bar);
+      if (inst && deck.sound) applySound(inst, deck.sound(bar), mix, at - t0);
       if (inst) scheduleBar(inst, ev, at - t0, deck.clock.bpmAt(bar));
     }
     tickTo(offline);
@@ -897,6 +913,20 @@ export async function renderPiecesOffline<M>(
     });
   }
   return { l, r };
+}
+
+/** A bar's sound on a deck: the tones at once (the steps of a glide are small), the auto faders
+ * ramping to theirs by the bar's start (or set now, with `at` null). Faders set by hand and muted
+ * tracks keep theirs. */
+function applySound(inst: Instruments, sound: DeckSound, mix: RenderMix, at: number | null): void {
+  inst.setBassTone(sound.bassTone);
+  inst.setLeadTone(sound.leadTone);
+  for (const [track, db] of Object.entries(sound.volumes) as [Track, number][]) {
+    if (track in mix.manual || mix.muted.includes(track)) continue;
+    const volume = inst.channels[track].volume;
+    if (at === null) volume.value = db;
+    else volume.linearRampToValueAtTime(db, at);
+  }
 }
 
 /** Points a deck's instruments at its song, with the mixer applied (as engine.ts applySong). */

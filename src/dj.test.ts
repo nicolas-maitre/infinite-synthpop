@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { arrangeBar } from "./arranger";
 import { compose } from "./composer";
 import {
+  autoTransition,
+  blendDistance,
   compatibleKeys,
+  deckSound,
+  morphArrange,
+  morphSound,
+  MORPH_BARS,
+  soundBetween,
   DRUM_SWAP_BARS,
   glideShape,
   incomingArrange,
@@ -152,5 +159,65 @@ describe("the decks around a handoff", () => {
       // The beat never drops: drums from bar 0 on, the groove standing in until the song's own.
       for (let bar = 0; bar < 8; bar++) expect(play(bar).drums.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("a morph", () => {
+  it("keeps the drums, sheds the melody, then the figures, before the swap", () => {
+    const song = songs[3]!;
+    const swap = swapBar(song, createRng(1));
+    const play = morphArrange(song, swap);
+    expect(play(swap - DRUM_SWAP_BARS - 1)).toEqual(arrangeBar(song, swap - DRUM_SWAP_BARS - 1));
+    for (let bar = swap - DRUM_SWAP_BARS; bar < swap; bar++) {
+      const { drums, notes } = play(bar);
+      const own = arrangeBar(song, bar);
+      expect(drums).toEqual(own.drums);
+      expect(notes.lead).toEqual([]);
+      expect(notes.bass).toEqual(own.notes.bass);
+      expect(notes.arp).toEqual(bar < swap - DRUM_SWAP_BARS / 2 ? own.notes.arp : []);
+    }
+  });
+
+  it("glides the sound from the song's to the next one's over the window", () => {
+    const [a, b] = [
+      songs.find((s) => s.genre === "synthpop")!,
+      songs.find((s) => s.genre !== "synthpop")!,
+    ];
+    const swap = 100;
+    const sound = morphSound(a, b, swap);
+    expect(sound(swap - MORPH_BARS - 1)).toEqual(deckSound(a));
+    expect(sound(swap - 1)).toEqual(deckSound(b));
+    const half = soundBetween(deckSound(a), deckSound(b), 0.5);
+    const [x, y] = [deckSound(a).bassTone.sawCutoff, deckSound(b).bassTone.sawCutoff];
+    expect(half.bassTone.sawCutoff).toBeCloseTo((x + y) / 2);
+    // Each bar a small step: no fader moves more than a dB per bar.
+    for (let bar = swap - MORPH_BARS; bar < swap; bar++) {
+      const [p, q] = [sound(bar - 1).volumes, sound(bar).volumes];
+      for (const t of Object.keys(p) as (keyof typeof p)[]) {
+        expect(Math.abs(q[t] - p[t])).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it("measures how far apart two blends are", () => {
+    expect(blendDistance({ "true-faith": 1 }, { "true-faith": 2 })).toBe(0);
+    expect(blendDistance({ "true-faith": 1 }, { faces: 1 })).toBe(1);
+    expect(blendDistance({ "true-faith": 0.5, faces: 0.5 }, { faces: 1 })).toBeCloseTo(0.5);
+  });
+
+  it("is auto's pick only when the next song is close", () => {
+    for (const a of songs)
+      for (const b of songs) {
+        const style = autoTransition(a, b, a.key, a.bpm);
+        if (style === "morph") {
+          expect(b.genre).toBe(a.genre);
+          expect(Math.abs(b.bpm - a.bpm)).toBeLessThanOrEqual(a.bpm * 0.03);
+        }
+        if (a.genre !== b.genre) expect(style).toBe("crossfade");
+      }
+    const close = songs.find((s) =>
+      songs.some((t) => t !== s && autoTransition(s, t, s.key, s.bpm) === "morph"),
+    );
+    expect(close).toBeDefined();
   });
 });

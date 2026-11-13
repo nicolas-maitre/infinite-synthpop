@@ -23,8 +23,11 @@ import {
   type DrumHit,
   type MelodicTrack,
 } from "./arranger";
-import type { Note } from "./composer";
-import type { Song } from "./composer";
+import type { DeckSound } from "./ahead";
+import type { Note, Song } from "./composer";
+import type { BassTone, LeadTone } from "./genres";
+import { autoVolumes, type Track } from "./instruments";
+import { songSound, type RefWeights } from "./profile";
 import type { Rng } from "./rng";
 import type { TempoShape } from "./tempo";
 import type { Key } from "./theory";
@@ -33,6 +36,9 @@ import type { Key } from "./theory";
 export const INTRO_BARS = 16;
 /** Of which the last ones carry the incoming song's whole groove, the outgoing song's drums out. */
 export const DRUM_SWAP_BARS = 8;
+/** Bars over which a morph glides the outgoing song's sound to the incoming song's, up to the
+ * swap. */
+export const MORPH_BARS = 32;
 /** Bars past the swap over which the outgoing song's pads fade out under the incoming song. */
 export const PAD_FADE_BARS = 4;
 /** Bars of the incoming song in the transition: the outgoing pads' fade, and their tails ringing
@@ -231,4 +237,109 @@ export function incomingArrange(song: Song): (bar: number) => BarEvents {
     const hits = loop(bar).filter((h) => TOPS.has(h.voice));
     return { ...ev, bar, drums: scaled(hits, gain) };
   };
+}
+
+// ── Morph ─────────────────────────────────────────────────────────────────────────────────────
+
+/** How a song hands over to the next: two decks overlapping, or the one song turning into the
+ * next one's sound and handing over at a section line. */
+export type TransitionStyle = "crossfade" | "morph";
+
+/** What the playing song plays per bar in a morph: its own bars, its melody lines out for the
+ * last DRUM_SWAP_BARS before the swap, then its figures for the last half of those, so a
+ * breakdown of drums, bass and pads leads into the incoming song's intro. */
+export function morphArrange(song: Song, swap: number): (bar: number) => BarEvents {
+  return (bar) => {
+    const ev = arrangeBar(song, bar);
+    if (bar < swap - DRUM_SWAP_BARS) return ev;
+    const out = bar >= swap - DRUM_SWAP_BARS / 2 ? FIGURES_OUT : null;
+    const notes = Object.fromEntries(
+      MELODIC_TRACKS.map((t) => [t, MELODY_OUT.has(t) || out?.has(t) ? [] : ev.notes[t]]),
+    ) as unknown as BarEvents["notes"];
+    return { ...ev, notes };
+  };
+}
+
+/** A song's continuous sound (its auto faders, bass tone and voice mix). */
+export function deckSound(song: Song): DeckSound {
+  const sound = songSound(song);
+  return {
+    volumes: autoVolumes(sound.mix),
+    bassTone: sound.bassTone,
+    leadTone: sound.leadTone,
+  };
+}
+
+/** Between two sounds, `t` of the way (0–1). A setting that turns a layer on or off (the octave
+ * saw, the pulse, the low cut, a struck envelope) switches halfway rather than creeping in. */
+export function soundBetween(a: DeckSound, b: DeckSound, t: number): DeckSound {
+  const lerp = (x: number, y: number) => x + (y - x) * t;
+  const step = <T>(x: T, y: T) => (t < 0.5 ? x : y);
+  const switched = (x: number, y: number) => (x === 0 || y === 0 ? step(x, y) : lerp(x, y));
+  const volumes = Object.fromEntries(
+    (Object.keys(a.volumes) as Track[]).map((k) => [k, lerp(a.volumes[k], b.volumes[k])]),
+  ) as Record<Track, number>;
+  const x = a.bassTone;
+  const y = b.bassTone;
+  const bassTone: BassTone = {
+    frequency: lerp(x.frequency, y.frequency),
+    presence: lerp(x.presence, y.presence),
+    sawCutoff: lerp(x.sawCutoff, y.sawCutoff),
+    octave: switched(x.octave, y.octave),
+    sustain: lerp(x.sustain, y.sustain),
+    lowCut: switched(x.lowCut, y.lowCut),
+    sweep: lerp(x.sweep, y.sweep),
+    struck: step(x.struck, y.struck),
+    pulse: switched(x.pulse, y.pulse),
+  };
+  const leadTone = Object.fromEntries(
+    (Object.keys(a.leadTone) as (keyof LeadTone)[]).map((k) => [
+      k,
+      lerp(a.leadTone[k], b.leadTone[k]),
+    ]),
+  ) as unknown as LeadTone;
+  return { volumes, bassTone, leadTone };
+}
+
+/** The playing song's sound per bar in a morph: its own until the window, then gliding to the
+ * incoming song's by the swap. */
+export function morphSound(song: Song, next: Song, swap: number): (bar: number) => DeckSound {
+  const from = deckSound(song);
+  const to = deckSound(next);
+  const start = swap - MORPH_BARS;
+  return (bar) => soundBetween(from, to, Math.min(1, Math.max(0, (bar - start + 1) / MORPH_BARS)));
+}
+
+/** How far apart two blends are: half the summed weight differences, 0 (the same) to 1. */
+export function blendDistance(a: RefWeights, b: RefWeights): number {
+  const total = (w: RefWeights) => Object.values(w).reduce((sum, v) => sum + (v ?? 0), 0) || 1;
+  const ta = total(a);
+  const tb = total(b);
+  const refs = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<keyof RefWeights>;
+  let d = 0;
+  for (const r of refs) d += Math.abs((a[r] ?? 0) / ta - (b[r] ?? 0) / tb);
+  return d / 2;
+}
+
+/** Morph blends this far apart at most (blendDistance). */
+export const MORPH_DISTANCE = 0.5;
+/** And tempos this far apart at most (share of the outgoing tempo). */
+export const MORPH_TEMPO_STEP = 0.03;
+
+/** Auto's pick for a handoff: morph when the next song is close (the same genre, a nearby blend,
+ * the same or the relative key, a tempo within 3 %), crossfade when it's far. */
+export function autoTransition(
+  song: Song,
+  next: Song,
+  keyAtSwap: Key,
+  bpmAtSwap: number,
+): TransitionStyle {
+  const k = next.key;
+  const relative = compatibleKeys(keyAtSwap)[3]!;
+  const close =
+    song.genre === next.genre &&
+    blendDistance(song.blends.song, next.blends.song) <= MORPH_DISTANCE &&
+    (sameKey(k, keyAtSwap) || sameKey(k, relative)) &&
+    Math.abs(next.bpm - bpmAtSwap) <= bpmAtSwap * MORPH_TEMPO_STEP;
+  return close ? "morph" : "crossfade";
 }

@@ -105,7 +105,12 @@ interface Prefs {
   buffer: number;
   /** DJ mode: each song mixes into the next, like a DJ set (engine.ts, dj.ts). */
   dj: boolean;
+  /** How DJ mode hands over: crossfade, morph, or auto's pick per transition. */
+  djStyle: DjStyle;
 }
+
+type DjStyle = "auto" | "crossfade" | "morph";
+const DJ_STYLES: readonly DjStyle[] = ["auto", "crossfade", "morph"];
 
 type Playback = "auto" | "live" | "ahead";
 const PLAYBACKS: readonly Playback[] = ["auto", "live", "ahead"];
@@ -145,6 +150,7 @@ const defaults: Prefs = {
   playback: "auto",
   buffer: 0,
   dj: false,
+  djStyle: "auto",
 };
 
 function loadPrefs(): Prefs {
@@ -199,6 +205,7 @@ function loadPrefs(): Prefs {
       playback,
       buffer,
       dj: p.dj === true,
+      djStyle: DJ_STYLES.find((x) => x === p.djStyle) ?? "auto",
     };
   } catch {
     return defaults;
@@ -923,6 +930,7 @@ leadSelect.addEventListener("change", () => {
 
 const playbackSelect = el<HTMLSelectElement>("playback");
 const bufferSelect = el<HTMLSelectElement>("buffer");
+const djStyleSelect = el<HTMLSelectElement>("dj-style");
 const autoPlayback = playbackSelect.querySelector<HTMLOptionElement>('option[value="auto"]');
 if (autoPlayback) autoPlayback.textContent = `auto (${AUTO_AHEAD ? "render ahead" : "live"} here)`;
 const autoBuffer = bufferSelect.querySelector<HTMLOptionElement>('option[value="0"]');
@@ -939,7 +947,10 @@ function applyPlayback(): void {
   bufferSelect.disabled = !(ahead || prefs.dj) || !AHEAD_SUPPORTED;
   engine.setBufferSeconds(prefs.buffer || AUTO_BUFFER);
   engine.setRenderAhead(ahead);
+  engine.setDjStyle(prefs.djStyle);
   engine.setDj(prefs.dj && AHEAD_SUPPORTED);
+  djStyleSelect.value = prefs.djStyle;
+  djStyleSelect.disabled = !prefs.dj || !AHEAD_SUPPORTED;
 }
 applyPlayback();
 playbackSelect.addEventListener("change", () => {
@@ -962,6 +973,11 @@ if (!AHEAD_SUPPORTED) {
 }
 djBox.addEventListener("change", () => {
   prefs.dj = djBox.checked;
+  savePrefs();
+  applyPlayback();
+});
+djStyleSelect.addEventListener("change", () => {
+  prefs.djStyle = DJ_STYLES.find((x) => x === djStyleSelect.value) ?? "auto";
   savePrefs();
   applyPlayback();
 });
@@ -1625,22 +1641,28 @@ if (import.meta.env.DEV) {
   void Promise.all([import("tone"), import("./render"), import("./ahead")]).then(
     ([Tone, { renderToDisk, encodeWav }, { renderPiecesOffline }]) => {
       /** Renders the DJ transition out of the song with this seed to renders/ (silently). */
-      const renderDjToDisk = async (seed: number, before = 8, after = 16): Promise<string> => {
-        const { pieces, mix } = engine.djPreview(seed, before, after);
+      const renderDjToDisk = async (
+        seed: number,
+        before = 8,
+        after = 16,
+        style?: "crossfade" | "morph" | "auto",
+      ): Promise<string> => {
+        const { pieces, mix, style: used } = engine.djPreview(seed, before, after, style);
         const rate = 44100;
         const { l, r } = await renderPiecesOffline(pieces, mix, rate);
         const audio = new AudioBuffer({ length: l.length, numberOfChannels: 2, sampleRate: rate });
         audio.copyToChannel(l, 0);
         audio.copyToChannel(r, 1);
         const [out, inc] = [pieces[0]!.decks[0]!, pieces.at(-1)!.decks.at(-1)!];
-        const name = `dj-${seed}-to-${inc.song.seed}.wav`;
+        const name = `dj-${used}-${seed}-to-${inc.song.seed}.wav`;
         const res = await fetch(`/__renders/${name}`, { method: "POST", body: encodeWav(audio) });
-        const swapAt = pieces.find((p) => p.label)?.decks[1]?.clock.time(0) ?? 0;
+        const swapAt = pieces.find((p) => p.label && p.decks[1])?.decks[1]?.clock.time(0) ?? 0;
+        const window = used === "morph" ? 32 : 16;
         return [
           await res.text(),
           `"${out.song.title}" (${out.song.bpm} BPM, ${keyName(out.song.key)})`,
           `→ "${inc.song.title}" (${inc.song.bpm} BPM, ${keyName(inc.song.key)})`,
-          `mix-in intro at ${(swapAt - 16 * (240 / out.song.bpm)).toFixed(1)} s, swap at ${swapAt.toFixed(1)} s`,
+          `${used} from ${(swapAt - window * (240 / out.song.bpm)).toFixed(1)} s, swap at ${swapAt.toFixed(1)} s`,
         ].join(" · ");
       };
       Object.assign(window, { engine, Tone, renderToDisk, renderDjToDisk, roll });

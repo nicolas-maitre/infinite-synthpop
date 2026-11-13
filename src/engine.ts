@@ -20,16 +20,21 @@ import { songSound } from "./profile";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
 import {
+  autoTransition,
   glideShape,
   incomingArrange,
   INTRO_BARS,
   keyBefore,
+  morphArrange,
+  morphSound,
+  MORPH_BARS,
   nextKey,
   nextTempo,
   outgoingArrange,
   swapBar,
   PAD_FADE_BARS,
   TAIL_BARS,
+  type TransitionStyle,
 } from "./dj";
 import type { ReferenceId } from "./references";
 import { newSongId, type Creation, type SongSpec } from "./spec";
@@ -95,6 +100,7 @@ interface SongMeta {
  * song. */
 interface DjPlan {
   swap: number;
+  style: TransitionStyle;
   next: { song: Song; meta: SongMeta };
 }
 
@@ -165,6 +171,8 @@ export class Engine {
   private cuedPiece: Piece<SongMeta> | null = null;
   /** DJ mode: each song plays a while, then mixes into the next (dj.ts). Plays render ahead. */
   private dj = false;
+  /** How DJ mode hands over: one style throughout, or auto's pick per transition. */
+  private djStyle: TransitionStyle | "auto" = "auto";
   /** The playing song's DJ key and tempo, and its tempo's run (SongMeta). */
   private fixed: SongMeta["fixed"];
   private tempo: TempoShape | undefined;
@@ -244,6 +252,12 @@ export class Engine {
     this.dj = on;
     if (this.player && this.wantsAhead()) this.rerender();
     else this.syncMode();
+  }
+
+  /** The DJ's transition style, from the next transition planned on (one being heard, or
+   * planned for the playing song, stays as it is). */
+  setDjStyle(style: TransitionStyle | "auto"): void {
+    this.djStyle = style;
   }
 
   private wantsAhead(): boolean {
@@ -647,7 +661,7 @@ export class Engine {
     const rng = createRng(song.seed).fork("dj");
     const shape = this.shapeFor(song, meta);
     const glideEnd = shape.glide ? shape.glide.start + shape.glide.bars : 0;
-    const swap = swapBar(song, rng, glideEnd + INTRO_BARS);
+    const swap = swapBar(song, rng, glideEnd + Math.max(INTRO_BARS, MORPH_BARS));
     const seed = nextSeed(song.seed);
     const own = this.compose(seed, null, null, null);
     const from = new TempoMap(0, shape).bpmAt(swap - 1);
@@ -656,8 +670,13 @@ export class Engine {
       bpm: nextTempo(from, own.bpm),
     };
     const next = this.compose(seed, null, null, fixed);
+    const style =
+      this.djStyle === "auto"
+        ? autoTransition(song, next, keyBefore(song, swap), from)
+        : this.djStyle;
     const plan: DjPlan = {
       swap,
+      style,
       next: {
         song: next,
         meta: {
@@ -732,6 +751,7 @@ export class Engine {
     const swap = bar < plan.swap ? plan.swap : song.totalBars;
     if (bar >= swap) return this.planFrom(next.song, 0, next.meta, at);
     const clock = TempoMap.anchored(this.shapeFor(song, meta), bar, at);
+    if (plan.style === "morph") return this.planMorph(song, bar, meta, clock, swap, next);
     const mixFrom = swap - INTRO_BARS;
     if (bar < mixFrom) {
       return {
@@ -771,17 +791,79 @@ export class Engine {
   }
 
   /**
+   * A DJ morph: the song's body up to the morph window, then the window on one deck (its sound
+   * gliding to the next song's, its last phrase thinning out), then a handoff into the next
+   * song's intro, with the outgoing tails ringing out (dj.ts).
+   */
+  private planMorph(
+    song: Song,
+    bar: number,
+    meta: SongMeta,
+    clock: TempoMap,
+    swap: number,
+    next: { song: Song; meta: SongMeta },
+  ): Piece<SongMeta> {
+    const at = clock.time(bar);
+    const mixFrom = swap - MORPH_BARS;
+    if (bar < mixFrom) {
+      return {
+        decks: [{ song, clock, from: bar, to: mixFrom, shown: [bar, mixFrom], meta }],
+        start: at,
+        end: clock.time(mixFrom),
+      };
+    }
+    const arrange = morphArrange(song, swap);
+    const sound = morphSound(song, next.song, swap);
+    const last = swap - 1;
+    if (bar < last) {
+      return {
+        decks: [{ song, clock, from: bar, to: last, shown: [bar, last], meta, arrange, sound }],
+        start: at,
+        end: clock.time(last),
+        label: "Morphing",
+        into: next.song,
+      };
+    }
+    const nextClock = TempoMap.anchored(this.shapeFor(next.song, next.meta), 0, clock.time(swap));
+    const tail = Math.min(HANDOFF_BARS, next.song.totalBars - 1);
+    return {
+      decks: [
+        { song, clock, from: last, to: swap, shown: [last, swap], meta, arrange, sound },
+        {
+          song: next.song,
+          clock: nextClock,
+          from: 0,
+          to: tail,
+          shown: [0, tail],
+          meta: next.meta,
+          arrange: incomingArrange(next.song),
+        },
+      ],
+      start: at,
+      end: nextClock.time(tail),
+      label: "Morphing",
+    };
+  }
+
+  /**
    * Dev only: the pieces a DJ plays around the transition out of the song with this seed, from
    * `before` bars ahead of its mix-in intro to `after` bars into the next song.
    */
-  djPreview(seed: number, before = 8, after = 16): { pieces: Piece<SongMeta>[]; mix: RenderMix } {
-    const was = this.dj;
+  djPreview(
+    seed: number,
+    before = 8,
+    after = 16,
+    style: TransitionStyle | "auto" = this.djStyle,
+  ): { pieces: Piece<SongMeta>[]; mix: RenderMix; style: TransitionStyle } {
+    const was = { dj: this.dj, style: this.djStyle };
     this.dj = true;
+    this.djStyle = style;
     try {
       const song = this.compose(seed, null, null, null);
       const meta: SongMeta = { serial: -1, reference: null, custom: null };
       const plan = this.djPlan(song, meta)!;
-      const pieces = [this.planFrom(song, Math.max(0, plan.swap - INTRO_BARS - before), meta, 0)];
+      const window = plan.style === "morph" ? MORPH_BARS : INTRO_BARS;
+      const pieces = [this.planFrom(song, Math.max(0, plan.swap - window - before), meta, 0)];
       for (;;) {
         const piece = pieces.at(-1)!;
         const deck = piece.decks.at(-1)!;
@@ -794,9 +876,10 @@ export class Engine {
         }
         pieces.push(next);
       }
-      return { pieces, mix: this.renderMix() };
+      return { pieces, mix: this.renderMix(), style: plan.style };
     } finally {
-      this.dj = was;
+      this.dj = was.dj;
+      this.djStyle = was.style;
     }
   }
 
@@ -883,8 +966,9 @@ export class Engine {
       this.events.onSong?.(this.song);
     }
     // A DJ transition is heard while its outgoing song's bars are.
-    const incoming = piece.label && piece.decks[0] === deck ? piece.decks[1] : undefined;
-    this.setMixing(incoming?.song ?? null, piece.label);
+    const incoming =
+      piece.label && piece.decks[0] === deck ? (piece.decks[1]?.song ?? piece.into) : undefined;
+    this.setMixing(incoming ?? null, piece.label);
     const song = this.song;
     const ev = arrangeBar(song, Math.min(bar, song.totalBars - 1));
     this.bar = bar + 1;
