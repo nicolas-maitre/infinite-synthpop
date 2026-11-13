@@ -270,25 +270,49 @@ export function morphArrange(song: Song, swap: number, next: Song): (bar: number
   // looped: its hats and shakers take over first, then its whole pattern, on this song's kit.
   const into = incomingArrange(next);
   const opening = (bar: number) => into((((bar - swap) % GROOVE_BARS) + GROOVE_BARS) % GROOVE_BARS);
-  return handOver(song, swap, next, (bar, own) => {
+  const play = handOver(song, swap, next, (bar, own) => {
     const theirs = opening(bar).drums;
     if (bar >= swap - DRUM_SWAP_BARS / 2) return theirs;
     return [...own.filter((h) => !TOPS.has(h.voice)), ...theirs.filter((h) => TOPS.has(h.voice))];
   });
+  // Past the swap, its kit's hats fade out under the incoming kit's (morphInArrange).
+  return (bar) => {
+    const ev = play(bar);
+    if (bar < swap || bar >= swap + PAD_FADE_BARS) return ev;
+    const gain = 1 - (bar - swap + 1) / (PAD_FADE_BARS + 1);
+    return {
+      ...ev,
+      drums: scaled(
+        opening(bar).drums.filter((h) => TOPS.has(h.voice)),
+        gain,
+      ),
+    };
+  };
 }
 
 /** Where a morph's incoming kit starts (velocity share): its drums play the pattern the outgoing
- * kit just played, but a kit's own levels differ (one ear check: hats 4 dB and kick 6 dB up). */
+ * kit just played, but a kit's own levels differ (one ear check: hats 4 dB and kick 6 dB up). Its
+ * hats start lower still, crossfading with the outgoing kit's (morphArrange): a second ear check
+ * still heard them jump in. */
 const KIT_IN = 0.6;
+const HATS_IN = 0.35;
+/** Bars over which the incoming kit rises to full after a morph: about half a dB a bar. */
+export const KIT_RAMP_BARS = 8;
 
-/** What the incoming song plays per bar after a morph: as after a crossfade, its drums rising
- * from KIT_IN to full over TAIL_BARS, so its kit comes in under the old one's level. */
+/** What the incoming song plays per bar after a morph: as after a crossfade, its drums rising to
+ * full over KIT_RAMP_BARS, from KIT_IN (its hats from HATS_IN), so its kit comes in under the old
+ * one's level. */
 export function morphInArrange(song: Song): (bar: number) => BarEvents {
   const play = incomingArrange(song);
   return (bar) => {
     const ev = play(bar);
-    if (bar < 0 || bar >= TAIL_BARS) return ev;
-    return { ...ev, drums: scaled(ev.drums, KIT_IN + ((1 - KIT_IN) * bar) / TAIL_BARS) };
+    if (bar < 0 || bar >= KIT_RAMP_BARS) return ev;
+    const rise = (from: number) => from + ((1 - from) * bar) / KIT_RAMP_BARS;
+    const drums = ev.drums.map((h) => ({
+      ...h,
+      vel: h.vel * rise(TOPS.has(h.voice) ? HATS_IN : KIT_IN),
+    }));
+    return { ...ev, drums };
   };
 }
 

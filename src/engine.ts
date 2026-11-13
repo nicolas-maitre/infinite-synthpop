@@ -95,6 +95,9 @@ interface SongMeta {
    * it is recomposed; and how its tempo runs (mixed in at the previous song's, gliding to its own). */
   fixed?: { key: Key; bpm: number };
   tempo?: TempoShape;
+  /** DJ mode: how the song came in, so its first bars play as they did in the transition (a
+   * groove through a beatless start, a morph's kit rising) after the transition piece. */
+  entry?: TransitionStyle;
 }
 
 /** DJ mode: where a song hands over (the next song's bar 0 starts at its bar `swap`), and the next
@@ -103,6 +106,13 @@ interface DjPlan {
   swap: number;
   style: TransitionStyle;
   next: { song: Song; meta: SongMeta };
+}
+
+/** A song's first bars after a DJ transition brought it in, as the transition played them (dj.ts
+ * incomingArrange, morphInArrange); nothing for a song that didn't come in through one. */
+function entryArrange(song: Song, meta: SongMeta): Pick<Deck<SongMeta>, "arrange"> {
+  if (!meta.entry) return {};
+  return { arrange: meta.entry === "morph" ? morphInArrange(song) : incomingArrange(song) };
 }
 
 /** Bars of the next song in a transition piece: enough for the outgoing song's tails to ring out. */
@@ -686,6 +696,7 @@ export class Engine {
           custom: null,
           fixed,
           tempo: glideShape(from, next.bpm, next.totalBars),
+          entry: style,
         },
       },
     };
@@ -753,10 +764,11 @@ export class Engine {
     if (bar >= swap) return this.planFrom(next.song, 0, next.meta, at);
     const clock = TempoMap.anchored(this.shapeFor(song, meta), bar, at);
     if (plan.style === "morph") return this.planMorph(song, bar, meta, clock, swap, next);
+    const entered = entryArrange(song, meta);
     const mixFrom = swap - INTRO_BARS;
     if (bar < mixFrom) {
       return {
-        decks: [{ song, clock, from: bar, to: mixFrom, shown: [bar, mixFrom], meta }],
+        decks: [{ song, clock, from: bar, to: mixFrom, shown: [bar, mixFrom], meta, ...entered }],
         start: at,
         end: clock.time(mixFrom),
       };
@@ -806,9 +818,10 @@ export class Engine {
   ): Piece<SongMeta> {
     const at = clock.time(bar);
     const mixFrom = swap - MORPH_BARS;
+    const entered = entryArrange(song, meta);
     if (bar < mixFrom) {
       return {
-        decks: [{ song, clock, from: bar, to: mixFrom, shown: [bar, mixFrom], meta }],
+        decks: [{ song, clock, from: bar, to: mixFrom, shown: [bar, mixFrom], meta, ...entered }],
         start: at,
         end: clock.time(mixFrom),
       };

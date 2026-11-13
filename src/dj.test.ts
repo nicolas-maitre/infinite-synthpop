@@ -21,7 +21,7 @@ import {
   outgoingArrange,
   PAD_FADE_BARS,
   swapBar,
-  TAIL_BARS,
+  KIT_RAMP_BARS,
 } from "./dj";
 import { GENRE_IDS } from "./genres";
 import { createRng } from "./rng";
@@ -179,6 +179,9 @@ describe("a morph", () => {
         hits.filter((h) => ["hat", "openhat", "tamb", "cabasa"].includes(h.voice));
       if (bar >= swap - DRUM_SWAP_BARS / 2) expect(drums).toEqual(theirs(bar));
       else expect(tops(drums)).toEqual(tops(theirs(bar)));
+      // Past the swap, only those hats, fading out under the incoming kit's.
+      const after = play(swap + ((bar - swap + DRUM_SWAP_BARS) % 4)).drums;
+      expect(after.every((h) => tops([h]).length === 1)).toBe(true);
       expect(notes.lead).toEqual([]);
       expect(notes.bass).toEqual(own.notes.bass);
       expect(notes.arp).toEqual(bar < swap - DRUM_SWAP_BARS / 2 ? own.notes.arp : []);
@@ -191,7 +194,12 @@ describe("a morph", () => {
       const own = incomingArrange(song);
       const peak = (bar: number, f: typeof play) => Math.max(0, ...f(bar).drums.map((h) => h.vel));
       if (peak(0, own) > 0) expect(peak(0, play)).toBeLessThan(peak(0, own));
-      expect(play(TAIL_BARS)).toEqual(own(TAIL_BARS));
+      const hats = (bar: number, f: typeof play) =>
+        f(bar).drums.filter((h) => ["hat", "openhat", "tamb", "cabasa"].includes(h.voice));
+      for (const [i, h] of hats(0, play).entries()) {
+        expect(h.vel).toBeCloseTo(hats(0, own)[i]!.vel * 0.35);
+      }
+      expect(play(KIT_RAMP_BARS)).toEqual(own(KIT_RAMP_BARS));
       expect(play(0).notes).toEqual(own(0).notes);
     }
   });
