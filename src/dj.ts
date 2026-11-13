@@ -25,10 +25,10 @@ import {
 } from "./arranger";
 import type { DeckSound } from "./ahead";
 import type { Note, Song } from "./composer";
-import type { BassTone, LeadTone } from "./genres";
+import type { BassTone, LeadTone, Voices } from "./genres";
 import { autoVolumes, type Track } from "./instruments";
 import { songSound, type RefWeights } from "./profile";
-import type { Rng } from "./rng";
+import { createRng, type Rng } from "./rng";
 import type { TempoShape } from "./tempo";
 import type { Key } from "./theory";
 
@@ -262,72 +262,87 @@ export type TransitionStyle = "crossfade" | "morph";
 /** What the playing song plays per bar in a morph: its own bars, its melody lines out for the
  * last DRUM_SWAP_BARS before the swap, then its figures for the last half of those, so a
  * breakdown of drums, bass and pads leads into the incoming song's intro. Over those bars its
- * drums turn into the incoming song's opening pattern (hats and shakers, then all of it), so only
- * the kit changes at the swap. Past the swap, its pads fade out on the incoming chords, as after
- * a crossfade. */
+ * drums turn into the incoming song's opening pattern (hats and shakers, then all of it). Where
+ * its kit switches to the incoming song's (morphSwitches), the new kit comes in a little under
+ * full level and rises over KIT_RAMP_BARS. Past the swap, its pads fade out on the incoming
+ * chords, as after a crossfade. So at the swap only the notes change. */
 export function morphArrange(song: Song, swap: number, next: Song): (bar: number) => BarEvents {
   // The drums the incoming song opens with (its groove standing in through a beatless start),
-  // looped: its hats and shakers take over first, then its whole pattern, on this song's kit.
+  // looped: its hats and shakers take over first, then its whole pattern.
   const into = incomingArrange(next);
   const opening = (bar: number) => into((((bar - swap) % GROOVE_BARS) + GROOVE_BARS) % GROOVE_BARS);
+  const kit = morphSwitches(song, next).kit;
+  const kitBar = kit === undefined ? Infinity : swap - MORPH_BARS + kit;
   const play = handOver(song, swap, next, (bar, own) => {
     const theirs = opening(bar).drums;
     if (bar >= swap - DRUM_SWAP_BARS / 2) return theirs;
     return [...own.filter((h) => !TOPS.has(h.voice)), ...theirs.filter((h) => TOPS.has(h.voice))];
   });
-  // Past the swap, its kit's hats fade out under the incoming kit's (morphInArrange).
   return (bar) => {
     const ev = play(bar);
-    if (bar < swap || bar >= swap + PAD_FADE_BARS) return ev;
-    const gain = 1 - (bar - swap + 1) / (PAD_FADE_BARS + 1);
-    return {
-      ...ev,
-      drums: scaled(
-        opening(bar).drums.filter((h) => TOPS.has(h.voice)),
-        gain,
-      ),
-    };
+    const into = bar - kitBar;
+    if (into < 0 || into >= KIT_RAMP_BARS) return ev;
+    return { ...ev, drums: scaled(ev.drums, KIT_IN + ((1 - KIT_IN) * into) / KIT_RAMP_BARS) };
   };
 }
 
-/** Where a morph's incoming kit starts (velocity share): its drums play the pattern the outgoing
- * kit just played, but a kit's own levels differ (one ear check: hats 4 dB and kick 6 dB up). Its
- * hats start lower still, crossfading with the outgoing kit's (morphArrange): a second ear check
- * still heard them jump in. */
-const KIT_IN = 0.6;
-const HATS_IN = 0.35;
-/** Bars over which the incoming kit rises to full after a morph: about half a dB a bar. */
+/** Where a morph's new kit starts (velocity share), rising to full over KIT_RAMP_BARS: kits'
+ * own levels differ, a few dB either way, so it neither jumps in nor drops out. (Starting its
+ * hats at 0.35 dipped them 7 dB where the kits were about as loud; an earlier jump heard in the
+ * hats was the next song's busier intro pattern, not its kit.) */
+const KIT_IN = 0.75;
 export const KIT_RAMP_BARS = 8;
 
-/** What the incoming song plays per bar after a morph: as after a crossfade, its drums rising to
- * full over KIT_RAMP_BARS, from KIT_IN (its hats from HATS_IN), so its kit comes in under the old
- * one's level. */
-export function morphInArrange(song: Song): (bar: number) => BarEvents {
-  const play = incomingArrange(song);
-  return (bar) => {
-    const ev = play(bar);
-    if (bar < 0 || bar >= KIT_RAMP_BARS) return ev;
-    const rise = (from: number) => from + ((1 - from) * bar) / KIT_RAMP_BARS;
-    const drums = ev.drums.map((h) => ({
-      ...h,
-      vel: h.vel * rise(TOPS.has(h.voice) ? HATS_IN : KIT_IN),
-    }));
-    return { ...ev, drums };
-  };
+/** The patches a morph switches one at a time (the ones the instruments read; the others pick
+ * notes, which change at the swap). */
+const PATCHES = [
+  "riffPatch",
+  "stabPatch",
+  "arpPatch",
+  "countervoice",
+  "padTone",
+  "synthPatch",
+] as const satisfies readonly (keyof Voices)[];
+type Switch = (typeof PATCHES)[number] | "kit";
+
+/** Where in a morph window (bars from its start) each of the sounds that differ between the two
+ * songs switches: the kit at bar 8, so it has risen to full before the drum pattern turns; each
+ * patch at its own 4-bar line from 4 to 20, in an order drawn per song. Everything has switched
+ * well before the swap, where only the notes change. */
+export function morphSwitches(song: Song, next: Song): Partial<Record<Switch, number>> {
+  const a = deckSound(song);
+  const b = deckSound(next);
+  const out: Partial<Record<Switch, number>> = {};
+  if (a.kit !== b.kit || a.drums.gatedSnare !== b.drums.gatedSnare) out.kit = 8;
+  else if (a.drums.kickWeight !== b.drums.kickWeight) out.kit = 8;
+  const rng = createRng(song.seed).fork("morph");
+  const slots = [4, 12, 16, 20];
+  const differ = PATCHES.filter((k) => a.voices[k] !== b.voices[k]);
+  // Shuffled, then dealt out over the slots.
+  for (let i = differ.length - 1; i > 0; i--) {
+    const k = rng.int(0, i);
+    [differ[i], differ[k]] = [differ[k]!, differ[i]!];
+  }
+  differ.forEach((k, i) => (out[k] = slots[i % slots.length]));
+  return out;
 }
 
-/** A song's continuous sound (its auto faders, bass tone and voice mix). */
+/** A song's sound on a deck: its auto faders, bass tone and voice mix, kit and patches. */
 export function deckSound(song: Song): DeckSound {
   const sound = songSound(song);
   return {
     volumes: autoVolumes(sound.mix),
     bassTone: sound.bassTone,
     leadTone: sound.leadTone,
+    kit: song.kit,
+    drums: { gatedSnare: sound.drums.gatedSnare, kickWeight: sound.drums.kickWeight ?? 0 },
+    voices: sound.voices,
   };
 }
 
-/** Between two sounds, `t` of the way (0–1). A setting that turns a layer on or off (the octave
- * saw, the pulse, the low cut, a struck envelope) switches halfway rather than creeping in. */
+/** Between two sounds, `t` of the way (0–1), for the continuous parts; the kit and patches stay
+ * `a`'s. A setting that turns a layer on or off (the octave saw, the pulse, the low cut, a struck
+ * envelope) switches halfway rather than creeping in. */
 export function soundBetween(a: DeckSound, b: DeckSound, t: number): DeckSound {
   const lerp = (x: number, y: number) => x + (y - x) * t;
   const step = <T>(x: T, y: T) => (t < 0.5 ? x : y);
@@ -354,16 +369,41 @@ export function soundBetween(a: DeckSound, b: DeckSound, t: number): DeckSound {
       lerp(a.leadTone[k], b.leadTone[k]),
     ]),
   ) as unknown as LeadTone;
-  return { volumes, bassTone, leadTone };
+  return { ...a, volumes, bassTone, leadTone };
 }
 
 /** The playing song's sound per bar in a morph: its own until the window, then gliding to the
- * incoming song's by the swap. */
+ * incoming song's by the swap, its kit and each patch switching on bars of their own
+ * (morphSwitches). */
 export function morphSound(song: Song, next: Song, swap: number): (bar: number) => DeckSound {
   const from = deckSound(song);
   const to = deckSound(next);
   const start = swap - MORPH_BARS;
-  return (bar) => soundBetween(from, to, Math.min(1, Math.max(0, (bar - start + 1) / MORPH_BARS)));
+  const switches = morphSwitches(song, next);
+  const on = (k: Switch, bar: number) => {
+    const at = switches[k];
+    return at !== undefined && bar >= start + at;
+  };
+  // One voices object per set of switched patches, so a deck can tell when they change.
+  const voices = new Map<string, Voices>();
+  return (bar) => {
+    const t = Math.min(1, Math.max(0, (bar - start + 1) / MORPH_BARS));
+    const switched = PATCHES.filter((k) => on(k, bar));
+    const key = switched.join();
+    let v = voices.get(key);
+    if (!v) {
+      v = { ...from.voices };
+      for (const k of switched) Object.assign(v, { [k]: to.voices[k] });
+      voices.set(key, v);
+    }
+    const kit = on("kit", bar);
+    return {
+      ...soundBetween(from, to, t),
+      kit: kit ? to.kit : from.kit,
+      drums: kit ? to.drums : from.drums,
+      voices: v,
+    };
+  };
 }
 
 /** How far apart two blends are: half the summed weight differences, 0 (the same) to 1. */

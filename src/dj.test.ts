@@ -7,7 +7,7 @@ import {
   compatibleKeys,
   deckSound,
   morphArrange,
-  morphInArrange,
+  morphSwitches,
   morphSound,
   MORPH_BARS,
   soundBetween,
@@ -179,29 +179,53 @@ describe("a morph", () => {
         hits.filter((h) => ["hat", "openhat", "tamb", "cabasa"].includes(h.voice));
       if (bar >= swap - DRUM_SWAP_BARS / 2) expect(drums).toEqual(theirs(bar));
       else expect(tops(drums)).toEqual(tops(theirs(bar)));
-      // Past the swap, only those hats, fading out under the incoming kit's.
-      const after = play(swap + ((bar - swap + DRUM_SWAP_BARS) % 4)).drums;
-      expect(after.every((h) => tops([h]).length === 1)).toBe(true);
+      // Past the swap, no drums: the incoming song's carry on as they were.
+      expect(play(swap + ((bar - swap + DRUM_SWAP_BARS) % 4)).drums).toEqual([]);
       expect(notes.lead).toEqual([]);
       expect(notes.bass).toEqual(own.notes.bass);
       expect(notes.arp).toEqual(bar < swap - DRUM_SWAP_BARS / 2 ? own.notes.arp : []);
     }
   });
 
-  it("brings the incoming kit in under full level, rising over the handoff", () => {
-    for (const song of songs.slice(0, 10)) {
-      const play = morphInArrange(song);
-      const own = incomingArrange(song);
-      const peak = (bar: number, f: typeof play) => Math.max(0, ...f(bar).drums.map((h) => h.vel));
-      if (peak(0, own) > 0) expect(peak(0, play)).toBeLessThan(peak(0, own));
-      const hats = (bar: number, f: typeof play) =>
-        f(bar).drums.filter((h) => ["hat", "openhat", "tamb", "cabasa"].includes(h.voice));
-      for (const [i, h] of hats(0, play).entries()) {
-        expect(h.vel).toBeCloseTo(hats(0, own)[i]!.vel * 0.35);
+  it("switches the kit and each differing patch on bars of their own, well before the swap", () => {
+    let staggered = 0;
+    for (const a of songs.slice(0, 12))
+      for (const b of songs.slice(12, 24)) {
+        const at = morphSwitches(a, b);
+        const [x, y] = [deckSound(a), deckSound(b)];
+        expect(at.kit !== undefined).toBe(
+          x.kit !== y.kit ||
+            x.drums.gatedSnare !== y.drums.gatedSnare ||
+            x.drums.kickWeight !== y.drums.kickWeight,
+        );
+        for (const [k, bar] of Object.entries(at)) {
+          if (k !== "kit")
+            expect(x.voices[k as keyof typeof x.voices]).not.toBe(
+              y.voices[k as keyof typeof y.voices],
+            );
+          expect(bar).toBeLessThanOrEqual(MORPH_BARS - DRUM_SWAP_BARS - 4);
+        }
+        if (new Set(Object.values(at)).size > 1) staggered++;
       }
-      expect(play(KIT_RAMP_BARS)).toEqual(own(KIT_RAMP_BARS));
-      expect(play(0).notes).toEqual(own(0).notes);
-    }
+    expect(staggered).toBeGreaterThan(0);
+  });
+
+  it("brings a new kit in under full level where it switches, rising to full", () => {
+    const pair = songs
+      .flatMap((a) => songs.map((b) => [a, b] as const))
+      .find(([a, b]) => deckSound(a).kit !== deckSound(b).kit)!;
+    const [a, b] = pair;
+    const swap = swapBar(a, createRng(1));
+    const kitBar = swap - MORPH_BARS + morphSwitches(a, b).kit!;
+    const play = morphArrange(a, swap, b);
+    const peak = (bar: number) => Math.max(0, ...play(bar).drums.map((h) => h.vel));
+    const own = (bar: number) => Math.max(0, ...arrangeBar(a, bar).drums.map((h) => h.vel));
+    if (own(kitBar) > 0) expect(peak(kitBar)).toBeLessThan(own(kitBar));
+    expect(play(kitBar + KIT_RAMP_BARS)).toEqual(arrangeBar(a, kitBar + KIT_RAMP_BARS));
+    // The sound: its kit before that bar, the next song's from it.
+    const sound = morphSound(a, b, swap);
+    expect(sound(kitBar - 1).kit).toBe(deckSound(a).kit);
+    expect(sound(kitBar).kit).toBe(deckSound(b).kit);
   });
 
   it("glides the sound from the song's to the next one's over the window", () => {
@@ -212,7 +236,17 @@ describe("a morph", () => {
     const swap = 100;
     const sound = morphSound(a, b, swap);
     expect(sound(swap - MORPH_BARS - 1)).toEqual(deckSound(a));
-    expect(sound(swap - 1)).toEqual(deckSound(b));
+    const end = sound(swap - 1);
+    const want = deckSound(b);
+    expect([end.volumes, end.bassTone, end.leadTone, end.kit]).toEqual([
+      want.volumes,
+      want.bassTone,
+      want.leadTone,
+      want.kit,
+    ]);
+    for (const k of ["riffPatch", "stabPatch", "arpPatch", "countervoice", "padTone"] as const) {
+      expect(end.voices[k]).toBe(want.voices[k]);
+    }
     const half = soundBetween(deckSound(a), deckSound(b), 0.5);
     const [x, y] = [deckSound(a).bassTone.sawCutoff, deckSound(b).bassTone.sawCutoff];
     expect(half.bassTone.sawCutoff).toBeCloseTo((x + y) / 2);

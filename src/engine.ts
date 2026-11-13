@@ -26,7 +26,6 @@ import {
   INTRO_BARS,
   keyBefore,
   morphArrange,
-  morphInArrange,
   morphSound,
   MORPH_BARS,
   nextKey,
@@ -109,10 +108,11 @@ interface DjPlan {
 }
 
 /** A song's first bars after a DJ transition brought it in, as the transition played them (dj.ts
- * incomingArrange, morphInArrange); nothing for a song that didn't come in through one. */
+ * incomingArrange: a groove through a beatless start); nothing for a song that didn't come in
+ * through one. */
 function entryArrange(song: Song, meta: SongMeta): Pick<Deck<SongMeta>, "arrange"> {
   if (!meta.entry) return {};
-  return { arrange: meta.entry === "morph" ? morphInArrange(song) : incomingArrange(song) };
+  return { arrange: incomingArrange(song) };
 }
 
 /** Bars of the next song in a transition piece: enough for the outgoing song's tails to ring out. */
@@ -851,7 +851,7 @@ export class Engine {
           to: tail,
           shown: [0, tail],
           meta: next.meta,
-          arrange: morphInArrange(next.song),
+          arrange: incomingArrange(next.song),
         },
       ],
       start: at,

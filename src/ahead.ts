@@ -23,8 +23,8 @@
  */
 import * as Tone from "tone";
 import { arrangeBar, type BarEvents } from "./arranger";
-import type { Song } from "./composer";
-import type { BassTone, LeadTone } from "./genres";
+import type { KitName, Song } from "./composer";
+import type { BassTone, LeadTone, Voices } from "./genres";
 import { songSound } from "./profile";
 import { autoVolumes, Instruments, softClipper, type LeadPatch, type Track } from "./instruments";
 import { scheduleBar } from "./schedule";
@@ -39,12 +39,15 @@ export interface RenderMix {
   leadPatch: LeadPatch;
 }
 
-/** The continuous part of a song's sound, which can change from bar to bar: the auto faders
- * (dB, before manual ones), the bass tone and the voice's mix. */
+/** A song's sound on a deck, which can change from bar to bar (a DJ's morph): the auto faders
+ * (dB, before manual ones), the bass tone, the voice's mix, the kit and the patches. */
 export interface DeckSound {
   volumes: Record<Track, number>;
   bassTone: BassTone;
   leadTone: LeadTone;
+  kit: KitName;
+  drums: { gatedSnare: boolean; kickWeight: number };
+  voices: Voices;
 }
 
 /** One song in a piece, on its own instruments. */
@@ -824,6 +827,8 @@ async function renderPiece<M>(
   // clipper again, as each deck's own peaks reach just under full scale.
   const original = Tone.getContext();
   const decks = new Map<Deck<M>, Instruments>();
+  // The sound each deck's instruments last took (a morph's), to switch a kit or patch only once.
+  const applied = new Map<Instruments, DeckSound>();
   Tone.setContext(context);
   try {
     if (piece.decks.length > 1) context.destination.chain(...softClipper(lite), tap);
@@ -836,7 +841,7 @@ async function renderPiece<M>(
     await inst.ready;
     await inst.drums.loadAll();
     setUpDeck(inst, deck.song, deck.clock.bpmAt(deck.from), mix);
-    if (deck.sound) applySound(inst, deck.sound(deck.from), mix, null);
+    if (deck.sound) applySound(inst, deck.sound(deck.from), mix, null, applied);
   }
 
   const events = renderEvents(piece);
@@ -847,7 +852,7 @@ async function renderPiece<M>(
       if (at - t0 >= offline) break;
       const inst = decks.get(deck);
       const ev = deck.arrange ? deck.arrange(bar) : arrangeBar(deck.song, bar);
-      if (inst && deck.sound) applySound(inst, deck.sound(bar), mix, at - t0);
+      if (inst && deck.sound) applySound(inst, deck.sound(bar), mix, at - t0, applied);
       if (inst) scheduleBar(inst, ev, at - t0, deck.clock.bpmAt(bar));
     }
     tickTo(offline);
@@ -916,9 +921,27 @@ export async function renderPiecesOffline<M>(
 }
 
 /** A bar's sound on a deck: the tones at once (the steps of a glide are small), the auto faders
- * ramping to theirs by the bar's start (or set now, with `at` null). Faders set by hand and muted
- * tracks keep theirs. */
-function applySound(inst: Instruments, sound: DeckSound, mix: RenderMix, at: number | null): void {
+ * ramping to theirs by the bar's start (or set now, with `at` null), and a kit or patches when
+ * they change from the last ones `applied` (before the bar's notes are scheduled, so from this
+ * bar). Faders set by hand and muted tracks keep theirs. */
+function applySound(
+  inst: Instruments,
+  sound: DeckSound,
+  mix: RenderMix,
+  at: number | null,
+  applied: Map<Instruments, DeckSound>,
+): void {
+  const last = applied.get(inst);
+  applied.set(inst, sound);
+  if (last?.kit !== sound.kit) {
+    const kit = sound.kit !== "synth" && !inst.drums.hasSamples(sound.kit) ? "synth" : sound.kit;
+    inst.drums.use(kit);
+  }
+  if (last?.drums !== sound.drums) {
+    inst.setSnareGate(sound.drums.gatedSnare);
+    inst.drums.setKickWeight(sound.drums.kickWeight);
+  }
+  if (last?.voices !== sound.voices) inst.setVoices(sound.voices);
   inst.setBassTone(sound.bassTone);
   inst.setLeadTone(sound.leadTone);
   for (const [track, db] of Object.entries(sound.volumes) as [Track, number][]) {
