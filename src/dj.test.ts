@@ -28,6 +28,12 @@ describe("swapBar", () => {
       for (let i = 0; i < 20; i++) {
         const swap = swapBar(song, createRng(song.seed + i));
         expect(lines.has(swap)).toBe(true);
+        const at = song.sections.findIndex((s) => s.startBar === swap);
+        if (at > 0)
+          expect([song.sections[at - 1]!.kind, song.sections[at]!.kind]).not.toEqual([
+            "chorus",
+            "chorus",
+          ]);
         expect(swap).toBeGreaterThanOrEqual(INTRO_BARS);
         if (swap === song.totalBars) continue;
         expect(swap * (240 / song.bpm)).toBeGreaterThanOrEqual(MIN_SECONDS - 1e-6);
@@ -90,15 +96,20 @@ describe("tempo and key", () => {
 });
 
 describe("the decks around a handoff", () => {
-  it("takes the outgoing drums out for the bars before the swap, and keeps the rest", () => {
+  it("sheds the outgoing drums and melody, then its figures, keeping its bass and pads", () => {
     const song = songs[3]!;
     const swap = swapBar(song, createRng(1));
     const play = outgoingArrange(song, swap);
     const before = swap - DRUM_SWAP_BARS - 1;
     expect(play(before)).toEqual(arrangeBar(song, before));
     for (let bar = swap - DRUM_SWAP_BARS; bar < swap; bar++) {
-      expect(play(bar).drums).toEqual([]);
-      expect(play(bar).notes).toEqual(arrangeBar(song, bar).notes);
+      const { drums, notes } = play(bar);
+      const own = arrangeBar(song, bar).notes;
+      expect(drums).toEqual([]);
+      expect(notes.lead).toEqual([]);
+      expect(notes.bass).toEqual(own.bass);
+      expect(notes.pad).toEqual(own.pad);
+      expect(notes.arp).toEqual(bar < swap - DRUM_SWAP_BARS / 2 ? own.arp : []);
     }
   });
 

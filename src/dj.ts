@@ -7,7 +7,8 @@
  * bar 0 starts) and the incoming song's mix-in intro in the 16 bars before it:
  *
  *   incoming −16 … −9   its groove's hats, fading in, under the whole outgoing song
- *   incoming  −8 … −1   its full groove; the outgoing song without its drums
+ *   incoming  −8 … −1   its full groove; the outgoing song without its drums and melody lines,
+ *                       and for the last 4 bars without its figures: only its bass and pads
  *   incoming   0 …      the song itself; the outgoing song's tails ring out
  *
  * Bass and harmony change hands in one bar line, so two harmonies never play over each other.
@@ -18,6 +19,7 @@ import {
   sectionIndexAt,
   type BarEvents,
   type DrumHit,
+  type MelodicTrack,
 } from "./arranger";
 import type { Song } from "./composer";
 import type { Rng } from "./rng";
@@ -66,7 +68,8 @@ export function swapBar(song: Song, rng: Rng, earliestBar = 0): number {
     const prev = sections[i - 1]!;
     if (prev.kind === "chorus") choruses++;
     const bar = sections[i]!.startBar;
-    if (bar < earliest) continue;
+    // Not between two choruses: the song would stop mid-hook.
+    if (bar < earliest || (prev.kind === "chorus" && sections[i]!.kind === "chorus")) continue;
     // After the second chorus most of all, then any chorus, then rising section by section.
     const afterChorus = prev.kind === "chorus" ? (choruses === 2 ? 6 : 3) : 1;
     options.push([bar, afterChorus * (1 + 0.25 * options.length)]);
@@ -153,12 +156,23 @@ const silent = (ev: BarEvents): BarEvents => ({
 const scaled = (hits: DrumHit[], gain: number): DrumHit[] =>
   gain === 1 ? hits : hits.map((h) => ({ ...h, vel: h.vel * gain }));
 
-/** What the outgoing song plays per bar: its own bars, without drums for the last
- * DRUM_SWAP_BARS before the swap. */
+/** The outgoing song's melody lines, out with its drums for the last DRUM_SWAP_BARS. */
+const MELODY_OUT = new Set<MelodicTrack>(["hook", "lead", "leadOct", "counter"]);
+/** And its figures, out for the last half of those bars: only its bass and pads reach the swap. */
+const FIGURES_OUT = new Set<MelodicTrack>(["riff", "arp", "stab", "seq", "guitar", "synth"]);
+
+/** What the outgoing song plays per bar: its own bars, then, for the last DRUM_SWAP_BARS before
+ * the swap, shedding parts as a DJ's EQ would: its drums and melody lines, then its figures, so
+ * only its bass and pads hand over to the incoming song. */
 export function outgoingArrange(song: Song, swap: number): (bar: number) => BarEvents {
   return (bar) => {
     const ev = arrangeBar(song, bar);
-    return bar >= swap - DRUM_SWAP_BARS ? { ...ev, drums: [] } : ev;
+    if (bar < swap - DRUM_SWAP_BARS) return ev;
+    const out = bar >= swap - DRUM_SWAP_BARS / 2 ? FIGURES_OUT : null;
+    const notes = Object.fromEntries(
+      MELODIC_TRACKS.map((t) => [t, MELODY_OUT.has(t) || out?.has(t) ? [] : ev.notes[t]]),
+    ) as unknown as BarEvents["notes"];
+    return { ...ev, drums: [], notes };
   };
 }
 
