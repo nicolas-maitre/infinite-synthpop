@@ -110,4 +110,5 @@ transition again.
     melody lines first, then its figures (riffs, arps, sequences, stabs), so only its bass and pads
     reach the swap. A swap never falls between two choruses. Still "better, still sudden": the
     outgoing pads now fade out over the incoming song's first 4 bars. "Smoother, but clashes a
-    bit": the fading pads play the incoming song's chords.
+    bit": the fading pads keep their own voicing, each note moving to the nearest note of the
+    incoming song's chords (preferred over close pads on the new chords, which blended worse).

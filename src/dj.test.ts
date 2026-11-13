@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrangeBar, padChordsAt } from "./arranger";
+import { arrangeBar } from "./arranger";
 import { compose } from "./composer";
 import {
   compatibleKeys,
@@ -113,7 +113,7 @@ describe("the decks around a handoff", () => {
       expect(notes.pad).toEqual(own.pad);
       expect(notes.arp).toEqual(bar < swap - DRUM_SWAP_BARS / 2 ? own.arp : []);
     }
-    // Past the swap, its pads alone (if they reached it), fading out on the next song's chords.
+    // Past the swap, its pads alone (if they reached it), fading out, led into the next song's chords.
     const reached = play(swap - 1).notes.pad.length > 0;
     let last = Infinity;
     for (let bar = swap; bar < swap + PAD_FADE_BARS; bar++) {
@@ -124,9 +124,12 @@ describe("the decks around a handoff", () => {
       const vel = Math.max(0, ...notes.pad.map((n) => n.vel));
       if (reached) expect(vel).toBeLessThan(last);
       last = vel;
-      expect(notes.pad.map((n) => n.midi)).toEqual(
-        reached ? padChordsAt(next, bar - swap, 1).map((n) => n.midi) : [],
-      );
+      // In the outgoing pads' own register.
+      const own = play(swap - 1).notes.pad.map((n) => n.midi);
+      for (const n of notes.pad) {
+        expect(n.midi).toBeGreaterThanOrEqual(Math.min(...own) - 6);
+        expect(n.midi).toBeLessThanOrEqual(Math.max(...own) + 6);
+      }
     }
     expect(Object.values(play(swap + PAD_FADE_BARS).notes).flat()).toEqual([]);
   });

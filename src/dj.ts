@@ -17,12 +17,13 @@
 import {
   arrangeBar,
   MELODIC_TRACKS,
-  padChordsAt,
+  padsLedTo,
   sectionIndexAt,
   type BarEvents,
   type DrumHit,
   type MelodicTrack,
 } from "./arranger";
+import type { Note } from "./composer";
 import type { Song } from "./composer";
 import type { Rng } from "./rng";
 import type { TempoShape } from "./tempo";
@@ -169,17 +170,26 @@ const FIGURES_OUT = new Set<MelodicTrack>(["riff", "arp", "stab", "seq", "guitar
 /** What the outgoing song plays per bar: its own bars, then, for the last DRUM_SWAP_BARS before
  * the swap, shedding parts as a DJ's EQ would: its drums and melody lines, then its figures, so
  * only its bass and pads reach the swap. Past it, its pads alone (if they reached it), fading out
- * over PAD_FADE_BARS on the incoming song's chords, so the two harmonies don't rub. */
+ * over PAD_FADE_BARS in their own voicing, each note moving to the nearest note of the incoming
+ * song's chords, so the two harmonies don't rub. */
 export function outgoingArrange(song: Song, swap: number, next: Song): (bar: number) => BarEvents {
   const last = Math.min(swap, song.totalBars) - 1;
-  const padVel = Math.max(0, ...arrangeBar(song, last).notes.pad.map((n) => n.vel));
+  const lastPads = arrangeBar(song, last).notes.pad;
+  const padVel = Math.max(0, ...lastPads.map((n) => n.vel));
+  // The voicing the pads end on (the bar's last chord), led through the incoming chords.
+  const lastStep = Math.max(0, ...lastPads.map((n) => n.step));
+  const fade: Note[][] = [];
+  let voices = lastPads.filter((n) => n.step === lastStep).map((n) => n.midi);
+  for (let i = 0; i < Math.min(PAD_FADE_BARS, next.totalBars) && voices.length; i++) {
+    const gain = 1 - (i + 1) / (PAD_FADE_BARS + 1);
+    const led = padsLedTo(next, i, voices, padVel * gain);
+    fade.push(led.notes);
+    voices = led.voices;
+  }
   return (bar) => {
     if (bar >= swap) {
       const quiet = { ...silent(arrangeBar(song, last)), bar };
-      const gain = Math.max(0, 1 - (bar - swap + 1) / (PAD_FADE_BARS + 1));
-      const into = bar - swap;
-      if (!padVel || !gain || into >= next.totalBars) return quiet;
-      return { ...quiet, notes: { ...quiet.notes, pad: padChordsAt(next, into, padVel * gain) } };
+      return { ...quiet, notes: { ...quiet.notes, pad: fade[bar - swap] ?? [] } };
     }
     const ev = arrangeBar(song, bar);
     if (bar < swap - DRUM_SWAP_BARS) return ev;

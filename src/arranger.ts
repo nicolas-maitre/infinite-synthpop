@@ -106,11 +106,32 @@ function arrangeTarget(song: Song, bar: number): { section: Section; slots: Chor
   return { section, slots: chordSlots(section, bar - section.startBar) };
 }
 
-/** Close pads on the chords of `song`'s bar `bar`, at `vel` (a DJ's outgoing pads playing the
- * incoming song's chords). */
-export function padChordsAt(song: Song, bar: number, vel: number): Note[] {
+/** Pads on the chords of `song`'s bar `bar`, at `vel`, each of the `voices` (MIDI notes) moving to
+ * the nearest note of each chord (a DJ's outgoing pads following the incoming song's chords in
+ * their own voicing). Returns the notes and the voicing they end on. */
+export function padsLedTo(
+  song: Song,
+  bar: number,
+  voices: readonly number[],
+  vel: number,
+): { notes: Note[]; voices: number[] } {
   const { section, slots } = arrangeTarget(song, bar);
-  return padChords(section.key, slots, vel);
+  const notes: Note[] = [];
+  let now = [...voices];
+  for (const slot of slots) {
+    const pcs = chordPitchClasses(section.key, slot.chord);
+    now = [
+      ...new Set(
+        now.map((m) =>
+          pcs
+            .map((pc) => nearestWithPc(pc, m))
+            .reduce((a, b) => (Math.abs(b - m) < Math.abs(a - m) ? b : a)),
+        ),
+      ),
+    ];
+    for (const midi of now) notes.push({ step: slot.step, dur: slot.length - 0.1, midi, vel });
+  }
+  return { notes, voices: now };
 }
 
 export function arrangeBar(song: Song, bar: number): BarEvents {
