@@ -108,4 +108,5 @@ transition again.
   - Ear check 1 (2026-11-13): cutting from a full chorus into a sparse intro of another genre
     "suddenly changes style". The outgoing song now sheds parts over its last 8 bars: drums and
     melody lines first, then its figures (riffs, arps, sequences, stabs), so only its bass and pads
-    reach the swap. A swap never falls between two choruses.
+    reach the swap. A swap never falls between two choruses. Still "better, still sudden": the
+    outgoing pads now fade out over the incoming song's first 4 bars.

@@ -9,9 +9,10 @@
  *   incoming −16 … −9   its groove's hats, fading in, under the whole outgoing song
  *   incoming  −8 … −1   its full groove; the outgoing song without its drums and melody lines,
  *                       and for the last 4 bars without its figures: only its bass and pads
- *   incoming   0 …      the song itself; the outgoing song's tails ring out
+ *   incoming   0 … 3    the song itself; the outgoing song's pads fading out under it
  *
- * Bass and harmony change hands in one bar line, so two harmonies never play over each other.
+ * The bass changes hands in one bar line; only the fading pads carry the outgoing harmony past it
+ * (the keys are neighbours, so they blur more than clash).
  */
 import {
   arrangeBar,
@@ -30,8 +31,11 @@ import type { Key } from "./theory";
 export const INTRO_BARS = 16;
 /** Of which the last ones carry the incoming song's whole groove, the outgoing song's drums out. */
 export const DRUM_SWAP_BARS = 8;
-/** Bars of the incoming song in the transition, for the outgoing song's tails to ring out. */
-export const TAIL_BARS = 2;
+/** Bars past the swap over which the outgoing song's pads fade out under the incoming song. */
+export const PAD_FADE_BARS = 4;
+/** Bars of the incoming song in the transition: the outgoing pads' fade, and their tails ringing
+ * out. */
+export const TAIL_BARS = PAD_FADE_BARS + 1;
 /** A song plays at least this long before it mixes out (seconds), and past its first chorus. */
 export const MIN_SECONDS = 100;
 /** The next song's tempo stays within this share of the current one. */
@@ -163,11 +167,19 @@ const FIGURES_OUT = new Set<MelodicTrack>(["riff", "arp", "stab", "seq", "guitar
 
 /** What the outgoing song plays per bar: its own bars, then, for the last DRUM_SWAP_BARS before
  * the swap, shedding parts as a DJ's EQ would: its drums and melody lines, then its figures, so
- * only its bass and pads hand over to the incoming song. */
+ * only its bass and pads reach the swap. Past it, its pads alone, fading out over PAD_FADE_BARS
+ * (none past its end). */
 export function outgoingArrange(song: Song, swap: number): (bar: number) => BarEvents {
   return (bar) => {
+    if (bar >= song.totalBars) return { ...silent(arrangeBar(song, song.totalBars - 1)), bar };
     const ev = arrangeBar(song, bar);
     if (bar < swap - DRUM_SWAP_BARS) return ev;
+    if (bar >= swap) {
+      const gain = Math.max(0, 1 - (bar - swap + 1) / (PAD_FADE_BARS + 1));
+      const quiet = silent(ev);
+      const pad = ev.notes.pad.map((n) => ({ ...n, vel: n.vel * gain }));
+      return { ...quiet, notes: { ...quiet.notes, pad: gain > 0 ? pad : [] } };
+    }
     const out = bar >= swap - DRUM_SWAP_BARS / 2 ? FIGURES_OUT : null;
     const notes = Object.fromEntries(
       MELODIC_TRACKS.map((t) => [t, MELODY_OUT.has(t) || out?.has(t) ? [] : ev.notes[t]]),

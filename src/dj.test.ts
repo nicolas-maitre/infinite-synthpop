@@ -11,6 +11,7 @@ import {
   nextKey,
   nextTempo,
   outgoingArrange,
+  PAD_FADE_BARS,
   swapBar,
 } from "./dj";
 import { GENRE_IDS } from "./genres";
@@ -111,6 +112,19 @@ describe("the decks around a handoff", () => {
       expect(notes.pad).toEqual(own.pad);
       expect(notes.arp).toEqual(bar < swap - DRUM_SWAP_BARS / 2 ? own.arp : []);
     }
+    // Past the swap, its pads alone, fading out.
+    if (swap + PAD_FADE_BARS <= song.totalBars) {
+      let last = Infinity;
+      for (let bar = swap; bar < swap + PAD_FADE_BARS; bar++) {
+        const { drums, notes } = play(bar);
+        expect(drums).toEqual([]);
+        expect(notes.bass).toEqual([]);
+        const vel = Math.max(0, ...notes.pad.map((n) => n.vel));
+        if (notes.pad.length) expect(vel).toBeLessThan(last);
+        last = notes.pad.length ? vel : last;
+      }
+    }
+    expect(Object.values(play(song.totalBars).notes).flat()).toEqual([]);
   });
 
   it("plays the incoming groove before bar 0: no kick and fading in, then all of it", () => {

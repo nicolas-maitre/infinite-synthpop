@@ -28,6 +28,7 @@ import {
   nextTempo,
   outgoingArrange,
   swapBar,
+  PAD_FADE_BARS,
   TAIL_BARS,
 } from "./dj";
 import type { ReferenceId } from "./references";
@@ -715,7 +716,8 @@ export class Engine {
 
   /**
    * DJ mode: the song's body up to the mix-in intro, then the transition: the outgoing song to the
-   * swap, the incoming one from its mix-in intro to a couple of bars past its bar 0, at the
+   * swap (its pads fading out past it), the incoming one from its mix-in intro to a few bars past
+   * its bar 0, at the
    * outgoing song's tempo (dj.ts).
    */
   private planDj(
@@ -746,7 +748,7 @@ export class Engine {
           song,
           clock,
           from: bar,
-          to: swap,
+          to: Math.min(swap + PAD_FADE_BARS, song.totalBars),
           shown: [bar, swap],
           meta,
           arrange: outgoingArrange(song, swap),
