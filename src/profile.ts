@@ -82,7 +82,7 @@ export function toRefWeights(genre: Genre, weights: readonly number[]): RefWeigh
 }
 
 /** How often Auto (a genre per song) plays an open blend across genres instead of a preset. */
-export const AUTO_OPEN_CHANCE = 0.2;
+export const AUTO_OPEN_CHANCE = 0.5;
 
 /** Auto's open blend: two or three references from at least two genres, at a random point of
  * their polygon (rounded to hundredths, as the pad's are). */

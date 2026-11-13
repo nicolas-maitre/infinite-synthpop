@@ -171,10 +171,10 @@ describe("Auto", () => {
         .map(([r]) => genreOfReference(r as never)),
     ).size;
 
-  it("plays an open blend across genres in about one song in five", () => {
+  it("plays an open blend across genres in about one song in two", () => {
     const open = songs.filter(({ song }) => spans(song) > 1).length / songs.length;
-    expect(open).toBeGreaterThan(0.12);
-    expect(open).toBeLessThan(0.28);
+    expect(open).toBeGreaterThan(0.4);
+    expect(open).toBeLessThan(0.6);
   });
 
   it("plays the other songs exactly as before", () => {
