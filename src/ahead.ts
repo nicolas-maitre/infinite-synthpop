@@ -50,6 +50,12 @@ export interface DeckSound {
   voices: Voices;
 }
 
+/** An effect a DJ plays on a deck from a bar's start: an echo out (every part's delay send and
+ * the delay's feedback raised, so what plays dissolves into its echoes). */
+export interface DeckEffect {
+  echoOut?: { send: number; feedback: number };
+}
+
 /** One song in a piece, on its own instruments. */
 export interface Deck<M> {
   song: Song;
@@ -67,6 +73,8 @@ export interface Deck<M> {
   /** Its sound in a bar, gliding from bar to bar (a DJ's morph); the song's own throughout by
    * default. */
   sound?: (bar: number) => DeckSound;
+  /** Effects from a bar on (a DJ's echo out). */
+  effects?: (bar: number) => DeckEffect | null;
   /** The bars reported as playing (onBar), [from, to). Overlapping decks report one at a time. */
   shown: [number, number];
   /** The engine's own data about the song (where it came from). */
@@ -853,6 +861,8 @@ async function renderPiece<M>(
       const inst = decks.get(deck);
       const ev = deck.arrange ? deck.arrange(bar) : arrangeBar(deck.song, bar);
       if (inst && deck.sound) applySound(inst, deck.sound(bar), mix, at - t0, applied);
+      const fx = deck.effects?.(bar);
+      if (inst && fx?.echoOut) inst.echoOut(at - t0, fx.echoOut.send, fx.echoOut.feedback);
       if (inst) scheduleBar(inst, ev, at - t0, deck.clock.bpmAt(bar));
     }
     tickTo(offline);

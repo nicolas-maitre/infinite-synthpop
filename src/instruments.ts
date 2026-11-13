@@ -333,6 +333,8 @@ export class Instruments {
   };
   /** Each track's sends to the reverb and the shared delay, so a voice can change them. */
   private readonly sends = {} as Record<Track, { reverb?: Tone.Gain; delay?: Tone.Gain }>;
+  /** The delay bus every track's delay send feeds. */
+  private readonly delay: Tone.FeedbackDelay;
   private voices: Voices = SYNTHPOP_VOICES;
   private readonly arp: NativeFMSynth;
   private readonly stab: NativeSynth;
@@ -367,7 +369,11 @@ export class Instruments {
     this.master.chain(trim, eq, comp, limiter, ...clip, Tone.getDestination());
     clip.at(-1)!.fan(this.fft, this.waveform);
 
-    const delay = new Tone.FeedbackDelay({ delayTime: "8n.", feedback: 0.32, wet: 1 });
+    const delay = (this.delay = new Tone.FeedbackDelay({
+      delayTime: "8n.",
+      feedback: 0.32,
+      wet: 1,
+    }));
     const delayFilter = new FixedFilter("highpass", 600);
     delay.chain(delayFilter, this.master);
     reverb.connect(this.master);
@@ -1340,6 +1346,14 @@ export class Instruments {
     if (arp.delay) arp.delay.gain.value = arpPluck ? 0 : SENDS.arp.delay;
     this.channels.arp.pan.value = arpPluck ? 0 : PANS.arp;
     if (voices.padTone) this.euro.padFilter.input.frequency.value = voices.padTone;
+  }
+
+  /** A DJ's echo out from `time`: every track's delay send at `send` and the delay's feedback at
+   * `feedback`, so what plays then dissolves into its echoes (render ahead's outgoing deck, whose
+   * instruments end with the transition). */
+  echoOut(time: number, send: number, feedback: number): void {
+    for (const t of TRACKS) this.sends[t].delay?.gain.setValueAtTime(send, time);
+    this.delay.feedback.setValueAtTime(feedback, time);
   }
 
   /** Picks the sung lead's sound (LeadPatch). */

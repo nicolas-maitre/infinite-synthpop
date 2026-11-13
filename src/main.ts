@@ -1646,15 +1646,18 @@ if (import.meta.env.DEV) {
         before = 8,
         after = 16,
         style?: "crossfade" | "morph" | "auto",
+        trick?: "mix" | "pitch" | "mashup" | "echo" | "acapella",
       ): Promise<string> => {
-        const { pieces, mix, style: used } = engine.djPreview(seed, before, after, style);
+        const preview = engine.djPreview(seed, before, after, style, trick ?? null);
+        const { pieces, mix, style: used } = preview;
         const rate = 44100;
         const { l, r } = await renderPiecesOffline(pieces, mix, rate);
         const audio = new AudioBuffer({ length: l.length, numberOfChannels: 2, sampleRate: rate });
         audio.copyToChannel(l, 0);
         audio.copyToChannel(r, 1);
         const [out, inc] = [pieces[0]!.decks[0]!, pieces.at(-1)!.decks.at(-1)!];
-        const name = `dj-${used}-${seed}-to-${inc.song.seed}.wav`;
+        const what = used === "morph" ? used : preview.trick;
+        const name = `dj-${what}-${seed}-to-${inc.song.seed}.wav`;
         const res = await fetch(`/__renders/${name}`, { method: "POST", body: encodeWav(audio) });
         const swapAt = pieces.find((p) => p.label && p.decks[1])?.decks[1]?.clock.time(0) ?? 0;
         const window = used === "morph" ? 32 : 16;
@@ -1662,7 +1665,7 @@ if (import.meta.env.DEV) {
           await res.text(),
           `"${out.song.title}" (${out.song.bpm} BPM, ${keyName(out.song.key)})`,
           `→ "${inc.song.title}" (${inc.song.bpm} BPM, ${keyName(inc.song.key)})`,
-          `${used} from ${(swapAt - window * (240 / out.song.bpm)).toFixed(1)} s, swap at ${swapAt.toFixed(1)} s`,
+          `${what} from ${(swapAt - window * (240 / out.song.bpm)).toFixed(1)} s, swap at ${swapAt.toFixed(1)} s`,
         ].join(" · ");
       };
       Object.assign(window, { engine, Tone, renderToDisk, renderDjToDisk, roll });

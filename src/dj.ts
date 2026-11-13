@@ -16,21 +16,23 @@
  */
 import {
   arrangeBar,
+  harmonyAt,
   MELODIC_TRACKS,
   padsLedTo,
   sectionIndexAt,
   type BarEvents,
+  type ChordSlot,
   type DrumHit,
   type MelodicTrack,
 } from "./arranger";
-import type { DeckSound } from "./ahead";
+import type { DeckEffect, DeckSound } from "./ahead";
 import type { Note, Song } from "./composer";
 import type { BassTone, LeadTone, Voices } from "./genres";
 import { autoVolumes, type Track } from "./instruments";
 import { songSound, type RefWeights } from "./profile";
 import { createRng, type Rng } from "./rng";
 import type { TempoShape } from "./tempo";
-import type { Key } from "./theory";
+import { chordPitchClasses, nearestWithPc, scaleForChord, type Chord, type Key } from "./theory";
 
 /** Bars of the mix-in intro, before the incoming song's bar 0. */
 export const INTRO_BARS = 16;
@@ -179,20 +181,43 @@ const FIGURES_OUT = new Set<MelodicTrack>(["riff", "arp", "stab", "seq", "guitar
  * over PAD_FADE_BARS in their own voicing, each note moving to the nearest note of the incoming
  * song's chords, so the two harmonies don't rub. */
 export function outgoingArrange(song: Song, swap: number, next: Song): (bar: number) => BarEvents {
-  return handOver(song, swap, next, null);
+  return handOver(song, swap, next, {});
 }
 
-/** An outgoing song's bars around a swap: its own bars, then, for the last DRUM_SWAP_BARS, its
- * melody lines out, then its figures for the last half of those. Its drums go for those bars,
- * or, with `drums`, turn into those (a morph's). Past the swap, its pads alone (if they reached
- * it), fading out over PAD_FADE_BARS in their own voicing, each note moving to the nearest note
- * of the incoming song's chords. */
+/** How an outgoing song hands over (handOver); unset, as in a plain crossfade. */
+interface HandOverOptions {
+  /** Its drums for the last DRUM_SWAP_BARS (a morph's turn into the next song's); unset: none. */
+  drums?: (bar: number, own: DrumHit[]) => DrumHit[];
+  /** Bars before the swap its melody lines drop (0: they sing to the swap). */
+  melodyOut?: number;
+  /** Bars before the swap its figures drop (0: they play to the swap). */
+  figuresOut?: number;
+  /** Bars before the swap its bass drops (0: it plays to the swap). */
+  bassOut?: number;
+  /** Semitones the incoming song's first bars are moved (pitch to match). */
+  shift?: number;
+  /** Notes it plays past the swap besides its fading pads (an acapella bridge's voice). */
+  after?: (bar: number) => Partial<BarEvents["notes"]>;
+}
+
+/** An outgoing song's bars around a swap: its own bars, then its parts dropping over the last
+ * DRUM_SWAP_BARS (its drums, unless `drums` turns them into others; its melody lines; then its
+ * figures). Past the swap, its pads alone (if they reached it), fading out over PAD_FADE_BARS in
+ * their own voicing, each note moving to the nearest note of the incoming song's chords. */
 function handOver(
   song: Song,
   swap: number,
   next: Song,
-  drums: ((bar: number, own: DrumHit[]) => DrumHit[]) | null,
+  options: HandOverOptions,
 ): (bar: number) => BarEvents {
+  const {
+    drums,
+    melodyOut = DRUM_SWAP_BARS,
+    figuresOut = DRUM_SWAP_BARS / 2,
+    bassOut = 0,
+    shift = 0,
+    after,
+  } = options;
   const last = Math.min(swap, song.totalBars) - 1;
   const lastPads = arrangeBar(song, last).notes.pad;
   const padVel = Math.max(0, ...lastPads.map((n) => n.vel));
@@ -202,20 +227,25 @@ function handOver(
   let voices = lastPads.filter((n) => n.step === lastStep).map((n) => n.midi);
   for (let i = 0; i < Math.min(PAD_FADE_BARS, next.totalBars) && voices.length; i++) {
     const gain = 1 - (i + 1) / (PAD_FADE_BARS + 1);
-    const led = padsLedTo(next, i, voices, padVel * gain);
+    const led = padsLedTo(next, i, voices, padVel * gain, shift);
     fade.push(led.notes);
     voices = led.voices;
   }
   return (bar) => {
     if (bar >= swap) {
       const quiet = { ...silent(arrangeBar(song, last)), bar };
-      return { ...quiet, notes: { ...quiet.notes, pad: fade[bar - swap] ?? [] } };
+      const pad = fade[bar - swap] ?? [];
+      return { ...quiet, notes: { ...quiet.notes, pad, ...after?.(bar) } };
     }
     const ev = arrangeBar(song, bar);
     if (bar < swap - DRUM_SWAP_BARS) return ev;
-    const out = bar >= swap - DRUM_SWAP_BARS / 2 ? FIGURES_OUT : null;
+    const before = swap - bar;
+    const dropped = (t: MelodicTrack) =>
+      (MELODY_OUT.has(t) && before <= melodyOut) ||
+      (FIGURES_OUT.has(t) && before <= figuresOut) ||
+      (t === "bass" && before <= bassOut);
     const notes = Object.fromEntries(
-      MELODIC_TRACKS.map((t) => [t, MELODY_OUT.has(t) || out?.has(t) ? [] : ev.notes[t]]),
+      MELODIC_TRACKS.map((t) => [t, dropped(t) ? [] : ev.notes[t]]),
     ) as unknown as BarEvents["notes"];
     return { ...ev, drums: drums ? drums(bar, ev.drums) : [], notes };
   };
@@ -273,10 +303,12 @@ export function morphArrange(song: Song, swap: number, next: Song): (bar: number
   const opening = (bar: number) => into((((bar - swap) % GROOVE_BARS) + GROOVE_BARS) % GROOVE_BARS);
   const kit = morphSwitches(song, next).kit;
   const kitBar = kit === undefined ? Infinity : swap - MORPH_BARS + kit;
-  const play = handOver(song, swap, next, (bar, own) => {
-    const theirs = opening(bar).drums;
-    if (bar >= swap - DRUM_SWAP_BARS / 2) return theirs;
-    return [...own.filter((h) => !TOPS.has(h.voice)), ...theirs.filter((h) => TOPS.has(h.voice))];
+  const play = handOver(song, swap, next, {
+    drums: (bar, own) => {
+      const theirs = opening(bar).drums;
+      if (bar >= swap - DRUM_SWAP_BARS / 2) return theirs;
+      return [...own.filter((h) => !TOPS.has(h.voice)), ...theirs.filter((h) => TOPS.has(h.voice))];
+    },
   });
   return (bar) => {
     const ev = play(bar);
@@ -438,4 +470,254 @@ export function autoTransition(
     (sameKey(k, keyAtSwap) || sameKey(k, relative)) &&
     Math.abs(next.bpm - bpmAtSwap) <= bpmAtSwap * MORPH_TEMPO_STEP;
   return close ? "morph" : "crossfade";
+}
+
+// ── Tricks (#5) ───────────────────────────────────────────────────────────────────────────────
+
+/** The tricks a crossfade can play (docs/plans/dj-mode.md). Each is one action on the two songs
+ * and the swap, which the automatic DJ picks from (and a manual one could fire). */
+export type TrickId = "mix" | "pitch" | "mashup" | "echo" | "acapella";
+
+/** How a transition shows on screen ("Echo out → Get Closer"). */
+export const TRANSITION_LABELS: Record<TrickId | "morph", string> = {
+  mix: "Mixing",
+  pitch: "Pitch to match",
+  mashup: "Mashup",
+  echo: "Echo out",
+  acapella: "Acapella bridge",
+  morph: "Morphing",
+};
+
+/** A crossfade's trick, with pitch to match's shift: the semitones the incoming song's notes
+ * move until its bar `until`, where it modulates back to its own key. */
+export interface Trick {
+  id: TrickId;
+  shift?: { by: number; until: number };
+}
+
+/** Bars the outgoing voice sings on alone over the incoming song in an acapella bridge. */
+export const ACAPELLA_BARS = 8;
+/** Bars an echo out rings on in the transition after its last notes. */
+const ECHO_TAIL_BARS = 4;
+/** An echo out's delay send (every part) and feedback. */
+const ECHO_OUT = { send: 0.7, feedback: 0.6 };
+
+/** What each deck plays around a crossfade's swap with a trick, and the outgoing deck's effects
+ * per bar: what render ahead needs for the transition piece. */
+export interface Handoff {
+  outgoing: (bar: number) => BarEvents;
+  incoming: (bar: number) => BarEvents;
+  effects?: (bar: number) => DeckEffect | null;
+  /** Bars past the swap the outgoing deck plays. */
+  outgoingBars: number;
+  /** Bars of the incoming song in the transition (the outgoing deck's tails, echoes). */
+  tail: number;
+}
+
+/** A crossfade with `trick` from `song` into `next`, the incoming song's bar 0 at `swap`. */
+export function handoff(song: Song, swap: number, next: Song, trick: Trick): Handoff {
+  const shift = trick.shift;
+  const incoming = shiftedArrange(incomingArrange(next), shift);
+  const plain: Handoff = {
+    outgoing: handOver(song, swap, next, { shift: shift?.by ?? 0 }),
+    incoming,
+    outgoingBars: PAD_FADE_BARS,
+    tail: TAIL_BARS,
+  };
+  switch (trick.id) {
+    case "mix":
+    case "pitch":
+      return plain;
+    case "echo":
+      return {
+        ...plain,
+        outgoing: handOver(song, swap, next, { melodyOut: 0 }),
+        effects: (bar) => (bar === swap - 1 ? { echoOut: ECHO_OUT } : null),
+      };
+    case "mashup":
+      return {
+        ...plain,
+        // Its pads, figures and (for half the bars) voice over the incoming beat and bass.
+        outgoing: handOver(song, swap, next, {
+          melodyOut: DRUM_SWAP_BARS / 2,
+          figuresOut: 0,
+          bassOut: DRUM_SWAP_BARS,
+        }),
+        incoming: mashupIncoming(song, swap, next, incoming),
+      };
+    case "acapella": {
+      const hook = hookBars(song, swap);
+      const end = swap + ACAPELLA_BARS;
+      const sung = (bar: number) => {
+        const source = hook[(bar - swap) % hook.length];
+        if (source === undefined || bar >= end) return {};
+        const own = arrangeBar(song, source).notes;
+        const h = harmonyAt(next, bar - swap);
+        return { lead: fitted(own.lead, h), leadOct: fitted(own.leadOct, h) };
+      };
+      return {
+        outgoing: handOver(song, swap, next, { melodyOut: 0, after: sung }),
+        // The incoming song's own melody lines wait for the bridge.
+        incoming: (bar) => {
+          const ev = incoming(bar);
+          if (bar < 0 || bar >= ACAPELLA_BARS) return ev;
+          const notes = { ...ev.notes };
+          for (const t of MELODY_OUT) notes[t] = [];
+          return { ...ev, notes };
+        },
+        effects: (bar) => (bar === end - 1 ? { echoOut: ECHO_OUT } : null),
+        outgoingBars: ACAPELLA_BARS,
+        tail: ACAPELLA_BARS + ECHO_TAIL_BARS,
+      };
+    }
+  }
+}
+
+/** A song's bars with its notes moved `shift.by` semitones until bar `shift.until` (its drums
+ * stay). */
+export function shiftedArrange(
+  play: (bar: number) => BarEvents,
+  shift: Trick["shift"],
+): (bar: number) => BarEvents {
+  if (!shift?.by) return play;
+  return (bar) => {
+    const ev = play(bar);
+    if (bar >= shift.until) return ev;
+    const notes = Object.fromEntries(
+      MELODIC_TRACKS.map((t) => [t, ev.notes[t].map((n) => ({ ...n, midi: n.midi + shift.by }))]),
+    ) as unknown as BarEvents["notes"];
+    return { ...ev, notes };
+  };
+}
+
+/** The chord sounding at `step` of a bar. */
+function slotAt(slots: readonly ChordSlot[], step: number): Chord {
+  let chord = slots[0]!.chord;
+  for (const s of slots) if (s.step <= step) chord = s.chord;
+  return chord;
+}
+
+/** The nearest MIDI note to `midi` with a pitch class in `pcs`. */
+function nearestIn(midi: number, pcs: readonly number[]): number {
+  return pcs
+    .map((pc) => nearestWithPc(pc, midi))
+    .reduce((a, b) => (Math.abs(b - midi) < Math.abs(a - midi) ? b : a));
+}
+
+/** A melody fitted to other chords: on the beat to the nearest chord tone, else to the nearest
+ * tone of the chord's scale. */
+export function fitted(notes: readonly Note[], h: { key: Key; slots: ChordSlot[] }): Note[] {
+  return notes.map((n) => {
+    const chord = slotAt(h.slots, n.step);
+    const pcs = n.step % 4 === 0 ? chordPitchClasses(h.key, chord) : scaleForChord(h.key, chord);
+    return { ...n, midi: nearestIn(n.midi, pcs) };
+  });
+}
+
+/** The bars an acapella bridge sings: the start of the last chorus before the swap with a sung
+ * line (up to ACAPELLA_BARS, looped if shorter); none without one. */
+export function hookBars(song: Song, swap: number): number[] {
+  const sung = (bar: number) => arrangeBar(song, bar).notes.lead.length > 0;
+  const chorus = [...song.sections]
+    .reverse()
+    .find((s) => s.kind === "chorus" && s.startBar + s.bars <= swap && sung(s.startBar));
+  if (!chorus) return [];
+  return Array.from(
+    { length: Math.min(ACAPELLA_BARS, chorus.bars) },
+    (_, i) => chorus.startBar + i,
+  );
+}
+
+/** The bars whose bass a mashup loops: the start of the song's first verse or chorus with a bass
+ * line in its first bars. */
+function bassBars(song: Song): number[] {
+  const has = (bar: number) => arrangeBar(song, bar).notes.bass.length > 0;
+  const s = song.sections.find(
+    (x) =>
+      ["verse", "chorus"].includes(x.kind) &&
+      x.bars >= GROOVE_BARS &&
+      Array.from({ length: GROOVE_BARS }, (_, i) => x.startBar + i).every(has),
+  );
+  return s ? Array.from({ length: GROOVE_BARS }, (_, i) => s.startBar + i) : [];
+}
+
+/** A bass line moved onto other chords: each note keeps its interval from its chord's root as
+ * far as the new chord has it (else the nearest chord tone), in its own register. */
+export function refitBass(
+  notes: readonly Note[],
+  from: { key: Key; slots: ChordSlot[] },
+  to: { key: Key; slots: ChordSlot[] },
+): Note[] {
+  return notes.map((n) => {
+    const src = chordPitchClasses(from.key, slotAt(from.slots, n.step));
+    const dst = chordPitchClasses(to.key, slotAt(to.slots, n.step));
+    const interval = (((n.midi - src[0]!) % 12) + 12) % 12;
+    const want = (dst[0]! + interval) % 12;
+    const pc = dst.includes(want)
+      ? want
+      : dst.reduce((a, b) => (circular(b, want) < circular(a, want) ? b : a));
+    return { ...n, midi: nearestWithPc(pc, n.midi) };
+  });
+}
+
+const circular = (a: number, b: number) => Math.min((a - b + 12) % 12, (b - a + 12) % 12);
+
+/** A mashup's incoming song: for the last DRUM_SWAP_BARS before the swap, its bass line (looped
+ * from its first verse or chorus) on the outgoing song's chords, under the outgoing pads and
+ * figures; then itself. */
+function mashupIncoming(
+  song: Song,
+  swap: number,
+  next: Song,
+  play: (bar: number) => BarEvents,
+): (bar: number) => BarEvents {
+  const bass = bassBars(next);
+  return (bar) => {
+    const ev = play(bar);
+    if (bar >= 0 || bar < -DRUM_SWAP_BARS || !bass.length) return ev;
+    const source = bass[(bar + 64) % GROOVE_BARS]!;
+    const line = refitBass(
+      arrangeBar(next, source).notes.bass,
+      harmonyAt(next, source),
+      harmonyAt(song, swap + bar),
+    );
+    return { ...ev, notes: { ...ev.notes, bass: line } };
+  };
+}
+
+/** The tricks a crossfade can play, with their odds. Pitch to match comes first when it can
+ * (pitchable: the next song's own key doesn't mix from the current one; half the time); no
+ * trick twice in a row. */
+export function pickTrick(
+  rng: Rng,
+  can: { pitch: boolean; acapella: boolean },
+  last: TrickId | null,
+): TrickId {
+  if (can.pitch && last !== "pitch" && rng.chance(0.5)) return "pitch";
+  const options: [TrickId, number][] = [
+    ["mix", 2],
+    ["echo", 2],
+    ["mashup", 2],
+  ];
+  if (can.acapella) options.push(["acapella", 2]);
+  return rng.weighted(options.filter(([id]) => id !== last));
+}
+
+/** Pitch to match's shift: from `own` key into the neighbour of `current` in its own mode that
+ * moves least (within a tritone; the relative key when the modes differ), until the incoming
+ * song's first chorus (or its second section), where it modulates back. */
+export function pitchShift(current: Key, own: Key, next: Song): { by: number; until: number } {
+  const shifts = compatibleKeys(current)
+    .filter((k) => k.mode === own.mode)
+    .map((k) => {
+      const by = (((k.tonic - own.tonic) % 12) + 12) % 12;
+      return by > 6 ? by - 12 : by;
+    });
+  // The least move; on a tie, down, so the move back is a lift.
+  const by = shifts.reduce((a, b) =>
+    Math.abs(b) < Math.abs(a) || (Math.abs(b) === Math.abs(a) && b < a) ? b : a,
+  );
+  const chorus = next.sections.find((s) => s.kind === "chorus" && s.startBar > 0);
+  const until = chorus?.startBar ?? next.sections[1]?.startBar ?? next.totalBars;
+  return { by, until };
 }

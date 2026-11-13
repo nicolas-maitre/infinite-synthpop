@@ -102,6 +102,35 @@ What render ahead needs for it: a deck's sound set per bar, not once per piece (
 gets an optional `sound(bar)` with the levels, tones, kit and patches for that bar: the levels ramp
 to the bar's time, the rest switches before the bar's notes are scheduled.
 
+## The first tricks (#5)
+
+A trick is one action: a name, the two songs and the swap, turned into what each deck plays and
+the effects on them. The automatic DJ picks one per crossfade; a manual DJ panel could later fire
+the same actions. A morph has no trick (it is one already). The trick shows in the mix line
+("Echo out → Get Closer"). The DJ doesn't play the same trick twice in a row.
+
+- **Mix** (the plain crossfade above).
+- **Pitch to match.** When the next song's own key doesn't mix from the current one, half the
+  time it keeps its key instead of being recomposed in a neighbour: it is transposed into the
+  neighbour key for its first bars (the shift that moves the least, within a tritone), then
+  modulates back to its own key at its first chorus, a lift when the shift was down. Only its
+  notes move; the drums don't. The fading outgoing pads follow the shifted chords.
+- **Mashup overlap.** Over the last 8 bars, the incoming bass comes in with the incoming beat,
+  its line refitted to the outgoing song's chords (each note to the nearest tone of the chord
+  sounding), while the outgoing bass and drums drop and its pads, riffs and voice play on. At the
+  swap the harmony changes hands, and the bass carries on as it was.
+- **Echo out.** The outgoing voice keeps singing to the swap instead of dropping out 8 bars
+  before. On its last bar, every part's delay send and the delay's feedback rise, so the last
+  line dissolves into its echoes under the incoming song.
+- **Acapella bridge.** The outgoing voice sings to the swap, then carries on alone for 8 bars
+  over the incoming song, singing the start of its last chorus, each note fitted to the incoming
+  chords (on the beat a chord tone, else a scale tone, whichever is nearest). Then it echoes out.
+  The incoming song's own melody lines wait until the bridge is over.
+
+Odds: pitch to match whenever its key condition holds and the coin says so; otherwise mix 2,
+echo out 2, mashup 2, acapella bridge 2 (only when the outgoing song has a sung chorus before
+the swap), minus the last trick played.
+
 ## Choosing the next song
 
 - **Style:** the next song is drawn from the settings as today (genre, blend or auto).
@@ -148,3 +177,6 @@ to the bar's time, the rest switches before the bar's notes are scheduled.
   morph (clips 8–14): the drift was good from the start; the handoff was abrupt (the pads now fade
   past it), then the drum pattern changed at once (it now turns over the last 8 bars), then the
   new hats jumped in, then everything switched on one bar (now each sound on its own bar).
+- Phase 4: built (`handoff`, `pickTrick`, `pitchShift` in `src/dj.ts`; `DeckEffect` and
+  `Instruments.echoOut` for the echo), waiting for an ear check of one rendered transition per
+  trick.

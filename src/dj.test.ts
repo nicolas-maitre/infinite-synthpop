@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { arrangeBar } from "./arranger";
+import { arrangeBar, harmonyAt } from "./arranger";
 import { compose } from "./composer";
 import {
+  ACAPELLA_BARS,
+  fitted,
+  handoff,
+  hookBars,
+  pickTrick,
+  pitchShift,
+  refitBass,
+  shiftedArrange,
+  type TrickId,
   autoTransition,
   blendDistance,
   compatibleKeys,
@@ -25,6 +34,7 @@ import {
 } from "./dj";
 import { GENRE_IDS } from "./genres";
 import { createRng } from "./rng";
+import { chordPitchClasses } from "./theory";
 
 const songs = GENRE_IDS.flatMap((genre) =>
   [11, 222, 3333, 44444, 555555].map((seed) => compose({ seed, genre })),
@@ -279,5 +289,124 @@ describe("a morph", () => {
       songs.some((t) => t !== s && autoTransition(s, t, s.key, s.bpm) === "morph"),
     );
     expect(close).toBeDefined();
+  });
+});
+
+describe("tricks", () => {
+  const song = songs.find((s) => hookBars(s, swapBar(s, createRng(1))).length > 0)!;
+  const swap = swapBar(song, createRng(1));
+  const next = songs.find((s) => s !== song && s.genre === song.genre)!;
+  const chordTones = (h: ReturnType<typeof harmonyAt>, step: number) => {
+    let slot = h.slots[0]!;
+    for (const s of h.slots) if (s.step <= step) slot = s;
+    return chordPitchClasses(h.key, slot.chord);
+  };
+
+  it("plays a plain crossfade for a mix", () => {
+    const h = handoff(song, swap, next, { id: "mix" });
+    for (let bar = swap - 10; bar < swap + 4; bar++)
+      expect(h.outgoing(bar)).toEqual(outgoingArrange(song, swap, next)(bar));
+    expect(h.effects).toBeUndefined();
+  });
+
+  it("echoes out the voice it keeps to the swap", () => {
+    const h = handoff(song, swap, next, { id: "echo" });
+    for (let bar = swap - DRUM_SWAP_BARS; bar < swap; bar++) {
+      expect(h.outgoing(bar).notes.lead).toEqual(arrangeBar(song, bar).notes.lead);
+      expect(h.effects!(bar) !== null).toBe(bar === swap - 1);
+    }
+  });
+
+  it("brings the incoming bass in on the outgoing chords in a mashup", () => {
+    const h = handoff(song, swap, next, { id: "mashup" });
+    let heard = 0;
+    for (let b = -DRUM_SWAP_BARS; b < 0; b++) {
+      expect(h.outgoing(swap + b).notes.bass).toEqual([]);
+      const out = harmonyAt(song, swap + b);
+      for (const n of h.incoming(b).notes.bass) {
+        heard++;
+        expect(chordTones(out, n.step)).toContain(((n.midi % 12) + 12) % 12);
+      }
+    }
+    expect(heard).toBeGreaterThan(0);
+    expect(h.incoming(0)).toEqual(incomingArrange(next)(0));
+  });
+
+  it("sings the outgoing hook over the incoming song in an acapella bridge, then echoes out", () => {
+    const h = handoff(song, swap, next, { id: "acapella" });
+    let sung = 0;
+    for (let i = 0; i < ACAPELLA_BARS; i++) {
+      const lead = h.outgoing(swap + i).notes.lead;
+      sung += lead.length;
+      const into = harmonyAt(next, i);
+      for (const n of lead.filter((n) => n.step % 4 === 0))
+        expect(chordTones(into, n.step)).toContain(((n.midi % 12) + 12) % 12);
+      for (const t of ["lead", "leadOct", "hook", "counter"] as const)
+        expect(h.incoming(i).notes[t]).toEqual([]);
+    }
+    expect(sung).toBeGreaterThan(0);
+    expect(h.outgoing(swap + ACAPELLA_BARS).notes.lead).toEqual([]);
+    expect(h.effects!(swap + ACAPELLA_BARS - 1)).not.toBeNull();
+    expect(h.tail).toBeGreaterThan(ACAPELLA_BARS);
+  });
+
+  it("fits a melody to other chords: chord tones on the beat, scale tones between", () => {
+    const h = harmonyAt(next, 0);
+    const line = Array.from({ length: 16 }, (_, step) => ({
+      step,
+      dur: 1,
+      midi: 60 + step,
+      vel: 1,
+    }));
+    for (const n of fitted(line, h)) {
+      expect(Math.abs(n.midi - line[n.step]!.midi)).toBeLessThanOrEqual(2);
+      if (n.step % 4 === 0) expect(chordTones(h, n.step)).toContain(n.midi % 12);
+    }
+  });
+
+  it("keeps a bass root on the root when refitted", () => {
+    const from = harmonyAt(song, 0);
+    const to = harmonyAt(next, 0);
+    const root = chordPitchClasses(from.key, from.slots[0]!.chord)[0]!;
+    const [n] = refitBass([{ step: 0, dur: 2, midi: 36 + root, vel: 1 }], from, to);
+    expect(n!.midi % 12).toBe(chordPitchClasses(to.key, to.slots[0]!.chord)[0]);
+    expect(Math.abs(n!.midi - (36 + root))).toBeLessThanOrEqual(6);
+  });
+
+  it("pitches a song to match within a tritone, then lets it go back to its key", () => {
+    for (const a of songs.slice(0, 10)) {
+      const b = songs.find((s) => s.key.mode === a.key.mode && s.key.tonic !== a.key.tonic)!;
+      const shift = pitchShift(a.key, b.key, b);
+      expect(shift.by).toBeGreaterThanOrEqual(-6);
+      expect(shift.by).toBeLessThanOrEqual(6);
+      const moved = { tonic: (b.key.tonic + shift.by + 12) % 12, mode: b.key.mode };
+      expect(compatibleKeys(a.key)).toContainEqual(moved);
+      // The least move to any neighbour in its mode.
+      for (const k of compatibleKeys(a.key).filter((k) => k.mode === b.key.mode)) {
+        const d = (k.tonic - b.key.tonic + 12) % 12;
+        expect(Math.abs(shift.by)).toBeLessThanOrEqual(Math.min(d, 12 - d));
+      }
+      const play = shiftedArrange(incomingArrange(b), shift);
+      const own = incomingArrange(b);
+      for (const bar of [0, shift.until - 1, shift.until]) {
+        const [x, y] = [play(bar), own(bar)];
+        expect(x.drums).toEqual(y.drums);
+        const by = bar < shift.until ? shift.by : 0;
+        expect(x.notes.bass.map((n) => n.midi)).toEqual(y.notes.bass.map((n) => n.midi + by));
+      }
+    }
+  });
+
+  it("never plays the same trick twice in a row, and pitches only when it can", () => {
+    for (let i = 0; i < 200; i++) {
+      const last = (["mix", "echo", "mashup", "acapella", "pitch", null] as (TrickId | null)[])[
+        i % 6
+      ]!;
+      const can = { pitch: i % 2 === 0, acapella: i % 3 !== 0 };
+      const id = pickTrick(createRng(i), can, last);
+      expect(id).not.toBe(last);
+      if (id === "pitch") expect(can.pitch).toBe(true);
+      if (id === "acapella") expect(can.acapella).toBe(true);
+    }
   });
 });
