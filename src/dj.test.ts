@@ -166,7 +166,7 @@ describe("a morph", () => {
   it("keeps the drums, sheds the melody, then the figures, before the swap", () => {
     const song = songs[3]!;
     const swap = swapBar(song, createRng(1));
-    const play = morphArrange(song, swap);
+    const play = morphArrange(song, swap, songs[7]!);
     expect(play(swap - DRUM_SWAP_BARS - 1)).toEqual(arrangeBar(song, swap - DRUM_SWAP_BARS - 1));
     for (let bar = swap - DRUM_SWAP_BARS; bar < swap; bar++) {
       const { drums, notes } = play(bar);

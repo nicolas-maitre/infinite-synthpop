@@ -793,7 +793,7 @@ export class Engine {
   /**
    * A DJ morph: the song's body up to the morph window, then the window on one deck (its sound
    * gliding to the next song's, its last phrase thinning out), then a handoff into the next
-   * song's intro, with the outgoing tails ringing out (dj.ts).
+   * song's intro, the outgoing pads fading out over its first bars (dj.ts).
    */
   private planMorph(
     song: Song,
@@ -812,7 +812,7 @@ export class Engine {
         end: clock.time(mixFrom),
       };
     }
-    const arrange = morphArrange(song, swap);
+    const arrange = morphArrange(song, swap, next.song);
     const sound = morphSound(song, next.song, swap);
     const last = swap - 1;
     if (bar < last) {
@@ -825,10 +825,11 @@ export class Engine {
       };
     }
     const nextClock = TempoMap.anchored(this.shapeFor(next.song, next.meta), 0, clock.time(swap));
-    const tail = Math.min(HANDOFF_BARS, next.song.totalBars - 1);
+    const tail = Math.min(TAIL_BARS, next.song.totalBars - 1);
+    const to = Math.min(swap + PAD_FADE_BARS, song.totalBars);
     return {
       decks: [
-        { song, clock, from: last, to: swap, shown: [last, swap], meta, arrange, sound },
+        { song, clock, from: last, to, shown: [last, swap], meta, arrange, sound },
         {
           song: next.song,
           clock: nextClock,
