@@ -33,9 +33,10 @@ The genre becomes a preset, not a boundary.
   placed by the form, and their sound and line come from the Riff part's blend.
 - **Tempo follows the Song part**, with form, chords and key. Drums from a 123 BPM record can
   play at 110.
-- **Auto sometimes draws a cross-genre blend.** Otherwise it picks a random preset as today. About
-  1 song in 2 (1 in 5 until 2026-11-13) gets a random open blend of 2–3 references from at least two genres, still in simple
-  mode.
+- **Auto sometimes draws a cross-genre blend.** Half its songs are a random preset as today. The
+  other half (1 in 5 until 2026-11-13) get a random open blend of 2–3 of the ten references, still
+  in simple mode. Since 2026-11-13 those references come from any genres, so they may share one,
+  and the point may land on a single reference.
 - **The legacy planners stay, in their own folder.** `planSections`, `planItalo` and `planEuro`
   move to `src/legacy-planners/` and keep serving single-genre form blends, so those songs never
   change. The merged planner serves blends that span genres.
@@ -204,7 +205,7 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
   about 10 BPM of tempo centres.
 - **Creator** (`creator.ts`): the same controls, stored on the creation's spec.
 - **Auto**: a random preset and a random point per song, as today. About 1 song in 2 instead
-  gets a random open blend of 2–3 references from at least two genres, in simple mode. That chance
+  gets a random open blend of 2–3 references from any genres, in simple mode. That chance
   draws on its own forked stream, so the preset songs draw as before. Auto seeds that land on an
   open blend do play differently from today. That touches nothing stored: Auto-genre songs aren't
   in the snapshot, and saved songs and links record the concrete blend.
@@ -277,7 +278,8 @@ A single-genre simple-mode song still writes the old `g`/`w` form, so its links 
    - On a mixed song blend, `compose` also mixes the ending odds (lift, hold), the pre-chorus
      check, You Came's verse on the loop, and the high chorus riff across genres.
    - Auto: `AUTO_OPEN_CHANCE` (0.2; 0.5 since 2026-11-13, as the results were good) on the `open` stream. `randomOpenBlend` picks two references
-     from different genres, plus a third half the time, at a polygon point where none rounds to 0. A test checks the other Auto songs are identical to the same genre and seed without it.
+     from different genres, plus a third half the time, at a polygon point where none rounds to 0.
+     Since 2026-11-13 it picks them from any genres at any polygon point (`randomBlendOver`). A test checks the other Auto songs are identical to the same genre and seed without it.
    - Checked in the browser: an Auto seed landing on an open blend (seed 5: The Different Story,
      Crazy Juliet and Get Closer) loads, shows its sections, and renders offline cleanly. The
      pad still shows the dominant genre's polygon until phase 4.

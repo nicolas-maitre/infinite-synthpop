@@ -3,7 +3,8 @@ import { arrangeBar } from "./arranger";
 import { compose, type Song, type SongEnding, type SongForm } from "./composer";
 import { GENRES, genreOfReference } from "./genres";
 import { planMerged } from "./planner";
-import { profileOf, REFERENCE_IDS, songSound, type RefWeights } from "./profile";
+import { AUTO_OPEN_CHANCE, profileOf, REFERENCE_IDS, songSound, type RefWeights } from "./profile";
+import type { ReferenceId } from "./references";
 import { createRng } from "./rng";
 import { decodeCreation, encodeCreation, songToSpec } from "./spec";
 import { chordPitchClasses, mod12 } from "./theory";
@@ -160,25 +161,38 @@ describe("the merged planner", () => {
 });
 
 describe("Auto", () => {
+  // The composer's own coin toss: an open blend of any references, or a preset as before.
   const songs = Array.from({ length: 300 }, (_, seed) => ({
     seed,
     song: compose({ seed, genre: "auto" }),
+    open: createRng(seed).fork("open").chance(AUTO_OPEN_CHANCE),
   }));
-  const spans = (song: Song) =>
-    new Set(
-      Object.entries(song.blends.song)
-        .filter(([, w]) => w! > 0)
-        .map(([r]) => genreOfReference(r as never)),
-    ).size;
+  const refsOf = (song: Song) =>
+    Object.entries(song.blends.song)
+      .filter(([, w]) => w! > 0)
+      .map(([r]) => r as ReferenceId);
+  const spans = (song: Song) => new Set(refsOf(song).map(genreOfReference)).size;
 
-  it("plays an open blend across genres in about one song in two", () => {
-    const open = songs.filter(({ song }) => spans(song) > 1).length / songs.length;
+  it("plays an open blend in about one song in two", () => {
+    const open = songs.filter((s) => s.open).length / songs.length;
     expect(open).toBeGreaterThan(0.4);
     expect(open).toBeLessThan(0.6);
   });
 
+  it("draws an open blend's references from any genres, one genre included", () => {
+    const open = songs.filter((s) => s.open).map((s) => s.song);
+    for (const song of open) {
+      const keys = Object.keys(song.blends.song);
+      expect(keys.length).toBeGreaterThanOrEqual(2);
+      expect(keys.length).toBeLessThanOrEqual(3);
+      expect(refsOf(song).length).toBeGreaterThanOrEqual(1);
+    }
+    expect(open.some((song) => spans(song) > 1)).toBe(true);
+    expect(open.some((song) => spans(song) === 1)).toBe(true);
+  });
+
   it("plays the other songs exactly as before", () => {
-    for (const { seed, song } of songs.filter(({ song }) => spans(song) === 1).slice(0, 40)) {
+    for (const { seed, song } of songs.filter((s) => !s.open).slice(0, 40)) {
       // Before open blends, Auto was the picked genre at a random point of its polygon.
       const preset = compose({ seed, genre: song.genre, weights: "auto" });
       expect(song.sections).toEqual(preset.sections);

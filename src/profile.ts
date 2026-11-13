@@ -81,32 +81,16 @@ export function toRefWeights(genre: Genre, weights: readonly number[]): RefWeigh
   return Object.fromEntries(genre.references.map((r, i) => [r, weights[i] ?? 0]));
 }
 
-/** How often Auto (a genre per song) plays an open blend across genres instead of a preset. */
+/** How often Auto (a genre per song) plays an open blend of any references instead of a preset. */
 export const AUTO_OPEN_CHANCE = 0.5;
 
-/** Auto's open blend: two or three references from at least two genres, at a random point of
- * their polygon (rounded to hundredths, as the pad's are). */
+/** Auto's open blend: two or three of the ten references, from any genres (they can share one),
+ * at a random point of their polygon (rounded to hundredths, as the pad's are). */
 export function randomOpenBlend(rng: Rng): RefWeights {
-  const first = rng.pick(REFERENCE_IDS);
-  const second = rng.pick(
-    REFERENCE_IDS.filter((r) => genreOfReference(r) !== genreOfReference(first)),
-  );
-  const refs = [first, second];
+  const refs: ReferenceId[] = [rng.pick(REFERENCE_IDS)];
+  refs.push(rng.pick(REFERENCE_IDS.filter((r) => !refs.includes(r))));
   if (rng.chance(0.5)) refs.push(rng.pick(REFERENCE_IDS.filter((r) => !refs.includes(r))));
-  const vertices = polygonVertices(refs.length);
-  // Every chosen reference keeps some weight, so the blend really spans genres: a point by a
-  // vertex can round the others to 0.
-  const draw = () =>
-    quantize(
-      weightsAt(
-        vertices,
-        randomPoint(vertices, () => rng.next()),
-      ),
-    );
-  let w = draw();
-  for (let tries = 1; tries < 20 && !w.every((x) => x > 0); tries++) w = draw();
-  if (!w.every((x) => x > 0)) w = refs.map(() => Math.floor(100 / refs.length) / 100);
-  return Object.fromEntries(refs.map((r, i) => [r, w[i] ?? 0]));
+  return randomBlendOver(refs, rng);
 }
 
 /** Weights in the order of a list of references (a pad's vertices), as reference weights. */
