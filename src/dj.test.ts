@@ -163,15 +163,20 @@ describe("the decks around a handoff", () => {
 });
 
 describe("a morph", () => {
-  it("keeps the drums, sheds the melody, then the figures, before the swap", () => {
+  it("turns the drums into the next song's, sheds the melody, then the figures", () => {
     const song = songs[3]!;
+    const next = songs[7]!;
     const swap = swapBar(song, createRng(1));
-    const play = morphArrange(song, swap, songs[7]!);
+    const play = morphArrange(song, swap, next);
+    const theirs = (bar: number) => incomingArrange(next)((bar - swap + 64) % 4).drums;
     expect(play(swap - DRUM_SWAP_BARS - 1)).toEqual(arrangeBar(song, swap - DRUM_SWAP_BARS - 1));
     for (let bar = swap - DRUM_SWAP_BARS; bar < swap; bar++) {
       const { drums, notes } = play(bar);
       const own = arrangeBar(song, bar);
-      expect(drums).toEqual(own.drums);
+      const tops = (hits: typeof drums) =>
+        hits.filter((h) => ["hat", "openhat", "tamb", "cabasa"].includes(h.voice));
+      if (bar >= swap - DRUM_SWAP_BARS / 2) expect(drums).toEqual(theirs(bar));
+      else expect(tops(drums)).toEqual(tops(theirs(bar)));
       expect(notes.lead).toEqual([]);
       expect(notes.bass).toEqual(own.notes.bass);
       expect(notes.arp).toEqual(bar < swap - DRUM_SWAP_BARS / 2 ? own.notes.arp : []);

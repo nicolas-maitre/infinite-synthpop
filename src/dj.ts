@@ -179,18 +179,19 @@ const FIGURES_OUT = new Set<MelodicTrack>(["riff", "arp", "stab", "seq", "guitar
  * over PAD_FADE_BARS in their own voicing, each note moving to the nearest note of the incoming
  * song's chords, so the two harmonies don't rub. */
 export function outgoingArrange(song: Song, swap: number, next: Song): (bar: number) => BarEvents {
-  return handOver(song, swap, next, false);
+  return handOver(song, swap, next, null);
 }
 
 /** An outgoing song's bars around a swap: its own bars, then, for the last DRUM_SWAP_BARS, its
- * melody lines out (and its drums, unless `keepDrums`), then its figures for the last half of
- * those. Past the swap, its pads alone (if they reached it), fading out over PAD_FADE_BARS in
- * their own voicing, each note moving to the nearest note of the incoming song's chords. */
+ * melody lines out, then its figures for the last half of those. Its drums go for those bars,
+ * or, with `drums`, turn into those (a morph's). Past the swap, its pads alone (if they reached
+ * it), fading out over PAD_FADE_BARS in their own voicing, each note moving to the nearest note
+ * of the incoming song's chords. */
 function handOver(
   song: Song,
   swap: number,
   next: Song,
-  keepDrums: boolean,
+  drums: ((bar: number, own: DrumHit[]) => DrumHit[]) | null,
 ): (bar: number) => BarEvents {
   const last = Math.min(swap, song.totalBars) - 1;
   const lastPads = arrangeBar(song, last).notes.pad;
@@ -216,7 +217,7 @@ function handOver(
     const notes = Object.fromEntries(
       MELODIC_TRACKS.map((t) => [t, MELODY_OUT.has(t) || out?.has(t) ? [] : ev.notes[t]]),
     ) as unknown as BarEvents["notes"];
-    return { ...ev, drums: keepDrums ? ev.drums : [], notes };
+    return { ...ev, drums: drums ? drums(bar, ev.drums) : [], notes };
   };
 }
 
@@ -260,10 +261,20 @@ export type TransitionStyle = "crossfade" | "morph";
 
 /** What the playing song plays per bar in a morph: its own bars, its melody lines out for the
  * last DRUM_SWAP_BARS before the swap, then its figures for the last half of those, so a
- * breakdown of drums, bass and pads leads into the incoming song's intro; past the swap, its pads
- * fading out on the incoming chords, as after a crossfade. */
+ * breakdown of drums, bass and pads leads into the incoming song's intro. Over those bars its
+ * drums turn into the incoming song's opening pattern (hats and shakers, then all of it), so only
+ * the kit changes at the swap. Past the swap, its pads fade out on the incoming chords, as after
+ * a crossfade. */
 export function morphArrange(song: Song, swap: number, next: Song): (bar: number) => BarEvents {
-  return handOver(song, swap, next, true);
+  // The drums the incoming song opens with (its groove standing in through a beatless start),
+  // looped: its hats and shakers take over first, then its whole pattern, on this song's kit.
+  const into = incomingArrange(next);
+  const opening = (bar: number) => into((((bar - swap) % GROOVE_BARS) + GROOVE_BARS) % GROOVE_BARS);
+  return handOver(song, swap, next, (bar, own) => {
+    const theirs = opening(bar).drums;
+    if (bar >= swap - DRUM_SWAP_BARS / 2) return theirs;
+    return [...own.filter((h) => !TOPS.has(h.voice)), ...theirs.filter((h) => TOPS.has(h.voice))];
+  });
 }
 
 /** A song's continuous sound (its auto faders, bass tone and voice mix). */
