@@ -53,9 +53,11 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
     over from the drums for 8 bars while the current song sheds its melody and figures, and at a
     section line its bass and chords take over, the outgoing pads fading out on its chords.
     "Mixing → title" shows under the song.
-  - **morph**: over the last 32 bars, the song's own sound (levels, bass tone, voice mix) glides
-    to the next song's, its last phrase thins out to drums, bass and pads, and the next song
-    starts from its intro. "Morphing → title" shows under the song.
+  - **morph**: over the last 32 bars, the song's own sound turns into the next song's: levels,
+    bass tone and voice mix glide, its kit and each of its patches switch on bars of their own,
+    its last phrase thins out to drums, bass and pads, and its beat turns into the next song's.
+    Then the next song starts from its intro, and only the notes change. "Morphing → title"
+    shows under the song.
   - **auto** (the default) morphs when the next song is close (same genre, a nearby blend, the
     same or the relative key, a tempo within 3 %) and crossfades otherwise. A change applies from
     the next transition.

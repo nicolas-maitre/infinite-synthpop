@@ -81,20 +81,26 @@ playing song turns into the next one's sound, then hands over at a section line.
   outgoing song's continuous sound glides bar by bar toward the next song's: the fader levels
   (`mix`), the bass tone and the voice's mix (lead tone). The tempo glides in the next song, as
   after a crossfade (a song's clock has one glide, and the window is too short for much of one).
-- **The last phrase thins out** as in a crossfade (melody lines, then figures), leaving bass, pads
-  and drums: a built-in breakdown into the swap.
-- **At `S`** the next song starts from its intro (bar 0): intros build up, so the handoff reads as
-  a breakdown into a build. The discrete traits (kit, voices, patches, form, chords) switch there,
-  at a section line, as one bar line. Render ahead plays it like today's handoff between songs: a
-  short two-deck piece so the outgoing tails ring out. If the next song's first bars are beatless,
-  its groove stands in until its own drums, as after a crossfade.
+- **Each sound switches on a bar of its own** (ear check: "why have all instruments switch on
+  the same bar? Really the only things that can clash are chords and melodies"). On the playing
+  song's deck, its kit switches to the next song's 24 bars before the swap (a little under full
+  level, rising over 8 bars), and each patch that differs (riff, stab, arp, countervoice, pad
+  tone, lead synth) at its own 4-bar line from 28 to 12 bars before, in an order drawn per song.
+- **The last phrase thins out** as in a crossfade (melody lines, then figures), leaving bass,
+  pads and drums, and its drums turn into the pattern the next song opens with (hats and shakers
+  8 bars before the swap, all of it 4 bars before).
+- **At `S`** only the notes change: the next song starts from its intro (bar 0) on the same kit,
+  patches and levels. Intros build up, so the handoff reads as a breakdown into a build. Render
+  ahead plays it as a short two-deck piece, the outgoing pads fading out over the next song's
+  first 4 bars, led into its chords, as after a crossfade. If its first bars are beatless, its
+  groove stands in until its own drums.
 - **Auto** picks morph when the next song is close: the same genre for the song part, a nearby
   blend point, a key that is the same or relative, and a tempo within 3 %. Otherwise crossfade.
 - **The setting** is a Transition select next to the DJ switch: Auto, Crossfade, Morph.
 
 What render ahead needs for it: a deck's sound set per bar, not once per piece (`setUpDeck`). A deck
-gets an optional `sound(bar)` with the levels and tones for that bar, applied as ramps at the bar's
-time.
+gets an optional `sound(bar)` with the levels, tones, kit and patches for that bar: the levels ramp
+to the bar's time, the rest switches before the bar's notes are scheduled.
 
 ## Choosing the next song
 
@@ -137,5 +143,8 @@ time.
     outgoing pads now fade out over the incoming song's first 4 bars. "Smoother, but clashes a
     bit": the fading pads keep their own voicing, each note moving to the nearest note of the
     incoming song's chords (preferred over close pads on the new chords, which blended worse).
-- Phase 3: built (`morphArrange`, `morphSound`, `autoTransition` in `src/dj.ts`, the Transition
-  select), waiting for an ear check of a rendered morph. The tempo glides only in the next song.
+- Phase 3: built (`morphArrange`, `morphSound`, `morphSwitches`, `autoTransition` in
+  `src/dj.ts`, the Transition select). The tempo glides only in the next song. Ear checks of one
+  morph (clips 8–14): the drift was good from the start; the handoff was abrupt (the pads now fade
+  past it), then the drum pattern changed at once (it now turns over the last 8 bars), then the
+  new hats jumped in, then everything switched on one bar (now each sound on its own bar).
