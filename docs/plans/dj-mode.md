@@ -71,6 +71,29 @@ The plan for a song (its mix-out point, the next song, the swap bar) is worked o
 and kept with it, so a re-render (a fader change, a settings change) mid-transition plans the same
 transition again.
 
+## How a morph plays
+
+One song at a time: no second deck over the overlap, so no doubled CPU and no two harmonies. The
+playing song turns into the next one's sound, then hands over at a section line.
+
+- **Morph window.** The last phrases before the swap bar `S` (the same mix-out point as a
+  crossfade). Over it, the outgoing song's continuous sound glides bar by bar toward the next
+  song's: the fader levels (`mix`), the bass tone, the voice's mix (lead tone), and the tempo
+  (at most 1 BPM per 16 bars, the rest gliding on in the next song as after a crossfade).
+- **The last phrase thins out** as in a crossfade (melody lines, then figures), leaving bass,
+  pads and drums: a built-in breakdown into the swap.
+- **At `S`** the next song starts. The discrete traits (kit, voices, patches, form, chords)
+  switch there, at a section line, as one bar line. Render ahead plays it like today's handoff
+  between songs: a short two-deck piece so the outgoing tails ring out. If the next song's first
+  bars are beatless, its groove stands in until its own drums, as after a crossfade.
+- **Auto** picks morph when the next song is close: the same genre for the song part, a nearby
+  blend point, a key that is the same or relative, and a tempo within 3 %. Otherwise crossfade.
+- **The setting** is a Transition select next to the DJ switch: Auto, Crossfade, Morph.
+
+What render ahead needs for it: a deck's sound set per bar, not once per piece (`setUpDeck`). A
+deck gets an optional `sound(bar)` with the levels and tones for that bar, applied as ramps at
+the bar's time.
+
 ## Choosing the next song
 
 - **Style:** the next song is drawn from the settings as today (genre, blend or auto).
