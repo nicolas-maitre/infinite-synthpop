@@ -123,8 +123,8 @@ time.
 ## Status
 
 - Phase 1: done (`src/tempo.ts`).
-- Phase 2: built (`src/dj.ts`, the DJ switch, the "Mixing →" line), waiting for an ear check of
-  rendered transitions. Changes from the plan:
+- Phase 2: done (`src/dj.ts`, the DJ switch, the "Mixing →" line), ear-checked on rendered
+  transitions. Changes from the plan:
   - The mix-in intro's first 8 bars carry only the incoming groove's hats and shakers, not its
     snare: two backbeats stacked clipped the sum (renders peaked at full scale).
   - The two decks' sum gets the master's soft clipper again (each deck's own peaks reach just
