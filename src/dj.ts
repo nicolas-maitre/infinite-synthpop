@@ -277,6 +277,21 @@ export function morphArrange(song: Song, swap: number, next: Song): (bar: number
   });
 }
 
+/** Where a morph's incoming kit starts (velocity share): its drums play the pattern the outgoing
+ * kit just played, but a kit's own levels differ (one ear check: hats 4 dB and kick 6 dB up). */
+const KIT_IN = 0.6;
+
+/** What the incoming song plays per bar after a morph: as after a crossfade, its drums rising
+ * from KIT_IN to full over TAIL_BARS, so its kit comes in under the old one's level. */
+export function morphInArrange(song: Song): (bar: number) => BarEvents {
+  const play = incomingArrange(song);
+  return (bar) => {
+    const ev = play(bar);
+    if (bar < 0 || bar >= TAIL_BARS) return ev;
+    return { ...ev, drums: scaled(ev.drums, KIT_IN + ((1 - KIT_IN) * bar) / TAIL_BARS) };
+  };
+}
+
 /** A song's continuous sound (its auto faders, bass tone and voice mix). */
 export function deckSound(song: Song): DeckSound {
   const sound = songSound(song);

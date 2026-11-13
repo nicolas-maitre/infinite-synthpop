@@ -7,6 +7,7 @@ import {
   compatibleKeys,
   deckSound,
   morphArrange,
+  morphInArrange,
   morphSound,
   MORPH_BARS,
   soundBetween,
@@ -20,6 +21,7 @@ import {
   outgoingArrange,
   PAD_FADE_BARS,
   swapBar,
+  TAIL_BARS,
 } from "./dj";
 import { GENRE_IDS } from "./genres";
 import { createRng } from "./rng";
@@ -180,6 +182,17 @@ describe("a morph", () => {
       expect(notes.lead).toEqual([]);
       expect(notes.bass).toEqual(own.notes.bass);
       expect(notes.arp).toEqual(bar < swap - DRUM_SWAP_BARS / 2 ? own.notes.arp : []);
+    }
+  });
+
+  it("brings the incoming kit in under full level, rising over the handoff", () => {
+    for (const song of songs.slice(0, 10)) {
+      const play = morphInArrange(song);
+      const own = incomingArrange(song);
+      const peak = (bar: number, f: typeof play) => Math.max(0, ...f(bar).drums.map((h) => h.vel));
+      if (peak(0, own) > 0) expect(peak(0, play)).toBeLessThan(peak(0, own));
+      expect(play(TAIL_BARS)).toEqual(own(TAIL_BARS));
+      expect(play(0).notes).toEqual(own(0).notes);
     }
   });
 
