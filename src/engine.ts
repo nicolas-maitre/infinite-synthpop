@@ -19,11 +19,37 @@ import type { GenreId } from "./genres";
 import { songSound } from "./profile";
 import { scheduleStep } from "./schedule";
 import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
+import {
+  autoTransition,
+  compatibleKeys,
+  handoff,
+  hookBars,
+  pickTrick,
+  pitchShift,
+  shiftedArrange,
+  TRANSITION_LABELS,
+  type Trick,
+  type TrickId,
+  glideShape,
+  incomingArrange,
+  INTRO_BARS,
+  keyBefore,
+  morphArrange,
+  morphSound,
+  MORPH_BARS,
+  nextKey,
+  nextTempo,
+  swapBar,
+  PAD_FADE_BARS,
+  TAIL_BARS,
+  type TransitionStyle,
+} from "./dj";
 import type { ReferenceId } from "./references";
 import { newSongId, type Creation, type SongSpec } from "./spec";
 import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
 import { LATENCY, LITE, LITE_SAMPLE_RATE } from "./quality";
 import { createRng } from "./rng";
+import { TempoMap, type TempoShape } from "./tempo";
 import type { Key } from "./theory";
 
 export interface EngineSettings {
@@ -54,6 +80,8 @@ export interface EngineEvents {
   onCue?: (bar: number | null) => void;
   /** Render-ahead playback paused to let the render catch up, or went on again. */
   onBuffering?: (buffering: boolean) => void;
+  /** DJ mode: a transition into `next` is being heard (`label` names it), or is over (null). */
+  onMix?: (mix: { label: string; next: Song } | null) => void;
 }
 
 /** The mixer: faders set by hand (the others follow each song's own mix), mutes, solos, master. */
@@ -70,6 +98,32 @@ interface SongMeta {
   serial: number;
   reference: ReferenceId | null;
   custom: Creation | null;
+  /** DJ mode: the key and tempo the song was composed at (to suit the song before it), kept when
+   * it is recomposed; and how its tempo runs (mixed in at the previous song's, gliding to its own). */
+  fixed?: { key: Key; bpm: number };
+  tempo?: TempoShape;
+  /** DJ mode: how the song came in, so its first bars play as they did in the transition after
+   * the transition piece (a groove through a beatless start, pitch to match's shift). */
+  entry?: TransitionStyle;
+  entryShift?: Trick["shift"];
+}
+
+/** DJ mode: where a song hands over (the next song's bar 0 starts at its bar `swap`), and the next
+ * song. */
+interface DjPlan {
+  swap: number;
+  style: TransitionStyle;
+  /** A crossfade's trick (a morph has none). */
+  trick: Trick;
+  next: { song: Song; meta: SongMeta };
+}
+
+/** A song's first bars after a DJ transition brought it in, as the transition played them (dj.ts
+ * incomingArrange: a groove through a beatless start; pitch to match's shift); nothing for a song
+ * that didn't come in through one. */
+function entryArrange(song: Song, meta: SongMeta): Pick<Deck<SongMeta>, "arrange"> {
+  if (!meta.entry) return {};
+  return { arrange: shiftedArrange(song, incomingArrange(song), meta.entryShift) };
 }
 
 /** Bars of the next song in a transition piece: enough for the outgoing song's tails to ring out. */
@@ -137,6 +191,21 @@ export class Engine {
   private serials = 0;
   /** In render-ahead mode, the piece a cued switch starts. */
   private cuedPiece: Piece<SongMeta> | null = null;
+  /** DJ mode: each song plays a while, then mixes into the next (dj.ts). Plays render ahead. */
+  private dj = false;
+  /** How DJ mode hands over: one style throughout, or auto's pick per transition. */
+  private djStyle: TransitionStyle | "auto" = "auto";
+  /** The last crossfade's trick, so the next one plays another. */
+  private lastTrick: TrickId | null = null;
+  /** Dev only (djPreview): the trick to play where it can. */
+  private forceTrick: TrickId | null = null;
+  /** The playing song's DJ key and tempo, and its tempo's run (SongMeta). */
+  private fixed: SongMeta["fixed"];
+  private tempo: TempoShape | undefined;
+  /** Each song's DJ plan, made once (a re-plan mid-transition plans the same one). */
+  private djPlans = new WeakMap<Song, DjPlan>();
+  /** The song a transition being heard mixes into. */
+  private mixing: Song | null = null;
 
   constructor(
     private settings: EngineSettings,
@@ -202,8 +271,23 @@ export class Engine {
     }
   }
 
+  /** DJ mode: each song plays long enough to give its gist, then mixes into the next one. It
+   * plays render ahead, whatever the Playback setting. */
+  setDj(on: boolean): void {
+    if (on === this.dj) return;
+    this.dj = on;
+    if (this.player && this.wantsAhead()) this.rerender();
+    else this.syncMode();
+  }
+
+  /** The DJ's transition style, from the next transition planned on (one being heard, or
+   * planned for the playing song, stays as it is). */
+  setDjStyle(style: TransitionStyle | "auto"): void {
+    this.djStyle = style;
+  }
+
   private wantsAhead(): boolean {
-    return AHEAD_SUPPORTED && this.renderAhead && !this.liveOnly && this.loop === null;
+    return AHEAD_SUPPORTED && (this.renderAhead || this.dj) && !this.liveOnly && this.loop === null;
   }
 
   /** Moves playback between live and render-ahead when the mode changes while playing, from the
@@ -356,12 +440,14 @@ export class Engine {
       this.remixTimer = null;
       this.events.onBuffering?.(false);
     }
+    this.setMixing(null);
   }
 
   /** Jumps to a new song (random or given seed) at the next bar line. */
   newSong(seed: number): void {
     this.reference = null;
     this.custom = null;
+    this.fixed = this.tempo = undefined;
     this.loop = null;
     this.serial = ++this.serials;
     this.song = this.compose(seed);
@@ -377,6 +463,7 @@ export class Engine {
    */
   playReference(id: ReferenceId): void {
     this.custom = null;
+    this.fixed = this.tempo = undefined;
     this.loop = null;
     this.reference = id;
     this.serial = ++this.serials;
@@ -393,6 +480,7 @@ export class Engine {
    */
   playCustom(creation: Creation, keepPosition = false): void {
     this.reference = null;
+    this.fixed = this.tempo = undefined;
     // Each creation gets an id the first time it plays, for its entry in My songs.
     this.custom = creation.id ? creation : { ...creation, id: newSongId() };
     this.song = this.compose(creation.seed);
@@ -509,10 +597,14 @@ export class Engine {
     seed: number,
     reference: ReferenceId | null = this.reference,
     custom: Creation | null = this.custom,
+    fixed: SongMeta["fixed"] | null = this.fixed ?? null,
   ): Song {
     const song = compose({
       seed,
       ...this.settings,
+      // A DJ's key and tempo, unless the settings fix them.
+      key: this.settings.key ?? fixed?.key ?? null,
+      bpm: this.settings.bpm ?? fixed?.bpm ?? null,
       weights: this.settings.weights ?? "auto",
       reference,
       custom: custom?.spec ?? null,
@@ -567,7 +659,84 @@ export class Engine {
   // ── Render-ahead: planning what plays ─────────────────────────────────────────────────────
 
   private meta(): SongMeta {
-    return { serial: this.serial, reference: this.reference, custom: this.custom };
+    return {
+      serial: this.serial,
+      reference: this.reference,
+      custom: this.custom,
+      ...(this.fixed && { fixed: this.fixed }),
+      ...(this.tempo && { tempo: this.tempo }),
+    };
+  }
+
+  /** How a song's tempo runs: its DJ glide while that still ends on its tempo (a Tempo setting
+   * changed since replaces it), else steady. */
+  private shapeFor(song: Song, meta: SongMeta): TempoShape {
+    const t = meta.tempo;
+    return t && (t.glide?.to ?? t.bpm) === song.bpm ? t : { bpm: song.bpm };
+  }
+
+  /**
+   * DJ mode: where `song` hands over, and the song after it, composed at a tempo within reach of
+   * this one's and a key that mixes from it (dj.ts). Null outside DJ mode and for creations (they
+   * loop).
+   */
+  private djPlan(song: Song, meta: SongMeta): DjPlan | null {
+    if (!this.dj || meta.custom) return null;
+    const cached = this.djPlans.get(song);
+    if (cached) return cached;
+    const rng = createRng(song.seed).fork("dj");
+    const shape = this.shapeFor(song, meta);
+    const glideEnd = shape.glide ? shape.glide.start + shape.glide.bars : 0;
+    const swap = swapBar(song, rng, glideEnd + Math.max(INTRO_BARS, MORPH_BARS));
+    const seed = nextSeed(song.seed);
+    const own = this.compose(seed, null, null, null);
+    const from = new TempoMap(0, shape).bpmAt(swap - 1);
+    const keyNow = keyBefore(song, swap);
+    const fits = compatibleKeys(keyNow).some(
+      (k) => k.tonic === own.key.tonic && k.mode === own.key.mode,
+    );
+    // Pitch to match keeps the next song's own key (a crossfade only); else harmonic mixing.
+    const can = {
+      pitch: !fits && this.djStyle !== "morph",
+      acapella: hookBars(song, swap).length > 0,
+    };
+    const forced = this.forceTrick;
+    const id =
+      forced && (forced === "pitch" ? can.pitch : forced !== "acapella" || can.acapella)
+        ? forced
+        : pickTrick(rng, can, this.lastTrick);
+    const fixed = {
+      key: id === "pitch" ? own.key : nextKey(keyNow, own.key, rng),
+      bpm: nextTempo(from, own.bpm),
+    };
+    const next = this.compose(seed, null, null, fixed);
+    const trick: Trick = id === "pitch" ? { id, shift: pitchShift(keyNow, own.key, next) } : { id };
+    const style =
+      id === "pitch"
+        ? "crossfade"
+        : this.djStyle === "auto"
+          ? autoTransition(song, next, keyNow, from)
+          : this.djStyle;
+    if (style === "crossfade") this.lastTrick = id;
+    const plan: DjPlan = {
+      swap,
+      style,
+      trick,
+      next: {
+        song: next,
+        meta: {
+          serial: ++this.serials,
+          reference: null,
+          custom: null,
+          fixed,
+          tempo: glideShape(from, next.bpm, next.totalBars),
+          entry: style,
+          entryShift: style === "crossfade" ? trick.shift : undefined,
+        },
+      },
+    };
+    this.djPlans.set(song, plan);
+    return plan;
   }
 
   private renderMix(): RenderMix {
@@ -581,38 +750,198 @@ export class Engine {
    * would plan its own transitions (longer overlaps, a mix-out point).
    */
   private planFrom(song: Song, bar: number, meta: SongMeta, at: number): Piece<SongMeta> {
+    const plan = this.djPlan(song, meta);
+    if (plan) return this.planDj(song, bar, meta, at, plan);
     if (bar >= song.totalBars) {
       const next = this.following(song, meta);
       return this.planFrom(next.song, 0, next.meta, at);
     }
-    const sec = barSeconds(song);
-    const origin = at - bar * sec;
+    const clock = TempoMap.anchored(this.shapeFor(song, meta), bar, at);
     const last = song.totalBars - 1;
     if (bar < last) {
       return {
-        decks: [{ song, origin, from: bar, to: last, shown: [bar, last], meta }],
+        decks: [{ song, clock, from: bar, to: last, shown: [bar, last], meta }],
         start: at,
-        end: origin + last * sec,
+        end: clock.time(last),
       };
     }
     // The last bar, with the next song's first bars under its tails.
-    const end = origin + song.totalBars * sec;
+    const end = clock.time(song.totalBars);
     const next = this.following(song, meta);
     const bars = Math.min(HANDOFF_BARS, next.song.totalBars - 1);
+    const nextClock = TempoMap.anchored(this.shapeFor(next.song, next.meta), 0, end);
     return {
       decks: [
-        { song, origin, from: last, to: song.totalBars, shown: [last, song.totalBars], meta },
-        { song: next.song, origin: end, from: 0, to: bars, shown: [0, bars], meta: next.meta },
+        { song, clock, from: last, to: song.totalBars, shown: [last, song.totalBars], meta },
+        { song: next.song, clock: nextClock, from: 0, to: bars, shown: [0, bars], meta: next.meta },
       ],
-      start: origin + last * sec,
-      end: end + bars * barSeconds(next.song),
+      start: clock.time(last),
+      end: nextClock.time(bars),
     };
+  }
+
+  /**
+   * DJ mode: the song's body up to the mix-in intro, then the transition: the outgoing song to the
+   * swap (its pads fading out past it), the incoming one from its mix-in intro to a few bars past
+   * its bar 0, at the
+   * outgoing song's tempo (dj.ts).
+   */
+  private planDj(
+    song: Song,
+    bar: number,
+    meta: SongMeta,
+    at: number,
+    plan: DjPlan,
+  ): Piece<SongMeta> {
+    const { next } = plan;
+    // Past the planned swap (a jump there): the song plays on and mixes over its end.
+    const swap = bar < plan.swap ? plan.swap : song.totalBars;
+    if (bar >= swap) return this.planFrom(next.song, 0, next.meta, at);
+    const clock = TempoMap.anchored(this.shapeFor(song, meta), bar, at);
+    if (plan.style === "morph") return this.planMorph(song, bar, meta, clock, swap, next);
+    const entered = entryArrange(song, meta);
+    const mixFrom = swap - INTRO_BARS;
+    if (bar < mixFrom) {
+      return {
+        decks: [{ song, clock, from: bar, to: mixFrom, shown: [bar, mixFrom], meta, ...entered }],
+        start: at,
+        end: clock.time(mixFrom),
+      };
+    }
+    const nextClock = TempoMap.anchored(this.shapeFor(next.song, next.meta), 0, clock.time(swap));
+    const h = handoff(song, swap, next.song, plan.trick);
+    const tail = Math.min(h.tail, next.song.totalBars - 1);
+    return {
+      decks: [
+        {
+          song,
+          clock,
+          from: bar,
+          to: swap + h.outgoingBars,
+          shown: [bar, swap],
+          meta,
+          arrange: h.outgoing,
+          effects: h.effects,
+        },
+        {
+          song: next.song,
+          clock: nextClock,
+          from: bar - swap,
+          first: -INTRO_BARS,
+          to: tail,
+          shown: [0, tail],
+          meta: next.meta,
+          arrange: h.incoming,
+        },
+      ],
+      start: at,
+      end: nextClock.time(tail),
+      label: TRANSITION_LABELS[plan.trick.id],
+    };
+  }
+
+  /**
+   * A DJ morph: the song's body up to the morph window, then the window on one deck (its sound
+   * gliding to the next song's, its last phrase thinning out), then a handoff into the next
+   * song's intro, the outgoing pads fading out over its first bars (dj.ts).
+   */
+  private planMorph(
+    song: Song,
+    bar: number,
+    meta: SongMeta,
+    clock: TempoMap,
+    swap: number,
+    next: { song: Song; meta: SongMeta },
+  ): Piece<SongMeta> {
+    const at = clock.time(bar);
+    const mixFrom = swap - MORPH_BARS;
+    const entered = entryArrange(song, meta);
+    if (bar < mixFrom) {
+      return {
+        decks: [{ song, clock, from: bar, to: mixFrom, shown: [bar, mixFrom], meta, ...entered }],
+        start: at,
+        end: clock.time(mixFrom),
+      };
+    }
+    const arrange = morphArrange(song, swap, next.song);
+    const sound = morphSound(song, next.song, swap);
+    const last = swap - 1;
+    if (bar < last) {
+      return {
+        decks: [{ song, clock, from: bar, to: last, shown: [bar, last], meta, arrange, sound }],
+        start: at,
+        end: clock.time(last),
+        label: TRANSITION_LABELS.morph,
+        into: next.song,
+      };
+    }
+    const nextClock = TempoMap.anchored(this.shapeFor(next.song, next.meta), 0, clock.time(swap));
+    const tail = Math.min(TAIL_BARS, next.song.totalBars - 1);
+    const to = Math.min(swap + PAD_FADE_BARS, song.totalBars);
+    return {
+      decks: [
+        { song, clock, from: last, to, shown: [last, swap], meta, arrange, sound },
+        {
+          song: next.song,
+          clock: nextClock,
+          from: 0,
+          to: tail,
+          shown: [0, tail],
+          meta: next.meta,
+          arrange: incomingArrange(next.song),
+        },
+      ],
+      start: at,
+      end: nextClock.time(tail),
+      label: TRANSITION_LABELS.morph,
+    };
+  }
+
+  /**
+   * Dev only: the pieces a DJ plays around the transition out of the song with this seed, from
+   * `before` bars ahead of its mix-in intro to `after` bars into the next song.
+   */
+  djPreview(
+    seed: number,
+    before = 8,
+    after = 16,
+    style: TransitionStyle | "auto" = this.djStyle,
+    trick: TrickId | null = null,
+  ): { pieces: Piece<SongMeta>[]; mix: RenderMix; style: TransitionStyle; trick: TrickId } {
+    const was = { dj: this.dj, style: this.djStyle, trick: this.forceTrick };
+    this.dj = true;
+    this.djStyle = style;
+    this.forceTrick = trick;
+    try {
+      const song = this.compose(seed, null, null, null);
+      const meta: SongMeta = { serial: -1, reference: null, custom: null };
+      const plan = this.djPlan(song, meta)!;
+      const window = plan.style === "morph" ? MORPH_BARS : INTRO_BARS;
+      const pieces = [this.planFrom(song, Math.max(0, plan.swap - window - before), meta, 0)];
+      for (;;) {
+        const piece = pieces.at(-1)!;
+        const deck = piece.decks.at(-1)!;
+        if (deck.song === plan.next.song && deck.clock.barAt(piece.end) >= after - 1e-6) break;
+        const next = this.planAfter(piece);
+        const d = next.decks.at(-1)!;
+        if (d.song === plan.next.song && d.to > after) {
+          d.to = after;
+          next.end = d.clock.time(after);
+        }
+        pieces.push(next);
+      }
+      return { pieces, mix: this.renderMix(), style: plan.style, trick: plan.trick.id };
+    } finally {
+      this.dj = was.dj;
+      this.djStyle = was.style;
+      this.forceTrick = was.trick;
+    }
   }
 
   /** What follows a piece: the rest of its last deck's song (or what follows that). */
   private planAfter(piece: Piece<SongMeta>): Piece<SongMeta> {
     const deck = piece.decks.at(-1)!;
-    const bar = Math.round((piece.end - deck.origin) / barSeconds(deck.song));
+    const bar = Math.round(deck.clock.barAt(piece.end));
     return this.planFrom(deck.song, bar, deck.meta, piece.end);
   }
 
@@ -621,7 +950,7 @@ export class Engine {
     if (meta.custom) return { song, meta };
     const serial = ++this.serials;
     return {
-      song: this.compose(nextSeed(song.seed), null, null),
+      song: this.compose(nextSeed(song.seed), null, null, null),
       meta: { serial, reference: null, custom: null },
     };
   }
@@ -662,7 +991,12 @@ export class Engine {
     const song =
       deck.meta.serial === this.serial
         ? this.song
-        : this.compose(deck.song.seed, deck.meta.reference, deck.meta.custom);
+        : this.compose(
+            deck.song.seed,
+            deck.meta.reference,
+            deck.meta.custom,
+            deck.meta.fixed ?? null,
+          );
     const meta = deck.meta.serial === this.serial ? this.meta() : deck.meta;
     player.cut(line.time, this.planFrom(song, bar, meta, line.time));
   }
@@ -682,14 +1016,26 @@ export class Engine {
       this.song = deck.song;
       this.reference = deck.meta.reference;
       this.custom = deck.meta.custom;
+      this.fixed = deck.meta.fixed;
+      this.tempo = deck.meta.tempo;
       this.events.onSong?.(this.song);
     }
+    // A DJ transition is heard while its outgoing song's bars are.
+    const incoming =
+      piece.label && piece.decks[0] === deck ? (piece.decks[1]?.song ?? piece.into) : undefined;
+    this.setMixing(incoming ?? null, piece.label);
     const song = this.song;
     const ev = arrangeBar(song, Math.min(bar, song.totalBars - 1));
     this.bar = bar + 1;
-    this.scheduled.push({ bar, time, seconds: barSeconds(song) });
+    this.scheduled.push({ bar, time, seconds: deck.clock.barSeconds(bar) });
     if (this.scheduled.length > 16) this.scheduled.shift();
     this.events.onBar?.(ev, song);
+  }
+
+  private setMixing(next: Song | null, label = "Mixing"): void {
+    if (next === this.mixing) return;
+    this.mixing = next;
+    this.events.onMix?.(next ? { label, next } : null);
   }
 
   private effectiveKit(): KitName {
@@ -727,6 +1073,7 @@ export class Engine {
       this.bar = 0;
     } else if (this.bar >= this.song.totalBars) {
       this.reference = null;
+      this.fixed = this.tempo = undefined;
       this.song = this.compose(nextSeed(this.song.seed));
       this.bar = 0;
       this.applySong(inst);
@@ -794,10 +1141,6 @@ function usedTracks(song: Song): Set<Track> {
  */
 function atAudioTime(time: number, callback: () => void): void {
   setTimeout(callback, Math.max(0, (time - Tone.now()) * 1000));
-}
-
-function barSeconds(song: Song): number {
-  return (60 / song.bpm) * 4;
 }
 
 function sectionIndex(song: Song, bar: number): number {

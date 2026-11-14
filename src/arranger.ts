@@ -106,6 +106,42 @@ function arrangeTarget(song: Song, bar: number): { section: Section; slots: Chor
   return { section, slots: chordSlots(section, bar - section.startBar) };
 }
 
+/** Pads on the chords of `song`'s bar `bar` (moved `shift` semitones), at `vel`, each of the
+ * `voices` (MIDI notes) moving to the nearest note of each chord (a DJ's outgoing pads following
+ * the incoming song's chords in their own voicing). Returns the notes and the voicing they end
+ * on. */
+export function padsLedTo(
+  song: Song,
+  bar: number,
+  voices: readonly number[],
+  vel: number,
+  shift = 0,
+): { notes: Note[]; voices: number[] } {
+  const { section, slots } = arrangeTarget(song, bar);
+  const notes: Note[] = [];
+  let now = [...voices];
+  for (const slot of slots) {
+    const pcs = chordPitchClasses(section.key, slot.chord).map((pc) => (pc + shift + 12) % 12);
+    now = [
+      ...new Set(
+        now.map((m) =>
+          pcs
+            .map((pc) => nearestWithPc(pc, m))
+            .reduce((a, b) => (Math.abs(b - m) < Math.abs(a - m) ? b : a)),
+        ),
+      ),
+    ];
+    for (const midi of now) notes.push({ step: slot.step, dur: slot.length - 0.1, midi, vel });
+  }
+  return { notes, voices: now };
+}
+
+/** The key and chords of `song`'s bar `bar`. */
+export function harmonyAt(song: Song, bar: number): { key: Key; slots: ChordSlot[] } {
+  const { section, slots } = arrangeTarget(song, bar);
+  return { key: section.key, slots };
+}
+
 export function arrangeBar(song: Song, bar: number): BarEvents {
   const sectionIndex = sectionIndexAt(song, bar);
   const section = song.sections[sectionIndex];

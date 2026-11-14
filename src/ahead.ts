@@ -22,11 +22,13 @@
  * it is more than the buffer ahead of what is heard.
  */
 import * as Tone from "tone";
-import { arrangeBar } from "./arranger";
-import type { Song } from "./composer";
+import { arrangeBar, type BarEvents } from "./arranger";
+import type { KitName, Song } from "./composer";
+import type { BassTone, LeadTone, Voices } from "./genres";
 import { songSound } from "./profile";
-import { autoVolumes, Instruments, type LeadPatch, type Track } from "./instruments";
+import { autoVolumes, Instruments, softClipper, type LeadPatch, type Track } from "./instruments";
 import { scheduleBar } from "./schedule";
+import type { TempoMap } from "./tempo";
 
 /** The mixer as the renders apply it. */
 export interface RenderMix {
@@ -37,14 +39,42 @@ export interface RenderMix {
   leadPatch: LeadPatch;
 }
 
+/** A song's sound on a deck, which can change from bar to bar (a DJ's morph): the auto faders
+ * (dB, before manual ones), the bass tone, the voice's mix, the kit and the patches. */
+export interface DeckSound {
+  volumes: Record<Track, number>;
+  bassTone: BassTone;
+  leadTone: LeadTone;
+  kit: KitName;
+  drums: { gatedSnare: boolean; kickWeight: number };
+  voices: Voices;
+}
+
+/** An effect a DJ plays on a deck from a bar's start: an echo out (every part's delay send and
+ * the delay's feedback raised, so what plays dissolves into its echoes). */
+export interface DeckEffect {
+  echoOut?: { send: number; feedback: number };
+}
+
 /** One song in a piece, on its own instruments. */
 export interface Deck<M> {
   song: Song;
-  /** Timeline time (seconds) where the song's bar 0 starts. */
-  origin: number;
+  /** When each bar starts on the timeline, and its tempo. */
+  clock: TempoMap;
   /** The bars it plays in the piece, [from, to). */
   from: number;
   to: number;
+  /** The earliest bar it has (a pre-roll goes no further back): 0, or below for a DJ's mix-in
+   * intro. */
+  first?: number;
+  /** What it plays in a bar; the song's own bar by default. A DJ filters the bars around a
+   * handoff, and plays a groove before bar 0. */
+  arrange?: (bar: number) => BarEvents;
+  /** Its sound in a bar, gliding from bar to bar (a DJ's morph); the song's own throughout by
+   * default. */
+  sound?: (bar: number) => DeckSound;
+  /** Effects from a bar on (a DJ's echo out). */
+  effects?: (bar: number) => DeckEffect | null;
   /** The bars reported as playing (onBar), [from, to). Overlapping decks report one at a time. */
   shown: [number, number];
   /** The engine's own data about the song (where it came from). */
@@ -57,6 +87,10 @@ export interface Piece<M> {
   /** The timeline span heard, [start, end). */
   start: number;
   end: number;
+  /** A DJ transition's name, shown while it plays. */
+  label?: string;
+  /** The song a DJ transition leads into, while it has no deck of its own yet (a morph). */
+  into?: Song;
 }
 
 export interface AheadEvents<M> {
@@ -157,8 +191,6 @@ class Tap extends AudioWorkletProcessor {
 registerProcessor("${TAP}", Tap);
 `;
 let tapUrl: string | null = null;
-
-const barSeconds = (song: Song) => 240 / song.bpm;
 
 /** A piece being rendered and played. */
 interface Live<M> {
@@ -317,9 +349,8 @@ export class AheadPlayer<M> {
     for (const { piece } of this.pieces) {
       if (piece.end <= time) continue;
       for (const deck of piece.decks) {
-        const sec = barSeconds(deck.song);
-        const bar = Math.max(deck.shown[0], Math.ceil((time - deck.origin) / sec - 1e-6));
-        const at = deck.origin + bar * sec;
+        const bar = Math.max(deck.shown[0], Math.ceil(deck.clock.barAt(time) - 1e-6));
+        const at = deck.clock.time(bar);
         if (bar >= deck.shown[1] || at >= piece.end || at < piece.start) continue;
         if (!best || at < best.time) best = { time: at, deck, bar };
       }
@@ -389,14 +420,14 @@ export class AheadPlayer<M> {
   private segments(piece: Piece<M>): Piece<M>[] {
     const deck = piece.decks[0];
     if (piece.decks.length !== 1 || !deck) return [piece];
-    const sec = barSeconds(deck.song);
-    const every = Math.max(1, Math.round(SEGMENT_SECONDS / sec));
+    const { clock } = deck;
+    const every = Math.max(1, Math.round(SEGMENT_SECONDS / clock.barSeconds(deck.from)));
     const parts: Piece<M>[] = [];
     let start = piece.start;
-    let bar = Math.ceil((start - deck.origin) / sec - 1e-6) + every;
+    let bar = Math.ceil(clock.barAt(start) - 1e-6) + every;
     // The last segment takes up to one and a half segments, rather than leaving a sliver.
-    while (deck.origin + (bar + every / 2) * sec < piece.end - 1e-6) {
-      const end = this.snap(deck.origin + bar * sec);
+    while (clock.barAt(piece.end) - 1e-6 > bar + every / 2) {
+      const end = this.snap(clock.time(bar));
       parts.push({ decks: piece.decks, start, end });
       start = end;
       bar += every;
@@ -415,7 +446,7 @@ export class AheadPlayer<M> {
         bar < Math.min(deck.to, deck.shown[1]);
         bar++
       ) {
-        const at = deck.origin + bar * barSeconds(deck.song);
+        const at = deck.clock.time(bar);
         if (at >= piece.start - 1e-6 && at < piece.end) bars.push([at, deck, bar]);
       }
     }
@@ -723,12 +754,12 @@ function equalPower(x: number): number {
 function renderEvents<M>(piece: Piece<M>): [number, Deck<M>, number][] {
   const events: [number, Deck<M>, number][] = [];
   for (const deck of piece.decks) {
-    const sec = barSeconds(deck.song);
-    const first = Math.floor((piece.start - deck.origin) / sec + 1e-6);
-    const last = Math.ceil((piece.end - deck.origin) / sec - 1e-6);
-    const from = Math.max(0, Math.max(deck.from, first) - PREROLL_BARS);
+    const { clock } = deck;
+    const first = Math.floor(clock.barAt(piece.start) + 1e-6);
+    const last = Math.ceil(clock.barAt(piece.end) - 1e-6);
+    const from = Math.max(deck.first ?? 0, Math.max(deck.from, first) - PREROLL_BARS);
     const to = Math.min(deck.song.totalBars, Math.min(deck.to, last) + 1);
-    for (let bar = from; bar < to; bar++) events.push([deck.origin + bar * sec, deck, bar]);
+    for (let bar = from; bar < to; bar++) events.push([clock.time(bar), deck, bar]);
   }
   return events.sort((a, b) => a[0] - b[0]);
 }
@@ -799,14 +830,17 @@ async function renderPiece<M>(
   ) => {
     sink.chunk(e.data.frame, e.data.l, e.data.r, e.data.last);
   };
-  context.destination.chain(tap);
-
   // A deck per song, built while the offline context is Tone's global (synchronously: the page's
-  // own engine keeps using the global context meanwhile).
+  // own engine keeps using the global context meanwhile). Two decks' sum gets the master's soft
+  // clipper again, as each deck's own peaks reach just under full scale.
   const original = Tone.getContext();
   const decks = new Map<Deck<M>, Instruments>();
+  // The sound each deck's instruments last took (a morph's), to switch a kit or patch only once.
+  const applied = new Map<Instruments, DeckSound>();
   Tone.setContext(context);
   try {
+    if (piece.decks.length > 1) context.destination.chain(...softClipper(lite), tap);
+    else context.destination.chain(tap);
     for (const deck of piece.decks) decks.set(deck, Instruments.create({ lite }));
   } finally {
     Tone.setContext(original);
@@ -814,7 +848,8 @@ async function renderPiece<M>(
   for (const [deck, inst] of decks) {
     await inst.ready;
     await inst.drums.loadAll();
-    setUpDeck(inst, deck.song, mix);
+    setUpDeck(inst, deck.song, deck.clock.bpmAt(deck.from), mix);
+    if (deck.sound) applySound(inst, deck.sound(deck.from), mix, null, applied);
   }
 
   const events = renderEvents(piece);
@@ -824,7 +859,11 @@ async function renderPiece<M>(
       const [at, deck, bar] = events[next]!;
       if (at - t0 >= offline) break;
       const inst = decks.get(deck);
-      if (inst) scheduleBar(inst, arrangeBar(deck.song, bar), at - t0, deck.song.bpm);
+      const ev = deck.arrange ? deck.arrange(bar) : arrangeBar(deck.song, bar);
+      if (inst && deck.sound) applySound(inst, deck.sound(bar), mix, at - t0, applied);
+      const fx = deck.effects?.(bar);
+      if (inst && fx?.echoOut) inst.echoOut(at - t0, fx.echoOut.send, fx.echoOut.feedback);
+      if (inst) scheduleBar(inst, ev, at - t0, deck.clock.bpmAt(bar));
     }
     tickTo(offline);
   };
@@ -854,8 +893,77 @@ async function renderPiece<M>(
   await raw.startRendering();
 }
 
+/**
+ * Dev only: renders consecutive pieces offline through the same path as playback, joined at their
+ * starts, as one stereo buffer from the first piece's start (for listening checks of DJ
+ * transitions, silently).
+ */
+export async function renderPiecesOffline<M>(
+  pieces: readonly Piece<M>[],
+  mix: RenderMix,
+  sampleRate: number,
+): Promise<{ l: Float32Array<ArrayBuffer>; r: Float32Array<ArrayBuffer> }> {
+  const first = pieces[0];
+  const last = pieces.at(-1);
+  if (!first || !last) return { l: new Float32Array(0), r: new Float32Array(0) };
+  const frames = Math.ceil((last.end - first.start) * sampleRate);
+  const l = new Float32Array(frames);
+  const r = new Float32Array(frames);
+  for (const piece of pieces) {
+    const events = renderEvents(piece);
+    const t0 = Math.min(events[0]?.[0] ?? piece.start, piece.start - FADE) - LEAD;
+    const from = Math.round((piece.start - first.start) * sampleRate);
+    const to = Math.round((piece.end - first.start) * sampleRate);
+    await renderPiece(piece, t0, mix, sampleRate, false, {
+      chunk: (frame, cl, cr) => {
+        for (let i = 0; i < cl.length; i++) {
+          const at = Math.round((t0 - first.start) * sampleRate) + frame + i;
+          if (at < from || at >= to) continue;
+          l[at] = cl[i] ?? 0;
+          r[at] = cr[i] ?? 0;
+        }
+      },
+      gate: () => Promise.resolve(),
+      alive: () => true,
+    });
+  }
+  return { l, r };
+}
+
+/** A bar's sound on a deck: the tones at once (the steps of a glide are small), the auto faders
+ * ramping to theirs by the bar's start (or set now, with `at` null), and a kit or patches when
+ * they change from the last ones `applied` (before the bar's notes are scheduled, so from this
+ * bar). Faders set by hand and muted tracks keep theirs. */
+function applySound(
+  inst: Instruments,
+  sound: DeckSound,
+  mix: RenderMix,
+  at: number | null,
+  applied: Map<Instruments, DeckSound>,
+): void {
+  const last = applied.get(inst);
+  applied.set(inst, sound);
+  if (last?.kit !== sound.kit) {
+    const kit = sound.kit !== "synth" && !inst.drums.hasSamples(sound.kit) ? "synth" : sound.kit;
+    inst.drums.use(kit);
+  }
+  if (last?.drums !== sound.drums) {
+    inst.setSnareGate(sound.drums.gatedSnare);
+    inst.drums.setKickWeight(sound.drums.kickWeight);
+  }
+  if (last?.voices !== sound.voices) inst.setVoices(sound.voices);
+  inst.setBassTone(sound.bassTone);
+  inst.setLeadTone(sound.leadTone);
+  for (const [track, db] of Object.entries(sound.volumes) as [Track, number][]) {
+    if (track in mix.manual || mix.muted.includes(track)) continue;
+    const volume = inst.channels[track].volume;
+    if (at === null) volume.value = db;
+    else volume.linearRampToValueAtTime(db, at);
+  }
+}
+
 /** Points a deck's instruments at its song, with the mixer applied (as engine.ts applySong). */
-function setUpDeck(inst: Instruments, song: Song, mix: RenderMix): void {
+function setUpDeck(inst: Instruments, song: Song, bpm: number, mix: RenderMix): void {
   const kit = song.kit !== "synth" && !inst.drums.hasSamples(song.kit) ? "synth" : song.kit;
   inst.drums.use(kit);
   const sound = songSound(song);
@@ -864,7 +972,7 @@ function setUpDeck(inst: Instruments, song: Song, mix: RenderMix): void {
   inst.setSnareGate(sound.drums.gatedSnare);
   inst.drums.setKickWeight(sound.drums.kickWeight ?? 0);
   inst.setVoices(sound.voices);
-  inst.setTempo(song.bpm);
+  inst.setTempo(bpm);
   inst.setLeadPatch(mix.leadPatch);
   for (const track of mix.soloed) inst.channels[track].solo = true;
   const volumes = { ...autoVolumes(sound.mix), ...mix.manual };

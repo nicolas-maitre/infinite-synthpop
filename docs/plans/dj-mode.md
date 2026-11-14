@@ -71,6 +71,68 @@ The plan for a song (its mix-out point, the next song, the swap bar) is worked o
 and kept with it, so a re-render (a fader change, a settings change) mid-transition plans the same
 transition again.
 
+## How a morph plays
+
+One song at a time: no second deck over the overlap, so no doubled CPU and no two harmonies. The
+playing song turns into the next one's sound, then hands over at a section line.
+
+- **Morph window.** The last 32 bars before the swap bar `S` (the same mix-out point as a
+  crossfade), so the change is slow enough to drift rather than be heard as a step. Over it, the
+  outgoing song's continuous sound glides bar by bar toward the next song's: the fader levels
+  (`mix`), the bass tone and the voice's mix (lead tone). The tempo glides in the next song, as
+  after a crossfade (a song's clock has one glide, and the window is too short for much of one).
+- **Each sound switches on a bar of its own** (ear check: "why have all instruments switch on
+  the same bar? Really the only things that can clash are chords and melodies"). On the playing
+  song's deck, its kit switches to the next song's 24 bars before the swap (a little under full
+  level, rising over 8 bars), and each patch that differs (riff, stab, arp, countervoice, pad
+  tone, lead synth) at its own 4-bar line from 28 to 12 bars before, in an order drawn per song.
+- **The last phrase thins out** as in a crossfade (melody lines, then figures), leaving bass,
+  pads and drums, and its drums turn into the pattern the next song opens with (hats and shakers
+  8 bars before the swap, all of it 4 bars before).
+- **At `S`** only the notes change: the next song starts from its intro (bar 0) on the same kit,
+  patches and levels. Intros build up, so the handoff reads as a breakdown into a build. Render
+  ahead plays it as a short two-deck piece, the outgoing pads fading out over the next song's
+  first 4 bars, led into its chords, as after a crossfade. If its first bars are beatless, its
+  groove stands in until its own drums.
+- **Auto** picks morph when the next song is close: the same genre for the song part, a nearby
+  blend point, a key that is the same or relative, and a tempo within 3 %. Otherwise crossfade.
+- **The setting** is a Transition select next to the DJ switch: Auto, Crossfade, Morph.
+
+What render ahead needs for it: a deck's sound set per bar, not once per piece (`setUpDeck`). A deck
+gets an optional `sound(bar)` with the levels, tones, kit and patches for that bar: the levels ramp
+to the bar's time, the rest switches before the bar's notes are scheduled.
+
+## The first tricks (#5)
+
+A trick is one action: a name, the two songs and the swap, turned into what each deck plays and
+the effects on them. The automatic DJ picks one per crossfade; a manual DJ panel could later fire
+the same actions. A morph has no trick (it is one already). The trick shows in the mix line
+("Echo out → Get Closer"). The DJ doesn't play the same trick twice in a row.
+
+- **Mix** (the plain crossfade above).
+- **Pitch to match.** When the next song's own key doesn't mix from the current one, half the
+  time it keeps its key instead of being recomposed in a neighbour: it is transposed into the
+  neighbour key for its first bars (the shift that moves the least, within a tritone), then
+  modulates back to its own key at its first chorus, a lift when the shift was down. The second
+  half of the bar before that chorus turns to the dominant seventh of its own key (G7 before C
+  minor), so the return lands as a cadence instead of a jump. Only its notes move; the drums
+  don't. The fading outgoing pads follow the shifted chords.
+- **Mashup overlap.** Over the last 8 bars, the incoming bass comes in with the incoming beat,
+  its line refitted to the outgoing song's chords (each note to the nearest tone of the chord
+  sounding), while the outgoing bass and drums drop and its pads, riffs and voice play on. At the
+  swap the harmony changes hands, and the bass carries on as it was.
+- **Echo out.** The outgoing voice keeps singing to the swap instead of dropping out 8 bars
+  before. On its last bar, every part's delay send and the delay's feedback rise, so the last
+  line dissolves into its echoes under the incoming song.
+- **Acapella bridge.** The outgoing voice sings to the swap, then carries on alone for 8 bars
+  over the incoming song, singing the start of its last chorus, each note fitted to the incoming
+  chords (on the beat a chord tone, else a scale tone, whichever is nearest). Then it echoes out.
+  The incoming song's own melody lines wait until the bridge is over.
+
+Odds: pitch to match whenever its key condition holds and the coin says so; otherwise mix 2,
+echo out 2, mashup 2, acapella bridge 2 (only when the outgoing song has a sung chorus before
+the swap), minus the last trick played.
+
 ## Choosing the next song
 
 - **Style:** the next song is drawn from the settings as today (genre, blend or auto).
@@ -97,4 +159,27 @@ transition again.
 
 ## Status
 
-- Phase 1: in progress.
+- Phase 1: done (`src/tempo.ts`).
+- Phase 2: done (`src/dj.ts`, the DJ switch, the "Mixing →" line), ear-checked on rendered
+  transitions. Changes from the plan:
+  - The mix-in intro's first 8 bars carry only the incoming groove's hats and shakers, not its
+    snare: two backbeats stacked clipped the sum (renders peaked at full scale).
+  - The two decks' sum gets the master's soft clipper again (each deck's own peaks reach just
+    under full scale).
+  - A glide runs over at most half the song, and a song mixes out only after its own glide ends.
+  - Ear check 1 (2026-11-13): cutting from a full chorus into a sparse intro of another genre
+    "suddenly changes style". The outgoing song now sheds parts over its last 8 bars: drums and
+    melody lines first, then its figures (riffs, arps, sequences, stabs), so only its bass and pads
+    reach the swap. A swap never falls between two choruses. Still "better, still sudden": the
+    outgoing pads now fade out over the incoming song's first 4 bars. "Smoother, but clashes a
+    bit": the fading pads keep their own voicing, each note moving to the nearest note of the
+    incoming song's chords (preferred over close pads on the new chords, which blended worse).
+- Phase 3: built (`morphArrange`, `morphSound`, `morphSwitches`, `autoTransition` in
+  `src/dj.ts`, the Transition select). The tempo glides only in the next song. Ear checks of one
+  morph (clips 8–14): the drift was good from the start; the handoff was abrupt (the pads now fade
+  past it), then the drum pattern changed at once (it now turns over the last 8 bars), then the
+  new hats jumped in, then everything switched on one bar (now each sound on its own bar).
+- Phase 4: built (`handoff`, `pickTrick`, `pitchShift` in `src/dj.ts`; `DeckEffect` and
+  `Instruments.echoOut` for the echo). Ear-checked: all four sound good; pitch to match's drop
+  back into its key was jarring, so it now pivots on the dominant for half a bar (preferred over
+  a whole bar).

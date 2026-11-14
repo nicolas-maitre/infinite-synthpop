@@ -43,6 +43,24 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   - **Firefox:** `about:preferences#privacy` → Permissions → Autoplay → Settings…, then add
     `http://localhost:5179` with "Allow Audio and Video".
   - **Safari:** Settings → Websites → Auto-Play → "Allow All Auto-Play" for the site.
+- **DJ** plays each song long enough to get its gist (past its first chorus and about 2 minutes,
+  most often after its second chorus, sometimes to its end), then hands it over to the next one
+  like a DJ set. The next song starts at the current tempo and glides to its own (within 6 %,
+  1 BPM per 16 bars), in a key that mixes from the current one (the same, a fifth away, or the
+  relative major or minor). DJ mode always renders ahead, whatever Playback says. **Transition**
+  picks how a song hands over:
+  - **crossfade**: over the last 16 bars, the next song's hats fade in, then its whole beat takes
+    over from the drums for 8 bars while the current song sheds its melody and figures, and at a
+    section line its bass and chords take over, the outgoing pads fading out on its chords.
+    "Mixing → title" shows under the song.
+  - **morph**: over the last 32 bars, the song's own sound turns into the next song's: levels,
+    bass tone and voice mix glide, its kit and each of its patches switch on bars of their own,
+    its last phrase thins out to drums, bass and pads, and its beat turns into the next song's.
+    Then the next song starts from its intro, and only the notes change. "Morphing → title"
+    shows under the song.
+  - **auto** (the default) morphs when the next song is close (same genre, a nearby blend, the
+    same or the relative key, a tempo within 3 %) and crossfades otherwise. A change applies from
+    the next transition.
 - **Switch** picks when a new song, a section or a bar you pick starts. With **after the bar**
   (the default), it starts at the next bar line, and a dashed ⏭ marks the bar and section waiting
   to play. With **instantly**, it starts at once, about a third of a second after the click (the
