@@ -123,7 +123,7 @@ interface DjPlan {
  * that didn't come in through one. */
 function entryArrange(song: Song, meta: SongMeta): Pick<Deck<SongMeta>, "arrange"> {
   if (!meta.entry) return {};
-  return { arrange: shiftedArrange(incomingArrange(song), meta.entryShift) };
+  return { arrange: shiftedArrange(song, incomingArrange(song), meta.entryShift) };
 }
 
 /** Bars of the next song in a transition piece: enough for the outgoing song's tails to ring out. */

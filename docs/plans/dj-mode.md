@@ -113,8 +113,10 @@ the same actions. A morph has no trick (it is one already). The trick shows in t
 - **Pitch to match.** When the next song's own key doesn't mix from the current one, half the
   time it keeps its key instead of being recomposed in a neighbour: it is transposed into the
   neighbour key for its first bars (the shift that moves the least, within a tritone), then
-  modulates back to its own key at its first chorus, a lift when the shift was down. Only its
-  notes move; the drums don't. The fading outgoing pads follow the shifted chords.
+  modulates back to its own key at its first chorus, a lift when the shift was down. The second
+  half of the bar before that chorus turns to the dominant seventh of its own key (G7 before C
+  minor), so the return lands as a cadence instead of a jump. Only its notes move; the drums
+  don't. The fading outgoing pads follow the shifted chords.
 - **Mashup overlap.** Over the last 8 bars, the incoming bass comes in with the incoming beat,
   its line refitted to the outgoing song's chords (each note to the nearest tone of the chord
   sounding), while the outgoing bass and drums drop and its pads, riffs and voice play on. At the
@@ -178,5 +180,6 @@ the swap), minus the last trick played.
   past it), then the drum pattern changed at once (it now turns over the last 8 bars), then the
   new hats jumped in, then everything switched on one bar (now each sound on its own bar).
 - Phase 4: built (`handoff`, `pickTrick`, `pitchShift` in `src/dj.ts`; `DeckEffect` and
-  `Instruments.echoOut` for the echo), waiting for an ear check of one rendered transition per
-  trick.
+  `Instruments.echoOut` for the echo). Ear-checked: all four sound good; pitch to match's drop
+  back into its key was jarring, so it now pivots on the dominant for half a bar (preferred over
+  a whole bar).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrangeBar, harmonyAt } from "./arranger";
+import { arrangeBar, harmonyAt, MELODIC_TRACKS } from "./arranger";
 import { compose } from "./composer";
 import {
   ACAPELLA_BARS,
@@ -8,6 +8,7 @@ import {
   hookBars,
   pickTrick,
   pitchShift,
+  PIVOT_STEP,
   refitBass,
   shiftedArrange,
   type TrickId,
@@ -34,7 +35,7 @@ import {
 } from "./dj";
 import { GENRE_IDS } from "./genres";
 import { createRng } from "./rng";
-import { chordPitchClasses } from "./theory";
+import { chord, chordPitchClasses } from "./theory";
 
 const songs = GENRE_IDS.flatMap((genre) =>
   [11, 222, 3333, 44444, 555555].map((seed) => compose({ seed, genre })),
@@ -386,14 +387,27 @@ describe("tricks", () => {
         const d = (k.tonic - b.key.tonic + 12) % 12;
         expect(Math.abs(shift.by)).toBeLessThanOrEqual(Math.min(d, 12 - d));
       }
-      const play = shiftedArrange(incomingArrange(b), shift);
+      const play = shiftedArrange(b, incomingArrange(b), shift);
       const own = incomingArrange(b);
-      for (const bar of [0, shift.until - 1, shift.until]) {
+      for (const bar of [0, shift.until - 2, shift.until]) {
         const [x, y] = [play(bar), own(bar)];
         expect(x.drums).toEqual(y.drums);
         const by = bar < shift.until ? shift.by : 0;
         expect(x.notes.bass.map((n) => n.midi)).toEqual(y.notes.bass.map((n) => n.midi + by));
       }
+      // The bar before turns, half way, to the dominant seventh of its own key.
+      if (shift.by === 0) continue;
+      const home = harmonyAt(b, shift.until).key;
+      const v7 = chordPitchClasses(home, chord("V7"));
+      const pivot = play(shift.until - 1);
+      expect(pivot.drums).toEqual(own(shift.until - 1).drums);
+      for (const t of MELODIC_TRACKS)
+        for (const n of pivot.notes[t]) {
+          if (n.step < PIVOT_STEP) expect(n.step + n.dur).toBeLessThanOrEqual(PIVOT_STEP);
+          else if (n.step % 4 === 0) expect(v7).toContain(n.midi % 12);
+        }
+      for (const n of pivot.notes.bass)
+        if (n.step >= PIVOT_STEP && n.step % 4 === 0) expect(n.midi % 12).toBe(v7[0]);
     }
   });
 

@@ -32,7 +32,14 @@ import { autoVolumes, type Track } from "./instruments";
 import { songSound, type RefWeights } from "./profile";
 import { createRng, type Rng } from "./rng";
 import type { TempoShape } from "./tempo";
-import { chordPitchClasses, nearestWithPc, scaleForChord, type Chord, type Key } from "./theory";
+import {
+  chord,
+  chordPitchClasses,
+  nearestWithPc,
+  scaleForChord,
+  type Chord,
+  type Key,
+} from "./theory";
 
 /** Bars of the mix-in intro, before the incoming song's bar 0. */
 export const INTRO_BARS = 16;
@@ -517,7 +524,7 @@ export interface Handoff {
 /** A crossfade with `trick` from `song` into `next`, the incoming song's bar 0 at `swap`. */
 export function handoff(song: Song, swap: number, next: Song, trick: Trick): Handoff {
   const shift = trick.shift;
-  const incoming = shiftedArrange(incomingArrange(next), shift);
+  const incoming = shiftedArrange(next, incomingArrange(next), shift);
   const plain: Handoff = {
     outgoing: handOver(song, swap, next, { shift: shift?.by ?? 0 }),
     incoming,
@@ -573,18 +580,47 @@ export function handoff(song: Song, swap: number, next: Song, trick: Trick): Han
   }
 }
 
+/** Where in the last shifted bar (16th steps) pitch to match turns to the dominant of the song's
+ * own key, the pivot it modulates back on. */
+export const PIVOT_STEP = 8;
+
 /** A song's bars with its notes moved `shift.by` semitones until bar `shift.until` (its drums
- * stay). */
+ * stay). The bar before turns, from PIVOT_STEP on, to the dominant seventh of the key it goes
+ * back to, so the modulation lands as a cadence: notes are fitted to it (the bass on its root),
+ * and notes held across PIVOT_STEP are split there. */
 export function shiftedArrange(
+  song: Song,
   play: (bar: number) => BarEvents,
   shift: Trick["shift"],
 ): (bar: number) => BarEvents {
   if (!shift?.by) return play;
+  const pivotBar = shift.until - 1;
+  const home = harmonyAt(song, shift.until).key;
+  const pivot = { key: home, slots: [{ step: 0, length: 16, chord: chord("V7"), name: "" }] };
+  const root = chordPitchClasses(home, chord("V7"))[0]!;
   return (bar) => {
     const ev = play(bar);
     if (bar >= shift.until) return ev;
+    const moved = (n: Note) => ({ ...n, midi: n.midi + shift.by });
     const notes = Object.fromEntries(
-      MELODIC_TRACKS.map((t) => [t, ev.notes[t].map((n) => ({ ...n, midi: n.midi + shift.by }))]),
+      MELODIC_TRACKS.map((t) => {
+        if (bar !== pivotBar) return [t, ev.notes[t].map(moved)];
+        const before: Note[] = [];
+        const after: Note[] = [];
+        for (const n of ev.notes[t]) {
+          if (n.step >= PIVOT_STEP) after.push(n);
+          else if (n.step + n.dur <= PIVOT_STEP) before.push(moved(n));
+          else {
+            before.push({ ...moved(n), dur: PIVOT_STEP - n.step - 0.1 });
+            after.push({ ...n, step: PIVOT_STEP, dur: n.step + n.dur - PIVOT_STEP });
+          }
+        }
+        const fit =
+          t === "bass"
+            ? after.map((n) => (n.step % 4 === 0 ? { ...n, midi: nearestWithPc(root, n.midi) } : n))
+            : after;
+        return [t, [...before, ...fitted(fit, pivot)]];
+      }),
     ) as unknown as BarEvents["notes"];
     return { ...ev, notes };
   };
