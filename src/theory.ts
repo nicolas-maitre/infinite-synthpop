@@ -55,8 +55,9 @@ const FLAT_MAJOR_TONICS = new Set([5, 10, 3, 8, 1, 6]);
  *   in F minor). To put a dominant over another bass, give it a target and then the bass:
  *   `V/I/IV` is G/F in C.
  *
- * `numeral` keeps the input string, and scaleForChord still keys some colours on exact spellings
- * (`V`, `V7`, `IV`, `ii`, `V/ii`, `V/vi`, `V7/vi`), so a respelling like `♮V` doesn't get them.
+ * `numeral` keeps the input string. scaleForChord keys the minor key's colours on exact spellings
+ * (`V`, `V7`, `IV`, `ii`), though its borrowed-tone rule gives those chords the same scale under
+ * any spelling; a secondary dominant is recognised by its `V…/target` form.
  *
  * The references these come from: You Came (docs/analysis.md §6.2), the Italo songs
  * (docs/italo/) and the Euro-disco ones (docs/references/sandra-*.md).
@@ -196,6 +197,9 @@ const SCALES: Record<Mode, readonly number[]> = {
 
 export const mod12 = (n: number) => ((n % 12) + 12) % 12;
 
+/** A dominant named by its target (`V/ii`, `V7/vi`); V of the tonic is V itself. */
+const APPLIED = /^V(7|sus4|7sus4|9sus4|add9|maj7)?\//;
+
 /** Parses a Roman numeral (see the grammar above); `numeral` keeps the input string. */
 export function chord(numeral: string): Chord {
   const def = parseNumeral(numeral);
@@ -248,8 +252,13 @@ export function scaleForChord(key: Key, c: Chord): number[] {
       if (at >= 0) steps[at] = t;
     }
   } else {
-    if (c.numeral === "V/ii") steps[0] = 1;
-    if (c.numeral === "V/vi" || c.numeral === "V7/vi") steps[4] = 8;
+    // A secondary dominant with a 3rd (V/ii, V7/vi, the theory generator's V7/ii…): its 3rd is
+    // the leading tone of its target and raises the scale step a semitone under it.
+    if (APPLIED.test(c.numeral) && c.root !== 7 && QUALITY_INTERVALS[c.quality][1] === 4) {
+      const lead = mod12(c.root + 4);
+      const at = steps.indexOf(mod12(lead - 1));
+      if (!steps.includes(lead) && at >= 0) steps[at] = lead;
+    }
     for (const i of QUALITY_INTERVALS[c.quality]) {
       const t = mod12(c.root + i);
       if (steps.includes(t)) continue;

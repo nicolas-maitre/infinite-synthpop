@@ -158,12 +158,31 @@ const GENRE_CASES: [string, ComposeOptions][] = (["italo", "euro"] as const).fla
   ];
 });
 
+/** Theory progressions (docs/plans/theory-chords.md §6), the seeds approved by ear on 2026-11-17:
+ * one song leaning to each synthpop reference and one in the middle, rendered as classic/theory
+ * A/B clips. Every melodic track is locked. */
+const THEORY_CASES: [string, ComposeOptions][] = (
+  [
+    [23, [0.8, 0.2, 0]],
+    [89, [0.15, 0.85, 0]],
+    [104, [0.1, 0.1, 0.8]],
+    [131, [0.34, 0.33, 0.33]],
+  ] as const
+).map(([seed, weights]) => [
+  `theory seed ${seed} weights ${weights.join("/")}`,
+  { seed, genre: "synthpop", weights, chords: "theory" },
+]);
+
 describe("output snapshot", () => {
   it.each(CASES)("%s", (_, opts) => {
     expect(summarise(compose(opts))).toMatchSnapshot();
   });
 
   it.each(GENRE_CASES)("%s", (_, opts) => {
+    expect(summarise(compose(opts), MELODIC_TRACKS)).toMatchSnapshot();
+  });
+
+  it.each(THEORY_CASES)("%s", (_, opts) => {
     expect(summarise(compose(opts), MELODIC_TRACKS)).toMatchSnapshot();
   });
 

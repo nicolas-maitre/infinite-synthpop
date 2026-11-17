@@ -23,6 +23,8 @@ export interface Variety {
   referenceForm: number;
   /** Distinct progressions in one song, on average. */
   perSong: number;
+  /** Share of songs that quote a reference's loop (theory mode). */
+  quoted: number;
   topSkeletons: (readonly [string, number])[];
 }
 
@@ -30,6 +32,9 @@ export interface PartVariety {
   distinct: number;
   /** Shares of songs (0–1). */
   bankEntry: number;
+  /** The same share among songs that quote no reference loop (theory mode's nods to the records;
+   * classic never quotes). */
+  bankEntryUnquoted: number;
   reference: number;
   top: (readonly [string, number])[];
 }
@@ -57,7 +62,8 @@ export function measureVariety(
 
   const count = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
   const seen = { verse: new Map<string, number>(), chorus: new Map<string, number>() };
-  const hits = { verse: [0, 0], chorus: [0, 0] };
+  const hits = { verse: [0, 0, 0], chorus: [0, 0, 0] };
+  let quoted = 0;
   const pairs = new Set<string>();
   const forms = new Set<string>();
   const skeletons = new Map<string, number>();
@@ -67,10 +73,12 @@ export function measureVariety(
     // Spread the seeds: neighbouring seeds are independent anyway, but this matches the first
     // measurement (plan §1).
     const song = compose({ seed: (firstSeed + i) * 7919, genre, weights: "auto", chords });
+    if (song.quoted) quoted++;
     for (const part of ["verse", "chorus"] as const) {
       const text = progressionText(song.progressions[part]);
       count(seen[part], text);
       if (bank[part].has(text)) hits[part][0]!++;
+      if (bank[part].has(text) && !song.quoted) hits[part][2]!++;
       if (reference[part].has(text)) hits[part][1]!++;
     }
     pairs.add(
@@ -87,6 +95,7 @@ export function measureVariety(
   const part = (p: "verse" | "chorus"): PartVariety => ({
     distinct: seen[p].size,
     bankEntry: hits[p][0]! / songs,
+    bankEntryUnquoted: songs > quoted ? hits[p][2]! / (songs - quoted) : 0,
     reference: hits[p][1]! / songs,
     top: top(seen[p], 5),
   });
@@ -101,6 +110,7 @@ export function measureVariety(
     skeletons: skeletons.size,
     referenceForm: referenceForm / songs,
     perSong: perSong / songs,
+    quoted: quoted / songs,
     topSkeletons: top(skeletons, 4),
   };
 }
@@ -109,8 +119,10 @@ export function measureVariety(
 export function varietyReport(v: Variety): string {
   const pct = (x: number) => `${(100 * x).toFixed(0)}%`;
   const share = (n: number) => `${((100 * n) / v.songs).toFixed(1)}%`.padStart(6);
+  const unquoted = (p: PartVariety) =>
+    v.quoted > 0 ? ` (${pct(p.bankEntryUnquoted)} without quotes)` : "";
   const part = (name: string, p: PartVariety) => [
-    `${name}: ${p.distinct} distinct · ${pct(p.bankEntry)} exactly a bank entry · ${pct(p.reference)} exactly a reference's`,
+    `${name}: ${p.distinct} distinct · ${pct(p.bankEntry)} exactly a bank entry${unquoted(p)} · ${pct(p.reference)} exactly a reference's`,
     ...p.top.map(([t, n]) => `  ${share(n)}  ${t}`),
   ];
   return [
@@ -121,5 +133,6 @@ export function varietyReport(v: Variety): string {
     `forms: ${v.forms} distinct (${v.skeletons} by section kind alone) · ${pct(v.referenceForm)} a reference's`,
     ...v.topSkeletons.map(([t, n]) => `  ${share(n)}  ${t}`),
     `distinct progressions per song: ${v.perSong.toFixed(1)}`,
+    ...(v.quoted > 0 ? [`songs quoting a reference's loop: ${pct(v.quoted)}`] : []),
   ].join("\n");
 }

@@ -195,9 +195,13 @@ export function mountCreator(
     if (!section) return;
     const key = section.key ?? s.key;
     const choices = CHORD_CHOICES[key.mode];
-    const options = (allowNone: boolean): [string, string][] => [
+    // A chord outside the usual list (a theory song's VImaj7 or V7/ii, an Italo chord) is offered
+    // too, so the bar shows what it plays.
+    const options = (allowNone: boolean, current = ""): [string, string][] => [
       ...(allowNone ? ([["", "+ half"]] as [string, string][]) : []),
-      ...choices.map((n): [string, string] => [n, `${chordName(key, chord(n))} · ${n}`]),
+      ...(current && !choices.includes(current) ? [current] : [])
+        .concat(choices)
+        .map((n): [string, string] => [n, `${chordName(key, chord(n))} · ${n}`]),
     ];
     const single = section.progression.length === 1;
     let dragFrom = -1;
@@ -268,14 +272,14 @@ export function mountCreator(
         });
       });
 
-      const first = select(options(false), bar[0] ?? "i", (v) =>
+      const first = select(options(false, bar[0]), bar[0] ?? "i", (v) =>
         update((n) => {
           const t = at(n, index);
           t.progression = t.progression.map((x, j) => (j === b ? [v, ...x.slice(1)] : x));
         }),
       );
       first.setAttribute("aria-label", `Bar ${b + 1} chord`);
-      const second = select(options(true), bar[1] ?? "", (v) =>
+      const second = select(options(true, bar[1]), bar[1] ?? "", (v) =>
         update((n) => {
           const t = at(n, index);
           t.progression = t.progression.map((x, j) =>
