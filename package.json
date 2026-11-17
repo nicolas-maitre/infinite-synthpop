@@ -17,7 +17,8 @@
     "test:watch": "vitest",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
     "fetch-samples": "node scripts/fetch-samples.mjs",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "variety": "node scripts/variety.mjs"
   },
   "engines": {
     "node": ">=22"

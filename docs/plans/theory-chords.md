@@ -179,7 +179,8 @@ the planners, arranger, melodies and creator need no change.
   - A pre-chorus resolves into its chorus, and a turnaround into its verse.
   - At each reference's weight alone, the generator reaches that reference's measured loops among
     its candidates (the analysis is complete enough to explain them).
-- **Variety metrics** (the table in §1, as a script in `scripts/`). Targets, without quotes:
+- **Variety metrics** (the table in §1): `pnpm variety [songs] [genre…]` prints it for both
+  modes (`src/variety.ts`). Targets, without quotes:
   - under 10% of verses and choruses exactly a bank entry;
   - at least 3× today's distinct verse and chorus counts per genre;
   - at least 4 distinct progressions per song in every genre.
@@ -211,7 +212,8 @@ the planners, arranger, melodies and creator need no change.
 3. **Secondary sections**: interlude, turnaround, bridge and lift, with their relations.
 4. **Italo and Euro analyses:** pedals and slash basses, ♭II, the parallel-major chorus, sus pairs,
    2-bar loops, 10- and 14-bar choruses. Then cross-genre blends through the merged planner.
-5. **Wizard "generate" entries,** variety script in `scripts/`, README and analysis updates.
+5. **Wizard "generate" entries,** README and analysis updates. (✅ The variety command came
+   early, for phase 2.)
 6. **Theory becomes the default** once the ear checks pass for every genre.
 
 ## 8. Later: forms
