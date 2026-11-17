@@ -2,7 +2,7 @@
  * The settings kept per browser (localStorage), shared by the simple and advanced views.
  * Everything still works without storage.
  */
-import { CHORDS_MODES, type ChordsMode, type KitName } from "./composer";
+import { CHORDS_MODES, type ChordsMode, type KitName, type LengthRange } from "./composer";
 import {
   DEFAULT_VOLUMES,
   LEAD_PATCHES,
@@ -77,6 +77,22 @@ export interface Prefs {
   djDefaulted: boolean;
   /** Play the song again when it ends, instead of moving on (the DJ doesn't mix out). */
   repeat: boolean;
+  /** How long songs run (seconds): the form generated songs get, and where the DJ mixes out. */
+  length: LengthRange;
+}
+
+/** The length setting's bounds and step (seconds). */
+export const LENGTH_BOUNDS = { min: 120, max: 480, step: 30 } as const;
+
+/** A stored length range, or null when it isn't one the setting can show. */
+export function parseLength(raw: unknown): LengthRange | null {
+  const r = raw as Partial<LengthRange> | null;
+  const ok = (v: unknown): v is number =>
+    typeof v === "number" &&
+    v >= LENGTH_BOUNDS.min &&
+    v <= LENGTH_BOUNDS.max &&
+    v % LENGTH_BOUNDS.step === 0;
+  return r && ok(r.min) && ok(r.max) && r.min < r.max ? { min: r.min, max: r.max } : null;
 }
 
 export type View = "simple" | "advanced";
@@ -123,6 +139,8 @@ const defaults: Prefs = {
   view: "simple",
   djDefaulted: true,
   repeat: false,
+  // Italo's extended versions run past 5 minutes: a lower cap would cut most of them short.
+  length: { min: 150, max: 360 },
 };
 
 export function loadPrefs(): Prefs {
@@ -185,6 +203,7 @@ export function loadPrefs(): Prefs {
       // Saved before the simple view: it opens first all the same.
       view: VIEWS.find((x) => x === p.view) ?? defaults.view,
       repeat: p.repeat === true,
+      length: parseLength(p.length) ?? { ...defaults.length },
     };
   } catch {
     return structuredClone(defaults);

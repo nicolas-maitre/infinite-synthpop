@@ -18,7 +18,14 @@ import type { PartBlends, RefWeights } from "./profile";
 import type { GenreId } from "./genres";
 import { songSound } from "./profile";
 import { scheduleStep } from "./schedule";
-import { compose, type ChordsMode, type ImportedTracks, type KitName, type Song } from "./composer";
+import {
+  compose,
+  type ChordsMode,
+  type ImportedTracks,
+  type KitName,
+  type LengthRange,
+  type Song,
+} from "./composer";
 import {
   autoTransition,
   compatibleKeys,
@@ -75,6 +82,8 @@ export interface EngineSettings {
   /** How generated songs pick their chords, from the next one composed (a change also recomposes
    * the playing generated song, as the other settings do). */
   chords: ChordsMode;
+  /** How long generated songs run, and where the DJ mixes out (seconds); null: as they come. */
+  length: LengthRange | null;
 }
 
 export interface EngineEvents {
@@ -703,6 +712,12 @@ export class Engine {
     this.rerender();
   }
 
+  /** How long songs run (seconds), from the next song composed or planned: the playing one
+   * stays as it is. */
+  setLength(range: LengthRange | null): void {
+    this.settings = { ...this.settings, length: range };
+  }
+
   update(settings: Partial<EngineSettings>): void {
     // The playing song keeps its progressions (a link's) unless they are what changed.
     const chords =
@@ -819,7 +834,12 @@ export class Engine {
     const shape = this.shapeFor(song, meta);
     const glideEnd = shape.glide ? shape.glide.start + shape.glide.bars : 0;
     // Drawn either way, so the picks after it stay those of the planned transition.
-    const planned = swapBar(song, rng, glideEnd + Math.max(INTRO_BARS, MORPH_BARS));
+    const planned = swapBar(
+      song,
+      rng,
+      glideEnd + Math.max(INTRO_BARS, MORPH_BARS),
+      this.settings.length ?? undefined,
+    );
     // Mix next: a crossfade with a short intro, handing over there.
     const swap = mixNextAt ?? planned;
     const seed = nextSeed(song.seed);

@@ -161,6 +161,34 @@
           <span>Genre</span>
           <select id="s-genre"></select>
         </label>
+        <div class="field length-field" role="group" aria-labelledby="s-length-label">
+          <span class="row spread"
+            ><span id="s-length-label">Length</span><output id="s-length-out"></output
+          ></span>
+          <div class="dual-range">
+            <div class="dual-range-fill" id="s-length-fill"></div>
+            <input
+              id="s-length-min"
+              type="range"
+              min="120"
+              max="480"
+              step="30"
+              aria-label="Shortest"
+            />
+            <input
+              id="s-length-max"
+              type="range"
+              min="120"
+              max="480"
+              step="30"
+              aria-label="Longest"
+            />
+          </div>
+          <span class="note"
+            >How long songs run: each song gets the form that fits best, and in DJ mode it mixes out
+            in this range. From the next song.</span
+          >
+        </div>
       </section>
 
       <section class="card song-lists" aria-label="Songs">

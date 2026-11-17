@@ -318,11 +318,25 @@ export interface ComposeOptions {
   progressions?: Partial<Progressions>;
   /** Short: one verse/chorus block less, 8-bar verses. Long: always a third verse and chorus. */
   form?: SongForm;
+  /** With no `form`: how long the song should run (seconds). The usual form when it fits, else
+   * the shorter or longer one, whichever comes nearer. Not for originals or creations. */
+  length?: LengthRange | null;
   ending?: SongEnding;
   bassStyle?: BassStyle;
 }
 
 export type SongForm = "short" | "standard" | "long";
+
+/** How long songs run (seconds): the player's length setting. */
+export interface LengthRange {
+  min: number;
+  max: number;
+}
+
+/** Seconds outside the range (0 inside it). */
+export function lengthMiss(seconds: number, range: LengthRange): number {
+  return Math.max(0, range.min - seconds, seconds - range.max);
+}
 /** A lift to IV (TF), a chorus to fade (DS), or IV held (You Came). */
 export type SongEnding = "lift" | "fade" | "hold";
 
@@ -511,34 +525,27 @@ export function compose(opts: ComposeOptions): Song {
   const liftChance = rngForm.chance(formOdds((x) => x.liftEnding));
   const holdChance = rngYc.chance(formOdds((x) => x.form.holdEnding));
   const ending: SongEnding = opts.ending ?? (holdChance ? "hold" : liftChance ? "lift" : "fade");
-  const sections = ref
-    ? referenceSections(ref)
-    : P.song.mixed
-      ? planMerged(
-          rngForm,
-          key,
-          liftKey,
-          ending,
-          progressions,
-          P.song,
-          g.voices,
-          opts.form ?? "standard",
-        )
+  const plan = (form: SongForm, rngForm: Rng, rngYc: Rng) =>
+    P.song.mixed
+      ? planMerged(rngForm, key, liftKey, ending, progressions, P.song, g.voices, form)
       : genre.planner === "italo"
-        ? planItalo(rngForm, key, liftKey, ending, progressions, g, opts.form ?? "standard")
+        ? planItalo(rngForm, key, liftKey, ending, progressions, g, form)
         : genre.planner === "euro"
-          ? planEuro(rngForm, key, liftKey, ending, progressions, g, opts.form ?? "standard")
-          : planSections(
-              rngForm,
-              rngYc,
-              key,
-              liftKey,
-              ending,
-              progressions,
-              g,
-              opts.form ?? "standard",
-              riffHigh,
-            );
+          ? planEuro(rngForm, key, liftKey, ending, progressions, g, form)
+          : planSections(rngForm, rngYc, key, liftKey, ending, progressions, g, form, riffHigh);
+  let sections = ref ? referenceSections(ref) : plan(opts.form ?? "standard", rngForm, rngYc);
+  const range = opts.length;
+  if (!ref && !opts.form && range) {
+    const seconds = (list: typeof sections) => (list.reduce((n, s) => n + s.bars, 0) * 240) / bpm;
+    const now = seconds(sections);
+    const miss = lengthMiss(now, range);
+    if (miss > 0) {
+      // Planned on streams of its own: the usual form's songs stay as they were.
+      const other: SongForm = now > range.max ? "short" : "long";
+      const alt = plan(other, root.fork(`form:${other}`), root.fork(`you-came:${other}`));
+      if (lengthMiss(seconds(alt), range) < miss) sections = alt;
+    }
+  }
   if (!ref) addCounter(root.fork("counter"), sections, P.voice);
   const totalBars = sections.reduce((n, s) => n + s.bars, 0);
 
