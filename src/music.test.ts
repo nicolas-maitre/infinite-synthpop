@@ -15,7 +15,7 @@ import {
 } from "./genres";
 import { REFERENCES, type ReferenceId } from "./references";
 import { resolveQuality } from "./quality";
-import { barAtSeconds, barSeconds, silentWav, songSeconds } from "./mediasession";
+import { barAtSeconds, barSeconds, NEAR_SILENT_PEAK, silentWav, songSeconds } from "./mediasession";
 import { euroTitle, italoTitle, synthpopTitle } from "./titles";
 import { songToMidi } from "./export";
 import { matchTracks, parseMidi, toBars, toDrumBars, type MidiFile } from "./midi";
@@ -807,7 +807,7 @@ describe("system media controls", () => {
     expect(barAtSeconds(real, 17 * barSeconds(real))).toBe(17);
   });
 
-  it("writes ten seconds of silence as a valid WAV", async () => {
+  it("writes ten seconds of near-silence as a valid WAV", async () => {
     const wav = new Uint8Array(await silentWav().arrayBuffer());
     const text = (at: number, n: number) => String.fromCharCode(...wav.slice(at, at + n));
     expect([text(0, 4), text(8, 4), text(12, 4), text(36, 4)]).toEqual([
@@ -816,8 +816,20 @@ describe("system media controls", () => {
       "fmt ",
       "data",
     ]);
-    expect(wav.length).toBe(44 + 80_000);
-    expect(wav.slice(44).every((b) => b === 128)).toBe(true);
+    expect(wav.length).toBe(44 + 2 * 80_000);
+    const view = new DataView(wav.buffer);
+    const samples = Array.from({ length: 80_000 }, (_, i) => view.getInt16(44 + 2 * i, true));
+    const peak = Math.max(...samples.map(Math.abs));
+    // Over Firefox's audibility line (-72 dBFS), still far below hearing.
+    expect(peak / 32768).toBeGreaterThan(10 ** (-72 / 20));
+    expect(peak).toBe(NEAR_SILENT_PEAK);
+    // Never two seconds without a sample over that line.
+    const loud = samples.flatMap((s, i) => (Math.abs(s) / 32768 > 10 ** (-72 / 20) ? [i] : []));
+    const around = [...loud, (loud[0] ?? 0) + 80_000]; // the loop wraps
+    const gaps = around.slice(1).map((at, k) => at - (around[k] ?? 0));
+    expect(Math.max(...gaps)).toBeLessThan(8000);
+    // Loops without a seam.
+    expect(samples[0]).toBe(0);
   });
 });
 

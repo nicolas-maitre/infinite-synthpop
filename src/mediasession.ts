@@ -4,7 +4,8 @@
  * song and drive play/pause, next/previous and seeking through the Media Session API.
  *
  * Browsers only hand those controls to a page that plays a media element, and the music here is
- * Web Audio. So while the music plays, a looping silent <audio> element plays too: the page then
+ * Web Audio. So while the music plays, a looping silent <audio> element plays too (silent to the
+ * ear: Firefox also wants it to be audible, see silentWav): the page then
  * counts as a media player, while the sound itself still goes straight from Web Audio to the
  * output (routing it through the element would make it lag behind the playhead on screen). On iOS
  * the playing element also makes the page's audio count as playback, not as an effect that the
@@ -54,29 +55,40 @@ export function barAtSeconds(song: Pick<Song, "bpm" | "totalBars">, seconds: num
   return Math.max(0, Math.min(song.totalBars - 1, bar));
 }
 
-/** Ten seconds of silence as an 8 kHz, 8-bit mono WAV: long enough that browsers treat it as
- * media rather than a notification sound. */
+/** Firefox hands the system controls only to a media element it hears: one with a sample above
+ * -72 dBFS in the last two seconds (AudibilityMonitor, dom.media.silence_duration_for_audibility).
+ * Pure silence never qualifies, so the "silent" track carries a 5 Hz sine at about -66 dBFS: over
+ * that line, yet far below hearing in both level and pitch. */
+export const NEAR_SILENT_HZ = 5;
+export const NEAR_SILENT_PEAK = 16; // of 32767: about -66 dBFS
+
+/** Ten seconds of near-silence as an 8 kHz, 16-bit mono WAV: long enough that browsers treat it
+ * as media rather than a notification sound (Firefox wants three seconds), and a whole number of
+ * sine cycles so the loop has no seam. */
 export function silentWav(seconds = 10, rate = 8000): Blob {
   const samples = seconds * rate;
-  const bytes = new Uint8Array(44 + samples);
+  const bytes = new Uint8Array(44 + 2 * samples);
   const view = new DataView(bytes.buffer);
   const text = (at: number, s: string) => {
     for (let i = 0; i < s.length; i++) bytes[at + i] = s.charCodeAt(i);
   };
   text(0, "RIFF");
-  view.setUint32(4, 36 + samples, true);
+  view.setUint32(4, 36 + 2 * samples, true);
   text(8, "WAVE");
   text(12, "fmt ");
   view.setUint32(16, 16, true); // fmt chunk size
   view.setUint16(20, 1, true); // PCM
   view.setUint16(22, 1, true); // mono
   view.setUint32(24, rate, true);
-  view.setUint32(28, rate, true); // bytes per second
-  view.setUint16(32, 1, true); // block align
-  view.setUint16(34, 8, true); // bits per sample
+  view.setUint32(28, 2 * rate, true); // bytes per second
+  view.setUint16(32, 2, true); // block align
+  view.setUint16(34, 16, true); // bits per sample
   text(36, "data");
-  view.setUint32(40, samples, true);
-  bytes.fill(128, 44); // 8-bit PCM is unsigned: 128 is silence
+  view.setUint32(40, 2 * samples, true);
+  for (let i = 0; i < samples; i++) {
+    const sample = Math.sin((2 * Math.PI * NEAR_SILENT_HZ * i) / rate) * NEAR_SILENT_PEAK;
+    view.setInt16(44 + 2 * i, Math.round(sample), true);
+  }
   return new Blob([bytes], { type: "audio/wav" });
 }
 
