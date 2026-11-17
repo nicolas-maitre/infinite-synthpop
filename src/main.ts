@@ -1,6 +1,15 @@
 import "./style.css";
 import { chordSlots } from "./arranger";
-import type { BassStyle, DrumMode, ImportedTracks, KitName, Song } from "./composer";
+import {
+  CHORDS_MODES,
+  type BassStyle,
+  type ChordsMode,
+  type DrumMode,
+  type ImportedTracks,
+  type KitName,
+  type Song,
+} from "./composer";
+import { parseSeedLink, seedLink } from "./links";
 import { KIT_LABELS } from "./drums";
 import { AHEAD_SUPPORTED } from "./ahead";
 import { Engine, type EngineSettings } from "./engine";
@@ -107,6 +116,8 @@ interface Prefs {
   dj: boolean;
   /** How DJ mode hands over: crossfade, morph, or auto's pick per transition. */
   djStyle: DjStyle;
+  /** How generated songs pick their chords: the theory generator, or the classic picks. */
+  progressions: ChordsMode;
 }
 
 type DjStyle = "auto" | "crossfade" | "morph";
@@ -151,6 +162,7 @@ const defaults: Prefs = {
   buffer: 0,
   dj: false,
   djStyle: "auto",
+  progressions: "theory",
 };
 
 function loadPrefs(): Prefs {
@@ -206,6 +218,8 @@ function loadPrefs(): Prefs {
       buffer,
       dj: p.dj === true,
       djStyle: DJ_STYLES.find((x) => x === p.djStyle) ?? "auto",
+      // Saved before the switch: theory, as for a new install.
+      progressions: CHORDS_MODES.find((x) => x === p.progressions) ?? defaults.progressions,
     };
   } catch {
     return defaults;
@@ -260,6 +274,7 @@ const ui = {
   bpmHint: el("bpm-hint"),
   key: el<HTMLSelectElement>("key"),
   kit: el<HTMLSelectElement>("kit"),
+  progressions: el<HTMLSelectElement>("progressions"),
   genre: el<HTMLSelectElement>("genre"),
   openRefs: el("open-refs"),
   partsOn: el<HTMLInputElement>("parts-on"),
@@ -318,9 +333,11 @@ function songOrigin(song: Song): string {
   const blends = isGenreBlends(song.blends, GENRES[song.genre], song.weights)
     ? ""
     : `/b${blendsKey(song.blends)}`;
+  // Classic songs keep the form they had before the theory generator.
+  const chords = song.chords === "theory" ? "/theory" : "";
   return song.reference
     ? `ref:${song.reference}`
-    : `seed:${song.seed}/${genre}${style}/${song.key.tonic}/${song.bpm}/${song.kit}${blends}`;
+    : `seed:${song.seed}/${genre}${style}/${song.key.tonic}/${song.bpm}/${song.kit}${blends}${chords}`;
 }
 
 /** The library entry for what's playing, if it has one. */
@@ -584,11 +601,14 @@ function engineSettings(): EngineSettings {
     key: prefs.key === null ? null : { tonic: prefs.key, mode: "minor" },
     bpm: prefs.bpmAuto ? null : prefs.bpm,
     kit: prefs.kit,
+    chords: prefs.progressions,
   };
 }
 
 const hash = new URLSearchParams(location.hash.slice(1));
-const initialSeed = Number(hash.get("seed"));
+// A `#seed=` link plays its own progressions (classic when it doesn't say); later songs follow the
+// setting.
+const initialLink = parseSeedLink(hash);
 const initialReference = hash.get("ref");
 const initialCreation = hash.get("song");
 // The system's media controls (lock screen, Now Playing, media keys): mediasession.ts.
@@ -612,7 +632,7 @@ const media = mountMediaControls({
 
 const engine = new Engine(
   engineSettings(),
-  Number.isInteger(initialSeed) && initialSeed > 0 ? initialSeed : randomSeed(),
+  initialLink?.seed ?? randomSeed(),
   {
     onSong: renderSong,
     onBar: (ev, song) => renderBar(song, ev.bar),
@@ -625,6 +645,7 @@ const engine = new Engine(
     onBuffering: renderBufferStatus,
     onMix: renderMix,
   },
+  initialLink?.chords,
 );
 engine.setInstant(prefs.instant);
 async function togglePlay(): Promise<void> {
@@ -749,7 +770,7 @@ function renderSong(song: Song): void {
       ? `#song=${encodeCreation(creation)}`
       : song.reference
         ? `#ref=${song.reference}`
-        : `#seed=${song.seed}`,
+        : seedLink(song.seed, song.chords),
   );
   loopToggle.setAttribute("aria-pressed", String(engine.loopSection !== null));
   if (creator.active && !engine.creation) setCreator(false);
@@ -1313,6 +1334,13 @@ ui.kit.addEventListener("change", () => {
   prefs.kit = ui.kit.value as KitName | "auto";
   savePrefs();
   engine.update({ kit: prefs.kit });
+});
+
+ui.progressions.value = prefs.progressions;
+ui.progressions.addEventListener("change", () => {
+  prefs.progressions = CHORDS_MODES.find((x) => x === ui.progressions.value) ?? "theory";
+  savePrefs();
+  engine.update({ chords: prefs.progressions });
 });
 
 const loadSeed = () => {

@@ -150,7 +150,8 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   read in the page and never stored. It is mapped by bar and 16th, so its tempo doesn't matter,
   but its bars must line up with the original's layout (a True Faith transcription with 4 bars of
   drums before the bass does).
-- **Seed:** every song is reproducible. The URL carries `#seed=…`, so a link replays the same song.
+- **Seed:** every song is reproducible. The URL carries `#seed=…` (and `&chords=theory` under
+  theory progressions), so a link replays the same song.
 - **Genre:** which genre generated songs come from, synthpop, Italo or Euro-disco, or **auto** (a genre per
   song, and a point in its style polygon per song too; the default, like every other auto setting,
   so a first visit just plays); the style control shows the genre's references. Italo ([docs/plans/italo-genre.md](docs/plans/italo-genre.md)) blends
@@ -189,6 +190,12 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   alone reaches below 108; Euro-disco 113–125: Innocent Love 115.2, Heaven Can Wait 118.5, Crazy
   Juliet 123.0) or fixed.
 - **Key:** auto or a fixed minor key.
+- **Progressions:** how generated songs pick their chords. **theory** (the default) will build
+  them from the genres' harmonic analyses; **classic** keeps the picks every song had before
+  ([docs/plans/theory-chords.md](docs/plans/theory-chords.md)). For now both play the same chords:
+  theory becomes its own in phase 2. A change recomposes the playing song, like the other
+  generator settings. Theory songs' links carry `&chords=theory`; an old `#seed=…` link plays
+  classic, as it always has. Originals and creations keep their own chords.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.
 - **Mixer:** per-track volume, mute and solo, plus a master fader.
 

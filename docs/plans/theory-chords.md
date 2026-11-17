@@ -191,9 +191,14 @@ the planners, arranger, melodies and creator need no change.
 ## 7. Phases
 
 1. **Plumbing.**
-   - The `chords` option, pref, select, `#seed=…&chords=` link parameter, and the classic default
-     for old links.
-   - At first theory mode just runs classic, so nothing audible changes.
+   - ✅ The `chords` option, pref, select, `#seed=…&chords=` link parameter, and the classic default
+     for old links. `Song.chords` records the mode; links are written and read by `links.ts`.
+     Differences from §2: changing the select recomposes the playing generated song in place, as
+     the kit and genre do (other changes, a genre or kit, keep a linked song's own mode). The
+     "My songs" lookup key gains `/theory` for theory songs, so a saved classic song isn't taken
+     for its theory twin once they differ.
+   - ✅ At first theory mode just runs classic, so nothing audible changes (`// Phase 2:` in
+     composer.ts marks where the generator plugs in).
    - The compositional `chord()` with its round-trip test over the old table.
 2. **Synthpop analysis and generator,** verse and chorus (and the major-key pre-chorus). It's the
    best-documented genre and the closest to the current results, so it's the easiest place to tell

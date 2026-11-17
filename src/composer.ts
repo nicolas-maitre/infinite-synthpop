@@ -250,6 +250,9 @@ export interface Song {
   blends: PartBlends;
   kit: KitName;
   bassStyle: BassStyle;
+  /** How generated chords were picked (ComposeOptions.chords); originals and creations play their
+   * own whatever this says. */
+  chords: ChordsMode;
   progressions: Progressions;
   sections: Section[];
   totalBars: number;
@@ -270,8 +273,16 @@ export interface Song {
   imported?: ImportedTracks;
 }
 
+/** Classic progressions: the bank picks and substitutions every song had before the theory
+ * generator (docs/plans/theory-chords.md §2). Theory: the generator built from the analyses. */
+export type ChordsMode = "classic" | "theory";
+export const CHORDS_MODES: readonly ChordsMode[] = ["theory", "classic"];
+
 export interface ComposeOptions {
   seed: number;
+  /** How generated songs pick their chords; classic by default (old `#seed=` links). Originals
+   * and creations ignore it. */
+  chords?: ChordsMode;
   /** The genre profile to generate with (genres.ts); synthpop by default; "auto" picks one per
    * song (its weights are then that genre's own: given ones are for another genre). A creation
    * plays in its own genre and an original in the one that lists it, whatever this says. */
@@ -443,7 +454,11 @@ export function compose(opts: ComposeOptions): Song {
   );
   const bassStyle = ref?.bassStyle ?? opts.bassStyle ?? pickedBass;
 
+  const chords = opts.chords ?? "classic";
   const rngProg = root.fork("progressions");
+  // Phase 2: theory mode picks its chords here from its own forked streams
+  // (`root.fork("harmony:…")`, plan §2), leaving these draws as they are. Until then it runs
+  // classic's picks.
   const prog = (kind: ProgressionKind, rng = rngProg) =>
     substituteFrom(
       P.song,
@@ -529,6 +544,7 @@ export function compose(opts: ComposeOptions): Song {
     blends,
     kit,
     bassStyle,
+    chords,
     progressions,
     sections,
     totalBars,
