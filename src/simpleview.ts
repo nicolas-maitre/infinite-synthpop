@@ -5,9 +5,10 @@
  * and the originals. main.ts owns the state and calls the render methods; this only binds the
  * controls.
  */
-import type { Song } from "./composer";
+import type { LengthRange, Song } from "./composer";
 import { GENRE_IDS, GENRES, type GenreId } from "./genres";
 import { barSeconds, songSeconds } from "./mediasession";
+import { LENGTH_BOUNDS } from "./prefs";
 import { animate } from "./quality";
 import { keyName } from "./theory";
 
@@ -24,6 +25,7 @@ export interface SimpleViewActions {
   mixNext(): void;
   setLite(on: boolean): void;
   setGenre(genre: SimpleGenre): void;
+  setLength(range: LengthRange): void;
   setVolume(db: number): void;
   toggleSave(): void;
   share(button: HTMLButtonElement): void;
@@ -63,6 +65,7 @@ export interface SimpleSettings {
   /** Why the lite switch is fixed, or null. */
   liteFixed: string | null;
   genre: SimpleGenre | "custom";
+  length: LengthRange;
   volume: number;
 }
 
@@ -125,6 +128,10 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     mixNext: el<HTMLButtonElement>(root, "s-mix-next"),
     mixNextLabel: el(root, "s-mix-next-label"),
     genre: el<HTMLSelectElement>(root, "s-genre"),
+    lengthMin: el<HTMLInputElement>(root, "s-length-min"),
+    lengthMax: el<HTMLInputElement>(root, "s-length-max"),
+    lengthOut: el<HTMLOutputElement>(root, "s-length-out"),
+    lengthFill: el(root, "s-length-fill"),
     history: el<HTMLUListElement>(root, "s-history"),
     historyEmpty: el(root, "s-history-empty"),
     favourites: el<HTMLUListElement>(root, "s-favourites"),
@@ -197,6 +204,39 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     if (v === "auto" || (GENRE_IDS as string[]).includes(v)) actions.setGenre(v as SimpleGenre);
   });
   ui.volume.addEventListener("input", () => actions.setVolume(Number(ui.volume.value)));
+
+  // ── Length: two handles on one track, kept a step apart ──
+  for (const input of [ui.lengthMin, ui.lengthMax]) {
+    input.min = String(LENGTH_BOUNDS.min);
+    input.max = String(LENGTH_BOUNDS.max);
+    input.step = String(LENGTH_BOUNDS.step);
+  }
+  const showLength = () => {
+    const [lo, hi] = [Number(ui.lengthMin.value), Number(ui.lengthMax.value)];
+    const span = Number(ui.lengthMin.max) - Number(ui.lengthMin.min);
+    const at = (v: number) => ((v - Number(ui.lengthMin.min)) / span) * 100;
+    ui.lengthFill.style.left = `${at(lo)}%`;
+    ui.lengthFill.style.width = `${at(hi) - at(lo)}%`;
+    ui.lengthOut.value = `${clock(lo)} – ${clock(hi)}`;
+    ui.lengthMin.setAttribute("aria-valuetext", clock(lo));
+    ui.lengthMax.setAttribute("aria-valuetext", clock(hi));
+  };
+  const keepApart = (moved: HTMLInputElement) => {
+    const step = Number(ui.lengthMin.step);
+    const [lo, hi] = [Number(ui.lengthMin.value), Number(ui.lengthMax.value)];
+    if (hi - lo >= step) return;
+    if (moved === ui.lengthMin) ui.lengthMin.value = String(hi - step);
+    else ui.lengthMax.value = String(lo + step);
+  };
+  for (const input of [ui.lengthMin, ui.lengthMax]) {
+    input.addEventListener("input", () => {
+      keepApart(input);
+      showLength();
+    });
+    input.addEventListener("change", () =>
+      actions.setLength({ min: Number(ui.lengthMin.value), max: Number(ui.lengthMax.value) }),
+    );
+  }
   ui.save.addEventListener("click", () => actions.toggleSave());
   ui.share.addEventListener("click", () => actions.share(ui.share));
   // ── Lists: one tab at a time (arrow keys move between the tabs) ──
@@ -338,6 +378,9 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
         if (!custom.parentElement) ui.genre.append(custom);
       } else custom.remove();
       ui.genre.value = s.genre;
+      ui.lengthMin.value = String(s.length.min);
+      ui.lengthMax.value = String(s.length.max);
+      showLength();
       ui.volume.value = String(s.volume);
     },
 

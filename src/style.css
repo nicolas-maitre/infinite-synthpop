@@ -1940,8 +1940,90 @@ html[data-view="advanced"] #simple-view {
 }
 
 .next-up .field {
+  max-width: 420px;
+}
+
+.next-up .field:last-child {
   margin-bottom: 0;
-  max-width: 320px;
+}
+
+/* Two range handles on one track (the length setting). */
+.dual-range {
+  position: relative;
+  height: 24px;
+}
+
+.dual-range::before,
+.dual-range-fill {
+  content: "";
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+}
+
+.dual-range::before {
+  left: 0;
+  right: 0;
+  background: #2a2a4a;
+}
+
+.dual-range-fill {
+  background: var(--accent);
+}
+
+.dual-range input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  appearance: none;
+  background: none;
+  pointer-events: none;
+}
+
+.dual-range input::-webkit-slider-runnable-track {
+  background: none;
+}
+
+.dual-range input::-moz-range-track {
+  background: none;
+}
+
+.dual-range input::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 2px solid var(--accent);
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.dual-range input::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 2px solid var(--accent);
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.dual-range input:focus-visible {
+  outline: none;
+}
+
+.dual-range input:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+.dual-range input:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
 }
 
 @media (max-width: 560px) {

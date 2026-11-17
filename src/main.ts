@@ -159,6 +159,11 @@ const simple = mountSimpleView(el("simple-view"), {
   },
   setLite,
   setGenre: setSimpleGenre,
+  setLength: (range) => {
+    prefs.length = range;
+    savePrefs();
+    engine.setLength(range);
+  },
   setVolume,
   toggleSave,
   share: (button) => void share(button, shareUrl(engine.song, engine.creation)),
@@ -235,6 +240,7 @@ function renderSimpleSettings(): void {
     lite: QUALITY === "lite",
     liteFixed: QUALITY_FROM_URL ? `Set to ${QUALITY} by ?quality= in the address` : null,
     genre: custom ? "custom" : prefs.genre === "open" ? "auto" : prefs.genre,
+    length: prefs.length,
     volume: prefs.master,
   };
   simple.renderSettings(settings);
@@ -671,6 +677,7 @@ function engineSettings(): EngineSettings {
     bpm: prefs.bpmAuto ? null : prefs.bpm,
     kit: prefs.kit,
     chords: prefs.progressions,
+    length: prefs.length,
   };
 }
 

@@ -26,7 +26,7 @@ import {
   type MelodicTrack,
 } from "./arranger";
 import type { DeckEffect, DeckSound } from "./ahead";
-import type { Note, Song } from "./composer";
+import type { LengthRange, Note, Song } from "./composer";
 import type { BassTone, LeadTone, Voices } from "./genres";
 import { autoVolumes, type Track } from "./instruments";
 import { songSound, type RefWeights } from "./profile";
@@ -75,9 +75,10 @@ const TOPS = new Set<DrumHit["voice"]>(["hat", "openhat", "tamb", "cabasa"]);
  * The bar where a song hands over to the next one (the incoming song's bar 0 starts there): a
  * section line once the song has played its first verse–chorus pass and about 2 minutes, or its
  * end. The odds rise section by section, and right after a chorus is likelier, the second
- * chorus most of all.
+ * chorus most of all. With a length `range` (the player's setting), not before its `min`, and
+ * nowhere past its `max` unless nothing else is left (then the line nearest it).
  */
-export function swapBar(song: Song, rng: Rng, earliestBar = 0): number {
+export function swapBar(song: Song, rng: Rng, earliestBar = 0, range?: LengthRange): number {
   const sec = 240 / song.bpm;
   const sections = song.sections;
   const firstChorus = sections.find((s) => s.kind === "chorus");
@@ -86,6 +87,7 @@ export function swapBar(song: Song, rng: Rng, earliestBar = 0): number {
     earliestBar,
     firstChorus ? firstChorus.startBar + firstChorus.bars : 0,
     Math.ceil(MIN_SECONDS / sec),
+    range ? Math.ceil(range.min / sec) : 0,
   );
   const options: [number, number][] = [];
   let choruses = 0;
@@ -101,7 +103,13 @@ export function swapBar(song: Song, rng: Rng, earliestBar = 0): number {
   }
   // Playing to the end, mixed over the outro.
   options.push([song.totalBars, 3]);
-  return rng.weighted(options.filter(([bar]) => bar >= INTRO_BARS));
+  const playable = options.filter(([bar]) => bar >= INTRO_BARS);
+  if (!range) return rng.weighted(playable);
+  const inside = playable.filter(([bar]) => bar * sec <= range.max);
+  if (inside.length) return rng.weighted(inside);
+  // All past the max: the earliest, drawn all the same so the picks after it stay put.
+  rng.weighted(playable);
+  return Math.min(...playable.map(([bar]) => bar));
 }
 
 /** Mix next's swap: the first line MIX_NEXT_LINE bars into a section at or after `earliest`, or

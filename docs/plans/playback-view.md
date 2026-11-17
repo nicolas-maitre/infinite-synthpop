@@ -38,7 +38,7 @@ originals, and a few plain choices about what comes next.
 │ 🔊 ━━━━━━●──── ▸            [ DJ ● on ]   [ Lite playback ○ ]          │
 │   └ ▾ opens the mixer (the advanced view's mixer card, moved here)     │
 ├ What plays next ──────────────────────────────────────────────────────┤
-│ Genre [ Any ▾ ]      Length  2:30 ━━●━━━━━━●━━ 5:00                    │
+│ Genre [ Any ▾ ]      Length  2:30 ━━●━━━━━━●━━ 6:00                    │
 ├ Previous songs ──────┬ Favourites ──────────┬ Originals ───────────────┤
 │ title · meta · ♡     │ My songs (library)   │ True Faith, Get Closer…  │
 └──────────────────────┴──────────────────────┴──────────────────────────┘
@@ -86,7 +86,7 @@ one set of faders and no state to keep in sync.
 - **Genre**: Any (auto) / Synthpop / Italo / Euro disco. It sets `prefs.genre` with the style on
   auto. If the advanced view has an open blend or a fixed style point, the select shows
   "Custom (advanced)" until a genre is picked here.
-- **Length**: a two-handle range, 2–6 min in 30 s steps, default 2:30–5:00.
+- **Length**: a two-handle range, 2–8 min in 30 s steps, default 2:30–6:00.
 
 ### Lists
 
@@ -160,7 +160,15 @@ one set of faders and no state to keep in sync.
      disabled while stopped, on repeat, for a creation, or once a transition is coming or heard.
    - A setting that recomposes the playing song while the mix is pending plans the song's own
      transition again (Mix next can be pressed again).
-4. **Length range.** Composer and `swapBar`.
+4. **Length range.** Composer and `swapBar`. **Done.**
+   - The default is 2:30–6:00 on a 2:00–8:00 slider, not 2:30–5:00: Italo songs run long
+     (median 5:29 over 60 seeds), and a 5:00 cap cut most of them to the short form.
+   - The composer has three forms, so it gets as near as they allow: the usual form when it
+     fits (those songs don't change), else the shorter or longer one if that comes nearer.
+     Measured over 60 seeds per genre, 2:00–3:00 fits every Italo song but no Euro-disco one
+     (its short form runs past 3 minutes); in DJ mode the mix-out keeps songs in range anyway.
+   - It applies from the next song; the playing one keeps its form and planned mix-out.
+   - The control is in the simple view only; the setting applies in both views.
 
 Each phase is checked in Chromium and Firefox (headless), audio muted.
 
