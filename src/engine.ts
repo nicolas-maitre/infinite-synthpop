@@ -101,6 +101,9 @@ interface SongMeta {
   serial: number;
   reference: ReferenceId | null;
   custom: Creation | null;
+  /** A song played again as it was (a song from the history or My songs): played once, then the
+   * songs go on from it, unlike a creation, which loops. */
+  replay?: SongSpec;
   /** DJ mode: the key and tempo the song was composed at (to suit the song before it), kept when
    * it is recomposed; and how its tempo runs (mixed in at the previous song's, gliding to its own). */
   fixed?: { key: Key; bpm: number };
@@ -167,6 +170,8 @@ export class Engine {
   private leadPatch: LeadPatch = "voice";
   /** Set while a creation (creator mode) plays; it loops until another song is chosen. */
   private custom: Creation | null = null;
+  /** Set while a song plays again as it was (SongMeta.replay). */
+  private replay: SongSpec | null = null;
   /** Creator mode: the section being edited plays on repeat. */
   private loop: number | null = null;
   /** The last bars scheduled, with their start on the audio clock (for recording). */
@@ -327,6 +332,11 @@ export class Engine {
     return this.custom;
   }
 
+  /** Tells one playing of a song from the next (a settings change recomposing it keeps it). */
+  get playId(): number {
+    return this.serial;
+  }
+
   get currentBar(): number {
     return this.bar;
   }
@@ -479,6 +489,7 @@ export class Engine {
   newSong(seed: number, now = false): void {
     this.reference = null;
     this.custom = null;
+    this.replay = null;
     this.fixed = this.tempo = undefined;
     this.loop = null;
     this.serial = ++this.serials;
@@ -495,6 +506,7 @@ export class Engine {
    */
   playReference(id: ReferenceId, now = false): void {
     this.custom = null;
+    this.replay = null;
     this.fixed = this.tempo = undefined;
     this.loop = null;
     this.reference = id;
@@ -512,6 +524,7 @@ export class Engine {
    */
   playCustom(creation: Creation, keepPosition = false, now = false): void {
     this.reference = null;
+    this.replay = null;
     this.fixed = this.tempo = undefined;
     // Each creation gets an id the first time it plays, for its entry in My songs.
     this.custom = creation.id ? creation : { ...creation, id: newSongId() };
@@ -522,6 +535,24 @@ export class Engine {
       this.serial = ++this.serials;
       this.switched(now);
     } else this.rerender();
+    this.events.onSong?.(this.song);
+  }
+
+  /**
+   * Plays a song again as it was (from its spec), from its first bar: at the next bar line, or at
+   * once with `now`. Unlike a creation it plays once; the songs then go on from it.
+   */
+  replaySong(seed: number, spec: SongSpec, now = false): void {
+    this.reference = null;
+    this.custom = null;
+    this.fixed = this.tempo = undefined;
+    this.loop = null;
+    this.replay = spec;
+    this.serial = ++this.serials;
+    this.song = this.compose(seed, null, null, null, this.settings.chords, spec);
+    this.bar = 0;
+    if (this.instruments) this.applySong(this.instruments);
+    this.switched(now);
     this.events.onSong?.(this.song);
   }
 
@@ -622,7 +653,7 @@ export class Engine {
         ? settings.chords
         : this.song.chords;
     this.settings = { ...this.settings, ...settings };
-    this.song = this.compose(this.song.seed, undefined, undefined, undefined, chords);
+    this.song = this.compose(this.song.seed, undefined, undefined, undefined, chords, this.replay);
     if (this.bar >= this.song.totalBars) this.bar = this.song.sections.at(-1)?.startBar ?? 0;
     if (this.instruments) this.applySong(this.instruments);
     // A new tempo starts at the next bar line (applyBpm), keeping the bar's 16ths even.
@@ -637,6 +668,8 @@ export class Engine {
     fixed: SongMeta["fixed"] | null = this.fixed ?? null,
     /** The playing song's own by default (recomposing it); new songs pass the setting. */
     chords: ChordsMode = this.song.chords,
+    /** A song played again as it was (SongMeta.replay). */
+    replay: SongSpec | null = null,
   ): Song {
     const song = compose({
       seed,
@@ -647,7 +680,7 @@ export class Engine {
       bpm: this.settings.bpm ?? fixed?.bpm ?? null,
       weights: this.settings.weights ?? "auto",
       reference,
-      custom: custom?.spec ?? null,
+      custom: custom?.spec ?? replay,
     });
     const imported = reference ? this.imported[reference] : undefined;
     if (imported) song.imported = imported;
@@ -703,6 +736,7 @@ export class Engine {
       serial: this.serial,
       reference: this.reference,
       custom: this.custom,
+      ...(this.replay && { replay: this.replay }),
       ...(this.fixed && { fixed: this.fixed }),
       ...(this.tempo && { tempo: this.tempo }),
     };
@@ -990,8 +1024,9 @@ export class Engine {
   private following(song: Song, meta: SongMeta): { song: Song; meta: SongMeta } {
     if (meta.custom) return { song, meta };
     if (this.repeat) {
-      const { reference, custom, fixed } = meta;
-      return { song, meta: { serial: ++this.serials, reference, custom, ...(fixed && { fixed }) } };
+      const { reference, custom, replay, fixed } = meta;
+      const again = { reference, custom, ...(replay && { replay }), ...(fixed && { fixed }) };
+      return { song, meta: { serial: ++this.serials, ...again } };
     }
     const serial = ++this.serials;
     return {
@@ -1043,6 +1078,7 @@ export class Engine {
             deck.meta.fixed ?? null,
             // A later song is a new one: it follows the setting.
             this.settings.chords,
+            deck.meta.replay ?? null,
           );
     const meta = deck.meta.serial === this.serial ? this.meta() : deck.meta;
     player.cut(line.time, this.planFrom(song, bar, meta, line.time));
@@ -1063,6 +1099,7 @@ export class Engine {
       this.song = deck.song;
       this.reference = deck.meta.reference;
       this.custom = deck.meta.custom;
+      this.replay = deck.meta.replay ?? null;
       this.fixed = deck.meta.fixed;
       this.tempo = deck.meta.tempo;
       this.events.onSong?.(this.song);
@@ -1120,6 +1157,8 @@ export class Engine {
       this.bar = 0;
     } else if (this.bar >= this.song.totalBars) {
       this.reference = null;
+      this.replay = null;
+      this.serial = ++this.serials;
       this.fixed = this.tempo = undefined;
       this.song = this.compose(nextSeed(this.song.seed), null, null, null, this.settings.chords);
       this.bar = 0;

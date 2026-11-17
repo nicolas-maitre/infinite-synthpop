@@ -140,6 +140,15 @@ one set of faders and no state to keep in sync.
    - A `#song=` creation link opens the advanced view for that visit (creator mode lives there),
      without changing the remembered view.
 2. **History.** `history.ts`, Previous, the Previous songs list; Favourites and Originals lists.
+   **Done.**
+   - The three lists are tabs in one card, on every screen size (three columns were too narrow
+     at the view's width).
+   - A song from the lists (and a favourite) plays again as it was, once, through
+     `Engine.replaySong`; the songs then go on from it. In the advanced view, My songs still
+     opens a song as a creation, which loops.
+   - Previous goes back a song within its first 2 bars (about 4 s), else restarts it.
+   - In the advanced view, N and Random song stay a new random song; the media keys walk the
+     history in both views.
 3. **Mix next.**
 4. **Length range.** Composer and `swapBar`.
 
@@ -147,5 +156,4 @@ Each phase is checked in Chromium and Firefox (headless), audio muted.
 
 ## Open
 
-- The lists on a phone: tabs (as drawn) or one long scroll.
 - Whether the simple view gets a fullscreen / "now playing only" mode later.

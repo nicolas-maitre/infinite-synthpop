@@ -1,14 +1,14 @@
 /**
  * The simple view: a music player over the same engine and settings as the advanced view. What's
  * playing, previous / play / next with a seek bar and repeat, DJ mode, lite playback, the volume
- * with the mixer under it, and the genre that plays next. main.ts owns the state and calls the
- * render methods; this only binds the controls.
+ * with the mixer under it, the genre that plays next, and the songs heard before, the favourites
+ * and the originals. main.ts owns the state and calls the render methods; this only binds the
+ * controls.
  */
 import type { Song } from "./composer";
 import { GENRE_IDS, GENRES, type GenreId } from "./genres";
 import { barSeconds, songSeconds } from "./mediasession";
 import { animate } from "./quality";
-import { REFERENCES } from "./references";
 import { keyName } from "./theory";
 
 export type SimpleGenre = GenreId | "auto";
@@ -26,6 +26,30 @@ export interface SimpleViewActions {
   setVolume(db: number): void;
   toggleSave(): void;
   share(button: HTMLButtonElement): void;
+  /** The lists: play a row, ♡ a previous song, share or remove a favourite. */
+  playHistory(id: string): void;
+  toggleHistorySaved(id: string): void;
+  playFavourite(id: string): void;
+  shareFavourite(id: string, button: HTMLButtonElement): void;
+  removeFavourite(id: string): void;
+  playOriginal(id: string): void;
+}
+
+/** A row of one of the lists. */
+export interface SongRow {
+  id: string;
+  title: string;
+  meta: string;
+  /** The one playing. */
+  current: boolean;
+  /** In My songs (the previous songs' ♡). */
+  saved?: boolean;
+}
+
+export interface SongLists {
+  history: SongRow[];
+  favourites: SongRow[];
+  originals: SongRow[];
 }
 
 /** The settings the view shows. `genre` is "custom" when the advanced view set more than a genre. */
@@ -50,6 +74,9 @@ export interface SimpleView {
   renderBuffer(status: { text: string; waiting: boolean } | null): void;
   renderSaved(saved: boolean, title: string): void;
   renderSettings(settings: SimpleSettings): void;
+  renderLists(lists: SongLists): void;
+  /** A line under the lists ("Deleted …"), with an Undo when there's one. */
+  renderListStatus(text: string, undo?: () => void): void;
   /** The view is shown or hidden (the progress only animates while shown). */
   setShown(shown: boolean): void;
   /** Where the mixer card goes while this view shows. */
@@ -93,6 +120,13 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     djState: el(root, "s-dj-state"),
     djDesc: el(root, "s-dj-desc"),
     genre: el<HTMLSelectElement>(root, "s-genre"),
+    history: el<HTMLUListElement>(root, "s-history"),
+    historyEmpty: el(root, "s-history-empty"),
+    favourites: el<HTMLUListElement>(root, "s-favourites"),
+    favouritesEmpty: el(root, "s-favourites-empty"),
+    favouritesCount: el(root, "s-favourites-count"),
+    originals: el<HTMLUListElement>(root, "s-originals"),
+    listStatus: el(root, "s-lists-status"),
   };
   const djDesc = ui.djDesc.textContent ?? "";
 
@@ -100,7 +134,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     b.title = text;
     b.setAttribute("aria-label", text);
   };
-  label(ui.prev, "Back to the start of the song (←)");
+  label(ui.prev, "Previous song, or back to the start once a song is under way (←)");
   label(ui.next, "Next song (→ or N)");
   label(ui.repeat, "Repeat this song (R)");
 
@@ -159,6 +193,69 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   ui.volume.addEventListener("input", () => actions.setVolume(Number(ui.volume.value)));
   ui.save.addEventListener("click", () => actions.toggleSave());
   ui.share.addEventListener("click", () => actions.share(ui.share));
+  // ── Lists: one tab at a time (arrow keys move between the tabs) ──
+  const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+  const selectTab = (tab: HTMLButtonElement) => {
+    for (const t of tabs) {
+      const on = t === tab;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+      const panel = root.querySelector<HTMLElement>(`#${t.getAttribute("aria-controls")}`);
+      if (panel) panel.hidden = !on;
+    }
+  };
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => selectTab(tab));
+    tab.addEventListener("keydown", (e) => {
+      const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!step) return;
+      // Not previous / next song.
+      e.stopPropagation();
+      const next = tabs[(tabs.indexOf(tab) + step + tabs.length) % tabs.length]!;
+      selectTab(next);
+      next.focus();
+    });
+  }
+
+  const smallButton = (text: string, title: string, onClick: (b: HTMLButtonElement) => void) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn small";
+    b.textContent = text;
+    b.title = title;
+    b.setAttribute("aria-label", title);
+    b.addEventListener("click", () => onClick(b));
+    return b;
+  };
+  const renderRows = (
+    list: HTMLUListElement,
+    rows: SongRow[],
+    play: (id: string) => void,
+    extra: (row: SongRow) => HTMLElement[] = () => [],
+  ) => {
+    list.replaceChildren(
+      ...rows.map((row) => {
+        const li = document.createElement("li");
+        li.className = "song-row";
+        if (row.current) li.setAttribute("aria-current", "true");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "song-play";
+        button.title = `Play “${row.title}”`;
+        const name = document.createElement("span");
+        name.className = "song-name";
+        name.textContent = row.title;
+        const meta = document.createElement("span");
+        meta.className = "song-meta";
+        meta.textContent = row.meta;
+        button.append(name, meta);
+        button.addEventListener("click", () => play(row.id));
+        li.append(button, ...extra(row));
+        return li;
+      }),
+    );
+  };
+
   ui.mixerToggle.addEventListener("click", () => {
     const open = ui.mixerToggle.getAttribute("aria-expanded") !== "true";
     ui.mixerToggle.setAttribute("aria-expanded", String(open));
@@ -172,7 +269,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       song = next;
       ui.title.textContent = next.title;
       ui.meta.textContent = [
-        next.reference ? `Original · ${REFERENCES[next.reference].title}` : GENRES[next.genre].name,
+        next.reference ? `Original · ${GENRES[next.genre].name}` : GENRES[next.genre].name,
         keyName(next.key),
         `${next.bpm} BPM`,
       ].join(" · ");
@@ -236,6 +333,43 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       } else custom.remove();
       ui.genre.value = s.genre;
       ui.volume.value = String(s.volume);
+    },
+
+    renderLists({ history, favourites, originals }) {
+      renderRows(ui.history, history, actions.playHistory, (row) => {
+        const heart = smallButton(
+          row.saved ? "♥" : "♡",
+          row.saved ? `Remove “${row.title}” from Favourites` : `Keep “${row.title}” in Favourites`,
+          () => actions.toggleHistorySaved(row.id),
+        );
+        heart.setAttribute("aria-pressed", String(!!row.saved));
+        heart.classList.add("heart");
+        return [heart];
+      });
+      ui.historyEmpty.hidden = history.length > 0;
+      renderRows(ui.favourites, favourites, actions.playFavourite, (row) => [
+        smallButton("⤴", `Copy a link to “${row.title}”`, (b) => actions.shareFavourite(row.id, b)),
+        smallButton("×", `Remove “${row.title}” from Favourites`, () =>
+          actions.removeFavourite(row.id),
+        ),
+      ]);
+      ui.favouritesEmpty.hidden = favourites.length > 0;
+      ui.favouritesCount.textContent = favourites.length ? String(favourites.length) : "";
+      renderRows(ui.originals, originals, actions.playOriginal);
+    },
+
+    renderListStatus(text, undo) {
+      ui.listStatus.replaceChildren(text);
+      if (!undo) return;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "link";
+      b.textContent = "Undo";
+      b.addEventListener("click", () => {
+        ui.listStatus.textContent = "";
+        undo();
+      });
+      ui.listStatus.append(" ", b);
     },
 
     setShown(on) {

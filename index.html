@@ -154,6 +154,56 @@
           <select id="s-genre"></select>
         </label>
       </section>
+
+      <section class="card song-lists" aria-label="Songs">
+        <div class="tabs" role="tablist" aria-label="Songs">
+          <button
+            type="button"
+            role="tab"
+            id="tab-history"
+            aria-controls="panel-history"
+            aria-selected="true"
+          >
+            Previous songs
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-favourites"
+            aria-controls="panel-favourites"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            Favourites <span class="count" id="s-favourites-count"></span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-originals"
+            aria-controls="panel-originals"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            Originals
+          </button>
+        </div>
+        <div role="tabpanel" id="panel-history" aria-labelledby="tab-history">
+          <p class="note" id="s-history-empty">The songs you hear show up here.</p>
+          <ul class="song-list" id="s-history"></ul>
+        </div>
+        <div role="tabpanel" id="panel-favourites" aria-labelledby="tab-favourites" hidden>
+          <p class="note" id="s-favourites-empty">Press ♡ Save to keep a song here.</p>
+          <ul class="song-list" id="s-favourites"></ul>
+        </div>
+        <div role="tabpanel" id="panel-originals" aria-labelledby="tab-originals" hidden>
+          <p class="note">
+            The records the generator was measured from: their form, chords, key and tempo, with
+            generated parts.
+          </p>
+          <ul class="song-list" id="s-originals"></ul>
+        </div>
+        <p class="note lists-status" id="s-lists-status" role="status"></p>
+      </section>
     </main>
 
     <main class="grid" id="advanced-view">
