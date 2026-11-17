@@ -8,7 +8,7 @@ work (their mode colour, bass motion, cadences, contrast between sections), inst
 measured loop and lightly varying it. Today's generator stays available, unchanged, as
 **classic progressions**.
 
-**Status:** planned. Forms (section order and lengths) get the same treatment in a later phase
+**Status:** phase 1 (plumbing) done; theory mode still plays classic's chords. Forms (section order and lengths) get the same treatment in a later phase
 (§8).
 
 ## 1. The problem, measured
@@ -199,7 +199,12 @@ the planners, arranger, melodies and creator need no change.
      for its theory twin once they differ.
    - ✅ At first theory mode just runs classic, so nothing audible changes (`// Phase 2:` in
      composer.ts marks where the generator plugs in).
-   - The compositional `chord()` with its round-trip test over the old table.
+   - ✅ The compositional `chord()` with its round-trip test over the old table
+     (`src/chords.test.ts`). The grammar is in the comment above `parseNumeral` in theory.ts. A
+     slash after an unaltered uppercase V (any quality) names an applied target (`V7/vi`), except
+     over the tonic (`V/i` is V over a tonic pedal); after any other chord it names the bass. An
+     explicit accidental (`b`, `#`, `♮`) counts from the major scale, for chords the implied
+     minor-key degrees can't name (`♮VI`, `bvi`).
 2. **Synthpop analysis and generator,** verse and chorus (and the major-key pre-chorus). It's the
    best-documented genre and the closest to the current results, so it's the easiest place to tell
    whether "theory" beats "classic" by ear.
