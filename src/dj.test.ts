@@ -32,6 +32,9 @@ import {
   PAD_FADE_BARS,
   swapBar,
   KIT_RAMP_BARS,
+  MIX_NEXT_INTRO_BARS,
+  MIX_NEXT_LINE,
+  mixNextSwap,
 } from "./dj";
 import { GENRE_IDS } from "./genres";
 import { createRng } from "./rng";
@@ -171,6 +174,28 @@ describe("the decks around a handoff", () => {
       expect(play(0).notes).toEqual(arrangeBar(song, 0).notes);
       // The beat never drops: drums from bar 0 on, the groove standing in until the song's own.
       for (let bar = 0; bar < 8; bar++) expect(play(bar).drums.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("plays Mix next's short intro as the whole groove", () => {
+    for (const song of songs) {
+      const play = incomingArrange(song, MIX_NEXT_INTRO_BARS);
+      const full = incomingArrange(song);
+      for (let bar = -MIX_NEXT_INTRO_BARS; bar < 0; bar++) {
+        expect(play(bar)).toEqual(full(bar));
+        expect(play(bar).drums.some((h) => h.voice === "kick")).toBe(true);
+      }
+    }
+  });
+
+  it("hands over for Mix next on the next line into a section", () => {
+    for (const song of songs) {
+      const swap = mixNextSwap(song, 21);
+      expect(swap).toBeGreaterThanOrEqual(21);
+      expect(swap).toBeLessThan(21 + MIX_NEXT_LINE);
+      const section = song.sections.find((s) => swap >= s.startBar && swap < s.startBar + s.bars);
+      expect((swap - section!.startBar) % MIX_NEXT_LINE).toBe(0);
+      expect(mixNextSwap(song, song.totalBars + 3)).toBe(song.totalBars);
     }
   });
 });

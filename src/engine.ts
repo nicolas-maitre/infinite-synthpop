@@ -33,6 +33,8 @@ import {
   glideShape,
   incomingArrange,
   INTRO_BARS,
+  MIX_NEXT_INTRO_BARS,
+  mixNextSwap,
   keyBefore,
   morphArrange,
   morphSound,
@@ -119,6 +121,8 @@ interface SongMeta {
 interface DjPlan {
   swap: number;
   style: TransitionStyle;
+  /** A crossfade's mix-in intro (bars before the swap); Mix next's is short. */
+  intro: number;
   /** A crossfade's trick (a morph has none). */
   trick: Trick;
   next: { song: Song; meta: SongMeta };
@@ -216,6 +220,8 @@ export class Engine {
   private mixing: Song | null = null;
   /** A song plays again when it ends instead of moving on (the DJ doesn't mix out). */
   private repeat = false;
+  /** The song Mix next brought the transition forward for. */
+  private mixNextFor: Song | null = null;
 
   constructor(
     private settings: EngineSettings,
@@ -366,8 +372,59 @@ export class Engine {
     if (!this.dj || !this.player || this.custom || this.repeat) return null;
     const plan = this.djPlans.get(this.song);
     if (!plan) return null;
-    const window = plan.style === "morph" ? MORPH_BARS : INTRO_BARS;
+    const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
     return { from: Math.max(0, plan.swap - window), swap: plan.swap };
+  }
+
+  /**
+   * Mix next (DJ mode): whether it can start a transition now. Not outside DJ mode, for a
+   * creation (it loops) or on repeat; nor once the song's transition is under way or asked for.
+   */
+  get canMixNext(): boolean {
+    return (
+      this.dj &&
+      this.player !== null &&
+      !this.custom &&
+      !this.repeat &&
+      this.mixing === null &&
+      this.mixNextFor !== this.song
+    );
+  }
+
+  /** Mix next's state: asked for and coming up ("soon"), a transition being heard ("mixing"),
+   * or neither. */
+  get mixState(): "idle" | "soon" | "mixing" {
+    if (this.mixing) return "mixing";
+    return this.mixNextFor === this.song && this.player ? "soon" : "idle";
+  }
+
+  /**
+   * Mix next: brings the playing song's transition forward, so the next song comes in soon. A
+   * crossfade with a short mix-in intro (MIX_NEXT_INTRO_BARS), from the first bar line the render
+   * can still change, handing over on a line into a section (mixNextSwap). The next song is the
+   * planned one, composed for the key at the new swap. False when it can't (canMixNext), or the
+   * planned transition starts as soon anyway.
+   */
+  mixNext(): boolean {
+    const player = this.player;
+    if (!player || !this.canMixNext) return false;
+    const song = this.song;
+    const meta = this.meta();
+    const plan = this.djPlan(song, meta);
+    const line = player.barLineAfter(player.readyAfter());
+    if (!plan || !line || line.deck.meta.serial !== this.serial) return false;
+    const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
+    if (line.bar >= plan.swap - window) return false;
+    // Not while the song still glides from the one before: both decks share its tempo.
+    const shape = this.shapeFor(song, meta);
+    const glideEnd = shape.glide ? shape.glide.start + shape.glide.bars : 0;
+    const swap = mixNextSwap(song, Math.max(line.bar, glideEnd) + MIX_NEXT_INTRO_BARS);
+    if (swap >= plan.swap) return false;
+    // Planned again at the new swap (and kept): the key there, and what that allows.
+    if (!this.djPlan(song, meta, swap)) return false;
+    this.mixNextFor = song;
+    this.rerender();
+    return true;
   }
 
   /** true: songs, jumps and skips start at once; false: at the next bar line. */
@@ -754,14 +811,17 @@ export class Engine {
    * this one's and a key that mixes from it (dj.ts). Null outside DJ mode and for creations (they
    * loop).
    */
-  private djPlan(song: Song, meta: SongMeta): DjPlan | null {
+  private djPlan(song: Song, meta: SongMeta, mixNextAt?: number): DjPlan | null {
     if (!this.dj || meta.custom || this.repeat) return null;
     const cached = this.djPlans.get(song);
-    if (cached) return cached;
+    if (cached && mixNextAt === undefined) return cached;
     const rng = createRng(song.seed).fork("dj");
     const shape = this.shapeFor(song, meta);
     const glideEnd = shape.glide ? shape.glide.start + shape.glide.bars : 0;
-    const swap = swapBar(song, rng, glideEnd + Math.max(INTRO_BARS, MORPH_BARS));
+    // Drawn either way, so the picks after it stay those of the planned transition.
+    const planned = swapBar(song, rng, glideEnd + Math.max(INTRO_BARS, MORPH_BARS));
+    // Mix next: a crossfade with a short intro, handing over there.
+    const swap = mixNextAt ?? planned;
     const seed = nextSeed(song.seed);
     const own = this.compose(seed, null, null, null, this.settings.chords);
     const from = new TempoMap(0, shape).bpmAt(swap - 1);
@@ -786,7 +846,7 @@ export class Engine {
     const next = this.compose(seed, null, null, fixed, this.settings.chords);
     const trick: Trick = id === "pitch" ? { id, shift: pitchShift(keyNow, own.key, next) } : { id };
     const style =
-      id === "pitch"
+      id === "pitch" || mixNextAt !== undefined
         ? "crossfade"
         : this.djStyle === "auto"
           ? autoTransition(song, next, keyNow, from)
@@ -795,6 +855,7 @@ export class Engine {
     const plan: DjPlan = {
       swap,
       style,
+      intro: mixNextAt === undefined ? INTRO_BARS : MIX_NEXT_INTRO_BARS,
       trick,
       next: {
         song: next,
@@ -874,7 +935,7 @@ export class Engine {
     const clock = TempoMap.anchored(this.shapeFor(song, meta), bar, at);
     if (plan.style === "morph") return this.planMorph(song, bar, meta, clock, swap, next);
     const entered = entryArrange(song, meta);
-    const mixFrom = swap - INTRO_BARS;
+    const mixFrom = swap - plan.intro;
     if (bar < mixFrom) {
       return {
         decks: [{ song, clock, from: bar, to: mixFrom, shown: [bar, mixFrom], meta, ...entered }],
@@ -883,7 +944,7 @@ export class Engine {
       };
     }
     const nextClock = TempoMap.anchored(this.shapeFor(next.song, next.meta), 0, clock.time(swap));
-    const h = handoff(song, swap, next.song, plan.trick);
+    const h = handoff(song, swap, next.song, plan.trick, plan.intro);
     const tail = Math.min(h.tail, next.song.totalBars - 1);
     return {
       decks: [
@@ -901,7 +962,7 @@ export class Engine {
           song: next.song,
           clock: nextClock,
           from: bar - swap,
-          first: -INTRO_BARS,
+          first: -plan.intro,
           to: tail,
           shown: [0, tail],
           meta: next.meta,
@@ -981,6 +1042,8 @@ export class Engine {
     after = 16,
     style: TransitionStyle | "auto" = this.djStyle,
     trick: TrickId | null = null,
+    /** Mix next pressed with the render this bar ahead: its transition instead of the planned one. */
+    mixNextFrom?: number,
   ): { pieces: Piece<SongMeta>[]; mix: RenderMix; style: TransitionStyle; trick: TrickId } {
     const was = { dj: this.dj, style: this.djStyle, trick: this.forceTrick };
     this.dj = true;
@@ -989,8 +1052,14 @@ export class Engine {
     try {
       const song = this.compose(seed, null, null, null, this.settings.chords);
       const meta: SongMeta = { serial: -1, reference: null, custom: null };
-      const plan = this.djPlan(song, meta)!;
-      const window = plan.style === "morph" ? MORPH_BARS : INTRO_BARS;
+      const plan = this.djPlan(
+        song,
+        meta,
+        mixNextFrom === undefined
+          ? undefined
+          : mixNextSwap(song, mixNextFrom + MIX_NEXT_INTRO_BARS),
+      )!;
+      const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
       const pieces = [this.planFrom(song, Math.max(0, plan.swap - window - before), meta, 0)];
       for (;;) {
         const piece = pieces.at(-1)!;

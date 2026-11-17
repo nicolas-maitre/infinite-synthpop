@@ -2010,3 +2010,54 @@ html[data-view="advanced"] #simple-view {
 .lists-status:not(:empty) {
   margin-top: 10px;
 }
+
+/* DJ mode's switch, with Mix next beside it. */
+.dj-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.dj-row .dj-toggle {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn.mix-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius);
+  padding: 0 18px;
+  font-weight: 700;
+  color: var(--accent-2);
+  border-color: #39d0ff88;
+}
+
+.btn.mix-next[hidden] {
+  display: none;
+}
+
+.btn.mix-next .icon {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  fill: currentColor;
+}
+
+.btn.mix-next:disabled {
+  color: var(--muted);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .dj-row {
+    flex-direction: column;
+  }
+
+  .btn.mix-next {
+    justify-content: center;
+    padding: 12px 18px;
+  }
+}

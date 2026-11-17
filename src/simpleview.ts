@@ -21,6 +21,7 @@ export interface SimpleViewActions {
   seek(bar: number): void;
   setRepeat(on: boolean): void;
   setDj(on: boolean): void;
+  mixNext(): void;
   setLite(on: boolean): void;
   setGenre(genre: SimpleGenre): void;
   setVolume(db: number): void;
@@ -75,6 +76,8 @@ export interface SimpleView {
   renderSaved(saved: boolean, title: string): void;
   renderSettings(settings: SimpleSettings): void;
   renderLists(lists: SongLists): void;
+  /** Mix next: shown in DJ mode, enabled when it can start a transition. */
+  renderMixNext(state: { shown: boolean; enabled: boolean; label: string; title: string }): void;
   /** A line under the lists ("Deleted …"), with an Undo when there's one. */
   renderListStatus(text: string, undo?: () => void): void;
   /** The view is shown or hidden (the progress only animates while shown). */
@@ -119,6 +122,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     dj: el<HTMLButtonElement>(root, "s-dj"),
     djState: el(root, "s-dj-state"),
     djDesc: el(root, "s-dj-desc"),
+    mixNext: el<HTMLButtonElement>(root, "s-mix-next"),
+    mixNextLabel: el(root, "s-mix-next-label"),
     genre: el<HTMLSelectElement>(root, "s-genre"),
     history: el<HTMLUListElement>(root, "s-history"),
     historyEmpty: el(root, "s-history-empty"),
@@ -185,6 +190,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   ui.dj.addEventListener("click", () =>
     actions.setDj(ui.dj.getAttribute("aria-pressed") !== "true"),
   );
+  ui.mixNext.addEventListener("click", () => actions.mixNext());
   ui.lite.addEventListener("change", () => actions.setLite(ui.lite.checked));
   ui.genre.addEventListener("change", () => {
     const v = ui.genre.value;
@@ -356,6 +362,13 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       ui.favouritesEmpty.hidden = favourites.length > 0;
       ui.favouritesCount.textContent = favourites.length ? String(favourites.length) : "";
       renderRows(ui.originals, originals, actions.playOriginal);
+    },
+
+    renderMixNext({ shown, enabled, label, title }) {
+      ui.mixNext.hidden = !shown;
+      ui.mixNext.disabled = !enabled;
+      ui.mixNextLabel.textContent = label;
+      ui.mixNext.title = title;
     },
 
     renderListStatus(text, undo) {
