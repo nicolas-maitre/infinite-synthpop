@@ -209,6 +209,8 @@ export class Engine {
   private djPlans = new WeakMap<Song, DjPlan>();
   /** The song a transition being heard mixes into. */
   private mixing: Song | null = null;
+  /** A song plays again when it ends instead of moving on (the DJ doesn't mix out). */
+  private repeat = false;
 
   constructor(
     private settings: EngineSettings,
@@ -334,6 +336,30 @@ export class Engine {
     return this.cue;
   }
 
+  /** Repeat: the song starts again when it ends, and the DJ doesn't mix out of it. */
+  setRepeat(on: boolean): void {
+    if (on === this.repeat) return;
+    this.repeat = on;
+    this.rerender();
+  }
+
+  get repeating(): boolean {
+    return this.repeat;
+  }
+
+  /**
+   * DJ mode: where the playing song mixes out, in its bars (`from`, the transition's first bar,
+   * to `swap`, where the next song's bar 0 starts); null when it doesn't (not in DJ mode, a
+   * creation, repeat on, or not planned yet).
+   */
+  get mixOut(): { from: number; swap: number } | null {
+    if (!this.dj || !this.player || this.custom || this.repeat) return null;
+    const plan = this.djPlans.get(this.song);
+    if (!plan) return null;
+    const window = plan.style === "morph" ? MORPH_BARS : INTRO_BARS;
+    return { from: Math.max(0, plan.swap - window), swap: plan.swap };
+  }
+
   /** true: songs, jumps and skips start at once; false: at the next bar line. */
   setInstant(on: boolean): void {
     this.instant = on;
@@ -448,8 +474,9 @@ export class Engine {
     this.setMixing(null);
   }
 
-  /** Jumps to a new song (random or given seed) at the next bar line. */
-  newSong(seed: number): void {
+  /** Jumps to a new song (random or given seed) at the next bar line, or at once with `now` (or
+   * in instant mode). */
+  newSong(seed: number, now = false): void {
     this.reference = null;
     this.custom = null;
     this.fixed = this.tempo = undefined;
@@ -458,15 +485,15 @@ export class Engine {
     this.song = this.compose(seed, null, null, null, this.settings.chords);
     this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
-    this.switched();
+    this.switched(now);
     this.events.onSong?.(this.song);
   }
 
   /**
    * Plays one of the originals (its measured form, chords, key, tempo and kit) at the next bar
-   * line. Generated songs follow when it ends.
+   * line (at once with `now`). Generated songs follow when it ends.
    */
-  playReference(id: ReferenceId): void {
+  playReference(id: ReferenceId, now = false): void {
     this.custom = null;
     this.fixed = this.tempo = undefined;
     this.loop = null;
@@ -475,15 +502,15 @@ export class Engine {
     this.song = this.compose(REFERENCE_SEEDS[id]);
     this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
-    this.switched();
+    this.switched(now);
     this.events.onSong?.(this.song);
   }
 
   /**
    * Plays a creation (creator mode) at the next bar line: from its first bar, or from the current
-   * bar when it was made from the playing song.
+   * bar when it was made from the playing song. At once with `now`.
    */
-  playCustom(creation: Creation, keepPosition = false): void {
+  playCustom(creation: Creation, keepPosition = false, now = false): void {
     this.reference = null;
     this.fixed = this.tempo = undefined;
     // Each creation gets an id the first time it plays, for its entry in My songs.
@@ -493,7 +520,7 @@ export class Engine {
     if (this.instruments) this.applySong(this.instruments);
     if (!keepPosition) {
       this.serial = ++this.serials;
-      this.switched();
+      this.switched(now);
     } else this.rerender();
     this.events.onSong?.(this.song);
   }
@@ -520,10 +547,10 @@ export class Engine {
     this.syncMode();
   }
 
-  /** Continues from this bar: at the next bar line, or at once in instant mode. */
-  jumpTo(bar: number): void {
+  /** Continues from this bar: at the next bar line, or at once in instant mode or with `now`. */
+  jumpTo(bar: number, now = false): void {
     this.bar = Math.max(0, Math.min(this.song.totalBars - 1, bar));
-    this.switched();
+    this.switched(now);
   }
 
   skipSection(): void {
@@ -539,9 +566,9 @@ export class Engine {
    * After a switch (another song, a jump): starts it at once in instant mode, or marks the bar
    * waiting for the next bar line.
    */
-  private switched(): void {
+  private switched(now = false): void {
     this.cue = this.playing ? this.bar : null;
-    if (this.cue !== null && this.instant) this.restart();
+    if (this.cue !== null && (this.instant || now)) this.restart();
     else {
       if (this.cue !== null && this.player) this.cutAhead(false);
       this.events.onCue?.(this.cue);
@@ -694,7 +721,7 @@ export class Engine {
    * loop).
    */
   private djPlan(song: Song, meta: SongMeta): DjPlan | null {
-    if (!this.dj || meta.custom) return null;
+    if (!this.dj || meta.custom || this.repeat) return null;
     const cached = this.djPlans.get(song);
     if (cached) return cached;
     const rng = createRng(song.seed).fork("dj");
@@ -958,9 +985,14 @@ export class Engine {
     return this.planFrom(deck.song, bar, deck.meta, piece.end);
   }
 
-  /** The song after this one: a creation loops; otherwise a new song from the next seed. */
+  /** The song after this one: a creation loops, and so does any song on repeat (played again at
+   * its own tempo); otherwise a new song from the next seed. */
   private following(song: Song, meta: SongMeta): { song: Song; meta: SongMeta } {
     if (meta.custom) return { song, meta };
+    if (this.repeat) {
+      const { reference, custom, fixed } = meta;
+      return { song, meta: { serial: ++this.serials, reference, custom, ...(fixed && { fixed }) } };
+    }
     const serial = ++this.serials;
     return {
       song: this.compose(nextSeed(song.seed), null, null, null, this.settings.chords),
@@ -1084,7 +1116,7 @@ export class Engine {
     if (looped && (this.bar < looped.startBar || this.bar >= looped.startBar + looped.bars)) {
       this.bar = looped.startBar;
     }
-    if (this.bar >= this.song.totalBars && this.custom) {
+    if (this.bar >= this.song.totalBars && (this.custom || this.repeat)) {
       this.bar = 0;
     } else if (this.bar >= this.song.totalBars) {
       this.reference = null;

@@ -132,7 +132,13 @@ one set of faders and no state to keep in sync.
 ## Phases
 
 1. **Shell.** `prefs.ts`, the view switch, the simple layout: now playing, play / pause, instant
-   Next, seek bar, Repeat, DJ (on by default), Lite, volume with the mixer drawer, Genre.
+   Next, seek bar, Repeat, DJ (on by default), Lite, volume with the mixer drawer, Genre. **Done.**
+   - Until phase 2, Previous goes back to the start of the song.
+   - Next (button, → and N, the media keys) cuts at once in the simple view; in the advanced view
+     N and the media keys still follow the Switch setting.
+   - Repeat sits right of Next, as in most players.
+   - A `#song=` creation link opens the advanced view for that visit (creator mode lives there),
+     without changing the remembered view.
 2. **History.** `history.ts`, Previous, the Previous songs list; Favourites and Originals lists.
 3. **Mix next.**
 4. **Length range.** Composer and `swapBar`.
