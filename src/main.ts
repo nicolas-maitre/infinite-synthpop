@@ -23,6 +23,7 @@ import {
 import { matchTracks, mergeBars, parseMidi, toDrumBars, type MidiFile } from "./midi";
 import { mountCreator } from "./creator";
 import { Library, type SavedSong } from "./library";
+import { History, type HistoryEntry, type NewEntry } from "./history";
 import { assignMelody, nextMelodyName } from "./melodies";
 import { Recorder } from "./recorder";
 import { download, exportAudio, fileName, songToMidi } from "./export";
@@ -45,7 +46,7 @@ import {
 } from "./quality";
 import { BlendPad, initials } from "./blendpad";
 import { barAtSeconds, mountMediaControls } from "./mediasession";
-import { blendsKey, isGenreBlends, refsBlend, songSound } from "./profile";
+import { blendsKey, isGenreBlends, REFERENCE_IDS, refsBlend, songSound } from "./profile";
 import {
   blendRefsFor,
   centreFor,
@@ -157,6 +158,30 @@ const simple = mountSimpleView(el("simple-view"), {
   setVolume,
   toggleSave,
   share: (button) => void share(button, shareUrl(engine.song, engine.creation)),
+  playHistory: (id) => {
+    const entry = played.get(id);
+    if (entry) playEntry(entry, { start: true });
+  },
+  toggleHistorySaved,
+  playFavourite: (id) => {
+    const creation = library.creation(id);
+    if (!creation) return;
+    navigatingTo = null;
+    engine.replaySong(creation.seed, creation.spec, true);
+    fromLibrary = { playId: engine.playId, id };
+    if (!engine.playing) void togglePlay();
+  },
+  shareFavourite: (id, button) => {
+    const creation = library.creation(id);
+    if (creation) void share(button, shareUrl(engine.song, creation));
+  },
+  removeFavourite: (id) => deleteSaved(id),
+  playOriginal: (id) => {
+    if (!isReferenceId(id)) return;
+    navigatingTo = null;
+    engine.playReference(id, true);
+    if (!engine.playing) void togglePlay();
+  },
 });
 
 /** The view showing. A creation link opens the advanced view for that visit without keeping it
@@ -269,8 +294,102 @@ function songOrigin(song: Song): string {
 
 /** The library entry for what's playing, if it has one. */
 function currentEntry(): SavedSong | undefined {
-  const id = engine.creation?.id;
-  return id ? library.get(id) : library.findFrom(songOrigin(engine.song));
+  const id =
+    engine.creation?.id ?? (fromLibrary?.playId === engine.playId ? fromLibrary.id : undefined);
+  return (id ? library.get(id) : undefined) ?? library.findFrom(songOrigin(engine.song));
+}
+
+// ── Previous songs (history.ts): what was heard, for the list and Previous / Next ─────────────
+
+const played = new History(storage());
+/** The favourite (My songs entry) playing back, by the playing it started. */
+let fromLibrary: { playId: number; id: string } | null = null;
+/** The history entry of what plays, and the playing (Engine.playId) it was recorded for. */
+let playingEntry: string | null = null;
+let recordedPlay = -1;
+/** Previous / Next walk the history: the entry about to play, so it isn't recorded again. */
+let navigatingTo: string | null = null;
+
+/** What the history keeps of a song: enough to play it again exactly. */
+function historyEntry(song: Song): NewEntry {
+  const creation = engine.creation ?? { seed: song.seed, spec: songToSpec(song) };
+  const saved = currentEntry()?.id;
+  return {
+    title: song.title,
+    summary: [
+      song.reference ? "Original" : GENRES[song.genre].name,
+      keyName(song.key),
+      `${song.bpm} BPM`,
+    ].join(" · "),
+    data: encodeCreation(creation),
+    origin: songOrigin(song),
+    ...(song.reference && { reference: song.reference }),
+    ...(saved && { saved }),
+  };
+}
+
+/** A bar is heard: the first of a new playing goes in the history (unless Previous / Next
+ * brought back one already there). */
+function noteHeard(): void {
+  if (engine.playId === recordedPlay) return;
+  recordedPlay = engine.playId;
+  if (navigatingTo && played.get(navigatingTo)) playingEntry = navigatingTo;
+  else playingEntry = played.record(historyEntry(engine.song)).id;
+  navigatingTo = null;
+  renderSongs();
+}
+
+/** The playing song changed in place (a setting recomposed it): its entry follows. */
+function noteRecomposed(song: Song): void {
+  if (playingEntry && engine.playId === recordedPlay)
+    played.update(playingEntry, historyEntry(song));
+}
+
+/** Plays a history entry again: at once, starting playback when asked (a click on the list).
+ * With `navigate` (Previous / Next) it plays as that entry instead of being recorded anew. */
+function playEntry(entry: HistoryEntry, opts: { navigate?: boolean; start?: boolean }): void {
+  const now = currentView === "simple";
+  navigatingTo = opts.navigate ? entry.id : null;
+  fromLibrary = null;
+  if (entry.reference) engine.playReference(entry.reference, now);
+  else {
+    const creation = decodeCreation(entry.data);
+    if (!creation) return;
+    engine.replaySong(creation.seed, creation.spec, now);
+    if (entry.saved && library.get(entry.saved))
+      fromLibrary = { playId: engine.playId, id: entry.saved };
+  }
+  if (opts.start && !engine.playing) void togglePlay();
+}
+
+/** The history entry of what plays, once it has been heard. */
+function heardEntry(): string | null {
+  return engine.playId === recordedPlay ? playingEntry : null;
+}
+
+/** The My songs entry a history entry is (♥ on its row). */
+function savedFor(entry: HistoryEntry): SavedSong | undefined {
+  return (
+    (entry.saved ? library.get(entry.saved) : undefined) ??
+    (entry.origin ? library.findFrom(entry.origin) : undefined)
+  );
+}
+
+function toggleHistorySaved(id: string): void {
+  const entry = played.get(id);
+  if (!entry) return;
+  const saved = savedFor(entry);
+  if (saved) {
+    deleteSaved(saved.id);
+    return;
+  }
+  const creation = decodeCreation(entry.data);
+  if (!creation) return;
+  const { key, bpm, sections } = creation.spec;
+  const bars = sections.reduce((n, s) => n + s.bars, 0);
+  library.save(creation, songSummary(key, bpm, bars), entry.origin);
+  simple.renderListStatus(`Saved “${entry.title}” to Favourites.`);
+  renderSongs();
 }
 
 /**
@@ -562,7 +681,10 @@ const engine = new Engine(
   initialLink?.seed ?? randomSeed(),
   {
     onSong: renderSong,
-    onBar: (ev, song) => renderBar(song, ev.bar),
+    onBar: (ev, song) => {
+      noteHeard();
+      renderBar(song, ev.bar);
+    },
     onStateChange: (playing) => {
       media.setPlaying(playing);
       renderPlayState({ playing });
@@ -615,12 +737,23 @@ async function togglePlay(): Promise<void> {
 /** Next: a new song (in the simple view at once, as a player does; in the advanced view as the
  * Switch setting says). */
 function nextSong(): void {
+  const at = heardEntry();
+  const newer = at ? played.newer(at) : undefined;
+  if (newer) {
+    playEntry(newer, { navigate: true });
+    return;
+  }
+  navigatingTo = null;
   engine.newSong(randomSeed(), currentView === "simple");
 }
 
 /** Previous: back to the start of the song. */
 function previousSong(): void {
-  engine.jumpTo(0, currentView === "simple");
+  const at = heardEntry();
+  const older = at ? played.older(at) : undefined;
+  // Past its first couple of bars (about 4 s), a song starts again first.
+  if (older && engine.currentBar <= 2) playEntry(older, { navigate: true });
+  else engine.jumpTo(0, currentView === "simple");
 }
 
 function setRepeat(on: boolean): void {
@@ -677,6 +810,7 @@ const BASS_LABELS: Record<BassStyle, string> = {
 };
 
 function renderSong(song: Song): void {
+  noteRecomposed(song);
   // A new song may be in another genre, with its own mix for the auto faders.
   applyMixer();
   simple.renderSong(song);
@@ -840,7 +974,37 @@ function renderSongs(): void {
       ? "In My songs: click to remove it"
       : "Keep this song in My songs";
   simple.renderSaved(saved || !!engine.creation, engine.song.title);
+  renderSimpleLists(current);
   if (library.failed) songsStatus.textContent = "This browser won’t store songs: use Share links.";
+}
+
+/** The simple view's lists: previous songs, favourites (My songs) and the originals. */
+function renderSimpleLists(current: SavedSong | undefined): void {
+  const heard = heardEntry();
+  simple.renderLists({
+    history: played.list().map((e) => ({
+      id: e.id,
+      title: e.title,
+      meta: `${e.summary} · ${when(e.at)}`,
+      current: e.id === heard,
+      saved: !!savedFor(e),
+    })),
+    favourites: library.list().map((s) => ({
+      id: s.id,
+      title: s.title,
+      meta: s.summary,
+      current: s.id === current?.id,
+    })),
+    originals: REFERENCE_IDS.map((id) => {
+      const ref = REFERENCES[id];
+      return {
+        id,
+        title: ref.title,
+        meta: `${GENRES[genreOfReference(id)].name} · ${keyName(ref.key)} · ${ref.bpm} BPM`,
+        current: engine.song.reference === id,
+      };
+    }),
+  });
 }
 
 /** Plays a saved song (starting playback: the click allows it). */
@@ -866,13 +1030,18 @@ function deleteSaved(id: string): void {
     renderSongs();
   });
   songsStatus.append(undo);
+  simple.renderListStatus(`Removed “${gone.title}” from Favourites.`, () => {
+    library.restore(gone);
+    songsStatus.textContent = "";
+    renderSongs();
+  });
 }
 
 /** ♡ Save: keeps the playing song in My songs, or takes it out again. */
 function toggleSave(): void {
   const song = engine.song;
   if (engine.creation) return; // already kept
-  const existing = library.findFrom(songOrigin(song));
+  const existing = currentEntry();
   if (existing) deleteSaved(existing.id);
   else {
     library.save(
@@ -1451,10 +1620,11 @@ document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     e.preventDefault();
     void togglePlay();
+  } else if (currentView === "advanced") {
+    if (key === "n") engine.newSong(randomSeed());
+    else if (key === "s") engine.skipSection();
   } else if (key === "n") nextSong();
-  else if (currentView === "advanced") {
-    if (key === "s") engine.skipSection();
-  } else if (target?.getAttribute("type") === "range") {
+  else if (target?.getAttribute("type") === "range") {
     // Arrows move a focused slider.
   } else if (e.key === "ArrowRight") nextSong();
   else if (e.key === "ArrowLeft") previousSong();
