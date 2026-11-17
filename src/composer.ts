@@ -35,6 +35,7 @@ import {
 } from "./profile";
 import type { Progression, ProgressionKind } from "./progressions";
 import { LAYERS_OFF } from "./form";
+import { theoryChords } from "./harmony";
 import { planEuro } from "./legacy-planners/euro";
 import { planItalo } from "./legacy-planners/italo";
 import { planSections } from "./legacy-planners/synthpop";
@@ -253,6 +254,9 @@ export interface Song {
   /** How generated chords were picked (ComposeOptions.chords); originals and creations play their
    * own whatever this says. */
   chords: ChordsMode;
+  /** Theory mode: the section played on its strongest reference's measured loop, as a nod to the
+   * record (about 1 song in 10); unset otherwise. */
+  quoted?: "verse" | "chorus";
   progressions: Progressions;
   sections: Section[];
   totalBars: number;
@@ -456,9 +460,8 @@ export function compose(opts: ComposeOptions): Song {
 
   const chords = opts.chords ?? "classic";
   const rngProg = root.fork("progressions");
-  // Phase 2: theory mode picks its chords here from its own forked streams
-  // (`root.fork("harmony:…")`, plan §2), leaving these draws as they are. Until then it runs
-  // classic's picks.
+  // Classic's picks are drawn in either mode, so every draw after them stays where it was; theory
+  // mode then rewrites the verse, chorus and pre-chorus from its own streams (below).
   const prog = (kind: ProgressionKind, rng = rngProg) =>
     substituteFrom(
       P.song,
@@ -479,7 +482,23 @@ export function compose(opts: ComposeOptions): Song {
   if (key.mode === "major" || formOdds((x) => x.form.preChorus) > 0)
     progressions.prechorus = prog("prechorus", root.fork("prechorus"));
   // You Came's verse is its chorus loop.
-  if (rngYc.chance(formOdds((x) => x.form.verseOnLoop))) progressions.verse = progressions.chorus;
+  const sameLoop = rngYc.chance(formOdds((x) => x.form.verseOnLoop));
+  if (sameLoop) progressions.verse = progressions.chorus;
+  // Theory: the generator writes the verse, chorus and pre-chorus of a single-genre song part
+  // whose genre has an analysis (phase 2: synthpop); the rest keep classic's (plan §7).
+  let quoted: Song["quoted"];
+  if (chords === "theory" && !ref && !P.song.mixed) {
+    const theory = theoryChords(root, P.song, key.mode, {
+      sameLoop,
+      prechorus: !!progressions.prechorus,
+    });
+    if (theory) {
+      progressions.verse = theory.verse;
+      progressions.chorus = theory.chorus;
+      if (theory.prechorus) progressions.prechorus = theory.prechorus;
+      quoted = theory.quoted ?? undefined;
+    }
+  }
   Object.assign(progressions, opts.progressions);
   if (ref) {
     progressions.verse = ref.verse;
@@ -545,6 +564,7 @@ export function compose(opts: ComposeOptions): Song {
     kit,
     bassStyle,
     chords,
+    ...(quoted ? { quoted } : {}),
     progressions,
     sections,
     totalBars,

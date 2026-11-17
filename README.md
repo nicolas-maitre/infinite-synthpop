@@ -190,11 +190,13 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
   alone reaches below 108; Euro-disco 113–125: Innocent Love 115.2, Heaven Can Wait 118.5, Crazy
   Juliet 123.0) or fixed.
 - **Key:** auto or a fixed minor key.
-- **Progressions:** how generated songs pick their chords. **theory** (the default) will build
-  them from the genres' harmonic analyses; **classic** keeps the picks every song had before
-  ([docs/plans/theory-chords.md](docs/plans/theory-chords.md)). For now both play the same chords:
-  theory becomes its own in phase 2. A change recomposes the playing song, like the other
-  generator settings. Theory songs' links carry `&chords=theory`; an old `#seed=…` link plays
+- **Progressions:** how generated songs pick their chords. **theory** (the default) builds them
+  from the genres' harmonic analyses; **classic** keeps the picks every song had before
+  ([docs/plans/theory-chords.md](docs/plans/theory-chords.md)). Theory now writes synthpop's
+  verse, chorus and pre-chorus from why True Faith's, The Different Story's and You Came's
+  progressions work (`src/harmony/`); about 1 song in 10 quotes a record's own loop. Synthpop's
+  other sections, Italo, Euro-disco and cross-genre blends still play classic's chords. A change
+  recomposes the playing song, like the other generator settings. Theory songs' links carry `&chords=theory`; an old `#seed=…` link plays
   classic, as it always has. Originals and creations keep their own chords.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.
 - **Mixer:** per-track volume, mute and solo, plus a master fader.
@@ -218,6 +220,7 @@ unit-tested. Tone.js only plays the result.
 src/rng.ts           seeded PRNG
 src/theory.ts        keys, Roman-numeral chords, scales (incl. Dorian / harmonic-minor colour), voicing
 src/progressions.ts  progression bank measured from the recordings + style-weighted substitutions
+src/harmony/         theory progressions: each genre's harmonic analysis as traits, and the generator
 src/references.ts    the originals: measured form, chords, key, tempo, kit, bass figure
 src/midi.ts          minimal MIDI file reader for user-supplied tracks
 src/composer.ts      seed → Song: form, progressions, riff / melodic-bass / arp motifs, lead and counter melodies

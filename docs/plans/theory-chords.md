@@ -8,8 +8,9 @@ work (their mode colour, bass motion, cadences, contrast between sections), inst
 measured loop and lightly varying it. Today's generator stays available, unchanged, as
 **classic progressions**.
 
-**Status:** phase 1 (plumbing) done; theory mode still plays classic's chords. Forms (section order and lengths) get the same treatment in a later phase
-(§8).
+**Status:** phases 1 (plumbing) and 2 (synthpop's verse, chorus and pre-chorus) done. Theory
+mode writes synthpop's verse, chorus and pre-chorus; every other section and genre still plays
+classic's chords. Forms (section order and lengths) get the same treatment in a later phase (§8).
 
 ## 1. The problem, measured
 
@@ -206,14 +207,88 @@ the planners, arranger, melodies and creator need no change.
      over the tonic (`V/i` is V over a tonic pedal); after any other chord it names the bass. An
      explicit accidental (`b`, `#`, `♮`) counts from the major scale, for chords the implied
      minor-key degrees can't name (`♮VI`, `bvi`).
-2. **Synthpop analysis and generator,** verse and chorus (and the major-key pre-chorus). It's the
-   best-documented genre and the closest to the current results, so it's the easiest place to tell
-   whether "theory" beats "classic" by ear.
+2. ✅ **Synthpop analysis and generator,** verse and chorus (and the major-key pre-chorus). It's
+   the best-documented genre and the closest to the current results, so it's the easiest place to
+   tell whether "theory" beats "classic" by ear.
+   - **Built:**
+     - `src/harmony/`: the analysis types (`analysis.ts`), synthpop's analysis with a source line
+       per trait (`synthpop.ts`), the generator (`generate.ts`) and its entry point (`index.ts`).
+     - Theory applies to single-genre synthpop song parts. Classic's draws are made first in
+       either mode, and the generator draws from `harmony:quote`, `harmony:chorus`,
+       `harmony:verse` and `harmony:prechorus`. Tempo, key, kit, form and the other sections come
+       out exactly as in classic (a test checks this).
+   - **Variety,** `pnpm variety 400 synthpop` (2026-11-17), auto style:
+
+     |                                     | Classic | Theory                 |
+     | ----------------------------------- | ------- | ---------------------- |
+     | Distinct verse progressions         | 41      | 287 (7.0×)             |
+     | Verses exactly a bank entry         | 77%     | 3% (0% without quotes) |
+     | Distinct chorus progressions        | 32      | 231 (7.2×)             |
+     | Choruses exactly a bank entry       | 87%     | 8% (0% without quotes) |
+     | Choruses exactly a reference's      | 34%     | 8% (the quotes)        |
+     | Distinct verse + chorus pairs       | 124     | 362                    |
+     | Distinct progressions within a song | 5.6     | 5.7                    |
+     | Songs quoting a reference's loop    | —       | 9%                     |
+
+   - **By ear (2026-11-17):** four A/B clips, each the same seed in classic and theory:
+     - seed 23, TF-leaning (0.8/0.2/0), verse into chorus;
+     - seed 89, DS-leaning (0.15/0.85/0), verse into chorus;
+     - seed 104, YC-leaning (0.1/0.1/0.8), pre-chorus into a chorus loop on ii;
+     - seed 131, the middle, a 4-bar minor pre-chorus.
+
+     The user rated the TF, DS and YC versions as good as classic or better, and found that
+     clip 4's pre-chorus leads into its chorus well. Those four seeds are now theory snapshot
+     cases.
+
+   - **Built differently from §4–§6:**
+     - **Schemas.** A schema's bars hold weighted options rather than bare motion classes. Root
+       motion weighs each option as it's filled, and it weighs into the score log-scaled by the
+       motion traits, so a third (the swing to III) isn't marked down against a step.
+     - **Choosing.** Each section draws 24 candidates and keeps the duplicates, so the blend's
+       typical shapes keep their edge. It picks among the best 8. De-duplicating first let the
+       stepwise descent i–VII–VI–V take over DS's choruses, because nearly every typical DS
+       chorus is a bank entry.
+     - **Bank penalty.** A verse or chorus that is exactly a bank entry loses 0.8 points; a
+       pre-chorus loses 0.3, because You Came's measured pre-chorus is that corner's character.
+       No unquoted verse or chorus comes out as a bank entry.
+     - **Section relations.**
+       - "Same loop" (You Came) reuses classic's own `verseOnLoop` draw, so no draw moves.
+       - "Same opening, new cadence" is a score: the verse mustn't be the chorus, its first line
+         or its cadence.
+       - The Italo relations wait for phase 4.
+     - **Second lines.** A line can repeat, answer (bars 3–4 rewritten toward another cadence),
+       contrast (another schema), or run as TF's four-line MIDI verse. The chorus answers more
+       often than the docs suggest (its weight is 0.45): it keeps TF's and DS's hook and moves
+       its ending.
+     - **The pre-chorus** has shapes for its first 2 or 6 bars, then a two-bar approach (sus4 → 7,
+       or a pre-dominant → V7) into the chorus's first chord: authentic, or deceptive (V/vi → IV,
+       V → VI). Its section length follows the progression, so a theory pre-chorus can be 4 bars
+       where classic's was 8.
+     - **Quotes.**
+       - Chance 0.12, about 9% of songs in practice. Some songs have no reference in their key
+         mode to quote.
+       - A song quotes its strongest reference in its key mode, so a minor song never plays You
+         Came's major loop.
+       - You Came's verse quote is its loop. A verse that plays on the chorus's loop quotes
+         through the chorus.
+       - `Song.quoted` records the quote, and `pnpm variety` reports bank shares without quotes.
+     - **Major keys** also read TF's and DS's shapes in major (I │ iii │ ♭VII │ IV, the minor iv
+       borrowed), for blends that land in a major key. **Minor keys** read You Came's loop in the
+       relative minor (VI │ VII │ VI │ VII–III/3) and take the royal road.
+     - **Spellings.**
+       - `scaleForChord`'s secondary-dominant rule now covers any `V…/target` with a 3rd, not
+         only `V/ii`, `V/vi` and `V7/vi`. Those three keep the same scales, so the classic
+         snapshot doesn't move.
+       - The generator writes `III`, `IV`, `ii` and `v` plainly, so TF's guitar voicings and You
+         Came's bass hop and walk still apply. It never splits a bar into a bare `I` (the bass
+         would take it as the push into a pre-chorus).
+       - The creator's chord picker now lists a bar's chord even when it isn't one of its usual
+         choices.
 3. **Secondary sections**: interlude, turnaround, bridge and lift, with their relations.
 4. **Italo and Euro analyses:** pedals and slash basses, ♭II, the parallel-major chorus, sus pairs,
    2-bar loops, 10- and 14-bar choruses. Then cross-genre blends through the merged planner.
 5. **Wizard "generate" entries,** README and analysis updates. (✅ The variety command came
-   early, for phase 2.)
+   early, for phase 2, and the README's Progressions entry says what theory writes.)
 6. **Theory becomes the default** once the ear checks pass for every genre.
 
 ## 8. Later: forms
