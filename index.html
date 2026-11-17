@@ -135,16 +135,24 @@
         </div>
         <div class="mixer-drawer" id="s-mixer" hidden></div>
 
-        <button id="s-dj" class="dj-toggle" type="button" aria-pressed="false">
-          <span class="dj-light" aria-hidden="true"></span>
-          <span class="dj-text">
-            <span class="dj-name">DJ mode</span>
-            <span class="dj-desc" id="s-dj-desc"
-              >Each song mixes into the next, beat-matched, like a DJ set</span
-            >
-          </span>
-          <span class="dj-state" id="s-dj-state">Off</span>
-        </button>
+        <div class="dj-row">
+          <button id="s-dj" class="dj-toggle" type="button" aria-pressed="false">
+            <span class="dj-light" aria-hidden="true"></span>
+            <span class="dj-text">
+              <span class="dj-name">DJ mode</span>
+              <span class="dj-desc" id="s-dj-desc"
+                >Each song mixes into the next, beat-matched, like a DJ set</span
+              >
+            </span>
+            <span class="dj-state" id="s-dj-state">Off</span>
+          </button>
+          <button id="s-mix-next" class="btn mix-next" type="button" hidden>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 7h9V4l5 5-5 5v-3H3zm18 10h-9v3l-5-5 5-5v3h9z" />
+            </svg>
+            <span id="s-mix-next-label">Mix next</span>
+          </button>
+        </div>
       </section>
 
       <section class="card next-up" aria-labelledby="next-up-title">

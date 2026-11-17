@@ -149,7 +149,17 @@ one set of faders and no state to keep in sync.
    - Previous goes back a song within its first 2 bars (about 4 s), else restarts it.
    - In the advanced view, N and Random song stay a new random song; the media keys walk the
      history in both views.
-3. **Mix next.**
+3. **Mix next.** **Done.**
+   - Always a crossfade (a morph's 32-bar window is too long for it), with the mix-in intro's
+     whole-groove half only (8 bars, `MIX_NEXT_INTRO_BARS`). The trick is drawn as for the
+     planned transition, at the new swap.
+   - It starts at the first bar line the render can still change and hands over on a 4-bar line
+     into a section (`mixNextSwap`): the mix is heard about 8 s after the press, the next song
+     takes over about 16 s later.
+   - The button sits beside the DJ switch (M on the keyboard), hidden with DJ mode off and
+     disabled while stopped, on repeat, for a creation, or once a transition is coming or heard.
+   - A setting that recomposes the playing song while the mix is pending plans the song's own
+     transition again (Mix next can be pressed again).
 4. **Length range.** Composer and `swapBar`.
 
 Each phase is checked in Chromium and Firefox (headless), audio muted.

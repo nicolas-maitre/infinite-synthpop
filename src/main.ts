@@ -153,6 +153,10 @@ const simple = mountSimpleView(el("simple-view"), {
   },
   setRepeat,
   setDj,
+  mixNext: () => {
+    engine.mixNext();
+    renderMixNext();
+  },
   setLite,
   setGenre: setSimpleGenre,
   setVolume,
@@ -193,7 +197,7 @@ const mixerCard = el("mixer-rows").closest<HTMLElement>(".card")!;
 const mixerHome = document.createComment("mixer");
 mixerCard.before(mixerHome);
 const HINTS: Record<View, string> = {
-  simple: "Space play/pause · ← → previous/next · R repeat",
+  simple: "Space play/pause · ← → previous/next · M mix next · R repeat",
   advanced: "Space play/stop · N random song · S skip section",
 };
 
@@ -234,6 +238,25 @@ function renderSimpleSettings(): void {
     volume: prefs.master,
   };
   simple.renderSettings(settings);
+}
+
+/** Mix next: in DJ mode, brings the next song in soon (Engine.mixNext). */
+function renderMixNext(): void {
+  const state = engine.mixState;
+  simple.renderMixNext({
+    shown: prefs.dj && AHEAD_SUPPORTED,
+    enabled: engine.canMixNext,
+    label: state === "soon" ? "Mixing soon…" : state === "mixing" ? "Mixing…" : "Mix next",
+    title: !engine.playing
+      ? "Mix into the next song (once playing)"
+      : prefs.repeat
+        ? "Repeat is on: the song plays again instead"
+        : engine.creation
+          ? "A creation loops: pick another song to move on"
+          : state === "idle"
+            ? "Mix into the next song now, beat-matched (M)"
+            : "Mixing into the next song",
+  });
 }
 
 /** Lite or full sound is set up when the page loads (quality.ts), so a change reloads the page. */
@@ -684,6 +707,7 @@ const engine = new Engine(
     onBar: (ev, song) => {
       noteHeard();
       renderBar(song, ev.bar);
+      renderMixNext();
     },
     onStateChange: (playing) => {
       media.setPlaying(playing);
@@ -710,6 +734,7 @@ function renderPlayState(state: { playing: boolean } | { loading: string }): voi
     ui.play.setAttribute("aria-pressed", String(state.playing));
   }
   simple.renderPlayState(state);
+  renderMixNext();
 }
 
 async function togglePlay(): Promise<void> {
@@ -761,6 +786,7 @@ function setRepeat(on: boolean): void {
   savePrefs();
   engine.setRepeat(on);
   renderSimpleSettings();
+  renderMixNext();
 }
 
 /**
@@ -1126,6 +1152,7 @@ function setDj(on: boolean): void {
   savePrefs();
   applyPlayback();
   renderSimpleSettings();
+  renderMixNext();
 }
 djBox.addEventListener("change", () => setDj(djBox.checked));
 djStyleSelect.addEventListener("change", () => {
@@ -1140,6 +1167,7 @@ function renderMix(mix: { label: string; next: Song } | null): void {
   mixStatus.hidden = !mix;
   mixStatus.textContent = mix ? `${mix.label} → ${mix.next.title}` : "";
   simple.renderMix(mix ? mixStatus.textContent : null);
+  renderMixNext();
 }
 
 /** While rendering ahead: how far ahead it is, or that playback waits for it. */
@@ -1629,6 +1657,10 @@ document.addEventListener("keydown", (e) => {
   } else if (e.key === "ArrowRight") nextSong();
   else if (e.key === "ArrowLeft") previousSong();
   else if (key === "r") setRepeat(!prefs.repeat);
+  else if (key === "m") {
+    engine.mixNext();
+    renderMixNext();
+  }
 });
 
 // ── Mixer ─────────────────────────────────────────────────────────────────────────────────────
@@ -1786,6 +1818,7 @@ ui.mixerReset.addEventListener("click", () => {
 
 showView(prefs.view);
 renderSimpleSettings();
+renderMixNext();
 const linked = initialCreation ? decodeCreation(initialCreation) : null;
 if (linked) {
   // A link to a song already in My songs (or a reload) carries on as that entry.
@@ -1846,8 +1879,9 @@ if (import.meta.env.DEV) {
         after = 16,
         style?: "crossfade" | "morph" | "auto",
         trick?: "mix" | "pitch" | "mashup" | "echo" | "acapella",
+        mixNextFrom?: number,
       ): Promise<string> => {
-        const preview = engine.djPreview(seed, before, after, style, trick ?? null);
+        const preview = engine.djPreview(seed, before, after, style, trick ?? null, mixNextFrom);
         const { pieces, mix, style: used } = preview;
         const rate = 44100;
         const { l, r } = await renderPiecesOffline(pieces, mix, rate);
@@ -1856,15 +1890,16 @@ if (import.meta.env.DEV) {
         audio.copyToChannel(r, 1);
         const [out, inc] = [pieces[0]!.decks[0]!, pieces.at(-1)!.decks.at(-1)!];
         const what = used === "morph" ? used : preview.trick;
-        const name = `dj-${what}-${seed}-to-${inc.song.seed}.wav`;
+        const kind = mixNextFrom === undefined ? what : `mixnext-${what}`;
+        const name = `dj-${kind}-${seed}-to-${inc.song.seed}.wav`;
         const res = await fetch(`/__renders/${name}`, { method: "POST", body: encodeWav(audio) });
         const swapAt = pieces.find((p) => p.label && p.decks[1])?.decks[1]?.clock.time(0) ?? 0;
-        const window = used === "morph" ? 32 : 16;
+        const window = used === "morph" ? 32 : mixNextFrom === undefined ? 16 : 8;
         return [
           await res.text(),
           `"${out.song.title}" (${out.song.bpm} BPM, ${keyName(out.song.key)})`,
           `→ "${inc.song.title}" (${inc.song.bpm} BPM, ${keyName(inc.song.key)})`,
-          `${what} from ${(swapAt - window * (240 / out.song.bpm)).toFixed(1)} s, swap at ${swapAt.toFixed(1)} s`,
+          `${kind} from ${(swapAt - window * (240 / out.song.bpm)).toFixed(1)} s, swap at ${swapAt.toFixed(1)} s`,
         ].join(" · ");
       };
       Object.assign(window, { engine, Tone, renderToDisk, renderDjToDisk, roll });

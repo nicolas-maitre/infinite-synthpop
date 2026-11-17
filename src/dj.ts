@@ -45,6 +45,10 @@ import {
 export const INTRO_BARS = 16;
 /** Of which the last ones carry the incoming song's whole groove, the outgoing song's drums out. */
 export const DRUM_SWAP_BARS = 8;
+/** Mix next's mix-in intro: only the whole-groove half, so the next song comes in soon. */
+export const MIX_NEXT_INTRO_BARS = DRUM_SWAP_BARS;
+/** Mix next hands over on a line this many bars into a section. */
+export const MIX_NEXT_LINE = 4;
 /** Bars over which a morph glides the outgoing song's sound to the incoming song's, up to the
  * swap. */
 export const MORPH_BARS = 32;
@@ -98,6 +102,17 @@ export function swapBar(song: Song, rng: Rng, earliestBar = 0): number {
   // Playing to the end, mixed over the outro.
   options.push([song.totalBars, 3]);
   return rng.weighted(options.filter(([bar]) => bar >= INTRO_BARS));
+}
+
+/** Mix next's swap: the first line MIX_NEXT_LINE bars into a section at or after `earliest`, or
+ * the song's end (mixed over its outro). */
+export function mixNextSwap(song: Song, earliest: number): number {
+  for (const s of song.sections) {
+    for (let bar = s.startBar; bar < s.startBar + s.bars; bar += MIX_NEXT_LINE) {
+      if (bar >= earliest) return bar;
+    }
+  }
+  return song.totalBars;
 }
 
 /** The next song's tempo: its own, within MAX_TEMPO_STEP of the current one, on the half-BPM
@@ -259,11 +274,11 @@ function handOver(
 }
 
 /**
- * What the incoming song plays per bar: before bar 0, the mix-in intro (its groove looped: its
- * hats fading in for the first half, then all of it); from bar 0, its own bars, with the groove carried on
- * through a beatless start until its own drums come in.
+ * What the incoming song plays per bar: before bar 0, the mix-in intro of `intro` bars (its
+ * groove looped: its hats fading in until the last DRUM_SWAP_BARS, then all of it); from bar 0,
+ * its own bars, with the groove carried on through a beatless start until its own drums come in.
  */
-export function incomingArrange(song: Song): (bar: number) => BarEvents {
+export function incomingArrange(song: Song, intro = INTRO_BARS): (bar: number) => BarEvents {
   const groove = grooveBars(song);
   const loop = (bar: number) => {
     const source = groove[(((bar % GROOVE_BARS) + GROOVE_BARS) % GROOVE_BARS) as number];
@@ -281,10 +296,11 @@ export function incomingArrange(song: Song): (bar: number) => BarEvents {
       return bar < firstDrums && firstDrums < MAX_BEATLESS ? { ...ev, drums: loop(bar) } : ev;
     }
     const ev = silent(arrangeBar(song, 0));
-    const into = bar + INTRO_BARS;
-    if (into >= INTRO_BARS - DRUM_SWAP_BARS) return { ...ev, bar, drums: loop(bar) };
+    const into = bar + intro;
+    const fading = intro - DRUM_SWAP_BARS;
+    if (into >= fading) return { ...ev, bar, drums: loop(bar) };
     // Its hats and shakers, fading in from about a third.
-    const gain = 0.35 + (0.65 * into) / (INTRO_BARS - DRUM_SWAP_BARS);
+    const gain = 0.35 + (0.65 * into) / fading;
     const hits = loop(bar).filter((h) => TOPS.has(h.voice));
     return { ...ev, bar, drums: scaled(hits, gain) };
   };
@@ -521,10 +537,17 @@ export interface Handoff {
   tail: number;
 }
 
-/** A crossfade with `trick` from `song` into `next`, the incoming song's bar 0 at `swap`. */
-export function handoff(song: Song, swap: number, next: Song, trick: Trick): Handoff {
+/** A crossfade with `trick` from `song` into `next`, the incoming song's bar 0 at `swap`, after a
+ * mix-in intro of `intro` bars. */
+export function handoff(
+  song: Song,
+  swap: number,
+  next: Song,
+  trick: Trick,
+  intro = INTRO_BARS,
+): Handoff {
   const shift = trick.shift;
-  const incoming = shiftedArrange(next, incomingArrange(next), shift);
+  const incoming = shiftedArrange(next, incomingArrange(next, intro), shift);
   const plain: Handoff = {
     outgoing: handOver(song, swap, next, { shift: shift?.by ?? 0 }),
     incoming,
