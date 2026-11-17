@@ -1532,3 +1532,424 @@ button.link {
   margin: -8px 0 16px;
   color: var(--accent);
 }
+
+/* ── Views: the simple player (simpleview.ts) or every control ── */
+
+html[data-view="simple"] #advanced-view,
+html[data-view="advanced"] #simple-view {
+  display: none;
+}
+
+.top-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.view-switch {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0f0f22;
+}
+
+.view-switch button {
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.view-switch button[aria-pressed="true"] {
+  color: var(--text);
+  background: #2a2a4a;
+}
+
+.view-switch button:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 1px;
+}
+
+.simple-view {
+  display: grid;
+  gap: 18px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 12px clamp(16px, 4vw, 40px) 40px;
+}
+
+.player {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.player-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.player-song {
+  min-width: 0;
+}
+
+.player-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.player-viz {
+  display: block;
+  width: 100%;
+  height: 72px;
+}
+
+.seek {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.seek-time {
+  min-width: 3.2em;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.seek-time:last-child {
+  text-align: right;
+}
+
+.seek-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.seek-track input {
+  position: relative;
+  margin: 0;
+}
+
+/* Where the DJ mixes into the next song, under the slider. */
+.seek-mix {
+  position: absolute;
+  top: 50%;
+  height: 14px;
+  transform: translateY(-50%);
+  border-radius: 4px;
+  background: repeating-linear-gradient(135deg, #39d0ff55 0 4px, #39d0ff22 4px 8px);
+  border: 1px solid #39d0ff88;
+  pointer-events: none;
+}
+
+.seek-mix[hidden] {
+  display: none;
+}
+
+.player-transport {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn.round {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+}
+
+.btn.round.small {
+  width: 32px;
+  height: 32px;
+}
+
+.btn.round.big {
+  width: 64px;
+  height: 64px;
+  min-width: 0;
+}
+
+.btn.round .icon {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  fill: currentColor;
+}
+
+.btn.round.big .icon {
+  width: 30px;
+  height: 30px;
+}
+
+.btn.round.small .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.btn.round[aria-pressed="true"] {
+  color: var(--accent-2);
+  border-color: var(--accent-2);
+  background: #123a4a;
+}
+
+.btn.round:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#s-play .icon-pause,
+#s-play.playing .icon-play,
+#s-play.loading .icon {
+  display: none;
+}
+
+#s-play.playing .icon-pause {
+  display: block;
+}
+
+#s-play.loading {
+  display: inline-grid;
+}
+
+#s-play.loading::before {
+  width: 22px;
+  height: 22px;
+  border-width: 3px;
+}
+
+.play-loading {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.player-transport .buffer-status {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+.player-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 220px;
+  max-width: 320px;
+  color: var(--muted);
+}
+
+.volume > .icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.mixer-toggle .icon {
+  transition: transform 0.15s;
+}
+
+.mixer-toggle[aria-expanded="true"] .icon {
+  transform: rotate(90deg);
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.switch input {
+  appearance: none;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 999px;
+  background: #2a2a4a;
+  border: 1px solid var(--line);
+  cursor: inherit;
+  transition: background 0.15s;
+}
+
+.switch input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 0.15s;
+}
+
+.switch input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.switch input:checked::after {
+  transform: translateX(16px);
+}
+
+.switch input:disabled {
+  opacity: 0.5;
+}
+
+.switch:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+/* The mixer card, moved here from the advanced view while the simple one shows. */
+.mixer-drawer[hidden] {
+  display: none;
+}
+
+.mixer-drawer .card {
+  padding: 14px 16px;
+  background: #0f0f22;
+}
+
+/* The volume above is the master. */
+.mixer-drawer .mix-row.master {
+  display: none;
+}
+
+/* DJ mode: the big switch. */
+.dj-toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 18px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: #12122a;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+}
+
+.dj-toggle:hover:not(:disabled) {
+  border-color: var(--accent-2);
+}
+
+.dj-toggle:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+.dj-toggle[aria-pressed="true"] {
+  background: linear-gradient(90deg, #2a1340, #12122a);
+  border-color: var(--accent);
+  box-shadow: 0 0 24px #ff3d8b33;
+}
+
+.dj-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dj-light {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2a2a4a;
+  border: 1px solid var(--line);
+}
+
+.dj-toggle[aria-pressed="true"] .dj-light {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+}
+
+.dj-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.dj-name {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dj-desc {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dj-state {
+  flex: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dj-toggle[aria-pressed="true"] .dj-state {
+  color: var(--accent);
+}
+
+.next-up .field {
+  margin-bottom: 0;
+  max-width: 320px;
+}
+
+@media (max-width: 560px) {
+  .top-side {
+    align-items: flex-start;
+  }
+
+  .player-transport {
+    gap: 10px;
+  }
+}

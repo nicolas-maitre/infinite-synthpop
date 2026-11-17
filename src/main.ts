@@ -3,7 +3,6 @@ import { chordSlots } from "./arranger";
 import {
   CHORDS_MODES,
   type BassStyle,
-  type ChordsMode,
   type DrumMode,
   type ImportedTracks,
   type KitName,
@@ -17,10 +16,8 @@ import {
   autoVolumes,
   DEFAULT_VOLUMES,
   LEAD_PATCHES,
-  PREVIOUS_DEFAULT_VOLUMES,
   TRACK_LABELS,
   TRACKS,
-  type LeadPatch,
   type Track,
 } from "./instruments";
 import { matchTracks, mergeBars, parseMidi, toDrumBars, type MidiFile } from "./midi";
@@ -31,6 +28,7 @@ import { Recorder } from "./recorder";
 import { download, exportAudio, fileName, songToMidi } from "./export";
 import { PianoRoll } from "./pianoroll";
 import { mountWizard } from "./wizard";
+import { mountSimpleView, type SimpleGenre, type SimpleSettings } from "./simpleview";
 import { REFERENCES, type ReferenceId } from "./references";
 import { decodeCreation, encodeCreation, songToSpec, type Creation, type SongSpec } from "./spec";
 import { randomSeed } from "./rng";
@@ -47,20 +45,16 @@ import {
 } from "./quality";
 import { BlendPad, initials } from "./blendpad";
 import { barAtSeconds, mountMediaControls } from "./mediasession";
-import { blendsKey, isGenreBlends, refsBlend, songSound, type Part } from "./profile";
+import { blendsKey, isGenreBlends, refsBlend, songSound } from "./profile";
 import {
   blendRefsFor,
   centreFor,
   onPad,
-  parsePadWeights,
-  parsePartValue,
-  parseRefs,
   partBlend,
   PART_ROWS,
   PartRow,
   refChips,
   refsLabel,
-  type PartValue,
 } from "./blendpicker";
 import {
   DEFAULT_GENRE,
@@ -69,172 +63,28 @@ import {
   genreOfReference,
   isGenreId,
   isStyleWeights,
-  parseWeights,
-  referenceWeights,
   styleName,
-  weightsAtPoint,
   type GenreId,
 } from "./genres";
-import { CENTRE } from "./polygon";
+import {
+  BUFFERS,
+  centreWeights,
+  DJ_STYLES,
+  loadPrefs,
+  PLAYBACKS,
+  savePrefs as storePrefs,
+  type View,
+} from "./prefs";
 
-// ── Persisted preferences (per browser; everything still works without storage) ─────────────
-
-interface Prefs {
-  /** The genre generated songs come from (genres.ts). */
-  /** "auto": a genre per song. "open": a blend of `openRefs`, of any genres. */
-  genre: GenreId | "auto" | "open";
-  /** The style pad's weights: the genre's references' (genres.ts), or with "open" `openRefs`'. */
-  weights: number[];
-  /** The references an open blend runs between (2–10), in reference order. */
-  openRefs: ReferenceId[];
-  /** Blend the parts on their own (`parts`), not all from the style. */
-  partsOn: boolean;
-  /** Each part's own blend; a part left out plays the style's. */
-  parts: Partial<Record<Exclude<Part, "song">, PartValue>>;
-  styleAuto: boolean;
-  bpm: number;
-  bpmAuto: boolean;
-  key: number | null;
-  kit: KitName | "auto";
-  /** Each fader's level by hand, used for the tracks in `manual`. */
-  volumes: Record<Track, number>;
-  /** Faders taken off auto. The others follow the playing song's genre (genres.ts `mix`). */
-  manual: Track[];
-  muted: Track[];
-  master: number;
-  /** Start playing as soon as the page loads (or at the first interaction, if the browser asks). */
-  autoplay: boolean;
-  /** Switch songs, sections and bars right away instead of at the next bar line. */
-  instant: boolean;
-  /** The sung lead's sound: a formant voice, or the original lead synth. */
-  lead: LeadPatch;
-  /** Play the synths live, or render the music ahead (engine.ts); auto renders ahead on phones. */
-  playback: Playback;
-  /** Seconds to render ahead; 0 = auto (more on phones). */
-  buffer: number;
-  /** DJ mode: each song mixes into the next, like a DJ set (engine.ts, dj.ts). */
-  dj: boolean;
-  /** How DJ mode hands over: crossfade, morph, or auto's pick per transition. */
-  djStyle: DjStyle;
-  /** How generated songs pick their chords: the theory generator, or the classic picks. */
-  progressions: ChordsMode;
-}
-
-type DjStyle = "auto" | "crossfade" | "morph";
-const DJ_STYLES: readonly DjStyle[] = ["auto", "crossfade", "morph"];
-
-type Playback = "auto" | "live" | "ahead";
-const PLAYBACKS: readonly Playback[] = ["auto", "live", "ahead"];
-const BUFFERS = [0, 10, 20, 30, 60, 120];
 /** Phones (the lite guess) render ahead, with a long buffer. */
 const AUTO_AHEAD = DEVICE_QUALITY === "lite";
 const AUTO_BUFFER = AUTO_AHEAD ? 60 : 20;
 
-const PREFS_KEY = "infinite-synthpop:prefs:v1";
 /** Records further apart than this (BPM) get the tempo note. */
 const TEMPO_SPREAD = 10;
 
-/** A genre's style polygon at its centre: an equal mix of its references. */
-function centreWeights(genre: GenreId): number[] {
-  return weightsAtPoint(GENRES[genre], CENTRE);
-}
-
-// Everything a first visit plays is picked per song: press play and it keeps going.
-const defaults: Prefs = {
-  genre: "auto",
-  weights: centreWeights(DEFAULT_GENRE),
-  openRefs: ["true-faith", "get-closer"],
-  partsOn: false,
-  parts: {},
-  styleAuto: true,
-  bpm: 118,
-  bpmAuto: true,
-  key: null,
-  kit: "auto",
-  volumes: { ...DEFAULT_VOLUMES },
-  manual: [],
-  muted: [],
-  master: 0,
-  autoplay: false,
-  instant: false,
-  lead: "voice",
-  playback: "auto",
-  buffer: 0,
-  dj: false,
-  djStyle: "auto",
-  progressions: "theory",
-};
-
-function loadPrefs(): Prefs {
-  try {
-    const raw = localStorage.getItem(PREFS_KEY);
-    if (!raw) return defaults;
-    const p = JSON.parse(raw) as Partial<Prefs> & { style?: unknown };
-    // Saved before genres: synthpop.
-    const genre =
-      p.genre === "auto" || p.genre === "open" || isGenreId(p.genre) ? p.genre : DEFAULT_GENRE;
-    const openRefs = parseRefs(p.openRefs) ?? defaults.openRefs;
-    const parts = Object.fromEntries(
-      PART_ROWS.flatMap(([part]) => {
-        const v = parsePartValue(p.parts?.[part]);
-        return v ? [[part, v]] : [];
-      }),
-    );
-    const partsOn = p.partsOn === true;
-    const volumes = { ...defaults.volumes, ...p.volumes };
-    // Saved before the triangle: only a style, which plays as [1 − style, style, 0].
-    const style = typeof p.style === "number" ? Math.min(1, Math.max(0, p.style)) : null;
-    // With the genre picked per song, the weights are too: these are kept for a fixed genre only.
-    const fixed = genre === "auto" || genre === "open" ? DEFAULT_GENRE : genre;
-    const weights =
-      genre === "open"
-        ? (parsePadWeights(p.weights, openRefs.length) ?? centreFor(openRefs))
-        : (parseWeights(GENRES[fixed], p.weights) ??
-          (style === null ? centreWeights(fixed) : [...referenceWeights(GENRES[fixed], style)]));
-    delete p.style;
-    // Faders left at an old default follow the new one.
-    for (const [t, old] of Object.entries(PREVIOUS_DEFAULT_VOLUMES) as [Track, number][]) {
-      if (volumes[t] === old) volumes[t] = DEFAULT_VOLUMES[t];
-    }
-    const lead = LEAD_PATCHES.find((l) => l === p.lead) ?? defaults.lead;
-    // Saved before auto levels: a fader moved off its default stays where it was put, by hand.
-    const manual = Array.isArray(p.manual)
-      ? TRACKS.filter((t) => p.manual!.includes(t))
-      : TRACKS.filter((t) => volumes[t] !== DEFAULT_VOLUMES[t]);
-    const playback = PLAYBACKS.find((x) => x === p.playback) ?? defaults.playback;
-    const buffer = BUFFERS.find((x) => x === p.buffer) ?? defaults.buffer;
-    return {
-      ...defaults,
-      ...p,
-      volumes,
-      manual,
-      genre,
-      weights,
-      openRefs,
-      partsOn,
-      parts,
-      lead,
-      playback,
-      buffer,
-      dj: p.dj === true,
-      djStyle: DJ_STYLES.find((x) => x === p.djStyle) ?? "auto",
-      // Saved before the switch: theory, as for a new install.
-      progressions: CHORDS_MODES.find((x) => x === p.progressions) ?? defaults.progressions,
-    };
-  } catch {
-    return defaults;
-  }
-}
-
-function savePrefs(): void {
-  try {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
-  } catch {
-    // Storage blocked (private mode etc.): preferences just won't persist.
-  }
-}
-
 const prefs = loadPrefs();
+const savePrefs = () => storePrefs(prefs);
 const soloed = new Set<Track>();
 
 // ── DOM ───────────────────────────────────────────────────────────────────────────────────────
@@ -289,6 +139,83 @@ const roll = new PianoRoll(el<HTMLCanvasElement>("roll"), (bar) => {
   engine.jumpTo(bar);
   if (!engine.playing) renderBar(engine.song, bar);
 });
+
+// ── Views: the simple player, or every control ──────────────────────────────────────────────
+
+const simple = mountSimpleView(el("simple-view"), {
+  togglePlay: () => void togglePlay(),
+  previous: previousSong,
+  next: nextSong,
+  seek: (bar) => {
+    engine.jumpTo(bar, true);
+    if (!engine.playing) renderBar(engine.song, engine.currentBar);
+  },
+  setRepeat,
+  setDj,
+  setLite,
+  setGenre: setSimpleGenre,
+  setVolume,
+  toggleSave,
+  share: (button) => void share(button, shareUrl(engine.song, engine.creation)),
+});
+
+/** The view showing. A creation link opens the advanced view for that visit without keeping it
+ * (prefs.view is what was chosen). */
+let currentView: View = prefs.view;
+const viewButtons = [...document.querySelectorAll<HTMLButtonElement>("[data-view]")];
+const mixerCard = el("mixer-rows").closest<HTMLElement>(".card")!;
+/** Where the mixer card sits in the advanced view, for when it comes back from the drawer. */
+const mixerHome = document.createComment("mixer");
+mixerCard.before(mixerHome);
+const HINTS: Record<View, string> = {
+  simple: "Space play/pause · ← → previous/next · R repeat",
+  advanced: "Space play/stop · N random song · S skip section",
+};
+
+function showView(view: View): void {
+  currentView = view;
+  document.documentElement.dataset.view = view;
+  for (const b of viewButtons) b.setAttribute("aria-pressed", String(b.dataset.view === view));
+  el("hint").textContent = HINTS[view];
+  // One mixer: in the simple view it opens under the volume.
+  if (view === "simple") simple.mixerDrawer.append(mixerCard);
+  else mixerHome.after(mixerCard);
+  simple.setShown(view === "simple");
+  if (view === "simple" && creator.active) setCreator(false);
+}
+
+for (const b of viewButtons) {
+  b.addEventListener("click", () => {
+    const view = b.dataset.view === "advanced" ? "advanced" : "simple";
+    prefs.view = view;
+    savePrefs();
+    showView(view);
+  });
+}
+
+/** The simple view's switches and selects, from the settings. */
+function renderSimpleSettings(): void {
+  const custom =
+    prefs.genre === "open" || prefs.partsOn || (prefs.genre !== "auto" && !prefs.styleAuto);
+  const settings: SimpleSettings = {
+    dj: prefs.dj && AHEAD_SUPPORTED,
+    djUnavailable: AHEAD_SUPPORTED
+      ? null
+      : "This browser can't render ahead (no AudioWorklet), which DJ mode needs",
+    repeat: prefs.repeat,
+    lite: QUALITY === "lite",
+    liteFixed: QUALITY_FROM_URL ? `Set to ${QUALITY} by ?quality= in the address` : null,
+    genre: custom ? "custom" : prefs.genre === "open" ? "auto" : prefs.genre,
+    volume: prefs.master,
+  };
+  simple.renderSettings(settings);
+}
+
+/** Lite or full sound is set up when the page loads (quality.ts), so a change reloads the page. */
+function setLite(on: boolean): void {
+  saveQualityChoice(on ? "lite" : DEVICE_QUALITY === "lite" ? "full" : "auto");
+  location.reload();
+}
 
 // ── Creator mode and looping ──────────────────────────────────────────────────────────────────
 
@@ -617,8 +544,8 @@ const media = mountMediaControls({
     if (!engine.playing) void togglePlay();
   },
   pause: () => engine.stop(),
-  next: () => engine.newSong(randomSeed()),
-  previous: () => engine.jumpTo(0),
+  next: () => nextSong(),
+  previous: () => previousSong(),
   seekTo: (seconds) => engine.jumpTo(barAtSeconds(engine.song, seconds)),
   seekForward: () => engine.skipSection(),
   seekBackward: () => {
@@ -638,8 +565,7 @@ const engine = new Engine(
     onBar: (ev, song) => renderBar(song, ev.bar),
     onStateChange: (playing) => {
       media.setPlaying(playing);
-      ui.play.textContent = playing ? "■ Stop" : "▶ Play";
-      ui.play.setAttribute("aria-pressed", String(playing));
+      renderPlayState({ playing });
     },
     onCue: renderCue,
     onBuffering: renderBufferStatus,
@@ -648,31 +574,60 @@ const engine = new Engine(
   initialLink?.chords,
 );
 engine.setInstant(prefs.instant);
+engine.setRepeat(prefs.repeat);
+
+/** The play buttons (both views): play or stop, or how far loading has got. */
+function renderPlayState(state: { playing: boolean } | { loading: string }): void {
+  const loading = "loading" in state;
+  ui.play.disabled = loading;
+  // The first start loads the synths and ~36 drum samples: a spinner, then a count.
+  ui.play.classList.toggle("loading", loading);
+  if (loading) ui.play.textContent = state.loading;
+  else {
+    ui.play.textContent = state.playing ? "■ Stop" : "▶ Play";
+    ui.play.setAttribute("aria-pressed", String(state.playing));
+  }
+  simple.renderPlayState(state);
+}
+
 async function togglePlay(): Promise<void> {
   if (engine.playing) {
     engine.stop();
     return;
   }
-  ui.play.disabled = true;
-  // The first start loads the synths and ~36 drum samples: a spinner, then a count.
-  ui.play.classList.add("loading");
-  ui.play.textContent = "Loading…";
+  renderPlayState({ loading: "Loading…" });
   // Before any await, while the click still counts as a gesture.
   media.activate();
   try {
     await engine.start((done, total) => {
-      ui.play.textContent = `Loading ${Math.round((done / total) * 100)}%`;
+      renderPlayState({ loading: `Loading ${Math.round((done / total) * 100)}%` });
     });
     applyMixer();
     renderKitStatus();
   } catch (error) {
     // Not left on "Loading…": the button works again, and the console says why it failed.
-    ui.play.textContent = "▶ Play";
     console.error("Couldn't start playback", error);
   } finally {
-    ui.play.disabled = false;
-    ui.play.classList.remove("loading");
+    renderPlayState({ playing: engine.playing });
   }
+}
+
+/** Next: a new song (in the simple view at once, as a player does; in the advanced view as the
+ * Switch setting says). */
+function nextSong(): void {
+  engine.newSong(randomSeed(), currentView === "simple");
+}
+
+/** Previous: back to the start of the song. */
+function previousSong(): void {
+  engine.jumpTo(0, currentView === "simple");
+}
+
+function setRepeat(on: boolean): void {
+  prefs.repeat = on;
+  savePrefs();
+  engine.setRepeat(on);
+  renderSimpleSettings();
 }
 
 /**
@@ -699,7 +654,7 @@ function autoplay(): void {
     document.removeEventListener("pointerdown", start, true);
     document.removeEventListener("keydown", start, true);
     // Let a click on the Play button itself do its own toggling.
-    if (e.target instanceof Element && e.target.closest("#play")) return;
+    if (e.target instanceof Element && e.target.closest("#play, #s-play")) return;
     if (!engine.playing) void togglePlay();
   };
   document.addEventListener("pointerdown", start, true);
@@ -724,6 +679,7 @@ const BASS_LABELS: Record<BassStyle, string> = {
 function renderSong(song: Song): void {
   // A new song may be in another genre, with its own mix for the auto faders.
   applyMixer();
+  simple.renderSong(song);
   media.setSong(song, GENRES[song.genre].name);
   media.setPosition(song, engine.currentBar);
   // While editing the title, don't overwrite what's being typed.
@@ -883,6 +839,7 @@ function renderSongs(): void {
     : saved
       ? "In My songs: click to remove it"
       : "Keep this song in My songs";
+  simple.renderSaved(saved || !!engine.creation, engine.song.title);
   if (library.failed) songsStatus.textContent = "This browser won’t store songs: use Share links.";
 }
 
@@ -911,7 +868,8 @@ function deleteSaved(id: string): void {
   songsStatus.append(undo);
 }
 
-saveButton.addEventListener("click", () => {
+/** ♡ Save: keeps the playing song in My songs, or takes it out again. */
+function toggleSave(): void {
   const song = engine.song;
   if (engine.creation) return; // already kept
   const existing = library.findFrom(songOrigin(song));
@@ -925,7 +883,8 @@ saveButton.addEventListener("click", () => {
     songsStatus.textContent = `Saved “${song.title}”.`;
     renderSongs();
   }
-});
+}
+saveButton.addEventListener("click", toggleSave);
 shareButton.addEventListener(
   "click",
   () => void share(shareButton, shareUrl(engine.song, engine.creation)),
@@ -992,11 +951,14 @@ if (!AHEAD_SUPPORTED) {
   djBox.parentElement!.title =
     "This browser can't render ahead (no AudioWorklet), which DJ mode needs";
 }
-djBox.addEventListener("change", () => {
-  prefs.dj = djBox.checked;
+function setDj(on: boolean): void {
+  prefs.dj = on;
+  djBox.checked = on;
   savePrefs();
   applyPlayback();
-});
+  renderSimpleSettings();
+}
+djBox.addEventListener("change", () => setDj(djBox.checked));
 djStyleSelect.addEventListener("change", () => {
   prefs.djStyle = DJ_STYLES.find((x) => x === djStyleSelect.value) ?? "auto";
   savePrefs();
@@ -1008,6 +970,7 @@ const mixStatus = el<HTMLParagraphElement>("mix-status");
 function renderMix(mix: { label: string; next: Song } | null): void {
   mixStatus.hidden = !mix;
   mixStatus.textContent = mix ? `${mix.label} → ${mix.next.title}` : "";
+  simple.renderMix(mix ? mixStatus.textContent : null);
 }
 
 /** While rendering ahead: how far ahead it is, or that playback waits for it. */
@@ -1015,6 +978,8 @@ const bufferStatus = el<HTMLSpanElement>("buffer-status");
 function renderBufferStatus(): void {
   const status = engine.aheadStatus;
   bufferStatus.hidden = !status;
+  // The simple view only says when playback waits for the render.
+  simple.renderBuffer(status?.buffering ? { text: "Rendering…", waiting: true } : null);
   if (!status) return;
   bufferStatus.classList.toggle("waiting", status.buffering);
   bufferStatus.textContent = status.buffering
@@ -1040,6 +1005,7 @@ qualitySelect.addEventListener("change", () => {
 
 function renderBar(song: Song, bar: number): void {
   media.setPosition(song, bar);
+  simple.renderBar(song, bar, engine.mixOut);
   const sectionIndex = song.sections.findIndex(
     (s) => bar >= s.startBar && bar < s.startBar + s.bars,
   );
@@ -1151,7 +1117,20 @@ ui.genre.append(new Option("Open (pick references)", "open"));
 ui.genre.value = prefs.genre;
 ui.genre.addEventListener("change", () => {
   const value = ui.genre.value;
-  if (value !== "auto" && value !== "open" && !isGenreId(value)) return;
+  if (value === "auto" || value === "open" || isGenreId(value)) setGenre(value);
+});
+
+/** The simple view's genre: just the genre, with the style picked per song and no part blends. */
+function setSimpleGenre(value: SimpleGenre): void {
+  prefs.styleAuto = true;
+  prefs.partsOn = false;
+  ui.partsOn.checked = false;
+  ui.partRows.hidden = true;
+  ui.genre.value = value;
+  setGenre(value);
+}
+
+function setGenre(value: GenreId | "auto" | "open"): void {
   prefs.genre = value;
   // Other references: the polygon starts from the centre.
   if (value === "open") prefs.weights = centreFor(prefs.openRefs);
@@ -1168,7 +1147,8 @@ ui.genre.addEventListener("change", () => {
   showTempoHint();
   savePrefs();
   engine.update(engineSettings());
-});
+  renderSimpleSettings();
+}
 
 /** Whether the style point is picked per song: by choice, or because the genre is. */
 function styleIsAuto(): boolean {
@@ -1269,6 +1249,7 @@ ui.styleAuto.addEventListener("change", () => {
   stylePad.disabled = prefs.styleAuto;
   savePrefs();
   engine.update(engineSettings());
+  renderSimpleSettings();
 });
 
 // Per part: each part's own blend over the style's (profile.ts parts).
@@ -1290,6 +1271,7 @@ ui.partsOn.addEventListener("change", () => {
   ui.partRows.hidden = !prefs.partsOn;
   savePrefs();
   engine.update(engineSettings());
+  renderSimpleSettings();
 });
 
 ui.bpm.value = String(prefs.bpm);
@@ -1465,11 +1447,18 @@ document.addEventListener("keydown", (e) => {
   )
     return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const key = e.key.toLowerCase();
   if (e.code === "Space") {
     e.preventDefault();
     void togglePlay();
-  } else if (e.key === "n" || e.key === "N") engine.newSong(randomSeed());
-  else if (e.key === "s" || e.key === "S") engine.skipSection();
+  } else if (key === "n") nextSong();
+  else if (currentView === "advanced") {
+    if (key === "s") engine.skipSection();
+  } else if (target?.getAttribute("type") === "range") {
+    // Arrows move a focused slider.
+  } else if (e.key === "ArrowRight") nextSong();
+  else if (e.key === "ArrowLeft") previousSong();
+  else if (key === "r") setRepeat(!prefs.repeat);
 });
 
 // ── Mixer ─────────────────────────────────────────────────────────────────────────────────────
@@ -1591,11 +1580,17 @@ for (const t of TRACKS) {
   sliders.set(t, row.querySelector("input")!);
   ui.mixer.append(row, midiLine(t));
 }
-const master = mixRow("Master", prefs.master, (v) => {
-  prefs.master = v;
+const master = mixRow("Master", prefs.master, (v) => setVolume(v));
+
+/** The master level, from the mixer's Master fader or the simple view's volume. */
+function setVolume(db: number): void {
+  prefs.master = db;
+  const slider = sliders.get("master");
+  if (slider && Number(slider.value) !== db) slider.value = String(db);
   savePrefs();
   applyMixer();
-});
+  renderSimpleSettings();
+}
 master.classList.add("master");
 sliders.set("master", master.querySelector("input")!);
 ui.mixer.append(master);
@@ -1614,21 +1609,27 @@ ui.mixerReset.addEventListener("click", () => {
   sliders.get("master")!.value = "0";
   for (const b of soloButtons) b.setAttribute("aria-pressed", "false");
   applyMixer();
+  renderSimpleSettings();
 });
 
 // ── Go ────────────────────────────────────────────────────────────────────────────────────────
 
+showView(prefs.view);
+renderSimpleSettings();
 const linked = initialCreation ? decodeCreation(initialCreation) : null;
 if (linked) {
   // A link to a song already in My songs (or a reload) carries on as that entry.
   const known = initialCreation ? library.findData(initialCreation) : undefined;
   engine.playCustom(known ? { ...linked, id: known.id } : linked);
+  // Creator mode lives in the advanced view: shown for this visit, not kept.
+  showView("advanced");
   setCreator(true);
 } else if (isReferenceId(initialReference)) engine.playReference(initialReference);
 else renderSong(engine.song);
 renderKitStatus();
 autoplay();
 startVisualizer(ui.viz, () => engine.analysers);
+startVisualizer(el<HTMLCanvasElement>("s-viz"), () => engine.analysers);
 
 if (SHOW_AUDIO_STATS) mountAudioStats();
 

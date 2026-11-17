@@ -12,6 +12,15 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#141428" />
     <link rel="stylesheet" href="/src/style.css" />
+    <!-- The view the settings ask for, before the first paint (main.ts keeps it up to date). -->
+    <script>
+      try {
+        const prefs = JSON.parse(localStorage.getItem("infinite-synthpop:prefs:v1") || "{}");
+        document.documentElement.dataset.view = prefs.view === "advanced" ? "advanced" : "simple";
+      } catch {
+        document.documentElement.dataset.view = "simple";
+      }
+    </script>
   </head>
   <body>
     <header class="top">
@@ -24,10 +33,130 @@
           </p>
         </div>
       </div>
-      <p class="hint">Space play/stop · N random song · S skip section</p>
+      <div class="top-side">
+        <div class="view-switch" role="group" aria-label="View">
+          <button type="button" data-view="simple" aria-pressed="true">Player</button>
+          <button type="button" data-view="advanced" aria-pressed="false">Advanced</button>
+        </div>
+        <p class="hint" id="hint"></p>
+      </div>
     </header>
 
-    <main class="grid">
+    <main class="simple-view" id="simple-view">
+      <section class="card player" aria-labelledby="s-title">
+        <div class="player-head">
+          <div class="player-song">
+            <p class="eyebrow">Now playing</p>
+            <h2 id="s-title">Press play</h2>
+            <p class="meta" id="s-meta">—</p>
+            <p class="mix-status" id="s-mix" aria-live="polite" hidden></p>
+          </div>
+          <div class="player-actions">
+            <button id="s-save" class="btn small" type="button" aria-pressed="false">♡ Save</button>
+            <button id="s-share" class="btn small" type="button" title="Copy a link to this song">
+              ⤴ Share
+            </button>
+          </div>
+        </div>
+
+        <canvas id="s-viz" class="player-viz" aria-hidden="true"></canvas>
+
+        <div class="seek">
+          <span class="seek-time" id="s-elapsed">0:00</span>
+          <div class="seek-track">
+            <div
+              class="seek-mix"
+              id="s-mixout"
+              title="Where the DJ mixes into the next song"
+              hidden
+            ></div>
+            <input id="s-seek" type="range" min="0" max="1" step="any" value="0" />
+          </div>
+          <span class="seek-time" id="s-total">0:00</span>
+        </div>
+
+        <div class="player-transport">
+          <button id="s-prev" class="btn round" type="button">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
+            </svg>
+          </button>
+          <button id="s-play" class="btn primary round big" type="button" aria-label="Play">
+            <svg class="icon icon-play" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            <svg class="icon icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
+            </svg>
+            <span class="play-loading" id="s-loading"></span>
+          </button>
+          <button id="s-next" class="btn round" type="button">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 18l8.5-6L6 6zM16 6h2v12h-2z" />
+            </svg>
+          </button>
+          <button id="s-repeat" class="btn round" type="button" aria-pressed="false">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z" />
+            </svg>
+          </button>
+          <span class="buffer-status" id="s-buffer" aria-live="polite" hidden></span>
+        </div>
+
+        <div class="player-bottom">
+          <div class="volume">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"
+              />
+            </svg>
+            <input id="s-volume" type="range" min="-40" max="0" step="0.5" aria-label="Volume" />
+            <button
+              id="s-mixer-toggle"
+              class="btn round small mixer-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="s-mixer"
+              title="Mixer: each instrument's level"
+              aria-label="Mixer"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 6l6 6-6 6z" />
+              </svg>
+            </button>
+          </div>
+          <label
+            class="switch"
+            title="Lighter voices and effects, so phones play without breaking up. Changing it reloads the page."
+          >
+            <input id="s-lite" type="checkbox" role="switch" />
+            <span>Lite playback</span>
+          </label>
+        </div>
+        <div class="mixer-drawer" id="s-mixer" hidden></div>
+
+        <button id="s-dj" class="dj-toggle" type="button" aria-pressed="false">
+          <span class="dj-light" aria-hidden="true"></span>
+          <span class="dj-text">
+            <span class="dj-name">DJ mode</span>
+            <span class="dj-desc" id="s-dj-desc"
+              >Each song mixes into the next, beat-matched, like a DJ set</span
+            >
+          </span>
+          <span class="dj-state" id="s-dj-state">Off</span>
+        </button>
+      </section>
+
+      <section class="card next-up" aria-labelledby="next-up-title">
+        <h3 id="next-up-title">What plays next</h3>
+        <label class="field">
+          <span>Genre</span>
+          <select id="s-genre"></select>
+        </label>
+      </section>
+    </main>
+
+    <main class="grid" id="advanced-view">
       <section class="card now" aria-live="polite">
         <div class="now-head">
           <div>
