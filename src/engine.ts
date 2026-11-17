@@ -18,7 +18,7 @@ import type { PartBlends, RefWeights } from "./profile";
 import type { GenreId } from "./genres";
 import { songSound } from "./profile";
 import { scheduleStep } from "./schedule";
-import { compose, type ImportedTracks, type KitName, type Song } from "./composer";
+import { compose, type ChordsMode, type ImportedTracks, type KitName, type Song } from "./composer";
 import {
   autoTransition,
   compatibleKeys,
@@ -70,6 +70,9 @@ export interface EngineSettings {
   /** null = pick per song. */
   bpm: number | null;
   kit: KitName | "auto";
+  /** How generated songs pick their chords, from the next one composed (a change also recomposes
+   * the playing generated song, as the other settings do). */
+  chords: ChordsMode;
 }
 
 export interface EngineEvents {
@@ -211,8 +214,10 @@ export class Engine {
     private settings: EngineSettings,
     seed: number,
     private readonly events: EngineEvents = {},
+    /** The first song's progressions (a `#seed=` link's); later songs follow the settings. */
+    chords: ChordsMode = settings.chords,
   ) {
-    this.song = this.compose(seed);
+    this.song = this.compose(seed, undefined, undefined, undefined, chords);
   }
 
   get playing(): boolean {
@@ -450,7 +455,7 @@ export class Engine {
     this.fixed = this.tempo = undefined;
     this.loop = null;
     this.serial = ++this.serials;
-    this.song = this.compose(seed);
+    this.song = this.compose(seed, null, null, null, this.settings.chords);
     this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
     this.switched();
@@ -584,8 +589,13 @@ export class Engine {
   }
 
   update(settings: Partial<EngineSettings>): void {
+    // The playing song keeps its progressions (a link's) unless they are what changed.
+    const chords =
+      settings.chords && settings.chords !== this.settings.chords
+        ? settings.chords
+        : this.song.chords;
     this.settings = { ...this.settings, ...settings };
-    this.song = this.compose(this.song.seed);
+    this.song = this.compose(this.song.seed, undefined, undefined, undefined, chords);
     if (this.bar >= this.song.totalBars) this.bar = this.song.sections.at(-1)?.startBar ?? 0;
     if (this.instruments) this.applySong(this.instruments);
     // A new tempo starts at the next bar line (applyBpm), keeping the bar's 16ths even.
@@ -598,10 +608,13 @@ export class Engine {
     reference: ReferenceId | null = this.reference,
     custom: Creation | null = this.custom,
     fixed: SongMeta["fixed"] | null = this.fixed ?? null,
+    /** The playing song's own by default (recomposing it); new songs pass the setting. */
+    chords: ChordsMode = this.song.chords,
   ): Song {
     const song = compose({
       seed,
       ...this.settings,
+      chords,
       // A DJ's key and tempo, unless the settings fix them.
       key: this.settings.key ?? fixed?.key ?? null,
       bpm: this.settings.bpm ?? fixed?.bpm ?? null,
@@ -689,7 +702,7 @@ export class Engine {
     const glideEnd = shape.glide ? shape.glide.start + shape.glide.bars : 0;
     const swap = swapBar(song, rng, glideEnd + Math.max(INTRO_BARS, MORPH_BARS));
     const seed = nextSeed(song.seed);
-    const own = this.compose(seed, null, null, null);
+    const own = this.compose(seed, null, null, null, this.settings.chords);
     const from = new TempoMap(0, shape).bpmAt(swap - 1);
     const keyNow = keyBefore(song, swap);
     const fits = compatibleKeys(keyNow).some(
@@ -709,7 +722,7 @@ export class Engine {
       key: id === "pitch" ? own.key : nextKey(keyNow, own.key, rng),
       bpm: nextTempo(from, own.bpm),
     };
-    const next = this.compose(seed, null, null, fixed);
+    const next = this.compose(seed, null, null, fixed, this.settings.chords);
     const trick: Trick = id === "pitch" ? { id, shift: pitchShift(keyNow, own.key, next) } : { id };
     const style =
       id === "pitch"
@@ -913,7 +926,7 @@ export class Engine {
     this.djStyle = style;
     this.forceTrick = trick;
     try {
-      const song = this.compose(seed, null, null, null);
+      const song = this.compose(seed, null, null, null, this.settings.chords);
       const meta: SongMeta = { serial: -1, reference: null, custom: null };
       const plan = this.djPlan(song, meta)!;
       const window = plan.style === "morph" ? MORPH_BARS : INTRO_BARS;
@@ -950,7 +963,7 @@ export class Engine {
     if (meta.custom) return { song, meta };
     const serial = ++this.serials;
     return {
-      song: this.compose(nextSeed(song.seed), null, null, null),
+      song: this.compose(nextSeed(song.seed), null, null, null, this.settings.chords),
       meta: { serial, reference: null, custom: null },
     };
   }
@@ -996,6 +1009,8 @@ export class Engine {
             deck.meta.reference,
             deck.meta.custom,
             deck.meta.fixed ?? null,
+            // A later song is a new one: it follows the setting.
+            this.settings.chords,
           );
     const meta = deck.meta.serial === this.serial ? this.meta() : deck.meta;
     player.cut(line.time, this.planFrom(song, bar, meta, line.time));
@@ -1074,7 +1089,7 @@ export class Engine {
     } else if (this.bar >= this.song.totalBars) {
       this.reference = null;
       this.fixed = this.tempo = undefined;
-      this.song = this.compose(nextSeed(this.song.seed));
+      this.song = this.compose(nextSeed(this.song.seed), null, null, null, this.settings.chords);
       this.bar = 0;
       this.applySong(inst);
       const song = this.song;
