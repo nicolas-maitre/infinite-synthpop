@@ -2766,7 +2766,8 @@ html[data-view="advanced"] #simple-view {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  width: var(--size);
+  /* The sleeve is scaled by influence; its words get a readable width all the same. */
+  width: max(var(--size), 112px);
   padding: 0;
   font: inherit;
   text-align: left;
@@ -2795,6 +2796,12 @@ html[data-view="advanced"] #simple-view {
 .insp-tile-meta {
   font-size: 11px;
   color: var(--muted);
+}
+
+.insp-tile-share {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 

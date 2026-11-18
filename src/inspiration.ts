@@ -201,7 +201,9 @@ export function mountInspiration(
           tile.append(
             sleeve(x.id, false),
             el("span", "insp-tile-title", REFERENCES[x.id].title),
-            el("span", "insp-tile-meta", `${RECORDS[x.id].artist} · ${percent(x.share)}`),
+            el("span", "insp-tile-meta", RECORDS[x.id].artist),
+            // Its own line: a small sleeve's width would cut it off after the artist.
+            el("span", "insp-tile-share", percent(x.share)),
           );
           tile.addEventListener("click", () => play(x.id));
           li.append(tile, youtubeLink(x.id, "insp-yt-mini"));
