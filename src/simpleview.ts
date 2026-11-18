@@ -76,6 +76,8 @@ export interface SimpleView {
   renderPlayState(state: { playing: boolean } | { loading: string }): void;
   renderMix(text: string | null): void;
   renderBuffer(status: { text: string; waiting: boolean } | null): void;
+  /** Render-ahead playback: seconds rendered ahead of what is heard (null: none, or live). */
+  renderBuffered(seconds: number | null): void;
   renderSaved(saved: boolean, title: string): void;
   renderSettings(settings: SimpleSettings): void;
   renderLists(lists: SongLists): void;
@@ -108,6 +110,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     total: el(root, "s-total"),
     seek: el<HTMLInputElement>(root, "s-seek"),
     mixOut: el(root, "s-mixout"),
+    played: el(root, "s-played"),
+    buffered: el(root, "s-buffered"),
     repeat: el<HTMLButtonElement>(root, "s-repeat"),
     prev: el<HTMLButtonElement>(root, "s-prev"),
     play: el<HTMLButtonElement>(root, "s-play"),
@@ -163,7 +167,9 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   const showPosition = (bar: number) => {
     if (!song) return;
     ui.elapsed.textContent = clock(bar * barSeconds(song));
-    if (!dragging) ui.seek.value = String(bar);
+    if (dragging) return;
+    ui.seek.value = String(bar);
+    ui.played.style.width = `${Math.min(100, (bar / song.totalBars) * 100)}%`;
   };
   animate(() => {
     if (shown && playing && song) showPosition(position());
@@ -171,7 +177,10 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
 
   ui.seek.addEventListener("input", () => {
     dragging = true;
-    if (song) ui.elapsed.textContent = clock(Number(ui.seek.value) * barSeconds(song));
+    if (!song) return;
+    const bar = Number(ui.seek.value);
+    ui.elapsed.textContent = clock(bar * barSeconds(song));
+    ui.played.style.width = `${(bar / song.totalBars) * 100}%`;
   });
   ui.seek.addEventListener("change", () => {
     dragging = false;
@@ -335,6 +344,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
         `${next.bpm} BPM`,
       ].join(" · ");
       ui.seek.max = String(next.totalBars);
+      // A new song's render starts from nothing shown.
+      ui.buffered.style.width = "0%";
       ui.seek.setAttribute("aria-label", `Position in “${next.title}”`);
       ui.total.textContent = clock(songSeconds(next));
     },
@@ -373,6 +384,14 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       ui.buffer.hidden = !status;
       ui.buffer.classList.toggle("waiting", !!status?.waiting);
       ui.buffer.textContent = status?.text ?? "";
+    },
+
+    renderBuffered(seconds) {
+      ui.buffered.hidden = seconds === null || !song || !playing;
+      if (ui.buffered.hidden || !song || seconds === null) return;
+      // Where the render has got to in this song (past its end, it renders the next one).
+      const to = position() + seconds / barSeconds(song);
+      ui.buffered.style.width = `${Math.min(100, (to / song.totalBars) * 100)}%`;
     },
 
     renderSaved(saved, title) {

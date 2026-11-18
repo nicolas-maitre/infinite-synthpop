@@ -72,12 +72,11 @@
         <div class="seek">
           <span class="seek-time" id="s-elapsed">0:00</span>
           <div class="seek-track">
-            <div
-              class="seek-mix"
-              id="s-mixout"
-              title="Where the DJ mixes into the next song"
-              hidden
-            ></div>
+            <div class="seek-rail" aria-hidden="true">
+              <div class="seek-buffered" id="s-buffered" hidden></div>
+              <div class="seek-played" id="s-played"></div>
+              <div class="seek-mix" id="s-mixout" hidden><span>Mix</span></div>
+            </div>
             <input id="s-seek" type="range" min="0" max="1" step="any" value="0" />
           </div>
           <span class="seek-time" id="s-total">0:00</span>

@@ -61,7 +61,7 @@ export interface Prefs {
   instant: boolean;
   /** The sung lead's sound: a formant voice, or the original lead synth. */
   lead: LeadPatch;
-  /** Play the synths live, or render the music ahead (engine.ts); auto renders ahead on phones. */
+  /** Play the synths live, or render the music ahead (engine.ts); auto renders ahead where it can. */
   playback: Playback;
   /** Seconds to render ahead; 0 = auto (more on phones). */
   buffer: number;
