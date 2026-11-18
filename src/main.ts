@@ -32,6 +32,7 @@ import { PianoRoll } from "./pianoroll";
 import { mountWizard } from "./wizard";
 import { mountSimpleView, type SimpleGenre, type SimpleSettings } from "./simpleview";
 import { LengthSlider } from "./lengthslider";
+import { pickHint, upNextText } from "./upnext";
 import { mountInspiration } from "./inspiration";
 import { REFERENCES, type ReferenceId } from "./references";
 import { decodeCreation, encodeCreation, songToSpec, type Creation, type SongSpec } from "./spec";
@@ -48,7 +49,7 @@ import {
   SHOW_AUDIO_STATS,
 } from "./quality";
 import { BlendPad, initials } from "./blendpad";
-import { barAtSeconds, mountMediaControls } from "./mediasession";
+import { barAtSeconds, barSeconds, mountMediaControls } from "./mediasession";
 import { blendsKey, isGenreBlends, REFERENCE_IDS, refsBlend, songSound } from "./profile";
 import {
   blendRefsFor,
@@ -160,6 +161,10 @@ const simple = mountSimpleView(el("simple-view"), {
     engine.mixNext();
     renderMixNext();
   },
+  pickNext: () => {
+    engine.pickNext(randomSeed());
+    renderUpNext();
+  },
   setLite,
   setGenre: setSimpleGenre,
   setLength,
@@ -253,6 +258,8 @@ function renderSimpleSettings(): void {
     volume: prefs.master,
   };
   simple.renderSettings(settings);
+  // Genre, length, DJ mode and repeat change what plays next.
+  renderUpNext();
 }
 
 /** Mix next: in DJ mode, brings the next song in soon (Engine.mixNext). */
@@ -271,6 +278,20 @@ function renderMixNext(): void {
           : state === "idle"
             ? "Mix into the next song now, beat-matched (M)"
             : "Mixing into the next song",
+  });
+  // What changes Mix next (a bar heard, a transition, playing or not) changes Up next too.
+  renderUpNext();
+}
+
+/** Up next: the song after this one (Engine.upNext), and whether Pick another can change it. */
+function renderUpNext(): void {
+  const next = engine.upNext;
+  const canPick = engine.canPickNext;
+  simple.renderUpNext({
+    song: next.song,
+    when: upNextText(next.when, barSeconds(engine.song)),
+    canPick,
+    pickHint: pickHint(next.when.kind, canPick),
   });
 }
 
@@ -877,6 +898,7 @@ function renderSong(song: Song): void {
   applyMixer();
   simple.renderSong(song);
   inspiration.render(song);
+  renderUpNext();
   media.setSong(song, GENRES[song.genre].name);
   media.setPosition(song, engine.currentBar);
   // While editing the title, don't overwrite what's being typed.

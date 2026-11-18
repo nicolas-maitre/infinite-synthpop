@@ -2716,3 +2716,108 @@ html[data-view="simple"] .site-footer {
 #s-mini-play.playing .icon-pause {
   display: block;
 }
+
+/* ── Up next (simpleview.ts): the song after this one, a row under the player ── */
+.upnext {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.upnext-cover {
+  flex: none;
+  display: block;
+  width: 52px;
+}
+
+.upnext-cover:empty {
+  display: none;
+}
+
+.upnext .insp-cover {
+  --size: 52px;
+  border-radius: 4px;
+  box-shadow:
+    0 6px 16px #00000070,
+    0 0 0 1px #ffffff12;
+}
+
+.upnext-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.upnext-kicker {
+  margin: 0;
+  font-size: 11px;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upnext-when {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.upnext-title,
+.upnext-meta {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upnext-title {
+  font-weight: 700;
+}
+
+.upnext-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.btn.upnext-pick {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn.upnext-pick .icon {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  fill: currentColor;
+}
+
+.btn.upnext-pick:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.btn.upnext-pick:disabled:hover {
+  border-color: var(--line);
+}
+
+/* A phone: the button keeps its icon alone, the song its room. */
+@media (max-width: 480px) {
+  .btn.upnext-pick {
+    padding: 8px;
+  }
+
+  .btn.upnext-pick span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
