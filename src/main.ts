@@ -36,6 +36,7 @@ import { stationOf, stationPlay, type StationId } from "./stations";
 import { tasteOf, type Taste } from "./foryou";
 import { LengthSlider } from "./lengthslider";
 import { mountInspiration } from "./inspiration";
+import { coverArtwork, songCover, storedCover } from "./coverart";
 import { REFERENCES, type ReferenceId } from "./references";
 import { decodeCreation, encodeCreation, songToSpec, type Creation, type SongSpec } from "./spec";
 import { randomSeed } from "./rng";
@@ -754,6 +755,12 @@ autoplayBox.addEventListener("change", () => {
 });
 const originals = [...document.querySelectorAll<HTMLButtonElement>("[data-reference]")];
 
+/** The original a My songs entry was kept from ("ref:true-faith"), if it was one. */
+function originalOf(from: string | undefined): ReferenceId | undefined {
+  const id = from?.startsWith("ref:") ? from.slice(4) : null;
+  return isReferenceId(id) ? id : undefined;
+}
+
 function isReferenceId(id: string | null | undefined): id is ReferenceId {
   return !!id && id in REFERENCES;
 }
@@ -955,6 +962,12 @@ function renderSong(song: Song): void {
   simple.renderSong(song);
   inspiration.render(song);
   media.setSong(song, GENRES[song.genre].name);
+  void coverArtwork(songCover(song)).then(
+    (art) => media.setArtwork(song, art),
+    () => {
+      // Not drawn (no canvas): the app's icon stays.
+    },
+  );
   media.setPosition(song, engine.currentBar);
   // While editing the title, don't overwrite what's being typed.
   if (document.activeElement !== ui.title) ui.title.textContent = song.title;
@@ -1129,12 +1142,15 @@ function renderSimpleLists(current: SavedSong | undefined): void {
       meta: `${e.summary} · ${when(e.at)}`,
       current: e.id === heard,
       saved: !!savedFor(e),
+      cover: storedCover(e.data, e.reference),
     })),
     favourites: library.list().map((s) => ({
       id: s.id,
       title: s.title,
       meta: s.summary,
       current: s.id === current?.id,
+      // An original kept with ♥ shows its own sleeve.
+      cover: storedCover(s.data, originalOf(s.from)),
     })),
     originals: REFERENCE_IDS.map((id) => {
       const ref = REFERENCES[id];
@@ -1143,6 +1159,7 @@ function renderSimpleLists(current: SavedSong | undefined): void {
         title: ref.title,
         meta: `${GENRES[genreOfReference(id)].name} · ${keyName(ref.key)} · ${ref.bpm} BPM`,
         current: engine.song.reference === id,
+        cover: { reference: id },
       };
     }),
   });

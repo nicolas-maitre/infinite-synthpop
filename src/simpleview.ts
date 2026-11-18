@@ -6,6 +6,7 @@
  * controls.
  */
 import type { LengthRange, Song } from "./composer";
+import { coverElement, showCover, songCover, type CoverSource } from "./coverart";
 import { GENRES } from "./genres";
 import { coverUrl, RECORDS } from "./influence";
 import { barSeconds, songSeconds } from "./mediasession";
@@ -48,6 +49,8 @@ export interface SongRow {
   current: boolean;
   /** In My songs (the previous songs' ♡). */
   saved?: boolean;
+  /** Its sleeve, as a thumbnail. */
+  cover?: CoverSource | null;
 }
 
 export interface SongLists {
@@ -136,6 +139,9 @@ function mosaic(box: HTMLElement, records: readonly ReferenceId[]): void {
 const recordsLine = (records: readonly ReferenceId[]) =>
   records.map((id) => `${REFERENCES[id].title} (${RECORDS[id].artist})`).join(", ");
 
+/** Thumbnails' pixels: 48 CSS pixels at 2×. */
+const THUMB_PX = 96;
+
 function el<T extends HTMLElement>(root: HTMLElement, id: string): T {
   const node = root.querySelector<T>(`#${id}`);
   if (!node) throw new Error(`#${id} missing`);
@@ -145,6 +151,8 @@ function el<T extends HTMLElement>(root: HTMLElement, id: string): T {
 export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): SimpleView {
   const ui = {
     title: el(root, "s-title"),
+    cover: el(root, "s-cover"),
+    miniCover: el(root, "s-mini-cover"),
     meta: el(root, "s-meta"),
     mix: el(root, "s-mix"),
     save: el<HTMLButtonElement>(root, "s-save"),
@@ -372,6 +380,11 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
         meta.className = "song-meta";
         meta.textContent = row.meta;
         button.append(name, meta);
+        // Thumbnails draw a few per frame: a long list doesn't hold up the page.
+        if (row.cover) {
+          button.prepend(coverElement(row.cover, THUMB_PX, true));
+          button.classList.add("with-cover");
+        }
         button.addEventListener("click", () => play(row.id));
         li.append(button, ...extra(row));
         return li;
@@ -444,6 +457,9 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     renderSong(next) {
       song = next;
       ui.title.textContent = next.title;
+      // Drawn big enough for full screen on a sharp screen.
+      showCover(ui.cover, songCover(next), 768);
+      showCover(ui.miniCover, songCover(next), THUMB_PX);
       ui.miniTitle.textContent = next.title;
       ui.meta.textContent = [
         next.reference ? `Original · ${GENRES[next.genre].name}` : GENRES[next.genre].name,

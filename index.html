@@ -46,6 +46,7 @@
       <section class="card player" aria-labelledby="s-title">
         <div class="player-head">
           <div class="player-song">
+            <span class="cover player-cover" id="s-cover" aria-hidden="true"></span>
             <p class="eyebrow">Now playing</p>
             <h2 id="s-title">Press play</h2>
             <p class="meta" id="s-meta">—</p>
@@ -165,6 +166,7 @@
       <div class="mini-player" id="s-mini" role="region" aria-label="Now playing" hidden>
         <div class="mini-progress" aria-hidden="true"><span id="s-mini-fill"></span></div>
         <button class="mini-info" id="s-mini-info" type="button" title="Back to the player">
+          <span class="cover mini-cover" id="s-mini-cover" aria-hidden="true"></span>
           <span class="mini-title" id="s-mini-title"></span>
           <span class="mini-meta" id="s-mini-meta"></span>
         </button>
