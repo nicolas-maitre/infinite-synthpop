@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { History, HISTORY_KEY, HISTORY_SIZE, type NewEntry } from "./history";
+import { History, HISTORY_KEY, HISTORY_SIZE, quickSkip, type NewEntry } from "./history";
 
 function memoryStore(initial: Record<string, string> = {}) {
   const data = { ...initial };
@@ -68,5 +68,19 @@ describe("History", () => {
       ]),
     });
     expect(new History(store).list()).toEqual([]);
+  });
+
+  it("keeps how long a song was heard, and calls under 30 s a quick skip", () => {
+    const store = memoryStore();
+    const h = new History(store);
+    const a = h.record(song(1));
+    expect(quickSkip(a)).toBe(false);
+    h.left(a.id, 12.4);
+    const b = h.record(song(2));
+    h.left(b.id, 214);
+    const [newer, older] = new History(store).list();
+    expect(older!.heard).toBe(12);
+    expect(quickSkip(older!)).toBe(true);
+    expect(quickSkip(newer!)).toBe(false);
   });
 });

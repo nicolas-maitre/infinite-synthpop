@@ -1,18 +1,19 @@
 /**
  * The simple view: a music player over the same engine and settings as the advanced view. What's
  * playing, previous / play / next with a seek bar and repeat, DJ mode, lite playback, the volume
- * with the mixer under it, the genre that plays next, and the songs heard before, the favourites
+ * with the mixer under it, the station that plays next, and the songs heard before, the favourites
  * and the originals. main.ts owns the state and calls the render methods; this only binds the
  * controls.
  */
 import type { LengthRange, Song } from "./composer";
-import { GENRE_IDS, GENRES, type GenreId } from "./genres";
+import { GENRES } from "./genres";
+import { coverUrl, RECORDS } from "./influence";
 import { barSeconds, songSeconds } from "./mediasession";
 import { clock, LengthSlider } from "./lengthslider";
 import { animate } from "./quality";
+import { REFERENCES, type ReferenceId } from "./references";
+import { STATIONS, type StationId } from "./stations";
 import { keyName } from "./theory";
-
-export type SimpleGenre = GenreId | "auto";
 
 export interface SimpleViewActions {
   togglePlay(): void;
@@ -24,7 +25,7 @@ export interface SimpleViewActions {
   setDj(on: boolean): void;
   mixNext(): void;
   setLite(on: boolean): void;
-  setGenre(genre: SimpleGenre): void;
+  setStation(station: StationId): void;
   setLength(range: LengthRange): void;
   setVolume(db: number): void;
   toggleSave(): void;
@@ -55,7 +56,8 @@ export interface SongLists {
   originals: SongRow[];
 }
 
-/** The settings the view shows. `genre` is "custom" when the advanced view set more than a genre. */
+/** The settings the view shows. `station` is "custom" when the advanced view set more than a
+ * station does. */
 export interface SimpleSettings {
   dj: boolean;
   /** Why DJ mode can't be turned on here, or null. */
@@ -64,7 +66,9 @@ export interface SimpleSettings {
   lite: boolean;
   /** Why the lite switch is fixed, or null. */
   liteFixed: string | null;
-  genre: SimpleGenre | "custom";
+  station: StationId | "custom";
+  /** For you's records, largest share first; null while there are no favourites. */
+  forYou: readonly ReferenceId[] | null;
   length: LengthRange;
   volume: number;
 }
@@ -92,6 +96,45 @@ export interface SimpleView {
   /** Full screen: the playing song alone, big (on or off; no argument toggles). */
   setFullScreen(on?: boolean): void;
 }
+
+/** A record's initials, for the tile under its sleeve (and in its place when it doesn't load). */
+function initials(title: string): string {
+  return title
+    .split(/\s+/)
+    .filter((w) => /^[A-Za-z]/.test(w))
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
+/** A station's sleeves, up to four, as a 2×2 mosaic (inspiration.ts loads them the same way). */
+function mosaic(box: HTMLElement, records: readonly ReferenceId[]): void {
+  const shown = records.slice(0, 4);
+  box.dataset.count = String(shown.length);
+  box.replaceChildren(
+    ...shown.map((id) => {
+      const cell = document.createElement("span");
+      cell.className = "station-sleeve";
+      const tile = document.createElement("span");
+      tile.className = "station-sleeve-tile";
+      tile.textContent = initials(REFERENCES[id].title);
+      const img = document.createElement("img");
+      img.alt = "";
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.crossOrigin = "anonymous";
+      img.referrerPolicy = "no-referrer";
+      img.src = coverUrl(id, 250);
+      img.addEventListener("load", () => img.classList.add("loaded"));
+      img.addEventListener("error", () => img.remove());
+      cell.append(tile, img);
+      return cell;
+    }),
+  );
+}
+
+const recordsLine = (records: readonly ReferenceId[]) =>
+  records.map((id) => `${REFERENCES[id].title} (${RECORDS[id].artist})`).join(", ");
 
 function el<T extends HTMLElement>(root: HTMLElement, id: string): T {
   const node = root.querySelector<T>(`#${id}`);
@@ -135,7 +178,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     miniPlay: el<HTMLButtonElement>(root, "s-mini-play"),
     miniNext: el<HTMLButtonElement>(root, "s-mini-next"),
     mixNextLabel: el(root, "s-mix-next-label"),
-    genre: el<HTMLSelectElement>(root, "s-genre"),
+    stations: el<HTMLUListElement>(root, "s-stations"),
+    stationCustom: el(root, "s-station-custom"),
     history: el<HTMLUListElement>(root, "s-history"),
     historyEmpty: el(root, "s-history-empty"),
     favourites: el<HTMLUListElement>(root, "s-favourites"),
@@ -154,10 +198,44 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   label(ui.next, "Next song (→ or N)");
   label(ui.repeat, "Repeat this song (R)");
 
-  ui.genre.append(new Option("Any (a genre per song)", "auto"));
-  for (const id of GENRE_IDS) ui.genre.append(new Option(GENRES[id].name, id));
-  const custom = new Option("Custom (set in Advanced)", "custom");
-  custom.disabled = true;
+  // ── Stations (stations.ts): tiles with their records' sleeves ──
+  const tiles = STATIONS.map((station) => {
+    const li = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "station";
+    button.dataset.station = station.id;
+    button.setAttribute("aria-pressed", "false");
+    const art = document.createElement("span");
+    art.className = "station-mosaic";
+    art.setAttribute("aria-hidden", "true");
+    mosaic(art, station.records);
+    const name = document.createElement("span");
+    name.className = "station-name";
+    name.textContent = station.name;
+    const desc = document.createElement("span");
+    desc.className = "station-desc";
+    desc.textContent = station.description;
+    button.append(art, name, desc);
+    button.title = station.records.length
+      ? `${station.name}: ${recordsLine(station.records)}`
+      : station.name;
+    button.addEventListener("click", () => actions.setStation(station.id));
+    // Arrows move along the tiles, not to the previous / next song.
+    button.addEventListener("keydown", (e) => {
+      const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!step) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const buttons = [...ui.stations.querySelectorAll<HTMLButtonElement>(".station:enabled")];
+      const i = buttons.indexOf(button);
+      buttons[(i + step + buttons.length) % buttons.length]?.focus();
+    });
+    li.append(button);
+    ui.stations.append(li);
+    return { station, button, art, desc };
+  });
+  let forYouShown = "";
 
   // ── Position: from the last bar heard, moved on smoothly between bars ──
   let song: Song | null = null;
@@ -232,10 +310,6 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   );
   ui.mixNext.addEventListener("click", () => actions.mixNext());
   ui.lite.addEventListener("change", () => actions.setLite(ui.lite.checked));
-  ui.genre.addEventListener("change", () => {
-    const v = ui.genre.value;
-    if (v === "auto" || (GENRE_IDS as string[]).includes(v)) actions.setGenre(v as SimpleGenre);
-  });
   ui.volume.addEventListener("input", () => actions.setVolume(Number(ui.volume.value)));
 
   // ── Length (lengthslider.ts) ──
@@ -451,10 +525,21 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       ui.lite.checked = s.lite;
       ui.lite.disabled = !!s.liteFixed;
       if (s.liteFixed) ui.lite.parentElement!.title = s.liteFixed;
-      if (s.genre === "custom") {
-        if (!custom.parentElement) ui.genre.append(custom);
-      } else custom.remove();
-      ui.genre.value = s.genre;
+      for (const { station, button, art, desc } of tiles) {
+        button.setAttribute("aria-pressed", String(station.id === s.station));
+        if (station.id !== "for-you") continue;
+        // Its records follow the favourites: redrawn only when they change.
+        const key = JSON.stringify(s.forYou);
+        if (key === forYouShown) continue;
+        forYouShown = key;
+        mosaic(art, s.forYou ?? []);
+        button.disabled = !s.forYou;
+        desc.textContent = s.forYou ? station.description : "Save favourites to start it";
+        button.title = s.forYou
+          ? `For you: ${recordsLine(s.forYou)}. Worked out in this browser only`
+          : "For you: ♡ a few songs first. Worked out in this browser only";
+      }
+      ui.stationCustom.hidden = s.station !== "custom";
       length.set(s.length);
       ui.volume.value = String(s.volume);
     },

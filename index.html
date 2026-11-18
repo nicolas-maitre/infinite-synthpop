@@ -190,10 +190,20 @@
 
       <section class="card next-up" aria-labelledby="next-up-title">
         <h3 id="next-up-title">What plays next</h3>
-        <label class="field">
-          <span>Genre</span>
-          <select id="s-genre"></select>
-        </label>
+        <div class="stations-head">
+          <span id="s-stations-label">Station</span>
+          <span class="station-custom" id="s-station-custom" hidden>Custom (set in Advanced)</span>
+        </div>
+        <ul class="stations" id="s-stations" aria-labelledby="s-stations-label"></ul>
+        <p class="station-privacy">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M17 9V7A5 5 0 0 0 7 7v2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM9 7a3 3 0 0 1 6 0v2H9zm4 9.7V18h-2v-1.3a2 2 0 1 1 2 0z"
+            />
+          </svg>
+          For you is worked out in this browser from your favourites and quick skips. Nothing leaves
+          it.
+        </p>
         <div id="s-length"></div>
       </section>
 

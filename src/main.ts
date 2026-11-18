@@ -2,6 +2,7 @@ import "./style.css";
 import { chordSlots } from "./arranger";
 import {
   CHORDS_MODES,
+  compose,
   type BassStyle,
   type DrumMode,
   type ImportedTracks,
@@ -24,13 +25,15 @@ import {
 import { matchTracks, mergeBars, parseMidi, toDrumBars, type MidiFile } from "./midi";
 import { mountCreator } from "./creator";
 import { Library, type SavedSong } from "./library";
-import { History, type HistoryEntry, type NewEntry } from "./history";
+import { History, quickSkip, type HistoryEntry, type NewEntry } from "./history";
 import { assignMelody, nextMelodyName } from "./melodies";
 import { Recorder } from "./recorder";
 import { download, exportAudio, fileName, songToMidi } from "./export";
 import { PianoRoll } from "./pianoroll";
 import { mountWizard } from "./wizard";
-import { mountSimpleView, type SimpleGenre, type SimpleSettings } from "./simpleview";
+import { mountSimpleView, type SimpleSettings } from "./simpleview";
+import { stationOf, stationPlay, type StationId } from "./stations";
+import { tasteOf, type Taste } from "./foryou";
 import { LengthSlider } from "./lengthslider";
 import { mountInspiration } from "./inspiration";
 import { REFERENCES, type ReferenceId } from "./references";
@@ -48,8 +51,16 @@ import {
   SHOW_AUDIO_STATS,
 } from "./quality";
 import { BlendPad, initials } from "./blendpad";
-import { barAtSeconds, mountMediaControls } from "./mediasession";
-import { blendsKey, isGenreBlends, REFERENCE_IDS, refsBlend, songSound } from "./profile";
+import { barAtSeconds, barSeconds, mountMediaControls } from "./mediasession";
+import {
+  blendsKey,
+  isGenreBlends,
+  REFERENCE_IDS,
+  refsBlend,
+  simpleBlends,
+  songSound,
+  type PartBlends,
+} from "./profile";
 import {
   blendRefsFor,
   centreFor,
@@ -161,7 +172,7 @@ const simple = mountSimpleView(el("simple-view"), {
     renderMixNext();
   },
   setLite,
-  setGenre: setSimpleGenre,
+  setStation,
   setLength,
   setVolume,
   toggleSave,
@@ -238,8 +249,6 @@ for (const b of viewButtons) {
 
 /** The simple view's switches and selects, from the settings. */
 function renderSimpleSettings(): void {
-  const custom =
-    prefs.genre === "open" || prefs.partsOn || (prefs.genre !== "auto" && !prefs.styleAuto);
   const settings: SimpleSettings = {
     dj: prefs.dj && AHEAD_SUPPORTED,
     djUnavailable: AHEAD_SUPPORTED
@@ -248,7 +257,8 @@ function renderSimpleSettings(): void {
     repeat: prefs.repeat,
     lite: QUALITY === "lite",
     liteFixed: QUALITY_FROM_URL ? `Set to ${QUALITY} by ?quality= in the address` : null,
-    genre: custom ? "custom" : prefs.genre === "open" ? "auto" : prefs.genre,
+    station: currentStation() ?? "custom",
+    forYou: forYou?.refs ?? null,
     length: prefs.length,
     volume: prefs.master,
   };
@@ -360,6 +370,8 @@ let playingEntry: string | null = null;
 let recordedPlay = -1;
 /** Previous / Next walk the history: the entry about to play, so it isn't recorded again. */
 let navigatingTo: string | null = null;
+/** How long the playing entry has been heard: its bars so far (pauses and seeks aside). */
+let heardSeconds = 0;
 
 /** What the history keeps of a song: enough to play it again exactly. */
 function historyEntry(song: Song): NewEntry {
@@ -382,7 +394,13 @@ function historyEntry(song: Song): NewEntry {
 /** A bar is heard: the first of a new playing goes in the history (unless Previous / Next
  * brought back one already there). */
 function noteHeard(): void {
-  if (engine.playId === recordedPlay) return;
+  if (engine.playId === recordedPlay) {
+    heardSeconds += barSeconds(engine.song);
+    return;
+  }
+  // The song before was left this far in (For you counts the quick skips).
+  if (playingEntry) played.left(playingEntry, heardSeconds);
+  heardSeconds = barSeconds(engine.song);
   recordedPlay = engine.playId;
   if (navigatingTo && played.get(navigatingTo)) playingEntry = navigatingTo;
   else playingEntry = played.record(historyEntry(engine.song)).id;
@@ -441,6 +459,65 @@ function toggleHistorySaved(id: string): void {
   library.save(creation, songSummary(key, bpm, bars), entry.origin);
   simple.renderListStatus(`Saved “${entry.title}” to Favourites.`);
   renderSongs();
+}
+
+// ── Stations (stations.ts) and For you (foryou.ts) ───────────────────────────────────────────
+
+/** Each saved or heard song's part blends, by its data (composing one takes a millisecond or two). */
+const blendsCache = new Map<string, PartBlends | null>();
+function blendsOf(data: string, reference?: string): PartBlends | null {
+  if (isReferenceId(reference)) return simpleBlends({ [reference]: 1 });
+  if (!blendsCache.has(data)) {
+    const creation = decodeCreation(data);
+    try {
+      blendsCache.set(
+        data,
+        creation ? compose({ seed: creation.seed, custom: creation.spec }).blends : null,
+      );
+    } catch {
+      // A song this version can't lay out: it just doesn't count.
+      blendsCache.set(data, null);
+    }
+  }
+  return blendsCache.get(data) ?? null;
+}
+
+/** For you's records, from Favourites and the quick skips in Previous songs: worked out here,
+ * never sent anywhere. Null without favourites. */
+let forYou: Taste | null = null;
+/** Set once the page is up: For you's new records play from then on (not while it loads). */
+let stationsLive = false;
+
+/** Works For you out again; while it plays, its new records take over from the next song. */
+function refreshForYou(): void {
+  const liked = library.list().flatMap((s) => blendsOf(s.data, s.from?.replace(/^ref:/, "")) ?? []);
+  // A song kept in Favourites since doesn't count against them.
+  const skipped = played
+    .list()
+    .filter((e) => quickSkip(e) && !savedFor(e))
+    .flatMap((e) => blendsOf(e.data, e.reference) ?? []);
+  const taste = tasteOf(liked, skipped);
+  if (JSON.stringify(taste?.refs) === JSON.stringify(forYou?.refs)) return;
+  const playing = currentStation() === "for-you";
+  forYou = taste;
+  if (playing && taste && stationsLive) {
+    prefs.openRefs = stationPlay("for-you", taste.refs)!.openRefs!;
+    setGenre("open", true);
+  } else renderSimpleSettings();
+}
+
+/** The station the genre settings play, or null when the advanced view set more. */
+function currentStation(): StationId | null {
+  return stationOf(prefs, prefs.station, forYou?.refs ?? null);
+}
+
+/** The player's station: from the next song, the length kept. */
+function setStation(id: StationId): void {
+  const play = stationPlay(id, forYou?.refs ?? null);
+  if (!play || currentStation() === id) return;
+  prefs.station = id;
+  if (play.openRefs) prefs.openRefs = play.openRefs;
+  setSimpleGenre(play.genre);
 }
 
 /**
@@ -986,6 +1063,7 @@ function when(at: number): string {
 }
 
 function renderSongs(): void {
+  refreshForYou();
   const songs = library.list();
   const current = currentEntry();
   el("songs-count").textContent = songs.length ? String(songs.length) : "";
@@ -1355,8 +1433,9 @@ ui.genre.addEventListener("change", () => {
   if (value === "auto" || value === "open" || isGenreId(value)) setGenre(value);
 });
 
-/** The simple view's genre: just the genre, with the style picked per song and no part blends. */
-function setSimpleGenre(value: SimpleGenre): void {
+/** The player's genre: just the genre (or open blend), with the style picked per song and no part
+ * blends. */
+function setSimpleGenre(value: GenreId | "auto" | "open"): void {
   prefs.styleAuto = true;
   prefs.partsOn = false;
   ui.partsOn.checked = false;
@@ -1463,6 +1542,7 @@ function showOpenRefs(): void {
             showTempoHint();
             savePrefs();
             engine.update(engineSettings());
+            renderSimpleSettings();
           }),
         ]
       : []),
@@ -1858,6 +1938,7 @@ ui.mixerReset.addEventListener("click", () => {
 // ── Go ────────────────────────────────────────────────────────────────────────────────────────
 
 showView(prefs.view);
+stationsLive = true;
 renderSimpleSettings();
 renderMixNext();
 const linked = initialCreation ? decodeCreation(initialCreation) : null;
