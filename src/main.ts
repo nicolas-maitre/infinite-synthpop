@@ -627,7 +627,7 @@ async function exportSong(format: string): Promise<void> {
   }
   if (format !== "mp3" && format !== "wav") return;
   // Rendering borrows the audio engine, so live playback stops first.
-  if (engine.playing) engine.stop();
+  if (engine.playing || engine.paused) engine.stop();
   for (const b of exportButtons) b.disabled = true;
   try {
     const blob = await exportAudio(song, format, {
@@ -704,10 +704,10 @@ const media = mountMediaControls({
   play: () => {
     if (!engine.playing) void togglePlay();
   },
-  pause: () => engine.stop(),
+  pause: () => engine.pause(),
   next: () => nextSong(),
   previous: () => previousSong(),
-  seekTo: (seconds) => engine.jumpTo(barAtSeconds(engine.song, seconds)),
+  seekTo: (seconds) => engine.jumpTo(barAtSeconds(engine.song, seconds), currentView === "simple"),
   seekForward: () => engine.skipSection(),
   seekBackward: () => {
     const { sections } = engine.song;
@@ -758,7 +758,14 @@ function renderPlayState(state: { playing: boolean } | { loading: string }): voi
 
 async function togglePlay(): Promise<void> {
   if (engine.playing) {
-    engine.stop();
+    // The player pauses, keeping its place and what is rendered ahead; the advanced view stops.
+    if (currentView === "simple") engine.pause();
+    else engine.stop();
+    return;
+  }
+  if (engine.paused) {
+    media.activate();
+    await engine.start();
     return;
   }
   renderPlayState({ loading: "Loading…" });
@@ -1344,10 +1351,11 @@ function setSimpleGenre(value: SimpleGenre): void {
   ui.partsOn.checked = false;
   ui.partRows.hidden = true;
   ui.genre.value = value;
-  setGenre(value);
+  setGenre(value, true);
 }
 
-function setGenre(value: GenreId | "auto" | "open"): void {
+/** The genre; with `nextOnly` (the player's "what plays next") the playing song stays as it is. */
+function setGenre(value: GenreId | "auto" | "open", nextOnly = false): void {
   prefs.genre = value;
   // Other references: the polygon starts from the centre.
   if (value === "open") prefs.weights = centreFor(prefs.openRefs);
@@ -1363,7 +1371,8 @@ function setGenre(value: GenreId | "auto" | "open"): void {
   showOpenRefs();
   showTempoHint();
   savePrefs();
-  engine.update(engineSettings());
+  if (nextOnly) engine.updateNext(engineSettings());
+  else engine.update(engineSettings());
   renderSimpleSettings();
 }
 

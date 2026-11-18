@@ -364,7 +364,11 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
 
     renderPlayState(state) {
       const loading = "loading" in state;
-      playing = !loading && state.playing;
+      const now = !loading && state.playing;
+      // Paused or stopped: the position holds where it got to.
+      if (playing && !now) heard = { ...heard, bar: position() };
+      playing = now;
+      showPosition(heard.bar);
       ui.play.classList.toggle("playing", playing);
       ui.play.classList.toggle("loading", loading);
       ui.play.disabled = loading;

@@ -184,3 +184,12 @@ Each phase is checked in Chromium and Firefox (headless), audio muted.
      for whoever picked it, and for creator mode. The buffer stays 60 s on phones, 20 s elsewhere.
    - The seek bar draws its own track: played (pink), rendered ahead (grey, as a video's
      buffer), and the DJ's mix-out band, now labelled "Mix".
+7. **Pause like a player.** **Done.**
+   - Pause (the player's button, Space, the media keys) suspends the audio clock: what is
+     rendered ahead, or scheduled live, stays, and play goes on from exactly there. Bar events
+     wait on the audio clock, so nothing moves on while paused. The advanced view's Stop still
+     stops (back to the top of the section), and so does an export.
+   - Next, Previous, a seek or a song from the lists while paused switch as while playing and
+     stay paused (a song from the lists starts playing, as a click on it means to).
+   - The player's genre applies from the next song (`Engine.updateNext`): the playing song stays
+     as it is; the next one is planned again unless its transition is already under way.

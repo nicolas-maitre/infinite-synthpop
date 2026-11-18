@@ -229,6 +229,8 @@ export class Engine {
   private mixing: Song | null = null;
   /** A song plays again when it ends instead of moving on (the DJ doesn't mix out). */
   private repeat = false;
+  /** Paused: the audio context is suspended. */
+  private suspended = false;
   /** The song Mix next brought the transition forward for. */
   private mixNextFor: Song | null = null;
 
@@ -242,7 +244,18 @@ export class Engine {
     this.song = this.compose(seed, undefined, undefined, undefined, chords);
   }
 
+  /** Sound is coming out (not stopped, not paused). */
   get playing(): boolean {
+    return this.running && !this.suspended;
+  }
+
+  /** Paused: the audio clock stands still where it was, to go on from there. */
+  get paused(): boolean {
+    return this.running && this.suspended;
+  }
+
+  /** Live or rendering ahead, paused or not. */
+  private get running(): boolean {
     return this.repeatId !== null || this.player !== null;
   }
 
@@ -320,7 +333,7 @@ export class Engine {
   /** Moves playback between live and render-ahead when the mode changes while playing, from the
    * next bar. */
   private syncMode(): void {
-    if (!this.playing || this.wantsAhead() === (this.player !== null)) return;
+    if (!this.running || this.wantsAhead() === (this.player !== null)) return;
     this.halt();
     void this.run().catch((error: unknown) => console.error("Couldn't switch playback", error));
   }
@@ -447,8 +460,36 @@ export class Engine {
    * loads the instruments and samples, telling `onProgress` how many samples are settled.
    */
   async start(onProgress?: (done: number, total: number) => void): Promise<void> {
-    if (this.playing) return;
+    if (this.suspended) {
+      await this.resume();
+      return;
+    }
+    if (this.running) return;
     await this.run(onProgress);
+    this.events.onStateChange?.(true);
+  }
+
+  /**
+   * Pauses: the audio clock stops where it is (what is playing, rendered ahead or scheduled
+   * stays), and `start` goes on from exactly there. Switching songs or jumping while paused
+   * happens as while playing, heard once it goes on.
+   */
+  pause(): void {
+    if (!this.running || this.suspended) return;
+    this.suspended = true;
+    rawContext()
+      .suspend()
+      .catch((error: unknown) => console.error("Couldn't pause", error));
+    this.events.onStateChange?.(false);
+  }
+
+  private async resume(): Promise<void> {
+    try {
+      await rawContext().resume();
+    } catch (error) {
+      console.error("Couldn't resume", error);
+    }
+    this.suspended = false;
     this.events.onStateChange?.(true);
   }
 
@@ -506,7 +547,8 @@ export class Engine {
    * (and resumes a context the browser suspended or interrupted itself).
    */
   async wake(): Promise<void> {
-    if (!this.instruments) return;
+    // Paused on purpose: it stays so.
+    if (!this.instruments || this.suspended) return;
     const raw = Tone.getContext().rawContext as unknown as AudioContext;
     try {
       if (raw.state === "running") await raw.suspend();
@@ -517,8 +559,15 @@ export class Engine {
   }
 
   stop(): void {
-    if (!this.playing) return;
+    if (!this.running) return;
     this.halt();
+    if (this.suspended) {
+      // Stopped while paused: the clock runs again, with nothing left to play.
+      this.suspended = false;
+      void rawContext()
+        .resume()
+        .catch(() => {});
+    }
     if (this.cue !== null) {
       this.cue = null;
       this.events.onCue?.(null);
@@ -651,7 +700,7 @@ export class Engine {
   }
 
   skipSection(): void {
-    const i = sectionIndex(this.song, Math.max(0, this.playing ? this.bar - 1 : this.bar));
+    const i = sectionIndex(this.song, Math.max(0, this.running ? this.bar - 1 : this.bar));
     const next = this.song.sections[i + 1];
     if (next) {
       this.bar = next.startBar;
@@ -664,7 +713,7 @@ export class Engine {
    * waiting for the next bar line.
    */
   private switched(now = false): void {
-    this.cue = this.playing ? this.bar : null;
+    this.cue = this.running ? this.bar : null;
     if (this.cue !== null && (this.instant || now)) this.restart();
     else {
       if (this.cue !== null && this.player) this.cutAhead(false);
@@ -685,7 +734,7 @@ export class Engine {
       return;
     }
     const inst = this.instruments;
-    if (!this.playing || !inst) return;
+    if (!this.running || !inst) return;
     const transport = Tone.getTransport();
     transport.stop();
     transport.cancel();
@@ -709,6 +758,27 @@ export class Engine {
   setLeadPatch(patch: LeadPatch): void {
     this.leadPatch = patch;
     this.instruments?.setLeadPatch(patch);
+    this.rerender();
+  }
+
+  /**
+   * Settings for the songs to come, leaving the playing one as it is (a player's "what plays
+   * next"). Rendering ahead, the next song is planned again with them, unless its transition is
+   * already under way.
+   */
+  updateNext(settings: Partial<EngineSettings>): void {
+    this.settings = { ...this.settings, ...settings };
+    const player = this.player;
+    if (!player) return;
+    const line = player.barLineAfter(player.readyAfter());
+    if (!line || line.deck.meta.serial !== this.serial) return;
+    const plan = this.djPlans.get(this.song);
+    if (plan) {
+      const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
+      if (line.bar >= plan.swap - window) return;
+      if (this.mixNextFor === this.song) this.djPlan(this.song, this.meta(), plan.swap);
+      else this.djPlans.delete(this.song);
+    }
     this.rerender();
   }
 
@@ -1314,8 +1384,20 @@ function usedTracks(song: Song): Set<Track> {
  * requestAnimationFrame and silently drops callbacks more than 0.25 s late, so the display froze
  * whenever the tab was in the background. Timers are throttled there too, but never dropped.
  */
+/** The audio context everything plays on (Tone's, wrapping the browser's). */
+function rawContext(): AudioContext {
+  return Tone.getContext().rawContext as unknown as AudioContext;
+}
+
+/** Calls back when the audio clock reaches `time`; while it stands still (paused), it waits. */
 function atAudioTime(time: number, callback: () => void): void {
-  setTimeout(callback, Math.max(0, (time - Tone.now()) * 1000));
+  setTimeout(
+    () => {
+      if (time - Tone.now() > 0.005) atAudioTime(time, callback);
+      else callback();
+    },
+    Math.max(0, (time - Tone.now()) * 1000),
+  );
 }
 
 function sectionIndex(song: Song, bar: number): number {
