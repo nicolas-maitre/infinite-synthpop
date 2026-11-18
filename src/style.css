@@ -2040,6 +2040,184 @@ html[data-view="advanced"] #simple-view {
   margin-bottom: 0;
 }
 
+/* Stations: tiles with their records' sleeves, a grid that scrolls sideways on a phone. */
+.stations-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.station-custom {
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.stations {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.station {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: #ffffff08;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.station:hover:enabled {
+  background: #ffffff10;
+}
+
+.station:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+.station[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.station:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.station-mosaic {
+  display: grid;
+  grid-template: 1fr 1fr / 1fr 1fr;
+  gap: 2px;
+  aspect-ratio: 1;
+  margin-bottom: 6px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #3a1d5c, #13304a);
+}
+
+/* Fewer than four: the first ones take more room. */
+.station-mosaic[data-count="1"] > :first-child {
+  grid-area: 1 / 1 / 3 / 3;
+}
+
+.station-mosaic[data-count="2"] > * {
+  grid-row: 1 / 3;
+}
+
+.station-mosaic[data-count="3"] > :first-child {
+  grid-row: 1 / 3;
+}
+
+/* For you before there are favourites: a heart where its sleeves go. */
+.station-mosaic[data-count="0"]::before {
+  content: "♡";
+  grid-area: 1 / 1 / 3 / 3;
+  place-self: center;
+  font-size: 40px;
+  color: #ffffff55;
+}
+
+.station-sleeve {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff0a;
+}
+
+.station-sleeve-tile {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffffff55;
+}
+
+.station-sleeve img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.station-sleeve img.loaded {
+  opacity: 1;
+}
+
+.station-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Two lines at most, kept for every tile so the names line up. */
+.station-desc {
+  display: -webkit-box;
+  min-height: 2lh;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.station-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 0 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.station-privacy .icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  fill: currentColor;
+}
+
+@media (max-width: 560px) {
+  .stations {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    /* Room for the focus ring; the row runs to the card's edge. */
+    padding: 3px 3px 6px;
+    margin: -3px -3px 0;
+  }
+
+  .stations > li {
+    flex: none;
+    width: 128px;
+    scroll-snap-align: start;
+  }
+}
+
 /* Two range handles on one track (the length setting). */
 .dual-range {
   position: relative;

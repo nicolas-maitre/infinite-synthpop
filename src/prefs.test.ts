@@ -41,4 +41,13 @@ describe("loadPrefs", () => {
     a.volumes.drums = -12;
     expect(loadPrefs().volumes.drums).not.toBe(-12);
   });
+
+  it("keeps the station chosen, and Any for one it doesn't know", () => {
+    stored({ station: "for-you", genre: "open" });
+    expect(loadPrefs().station).toBe("for-you");
+    stored({ station: "polka" });
+    expect(loadPrefs().station).toBe("auto");
+    stored(null);
+    expect(loadPrefs().station).toBe("auto");
+  });
 });

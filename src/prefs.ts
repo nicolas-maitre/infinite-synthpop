@@ -30,6 +30,7 @@ import {
 } from "./genres";
 import type { Part } from "./profile";
 import type { ReferenceId } from "./references";
+import { isStationId, type StationId } from "./stations";
 import { CENTRE } from "./polygon";
 
 export interface Prefs {
@@ -40,6 +41,9 @@ export interface Prefs {
   weights: number[];
   /** The references an open blend runs between (2–10), in reference order. */
   openRefs: ReferenceId[];
+  /** The player's station last chosen (stations.ts): the genre settings above say what plays;
+   * this tells For you from a mix with the same records, and For you's records follow its profile. */
+  station: StationId;
   /** Blend the parts on their own (`parts`), not all from the style. */
   partsOn: boolean;
   /** Each part's own blend; a part left out plays the style's. */
@@ -117,6 +121,7 @@ const defaults: Prefs = {
   genre: "auto",
   weights: centreWeights(DEFAULT_GENRE),
   openRefs: ["true-faith", "get-closer"],
+  station: "auto",
   partsOn: false,
   parts: {},
   styleAuto: true,
@@ -203,6 +208,7 @@ export function loadPrefs(): Prefs {
       // Saved before the simple view: it opens first all the same.
       view: VIEWS.find((x) => x === p.view) ?? defaults.view,
       repeat: p.repeat === true,
+      station: isStationId(p.station) ? p.station : defaults.station,
       length: parseLength(p.length) ?? { ...defaults.length },
     };
   } catch {

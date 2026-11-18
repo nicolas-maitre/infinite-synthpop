@@ -8,6 +8,8 @@ import type { ReferenceId } from "./references";
 
 export const HISTORY_KEY = "infinite-synthpop:history:v1";
 export const HISTORY_SIZE = 50;
+/** A song left before this many seconds were heard was skipped (For you, foryou.ts). */
+export const QUICK_SKIP_SECONDS = 30;
 
 export interface HistoryEntry {
   id: string;
@@ -24,6 +26,8 @@ export interface HistoryEntry {
   origin?: string;
   /** The My songs entry it was played from. */
   saved?: string;
+  /** Seconds heard the last time it played, once it was left for another song. */
+  heard?: number;
 }
 
 export type NewEntry = Omit<HistoryEntry, "id" | "at">;
@@ -83,6 +87,14 @@ export class History {
     this.persist();
   }
 
+  /** Another song took over from this entry, `seconds` into it. */
+  left(id: string, seconds: number): void {
+    const found = this.get(id);
+    if (!found) return;
+    found.heard = Math.round(seconds);
+    this.persist();
+  }
+
   /** The entry heard before this one (Previous). */
   older(id: string): HistoryEntry | undefined {
     const i = this.entries.findIndex((e) => e.id === id);
@@ -106,6 +118,11 @@ export class History {
       // Storage blocked or full: the list lasts for this visit.
     }
   }
+}
+
+/** Left within QUICK_SKIP_SECONDS (not when it played on to its end or the page closed). */
+export function quickSkip(entry: HistoryEntry): boolean {
+  return typeof entry.heard === "number" && entry.heard < QUICK_SKIP_SECONDS;
 }
 
 function sameSong(a: NewEntry, b: NewEntry): boolean {
