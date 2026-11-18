@@ -132,6 +132,29 @@
               </svg>
             </button>
           </div>
+          <div class="sleep">
+            <button
+              id="s-sleep"
+              class="btn small sleep-button"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="s-sleep-menu"
+              title="Sleep timer: fade out and pause later"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14.5 2.5a9.5 9.5 0 1 0 7 15.9A8 8 0 0 1 14.5 2.5z" />
+              </svg>
+              <span id="s-sleep-label">Sleep</span>
+            </button>
+            <div
+              class="sleep-menu"
+              id="s-sleep-menu"
+              role="menu"
+              aria-label="Sleep timer"
+              hidden
+            ></div>
+          </div>
           <label
             class="switch"
             title="Lighter voices and effects, so phones play without breaking up. Changing it reloads the page."

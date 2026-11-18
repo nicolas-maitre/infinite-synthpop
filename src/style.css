@@ -1930,6 +1930,77 @@ html[data-view="advanced"] #simple-view {
   cursor: not-allowed;
 }
 
+/* The sleep timer (simpleview.ts): a button by Lite playback, opening a menu of choices. */
+.sleep {
+  position: relative;
+  margin-left: auto;
+}
+
+.sleep-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sleep-button .icon {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.sleep-button.on {
+  color: var(--accent-2);
+  border-color: var(--accent-2);
+  background: #123a4a;
+}
+
+.sleep-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 45%);
+}
+
+.sleep-menu[hidden] {
+  display: none;
+}
+
+.sleep-menu button {
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 10px 8px 28px;
+  cursor: pointer;
+}
+
+.sleep-menu button:hover,
+.sleep-menu button:focus-visible {
+  background: #22223f;
+  outline: none;
+}
+
+.sleep-menu button[aria-checked="true"] {
+  color: var(--accent-2);
+  background-image: radial-gradient(circle, currentColor 3px, transparent 3.5px);
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  background-size: 8px 8px;
+}
+
 /* The mixer card, moved here from the advanced view while the simple one shows. */
 .mixer-drawer[hidden] {
   display: none;
@@ -2311,8 +2382,9 @@ html[data-view="advanced"] #simple-view {
   height: 40px;
 }
 
-/* Only what playing needs: the volume, switches, mixer, DJ switch and Share stay behind. */
-.full-screen .player-bottom,
+/* Only what playing needs: the volume, switches, mixer, DJ switch and Share stay behind (the
+   sleep timer comes along). */
+.full-screen .player-bottom > :not(.sleep),
 .full-screen .mixer-drawer,
 .full-screen .dj-toggle,
 .full-screen #s-share {
@@ -2321,6 +2393,22 @@ html[data-view="advanced"] #simple-view {
 
 .full-screen .dj-row {
   justify-content: center;
+}
+
+.full-screen .player-bottom {
+  justify-content: center;
+}
+
+.full-screen .sleep {
+  margin-left: 0;
+}
+
+/* Near the bottom of the screen: the menu opens upwards. */
+.full-screen .sleep-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  right: 50%;
+  transform: translateX(50%);
 }
 
 .full-screen .btn.mix-next {

@@ -31,6 +31,7 @@ import { download, exportAudio, fileName, songToMidi } from "./export";
 import { PianoRoll } from "./pianoroll";
 import { mountWizard } from "./wizard";
 import { mountSimpleView, type SimpleGenre, type SimpleSettings } from "./simpleview";
+import { SleepTimer } from "./sleep";
 import { LengthSlider } from "./lengthslider";
 import { mountInspiration } from "./inspiration";
 import { REFERENCES, type ReferenceId } from "./references";
@@ -161,6 +162,7 @@ const simple = mountSimpleView(el("simple-view"), {
     renderMixNext();
   },
   setLite,
+  setSleep: (choice) => sleep.set(choice),
   setGenre: setSimpleGenre,
   setLength,
   setVolume,
@@ -732,24 +734,32 @@ const engine = new Engine(
   engineSettings(),
   initialLink?.seed ?? randomSeed(),
   {
-    onSong: renderSong,
+    onSong: (song) => {
+      renderSong(song);
+      sleep.songChanged();
+    },
     onBar: (ev, song) => {
       noteHeard();
       renderBar(song, ev.bar);
       renderMixNext();
     },
     onStateChange: (playing) => {
+      sleep.playState(playing);
       media.setPlaying(playing);
       renderPlayState({ playing });
     },
     onCue: renderCue,
     onBuffering: renderBufferStatus,
     onMix: renderMix,
+    onSlept: () => sleep.slept(),
   },
   initialLink?.chords,
 );
 engine.setInstant(prefs.instant);
 engine.setRepeat(prefs.repeat);
+
+/** The player's sleep timer (sleep.ts): not kept across reloads. */
+const sleep = new SleepTimer(engine, (state) => simple.renderSleep(state));
 
 /** The play buttons (both views): play or stop, or how far loading has got. */
 function renderPlayState(state: { playing: boolean } | { loading: string }): void {
@@ -1943,7 +1953,8 @@ if (import.meta.env.DEV) {
           `${kind} from ${(swapAt - window * (240 / out.song.bpm)).toFixed(1)} s, swap at ${swapAt.toFixed(1)} s`,
         ].join(" · ");
       };
-      Object.assign(window, { engine, Tone, renderToDisk, renderDjToDisk, roll });
+      // sleep.set(0.5): a sleep timer of any length (minutes), for trying it out.
+      Object.assign(window, { engine, Tone, renderToDisk, renderDjToDisk, roll, sleep });
     },
   );
 }

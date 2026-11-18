@@ -18,6 +18,7 @@ import type { PartBlends, RefWeights } from "./profile";
 import type { GenreId } from "./genres";
 import { songSound } from "./profile";
 import { scheduleStep } from "./schedule";
+import { endFadeStart } from "./sleep";
 import {
   compose,
   type ChordsMode,
@@ -96,6 +97,8 @@ export interface EngineEvents {
   onBuffering?: (buffering: boolean) => void;
   /** DJ mode: a transition into `next` is being heard (`label` names it), or is over (null). */
   onMix?: (mix: { label: string; next: Song } | null) => void;
+  /** The sleep timer's fade ended in a pause (fadeOut, or the end of a song set to end). */
+  onSlept?: () => void;
 }
 
 /** The mixer: faders set by hand (the others follow each song's own mix), mutes, solos, master. */
@@ -149,6 +152,14 @@ function entryArrange(song: Song, meta: SongMeta): Pick<Deck<SongMeta>, "arrange
 const PAUSE_FADE_SECONDS = 0.08;
 /** The output's level while faded out (dB): inaudible. */
 const SILENT_DB = -90;
+/** A sleep fade glides down to this level (dB) evenly, then drops to silence at its end: all the
+ * way to SILENT_DB, most of the fade would be too quiet to hear. */
+const SLEEP_FLOOR_DB = -48;
+/** A sleep fade pauses this long before its end (s), so what follows doesn't start. */
+const SLEEP_EARLY = 0.03;
+/** Rendering ahead, the end of a song set to end pauses as the next bar is heard; this long after
+ * its end (s), a timer pauses instead. */
+const SLEEP_LATE = 0.25;
 
 /** Bars of the next song in a transition piece: enough for the outgoing song's tails to ring out. */
 const HANDOFF_BARS = 2;
@@ -240,6 +251,13 @@ export class Engine {
   private pausing = 0;
   /** The song Mix next brought the transition forward for. */
   private mixNextFor: Song | null = null;
+  /** "End of this song" (the sleep timer): the song (its serial) plays to its end and pauses
+   * there; to its planned swap instead when that transition was already rendered. */
+  private ending: { serial: number; atSwap: boolean } | null = null;
+  /** A sleep fade under way: silent by `at` (audio clock), and paused there. */
+  private fade: { at: number; song: boolean } | null = null;
+  /** Tells one sleep fade from the next. */
+  private fades = 0;
 
   constructor(
     private settings: EngineSettings,
@@ -393,12 +411,149 @@ export class Engine {
   }
 
   /**
+   * The sleep timer's "end of this song": the playing song plays to its end, fading out over its
+   * last seconds (END_FADE_SECONDS), and pauses there, on the next song's start: play goes on
+   * with it. Like repeat, the DJ doesn't mix out of it: a planned transition the render hasn't
+   * reached is dropped. One already rendered plays, and the song ends at its swap instead, where
+   * the next song takes over (it is that song's start). Another song by hand cancels it.
+   */
+  endSong(on: boolean): void {
+    if (!on) {
+      const ending = this.ending;
+      this.ending = null;
+      if (this.fade?.song) this.cancelFade();
+      // The DJ plans the mix-out again.
+      if (ending && ending.serial === this.serial && !ending.atSwap) this.rerender();
+      return;
+    }
+    if (this.ending?.serial === this.serial) return;
+    const player = this.player;
+    const plan = this.djPlans.get(this.song);
+    let atSwap = false;
+    if (player && plan) {
+      const line = player.barLineAfter(player.readyAfter());
+      const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
+      atSwap = !line || line.deck.meta.serial !== this.serial || line.bar >= plan.swap - window;
+    }
+    this.ending = { serial: this.serial, atSwap };
+    if (!atSwap) {
+      this.djPlans.delete(this.song);
+      if (this.mixNextFor === this.song) this.mixNextFor = null;
+    }
+    this.rerender();
+  }
+
+  /** "End of this song" is set (until it pauses, or another song is picked). */
+  get endingSong(): boolean {
+    return this.ending !== null;
+  }
+
+  /** The sleep timer: fades out over `seconds` from now, then pauses (play goes on from there). */
+  fadeOut(seconds: number): void {
+    if (!this.playing) return;
+    const now = rawContext().currentTime;
+    this.fadeTo(now, now + seconds, false);
+  }
+
+  /** Stops a sleep fade under way, back to full volume. */
+  cancelFade(): void {
+    if (!this.fade) return;
+    this.endFade();
+    if (!this.suspended) {
+      Tone.getDestination().volume.rampTo(0, PAUSE_FADE_SECONDS, rawContext().currentTime);
+    }
+  }
+
+  /** Another song by hand: "end of this song" no longer applies. (Live, the next song takes over
+   * the serial a look-ahead before the end, so the serials can't tell that from the song ending.) */
+  private dropEnding(): void {
+    if (!this.ending) return;
+    this.ending = null;
+    if (this.fade?.song) this.cancelFade();
+  }
+
+  /** The song with this serial plays to its very end (no DJ mix-out) and pauses there. */
+  private endsAtEnd(serial: number): boolean {
+    return this.ending?.serial === serial && !this.ending.atSwap;
+  }
+
+  /** Forgets a sleep fade (its pause won't come), leaving the volume where it is. */
+  private endFade(): void {
+    this.fade = null;
+    this.fades++;
+  }
+
+  /**
+   * A sleep fade on the audio clock: from `start` the output glides down, silent by `end`, and
+   * playback pauses there. Planned again when the end moves (a seek, buffering).
+   */
+  private fadeTo(start: number, end: number, song: boolean): void {
+    if (this.fade && this.fade.song === song && Math.abs(this.fade.at - end) < 0.05) return;
+    const volume = Tone.getDestination().volume;
+    // Moved: the fade so far stays, and goes on from where it got to.
+    if (this.fade) volume.cancelAndHoldAtTime(rawContext().currentTime);
+    this.endFade();
+    const fades = this.fades;
+    this.fade = { at: end, song };
+    // Not before a resume's fade-in is over: from the level it holds before that, it would glide
+    // down from silence.
+    const now = rawContext().currentTime;
+    const from = Math.min(Math.max(start, now + PAUSE_FADE_SECONDS), end - 0.05);
+    volume.rampTo(SLEEP_FLOOR_DB, Math.max(0.01, end - from), from);
+    volume.setValueAtTime(SILENT_DB, end);
+    // A timer can't tell whether the next bar was heard first (Firefox moves the audio clock on in
+    // coarse steps): rendering ahead, the end of a song waits for that bar (aheadBar).
+    const at = song && this.player ? end + SLEEP_LATE : end - SLEEP_EARLY;
+    const wait = () => {
+      if (fades !== this.fades) return;
+      const left = at - rawContext().currentTime;
+      if (left > 0.005) setTimeout(wait, Math.max(10, left * 1000));
+      else this.sleepNow();
+    };
+    wait();
+  }
+
+  /** The end of a sleep fade: paused at once (silent already), and the timer told. */
+  private sleepNow(): void {
+    const song = this.fade?.song;
+    this.endFade();
+    if (song) this.ending = null;
+    if (!this.running || this.suspended) return;
+    this.suspended = true;
+    this.pausing++;
+    this.events.onStateChange?.(false);
+    rawContext()
+      .suspend()
+      .catch((error: unknown) => console.error("Couldn't pause", error));
+    this.events.onSlept?.();
+  }
+
+  /**
+   * "End of this song": as each bar starts (at `time` on the audio clock, `untilEnd` seconds
+   * before the song set to end ends), starts its fade once the end is near, follows the end when
+   * it moves, and drops the fade when that song no longer plays up to it (a seek back, another
+   * song).
+   */
+  private watchEnd(serial: number, time: number, untilEnd: number, barSeconds: number): void {
+    const fade = this.fade;
+    // What plays from the end on (the next song, the same one again) is what the pause holds.
+    if (fade?.song && time >= fade.at - 0.1) return;
+    const start =
+      this.ending?.serial === serial && untilEnd > 0
+        ? endFadeStart(time, untilEnd, barSeconds)
+        : null;
+    if (start !== null) this.fadeTo(start, time + untilEnd, true);
+    else if (fade?.song) this.cancelFade();
+  }
+
+  /**
    * DJ mode: where the playing song mixes out, in its bars (`from`, the transition's first bar,
    * to `swap`, where the next song's bar 0 starts); null when it doesn't (not in DJ mode, a
    * creation, repeat on, or not planned yet).
    */
   get mixOut(): { from: number; swap: number } | null {
     if (!this.dj || !this.player || this.custom || this.repeat) return null;
+    if (this.endsAtEnd(this.serial)) return null;
     const plan = this.djPlans.get(this.song);
     if (!plan) return null;
     const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
@@ -416,7 +571,8 @@ export class Engine {
       !this.custom &&
       !this.repeat &&
       this.mixing === null &&
-      this.mixNextFor !== this.song
+      this.mixNextFor !== this.song &&
+      this.ending?.serial !== this.serial
     );
   }
 
@@ -483,11 +639,13 @@ export class Engine {
    */
   pause(fade = PAUSE_FADE_SECONDS): void {
     if (!this.running || this.suspended) return;
+    this.endFade();
     this.suspended = true;
     const pausing = ++this.pausing;
     this.events.onStateChange?.(false);
-    // The sound fades out first (a cut mid-waveform clicks), then the clock stops.
-    Tone.getDestination().volume.rampTo(SILENT_DB, fade);
+    // The sound fades out first (a cut mid-waveform clicks), then the clock stops. From the audio
+    // clock's now: by default Tone starts a ramp its look-ahead (0.3 s) later, after the suspend.
+    Tone.getDestination().volume.rampTo(SILENT_DB, fade, rawContext().currentTime);
     setTimeout(
       () => {
         if (pausing !== this.pausing || !this.suspended) return;
@@ -507,7 +665,7 @@ export class Engine {
       console.error("Couldn't resume", error);
     }
     this.suspended = false;
-    Tone.getDestination().volume.rampTo(0, PAUSE_FADE_SECONDS);
+    Tone.getDestination().volume.rampTo(0, PAUSE_FADE_SECONDS, rawContext().currentTime);
     this.events.onStateChange?.(true);
   }
 
@@ -578,6 +736,7 @@ export class Engine {
 
   stop(): void {
     if (!this.running) return;
+    this.cancelFade();
     this.halt();
     if (this.suspended) {
       // Stopped while paused: the clock runs again, with nothing left to play.
@@ -627,6 +786,7 @@ export class Engine {
     this.replay = null;
     this.fixed = this.tempo = undefined;
     this.loop = null;
+    this.dropEnding();
     this.serial = ++this.serials;
     this.song = this.compose(seed, null, null, null, this.settings.chords);
     this.bar = 0;
@@ -645,6 +805,7 @@ export class Engine {
     this.fixed = this.tempo = undefined;
     this.loop = null;
     this.reference = id;
+    this.dropEnding();
     this.serial = ++this.serials;
     this.song = this.compose(REFERENCE_SEEDS[id]);
     this.bar = 0;
@@ -667,6 +828,7 @@ export class Engine {
     if (!keepPosition || this.bar >= this.song.totalBars) this.bar = 0;
     if (this.instruments) this.applySong(this.instruments);
     if (!keepPosition) {
+      this.dropEnding();
       this.serial = ++this.serials;
       this.switched(now);
     } else this.rerender();
@@ -683,6 +845,7 @@ export class Engine {
     this.fixed = this.tempo = undefined;
     this.loop = null;
     this.replay = spec;
+    this.dropEnding();
     this.serial = ++this.serials;
     this.song = this.compose(seed, null, null, null, this.settings.chords, spec);
     this.bar = 0;
@@ -917,7 +1080,7 @@ export class Engine {
    * loop).
    */
   private djPlan(song: Song, meta: SongMeta, mixNextAt?: number): DjPlan | null {
-    if (!this.dj || meta.custom || this.repeat) return null;
+    if (!this.dj || meta.custom || this.repeat || this.endsAtEnd(meta.serial)) return null;
     const cached = this.djPlans.get(song);
     if (cached && mixNextAt === undefined) return cached;
     const rng = createRng(song.seed).fork("dj");
@@ -1002,7 +1165,8 @@ export class Engine {
       return this.planFrom(next.song, 0, next.meta, at);
     }
     const clock = TempoMap.anchored(this.shapeFor(song, meta), bar, at);
-    const last = song.totalBars - 1;
+    // A song set to end plays its last bar alone: nothing of the next one under its tails.
+    const last = this.ending?.serial === meta.serial ? song.totalBars : song.totalBars - 1;
     if (bar < last) {
       return {
         decks: [{ song, clock, from: bar, to: last, shown: [bar, last], meta }],
@@ -1265,6 +1429,8 @@ export class Engine {
 
   /** A bar starts being heard (render-ahead): the engine follows it as the live clock does. */
   private aheadBar(piece: Piece<SongMeta>, deck: Deck<SongMeta>, bar: number, time: number): void {
+    // The end of a song set to end: paused on what follows, at its first bar.
+    if (this.fade?.song && time >= this.fade.at - 0.1) this.sleepNow();
     if (this.cue !== null) {
       // Bars of what played before a cued switch are stale once the switch is due.
       if (piece !== this.cuedPiece) return;
@@ -1287,6 +1453,14 @@ export class Engine {
     const incoming =
       piece.label && piece.decks[0] === deck ? (piece.decks[1]?.song ?? piece.into) : undefined;
     this.setMixing(incoming ?? null, piece.label);
+    const swap = this.ending?.atSwap ? this.djPlans.get(deck.song)?.swap : undefined;
+    const end = swap !== undefined && bar < swap ? swap : deck.song.totalBars;
+    this.watchEnd(
+      deck.meta.serial,
+      time,
+      deck.clock.time(end) - deck.clock.time(bar),
+      deck.clock.barSeconds(bar),
+    );
     const song = this.song;
     const ev = arrangeBar(song, Math.min(bar, song.totalBars - 1));
     this.bar = bar + 1;
@@ -1348,9 +1522,11 @@ export class Engine {
     this.applyBpm(time);
 
     const song = this.song;
+    const seconds = (60 / song.bpm) * 4;
+    this.watchEnd(this.serial, time, (song.totalBars - this.bar) * seconds, seconds);
     const ev = arrangeBar(song, this.bar);
     this.current = { ev, sixteenth: 60 / song.bpm / 4 };
-    this.scheduled.push({ bar: this.bar, time, seconds: (60 / song.bpm) * 4 });
+    this.scheduled.push({ bar: this.bar, time, seconds });
     if (this.scheduled.length > 16) this.scheduled.shift();
 
     atAudioTime(time, () => this.events.onBar?.(ev, song));
