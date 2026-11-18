@@ -162,6 +162,27 @@
         </div>
       </section>
 
+      <div class="mini-player" id="s-mini" role="region" aria-label="Now playing" hidden>
+        <div class="mini-progress" aria-hidden="true"><span id="s-mini-fill"></span></div>
+        <button class="mini-info" id="s-mini-info" type="button" title="Back to the player">
+          <span class="mini-title" id="s-mini-title"></span>
+          <span class="mini-meta" id="s-mini-meta"></span>
+        </button>
+        <button id="s-mini-play" class="btn primary round" type="button" aria-label="Play">
+          <svg class="icon icon-play" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <svg class="icon icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
+          </svg>
+        </button>
+        <button id="s-mini-next" class="btn round" type="button" aria-label="Next song">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 18l8.5-6L6 6zM16 6h2v12h-2z" />
+          </svg>
+        </button>
+      </div>
+
       <section class="card inspiration" aria-labelledby="insp-heading">
         <h3 id="insp-heading">Inspired by</h3>
         <div class="insp-body"></div>

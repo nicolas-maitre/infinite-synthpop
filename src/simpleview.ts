@@ -127,6 +127,13 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     djDesc: el(root, "s-dj-desc"),
     mixNext: el<HTMLButtonElement>(root, "s-mix-next"),
     full: el<HTMLButtonElement>(root, "s-full"),
+    mini: el(root, "s-mini"),
+    miniFill: el(root, "s-mini-fill"),
+    miniInfo: el<HTMLButtonElement>(root, "s-mini-info"),
+    miniTitle: el(root, "s-mini-title"),
+    miniMeta: el(root, "s-mini-meta"),
+    miniPlay: el<HTMLButtonElement>(root, "s-mini-play"),
+    miniNext: el<HTMLButtonElement>(root, "s-mini-next"),
     mixNextLabel: el(root, "s-mix-next-label"),
     genre: el<HTMLSelectElement>(root, "s-genre"),
     history: el<HTMLUListElement>(root, "s-history"),
@@ -167,13 +174,37 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   const showPosition = (bar: number) => {
     if (!song) return;
     ui.elapsed.textContent = clock(bar * barSeconds(song));
+    const played = `${Math.min(100, (bar / song.totalBars) * 100)}%`;
+    ui.miniFill.style.width = played;
     if (dragging) return;
     ui.seek.value = String(bar);
-    ui.played.style.width = `${Math.min(100, (bar / song.totalBars) * 100)}%`;
+    ui.played.style.width = played;
   };
   animate(() => {
     if (shown && playing && song) showPosition(position());
   });
+
+  // ── Mini player: once the player scrolls away, a bar at the bottom keeps it at hand ──
+  let playerInView = true;
+  const showMini = () => {
+    ui.mini.hidden = !shown || playerInView || !song || fullScreen;
+  };
+  const player = ui.title.closest<HTMLElement>(".player");
+  if (player && "IntersectionObserver" in window) {
+    new IntersectionObserver(
+      ([entry]) => {
+        playerInView = !!entry?.isIntersecting;
+        showMini();
+      },
+      // Mostly out of view: its transport has gone.
+      { threshold: 0.25 },
+    ).observe(player);
+  }
+  ui.miniPlay.addEventListener("click", () => actions.togglePlay());
+  ui.miniNext.addEventListener("click", () => actions.next());
+  ui.miniInfo.addEventListener("click", () =>
+    player?.scrollIntoView({ behavior: "smooth", block: "start" }),
+  );
 
   ui.seek.addEventListener("input", () => {
     dragging = true;
@@ -303,6 +334,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     if (on === fullScreen) return;
     fullScreen = on;
     document.documentElement.classList.toggle("full-screen", on);
+    showMini();
     ui.full.setAttribute("aria-pressed", String(on));
     label(ui.full, on ? "Leave full screen (F or Esc)" : "Full screen (F)");
     const page = document.documentElement;
@@ -338,11 +370,14 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     renderSong(next) {
       song = next;
       ui.title.textContent = next.title;
+      ui.miniTitle.textContent = next.title;
       ui.meta.textContent = [
         next.reference ? `Original · ${GENRES[next.genre].name}` : GENRES[next.genre].name,
         keyName(next.key),
         `${next.bpm} BPM`,
       ].join(" · ");
+      ui.miniMeta.textContent = ui.meta.textContent;
+      showMini();
       ui.seek.max = String(next.totalBars);
       // A new song's render starts from nothing shown.
       ui.buffered.style.width = "0%";
@@ -370,6 +405,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       playing = now;
       showPosition(heard.bar);
       ui.play.classList.toggle("playing", playing);
+      ui.miniPlay.classList.toggle("playing", playing);
+      ui.miniPlay.setAttribute("aria-label", playing ? "Pause" : "Play");
       ui.play.classList.toggle("loading", loading);
       ui.play.disabled = loading;
       ui.loading.textContent = loading ? state.loading : "";
@@ -467,6 +504,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
 
     setShown(on) {
       shown = on;
+      showMini();
       if (on && song) showPosition(position());
     },
   };
