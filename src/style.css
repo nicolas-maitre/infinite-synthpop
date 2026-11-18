@@ -3095,21 +3095,8 @@ html[data-view="simple"] .site-footer {
 }
 
 .upnext-cover {
-  flex: none;
-  display: block;
   width: 52px;
-}
-
-.upnext-cover:empty {
-  display: none;
-}
-
-.upnext .insp-cover {
-  --size: 52px;
   border-radius: 4px;
-  box-shadow:
-    0 6px 16px #00000070,
-    0 0 0 1px #ffffff12;
 }
 
 .upnext-text {

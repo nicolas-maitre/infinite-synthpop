@@ -8,8 +8,7 @@
 import type { LengthRange, Song } from "./composer";
 import { coverElement, showCover, songCover, type CoverSource } from "./coverart";
 import { GENRES } from "./genres";
-import { coverUrl, influences, RECORDS } from "./influence";
-import { sleeve } from "./inspiration";
+import { coverUrl, RECORDS } from "./influence";
 import { barSeconds, songSeconds } from "./mediasession";
 import { clock, LengthSlider } from "./lengthslider";
 import { animate } from "./quality";
@@ -151,6 +150,8 @@ const recordsLine = (records: readonly ReferenceId[]) =>
 
 /** Thumbnails' pixels: 48 CSS pixels at 2×. */
 const THUMB_PX = 96;
+/** Up next's sleeve: 52 CSS pixels at 2×. */
+const UPNEXT_PX = 104;
 
 /** A song's genre (or original), key and tempo, under its title. */
 function songMeta(song: Song): string {
@@ -677,12 +678,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       ui.upNextWhen.textContent = `· ${when}`;
       ui.upNextPick.disabled = !canPick;
       ui.upNextPick.title = pickHint;
-      // Its main influence's sleeve, kept while that stays the same.
-      const main = influences(next)[0]?.id ?? "";
-      if ((ui.upNextCover.dataset.ref ?? "") !== main) {
-        ui.upNextCover.dataset.ref = main;
-        ui.upNextCover.replaceChildren(...(main ? [sleeve(main, false)] : []));
-      }
+      // Its own sleeve, as the player will show it (an original's real one).
+      showCover(ui.upNextCover, songCover(next), UPNEXT_PX);
     },
 
     renderListStatus(text, undo) {
