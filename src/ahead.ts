@@ -15,7 +15,8 @@
  * are there) and a bar past its end, and neighbouring pieces crossfade over a few milliseconds at
  * each join. A change cuts the timeline at a bar line: another song or a jump at the next one (or
  * at once), a fader or a setting at the first one the new render can reach in time. The pieces
- * after the cut are dropped, and the rest is planned and rendered again.
+ * after the cut are dropped, and the rest is planned and rendered again. A jump to a bar that is
+ * rendered already, ahead or kept behind for a while, moves playback onto it instead (`seek`).
  *
  * The render streams out of the offline context as it goes, through an AudioWorklet tap, and
  * suspends every couple of seconds to schedule the next bars (as render.ts does) and to wait while
@@ -28,6 +29,7 @@ import type { BassTone, LeadTone, Voices } from "./genres";
 import { songSound } from "./profile";
 import { autoVolumes, Instruments, softClipper, type LeadPatch, type Track } from "./instruments";
 import { scheduleBar } from "./schedule";
+import { keepFrom, seekTarget, type Mark } from "./seek";
 import type { TempoMap } from "./tempo";
 
 /** The mixer as the renders apply it. */
@@ -145,8 +147,20 @@ const RESUME_SECONDS = 4;
 /** Frames per message from the render's tap (a multiple of the 128-frame render quantum). */
 const BATCH = 4096;
 const TAP = "synthpop-render-tap";
-/** An equal-power fade from 1 to 0. */
+/** An equal-power fade from 1 to 0, and back. */
 const FADE_OUT = Float32Array.from({ length: 32 }, (_, i) => Math.cos(((i / 31) * Math.PI) / 2));
+const FADE_IN = FADE_OUT.slice().reverse();
+/** A seek's crossfade (seconds), and how soon after the call it starts: the audio thread has to
+ * have the new sources before then. */
+const SEEK_FADE = 0.015;
+const SEEK_LATENCY = 0.03;
+/**
+ * Heard audio kept for seeking back (seconds), as far as the playing song's start: stereo
+ * float32, so 60 s is 21–23 MB (44.1–48 kHz); lite (phones, 32 kHz, already 60 s rendered
+ * ahead) keeps 30 s, 7.7 MB.
+ */
+const KEEP_SECONDS = 60;
+const KEEP_SECONDS_LITE = 30;
 
 /** The worklet that copies the render out as it goes, in batches, and passes it through. */
 const TAP_SOURCE = `
@@ -207,8 +221,9 @@ interface Live<M> {
   started: boolean;
   complete: boolean;
   dropped: boolean;
-  /** Frame up to which it was handed to the live context. */
+  /** Frame up to which it was handed to the live context, and the first one it hands. */
   cursor: number;
+  begin: number;
   /** Bars reported as playing: [timeline time, deck, bar], in time order; the next to report. */
   bars: [number, Deck<M>, number][];
   nextBar: number;
@@ -250,11 +265,13 @@ export class AheadPlayer<M> {
   /** Timeline time `anchorT` plays at `anchorCtx` on the audio clock. */
   private anchorT = 0;
   private anchorCtx = 0;
-  /** A fade-in to apply at this timeline time (after a pause). */
-  private fadeInAt: number | null = null;
+  /** A fade-in to apply at this timeline time (after a pause, or a seek). */
+  private fadeIn: { at: number; seconds: number } | null = null;
   /** The last cut: a pause right there is the change still rendering, not the render falling
-   * behind, so it goes on as soon as a start would. */
+   * behind, so it goes on as soon as a start would. A seek lands no further back than it. */
   private cutAt = -Infinity;
+  /** Audio from before here (timeline) is freed. */
+  private kept = -Infinity;
   private quickResume = true;
   /** Seconds a fresh render takes to have enough to play (measured; a guess until then). */
   private startup = 2;
@@ -262,8 +279,11 @@ export class AheadPlayer<M> {
   private mix: RenderMix;
   private pumpTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private readonly keepSeconds: number;
+
   constructor(private readonly options: AheadOptions<M>) {
     this.window = options.window;
+    this.keepSeconds = options.lite ? KEEP_SECONDS_LITE : KEEP_SECONDS;
     this.mix = options.mix;
     this.output.volume.value = options.master;
     this.output.fan(this.fft, this.waveform);
@@ -405,6 +425,75 @@ export class AheadPlayer<M> {
     void this.renderLoop(this.generation);
   }
 
+  /**
+   * Seeks to bar `bar` of `song` where it is rendered already, ahead or kept behind (seek.ts):
+   * playback moves onto that audio, crossfading, and goes on with the timeline after it as
+   * planned, without planning or rendering anything again. With too little rendered past it,
+   * playback waits there for the render (already under way). False when it isn't there.
+   */
+  seek(song: Song, bar: number): boolean {
+    if (!this.running) return false;
+    const available = this.available();
+    const at = seekTarget(
+      this.marks(),
+      song,
+      bar,
+      this.playhead(),
+      Math.max(this.cutAt - 1e-6, this.kept + SEEK_FADE + 1 / this.rate),
+      available,
+    );
+    if (at === null) return false;
+    // The bar's audio starts a fade earlier, so it is at full level on the bar line.
+    const from = this.snap(at - SEEK_FADE);
+    const leave = this.ctx.currentTime + SEEK_LATENCY;
+    // What plays now fades out as the bar fades in (equal power). It was scheduled on the old
+    // anchor, so it leaves the sources and bar timers tracked.
+    for (const s of this.sources) {
+      if (!s.fading) {
+        s.gain.gain.cancelScheduledValues(0);
+        s.gain.gain.setValueCurveAtTime(FADE_OUT, leave, SEEK_FADE);
+      }
+      stopSource(s.node, leave + SEEK_FADE);
+    }
+    this.sources = [];
+    for (const t of this.timers) clearTimeout(t.id);
+    this.timers = [];
+    for (const p of this.pieces) {
+      const final = Math.round((p.piece.end + FADE - p.t0) * this.rate);
+      p.cursor = Math.min(final, Math.max(p.begin, Math.round((from - p.t0) * this.rate)));
+      const next = p.bars.findIndex(([t]) => t >= from);
+      p.nextBar = next < 0 ? p.bars.length : next;
+    }
+    this.anchorT = this.stallAt = from;
+    this.anchorCtx = leave;
+    if (available - from >= Math.min(START_SECONDS, this.window / 2)) {
+      this.fadeIn = { at: from, seconds: SEEK_FADE };
+      this.played = true;
+      if (this.buffering) {
+        this.buffering = false;
+        this.options.events.onBuffering(false);
+      }
+      this.schedule(Math.min(available, from + HORIZON));
+    } else {
+      // At the render's edge: it goes on as soon as a start would.
+      this.quickResume = true;
+      if (!this.buffering) {
+        this.buffering = true;
+        this.options.events.onBuffering(true);
+      }
+    }
+    return true;
+  }
+
+  /** The bars of the pieces still around (kept, playing, planned), in time order. */
+  private marks(): Mark<Song>[] {
+    const marks: Mark<Song>[] = [];
+    for (const p of this.pieces) {
+      for (const [at, deck, bar] of p.bars) marks.push({ at, song: deck.song, bar });
+    }
+    return marks.sort((a, b) => a.at - b.at);
+  }
+
   // ── Planning and rendering ────────────────────────────────────────────────────────────────
 
   /** Adds a planned piece, in segments where renders can't suspend; returns its first part. */
@@ -453,6 +542,11 @@ export class AheadPlayer<M> {
     bars.sort((a, b) => a[0] - b[0]);
     let settle = () => {};
     const settled = new Promise<void>((done) => (settle = done));
+    // The very first piece starts where it starts; later ones fade in across their join.
+    const begin = Math.max(
+      0,
+      Math.round(((first ? piece.start : piece.start - FADE) - t0) * this.rate),
+    );
     const live: Live<M> = {
       piece,
       owner,
@@ -462,11 +556,8 @@ export class AheadPlayer<M> {
       started: false,
       complete: false,
       dropped: false,
-      // The very first piece starts where it starts; later ones fade in across their join.
-      cursor: Math.max(
-        0,
-        Math.round(((first ? piece.start : piece.start - FADE) - t0) * this.rate),
-      ),
+      cursor: begin,
+      begin,
       bars,
       nextBar: 0,
       settle,
@@ -584,7 +675,7 @@ export class AheadPlayer<M> {
       if (available - this.stallAt >= need) {
         this.anchorCtx = Math.max(now + 0.05, this.ctxTime(this.stallAt));
         this.anchorT = this.stallAt;
-        if (this.played) this.fadeInAt = this.stallAt;
+        if (this.played) this.fadeIn = { at: this.stallAt, seconds: 0.03 };
         this.buffering = false;
         this.played = true;
         this.options.events.onBuffering(false);
@@ -692,9 +783,12 @@ export class AheadPlayer<M> {
     node.connect(gain);
     Tone.connect(gain, this.output);
     const at = this.ctxTime(fromT);
-    if (this.fadeInAt !== null && fromT <= this.fadeInAt + 1e-6 && toT > this.fadeInAt) {
-      gain.gain.setValueAtTime(0, this.ctxTime(this.fadeInAt));
-      gain.gain.linearRampToValueAtTime(1, this.ctxTime(this.fadeInAt + 0.03));
+    const fade = this.fadeIn;
+    if (fade && fromT <= fade.at + 1e-6 && toT > fade.at) {
+      // Equal power, as what played before a seek fades out.
+      gain.gain.setValueAtTime(0, 0);
+      const fadeFrom = Math.max(this.ctx.currentTime, this.ctxTime(fade.at));
+      gain.gain.setValueCurveAtTime(FADE_IN, fadeFrom, fade.seconds);
     }
     const source: Source = { node, gain, from: fromT, to: toT, fading: false };
     node.onended = () => {
@@ -720,15 +814,19 @@ export class AheadPlayer<M> {
     }
   }
 
-  /** Frees the audio already heard, and the pieces done with. */
+  /** Frees the audio heard longer ago than it is kept for seeking back, and the pieces done
+   * with. */
   private forget(playhead: number): void {
-    if (this.fadeInAt !== null && playhead > this.fadeInAt + 0.1) this.fadeInAt = null;
+    if (this.fadeIn && playhead > this.fadeIn.at + 0.1) this.fadeIn = null;
+    const keep = keepFrom(this.marks(), playhead, this.keepSeconds, this.cutAt, SEEK_FADE + 0.05);
+    this.kept = Math.max(this.kept, keep);
     for (const p of this.pieces) {
-      const heard = Math.round((playhead - 1 - p.t0) * this.rate);
-      p.chunks = p.chunks.filter((c) => c.frame + c.l.length > Math.min(heard, p.cursor));
+      // Nor the pre-roll, which never plays.
+      const kept = Math.max(p.begin, Math.round((this.kept - p.t0) * this.rate));
+      p.chunks = p.chunks.filter((c) => c.frame + c.l.length > Math.min(kept, p.cursor));
     }
     this.pieces = this.pieces.filter(
-      (p) => !(p.complete && p.piece.end + FADE < playhead - 1 && p.nextBar >= p.bars.length),
+      (p) => !(p.complete && p.piece.end + FADE < this.kept && p.nextBar >= p.bars.length),
     );
   }
 

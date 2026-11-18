@@ -750,7 +750,10 @@ export class Engine {
   private restart(): void {
     if (this.player) {
       this.cue = null;
-      this.cutAhead(true);
+      // Where the bar is rendered already (ahead, or kept behind), playback moves onto it at
+      // once; otherwise the timeline is planned and rendered again from it.
+      if (this.player.seek(this.song, this.bar)) this.cuedPiece = null;
+      else this.cutAhead(true);
       return;
     }
     const inst = this.instruments;
