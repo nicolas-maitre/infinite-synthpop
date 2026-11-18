@@ -179,3 +179,8 @@ Each phase is checked in Chromium and Firefox (headless), audio muted.
      window, and keeps the screen on while it plays (Screen Wake Lock, where the browser has it).
    - The length slider is one component (`lengthslider.ts`), in the simple view and in the
      advanced Generator card, both showing the same setting.
+6. **Render ahead by default, and the buffer on the seek bar.** **Done.**
+   - Playback on auto renders ahead wherever the browser can (it was phones only); live stays
+     for whoever picked it, and for creator mode. The buffer stays 60 s on phones, 20 s elsewhere.
+   - The seek bar draws its own track: played (pink), rendered ahead (grey, as a video's
+     buffer), and the DJ's mix-out band, now labelled "Mix".

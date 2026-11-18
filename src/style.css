@@ -1631,31 +1631,124 @@ html[data-view="advanced"] #simple-view {
   text-align: right;
 }
 
+/* The seek bar draws its own track: what has played, what is rendered ahead (render-ahead
+   playback, like a video's buffer), and the DJ's mix-out. The slider on top only has its thumb. */
 .seek-track {
   position: relative;
-  display: flex;
-  align-items: center;
+  height: 28px;
 }
 
-.seek-track input {
-  position: relative;
-  margin: 0;
+/* Inset by the thumb's radius, so the fills end where the thumb's centre is. */
+.seek-rail {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: #2a2a4a;
 }
 
-/* Where the DJ mixes into the next song, under the slider. */
+.seek-buffered,
+.seek-played {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.seek-buffered {
+  background: #8a87a8;
+  transition: width 0.4s linear;
+}
+
+.seek-played {
+  background: var(--accent);
+}
+
+.seek-buffered[hidden],
+.seek-mix[hidden] {
+  display: none;
+}
+
+/* Where the DJ mixes into the next song: the band from the mix's first bar to the next song's. */
 .seek-mix {
   position: absolute;
   top: 50%;
-  height: 14px;
+  height: 10px;
   transform: translateY(-50%);
-  border-radius: 4px;
-  background: repeating-linear-gradient(135deg, #39d0ff55 0 4px, #39d0ff22 4px 8px);
-  border: 1px solid #39d0ff88;
-  pointer-events: none;
+  border-radius: 3px;
+  background: repeating-linear-gradient(135deg, #39d0ff66 0 3px, #39d0ff22 3px 6px);
+  border: 1px solid #39d0ffaa;
 }
 
-.seek-mix[hidden] {
-  display: none;
+.seek-mix span {
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  white-space: nowrap;
+}
+
+.seek-track input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  appearance: none;
+  background: none;
+  cursor: pointer;
+}
+
+.seek-track input::-webkit-slider-runnable-track {
+  background: none;
+}
+
+.seek-track input::-moz-range-track {
+  background: none;
+}
+
+.seek-track input::-moz-range-progress {
+  background: none;
+}
+
+.seek-track input::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 0;
+  box-shadow: 0 0 0 3px #ff3d8b55;
+}
+
+.seek-track input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 0;
+  box-shadow: 0 0 0 3px #ff3d8b55;
+}
+
+.seek-track input:focus-visible {
+  outline: none;
+}
+
+.seek-track input:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--accent-2);
+}
+
+.seek-track input:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--accent-2);
 }
 
 .player-transport {

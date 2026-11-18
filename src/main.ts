@@ -79,9 +79,9 @@ import {
   type View,
 } from "./prefs";
 
-/** Phones (the lite guess) render ahead, with a long buffer. */
-const AUTO_AHEAD = DEVICE_QUALITY === "lite";
-const AUTO_BUFFER = AUTO_AHEAD ? 60 : 20;
+/** Playback renders ahead wherever the browser can; phones (the lite guess) with a longer buffer. */
+const AUTO_AHEAD = AHEAD_SUPPORTED;
+const AUTO_BUFFER = DEVICE_QUALITY === "lite" ? 60 : 20;
 
 /** Records further apart than this (BPM) get the tempo note. */
 const TEMPO_SPREAD = 10;
@@ -1196,6 +1196,7 @@ function renderBufferStatus(): void {
   bufferStatus.hidden = !status;
   // The simple view only says when playback waits for the render.
   simple.renderBuffer(status?.buffering ? { text: "Rendering…", waiting: true } : null);
+  simple.renderBuffered(status ? status.seconds : null);
   if (!status) return;
   bufferStatus.classList.toggle("waiting", status.buffering);
   bufferStatus.textContent = status.buffering
