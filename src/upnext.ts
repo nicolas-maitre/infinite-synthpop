@@ -30,6 +30,7 @@ export type UpNextWhen =
   | { kind: "mix"; from: number; swap: number }
   | { kind: "mixing" }
   | { kind: "end" }
+  | { kind: "sleep" }
   | { kind: "repeat" }
   | { kind: "loop" };
 
@@ -42,6 +43,8 @@ export function upNextText(when: UpNextWhen, barSeconds: number): string {
       return "mixing in now";
     case "end":
       return "after this song";
+    case "sleep":
+      return "when you play again: the sleep timer stops after this song";
     case "repeat":
       return "this song again";
     case "loop":

@@ -24,6 +24,7 @@ describe("upNextText", () => {
 
   it("says when the DJ mixes the next song in, from the transition's start", () => {
     expect(upNextText({ kind: "mix", from: 80, swap: 96 }, bar)).toBe("mixes in at 2:40");
+    expect(upNextText({ kind: "sleep" }, bar)).toMatch(/sleep timer/);
     expect(upNextText({ kind: "mix", from: 4, swap: 20 }, bar)).toBe("mixes in at 0:08");
   });
 

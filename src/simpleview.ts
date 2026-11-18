@@ -15,6 +15,7 @@ import { clock, LengthSlider } from "./lengthslider";
 import { animate } from "./quality";
 import { REFERENCES, type ReferenceId } from "./references";
 import { STATIONS, type StationId } from "./stations";
+import { choiceName, SLEEP_CHOICES, type SleepChoice, type SleepState } from "./sleep";
 import { keyName } from "./theory";
 
 export interface SimpleViewActions {
@@ -30,6 +31,8 @@ export interface SimpleViewActions {
   pickNext(): void;
   setLite(on: boolean): void;
   setStation(station: StationId): void;
+  /** The sleep timer (sleep.ts). */
+  setSleep(choice: SleepChoice): void;
   setLength(range: LengthRange): void;
   setVolume(db: number): void;
   toggleSave(): void;
@@ -90,6 +93,8 @@ export interface SimpleView {
   renderBuffered(seconds: number | null): void;
   renderSaved(saved: boolean, title: string): void;
   renderSettings(settings: SimpleSettings): void;
+  /** The sleep timer: its choice, and the button's text (the time left). */
+  renderSleep(state: SleepState): void;
   renderLists(lists: SongLists): void;
   /** Mix next: shown in DJ mode, enabled when it can start a transition. */
   renderMixNext(state: { shown: boolean; enabled: boolean; label: string; title: string }): void;
@@ -187,6 +192,9 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     mixerToggle: el<HTMLButtonElement>(root, "s-mixer-toggle"),
     mixer: el(root, "s-mixer"),
     lite: el<HTMLInputElement>(root, "s-lite"),
+    sleep: el<HTMLButtonElement>(root, "s-sleep"),
+    sleepLabel: el(root, "s-sleep-label"),
+    sleepMenu: el(root, "s-sleep-menu"),
     dj: el<HTMLButtonElement>(root, "s-dj"),
     djState: el(root, "s-dj-state"),
     djDesc: el(root, "s-dj-desc"),
@@ -338,6 +346,49 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   ui.mixNext.addEventListener("click", () => actions.mixNext());
   ui.upNextPick.addEventListener("click", () => actions.pickNext());
   ui.lite.addEventListener("change", () => actions.setLite(ui.lite.checked));
+
+  // ── Sleep timer: the button opens a menu of the choices ──
+  const sleepItems = SLEEP_CHOICES.map((choice) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.role = "menuitemradio";
+    item.textContent = choiceName(choice);
+    item.addEventListener("click", () => {
+      showSleepMenu(false, true);
+      actions.setSleep(choice);
+    });
+    return { choice, item };
+  });
+  ui.sleepMenu.append(...sleepItems.map((s) => s.item));
+  const showSleepMenu = (open: boolean, focusButton = false) => {
+    ui.sleepMenu.hidden = !open;
+    ui.sleep.setAttribute("aria-expanded", String(open));
+    if (open) {
+      const checked = sleepItems.find((s) => s.item.getAttribute("aria-checked") === "true");
+      (checked ?? sleepItems[0])?.item.focus();
+    } else if (focusButton) ui.sleep.focus();
+  };
+  ui.sleep.addEventListener("click", () => showSleepMenu(ui.sleepMenu.hidden === true));
+  ui.sleepMenu.addEventListener("keydown", (e) => {
+    const items = sleepItems.map((s) => s.item);
+    const at = items.indexOf(document.activeElement as HTMLButtonElement);
+    const step = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+    if (step) items[(at + step + items.length) % items.length]?.focus();
+    else if (e.key === "Escape") showSleepMenu(false, true);
+    else return;
+    // Not previous / next song, nor leaving full screen.
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  // A click or focus elsewhere closes it.
+  document.addEventListener("pointerdown", (e) => {
+    if (!ui.sleepMenu.hidden && !ui.sleep.parentElement!.contains(e.target as Node)) {
+      showSleepMenu(false);
+    }
+  });
+  ui.sleepMenu.addEventListener("focusout", (e) => {
+    if (!ui.sleep.parentElement!.contains(e.relatedTarget as Node | null)) showSleepMenu(false);
+  });
   ui.volume.addEventListener("input", () => actions.setVolume(Number(ui.volume.value)));
 
   // ── Length (lengthslider.ts) ──
@@ -574,6 +625,20 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       ui.stationCustom.hidden = s.station !== "custom";
       length.set(s.length);
       ui.volume.value = String(s.volume);
+    },
+
+    renderSleep({ choice, label }) {
+      ui.sleepLabel.textContent = label;
+      ui.sleep.classList.toggle("on", choice !== "off");
+      ui.sleep.title =
+        choice === "off"
+          ? "Sleep timer: fade out and pause later"
+          : choice === "song"
+            ? "Sleep timer: pauses at the end of this song"
+            : "Sleep timer: fades out and pauses when the time is up";
+      for (const { choice: c, item } of sleepItems) {
+        item.setAttribute("aria-checked", String(c === choice));
+      }
     },
 
     renderLists({ history, favourites, originals }) {

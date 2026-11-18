@@ -34,6 +34,7 @@ import { mountWizard } from "./wizard";
 import { mountSimpleView, type SimpleSettings } from "./simpleview";
 import { stationOf, stationPlay, type StationId } from "./stations";
 import { tasteOf, type Taste } from "./foryou";
+import { SleepTimer } from "./sleep";
 import { LengthSlider } from "./lengthslider";
 import { pickHint, upNextText } from "./upnext";
 import { mountInspiration } from "./inspiration";
@@ -179,6 +180,7 @@ const simple = mountSimpleView(el("simple-view"), {
   },
   setLite,
   setStation,
+  setSleep: (choice) => sleep.set(choice),
   setLength,
   setVolume,
   toggleSave,
@@ -837,24 +839,36 @@ const engine = new Engine(
   engineSettings(),
   initialLink?.seed ?? randomSeed(),
   {
-    onSong: renderSong,
+    onSong: (song) => {
+      renderSong(song);
+      sleep.songChanged();
+    },
     onBar: (ev, song) => {
       noteHeard();
       renderBar(song, ev.bar);
       renderMixNext();
     },
     onStateChange: (playing) => {
+      sleep.playState(playing);
       media.setPlaying(playing);
       renderPlayState({ playing });
     },
     onCue: renderCue,
     onBuffering: renderBufferStatus,
     onMix: renderMix,
+    onSlept: () => sleep.slept(),
   },
   initialLink?.chords,
 );
 engine.setInstant(prefs.instant);
 engine.setRepeat(prefs.repeat);
+
+/** The player's sleep timer (sleep.ts): not kept across reloads. */
+const sleep = new SleepTimer(engine, (state) => {
+  simple.renderSleep(state);
+  // "End of this song" changes what comes after it.
+  renderUpNext();
+});
 
 /** The play buttons (both views): play or stop, or how far loading has got. */
 function renderPlayState(state: { playing: boolean } | { loading: string }): void {
@@ -2063,7 +2077,8 @@ if (import.meta.env.DEV) {
           `${kind} from ${(swapAt - window * (240 / out.song.bpm)).toFixed(1)} s, swap at ${swapAt.toFixed(1)} s`,
         ].join(" · ");
       };
-      Object.assign(window, { engine, Tone, renderToDisk, renderDjToDisk, roll });
+      // sleep.set(0.5): a sleep timer of any length (minutes), for trying it out.
+      Object.assign(window, { engine, Tone, renderToDisk, renderDjToDisk, roll, sleep });
     },
   );
 }
