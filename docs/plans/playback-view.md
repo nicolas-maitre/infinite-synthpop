@@ -205,3 +205,41 @@ Each phase is checked in Chromium and Firefox (headless), audio muted.
      serves CORS), capped in lightness.
    - A sleeve, or "Play the original", plays that original; each record links to a YouTube
      search for it, in a new tab.
+9. **Music-player polish.** **Done.** Pause and resume fade over 80 ms (the output ramps before the
+   audio clock stops), so neither clicks. Once the player scrolls out of view, a mini player at
+   the bottom keeps the song, play/pause, next and its progress; its title scrolls back.
+10. **Instant seek.** **Done.** Rendering ahead, a jump to a bar already rendered moves playback
+    onto that audio at once (a 15 ms equal-power crossfade), ahead of the speaker or behind it in
+    audio kept after it was heard (the last 60 s, 30 s on lite, no further back than the song's
+    start; 21–23 MB at most, 7.7 MB on lite). Anywhere else, or before the last cut (a jump, a
+    switch, a re-render for the mixer, a setting or Mix next), it re-plans as before (`seek.ts`).
+11. **Stations and For you.** **Done.** The genre select became station tiles with sleeve
+    mosaics: Any, one per genre, three mixes played as open blends (Night drive, Cold wave,
+    Bright lights; each within 10 BPM, none just a genre's own records, picked by key and tempo,
+    not yet listened to) and For you (`stations.ts`, `prefs.station`; anything else from the
+    advanced view shows as Custom). For you (`foryou.ts`) averages the favourites' song-part
+    blends, subtracts half a favourite per song left within 30 s (history keeps `heard`
+    seconds), and blends the records with 10 % or more (at least 2). Worked out in the browser
+    only, as the card says; it follows favourites and history, from the next song.
+12. **Generated covers.** **Done.** Every generated song has its own sleeve, drawn in the
+    browser from the song (`cover.ts` describes it, unit-tested; `coverart.ts` draws and caches
+    it): the main record's fixed sleeve colour, the others as accents by share, a motif per genre
+    (synthpop minimal shapes, Italo neon and airbrush, Euro chrome and glints), touches of a
+    second genre at 20 % or more, the title with an invented label and catalogue number. It shows
+    in the player, the mini player, the three lists and as media-session artwork; originals keep
+    their real sleeves.
+13. **Up next.** **Done.** A card under the player shows the song after this one when it ends on
+    its own, and when (mixes in at m:ss, after this song, this song again, a creation's loop,
+    mixing in now, or after the sleep timer's pause). `Engine.upNext` reads the plans as made, or
+    works one out side-effect free (`djPlan`'s `peek`). **Pick another** sets the next song's seed
+    for this playing (`upnext.ts`) and re-plans as `updateNext` does, until the transition is
+    within the render's reach.
+14. **Sleep timer.** **Done.** A moon menu in the player: Off, End of this song, 15–60 min (wall
+    time, not kept across reloads). Minutes fade out over 10 s and pause. End of this song stops
+    the DJ planning a mix-out (or ends at the planned swap when that transition is already
+    rendered), fades over the song's last bars timed from the playhead (held while the render
+    stalls) and pauses at its end; play goes on with the next song. Picking another song by hand
+    cancels it (`sleep.ts`).
+    - Seen once, not reproduced in five runs: in Firefox, live playback (render ahead off) froze
+      3 bars before a song's end with Tone's "Start time must be strictly greater than previous
+      start time", on a machine at load 20.
