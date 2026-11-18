@@ -642,14 +642,19 @@ export class AheadPlayer<M> {
         if (at >= until) break;
         p.nextBar++;
         const time = this.ctxTime(at);
-        const id = setTimeout(
-          () => {
-            this.timers = this.timers.filter((t) => t.id !== id);
-            this.options.events.onBar(owner, deck, bar, time);
-          },
-          Math.max(0, (time - this.ctx.currentTime) * 1000),
-        );
-        this.timers.push({ at, id });
+        const timer: { at: number; id: ReturnType<typeof setTimeout> } = { at, id: 0 as never };
+        const fire = () => {
+          // Not there yet on the audio clock (paused: the context is suspended): wait on.
+          const wait = time - this.ctx.currentTime;
+          if (wait > 0.005) {
+            timer.id = setTimeout(fire, Math.max(20, wait * 1000));
+            return;
+          }
+          this.timers = this.timers.filter((t) => t !== timer);
+          this.options.events.onBar(owner, deck, bar, time);
+        };
+        timer.id = setTimeout(fire, Math.max(0, (time - this.ctx.currentTime) * 1000));
+        this.timers.push(timer);
       }
     }
   }
