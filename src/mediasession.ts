@@ -35,6 +35,8 @@ export interface MediaControls {
   setPlaying(playing: boolean): void;
   /** Title, artist and artwork for the song now playing. */
   setSong(song: Song, album: string): void;
+  /** The song's sleeve, once drawn (coverart.ts); the app's icon until then. */
+  setArtwork(song: Song, artwork: MediaImage[]): void;
   /** Where the song is, for the system's scrubber. */
   setPosition(song: Song, bar: number): void;
 }
@@ -96,6 +98,7 @@ const NONE: MediaControls = {
   activate() {},
   setPlaying() {},
   setSong() {},
+  setArtwork() {},
   setPosition() {},
 };
 
@@ -103,6 +106,8 @@ export function mountMediaControls(actions: MediaActions): MediaControls {
   if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return NONE;
   const session = navigator.mediaSession;
   let element: HTMLAudioElement | null = null;
+  /** What the metadata shows. */
+  let shown: { song: Song; album: string; artwork: MediaImage[] } | null = null;
 
   const handle = (action: MediaSessionAction, run: (d: MediaSessionActionDetails) => void) => {
     try {
@@ -122,7 +127,7 @@ export function mountMediaControls(actions: MediaActions): MediaControls {
   handle("seekforward", () => actions.seekForward());
   handle("seekbackward", () => actions.seekBackward());
 
-  const artwork = [192, 512].map((size) => ({
+  const icons = [192, 512].map((size) => ({
     src: new URL(`icons/icon-${size}.png`, document.baseURI).href,
     sizes: `${size}x${size}`,
     type: "image/png",
@@ -148,10 +153,24 @@ export function mountMediaControls(actions: MediaActions): MediaControls {
       if (!playing) element?.pause();
     },
     setSong(song, album) {
+      // The same song recomposed keeps the sleeve it has.
+      const same = shown?.song.seed === song.seed && shown.song.title === song.title;
+      shown = { song, album, artwork: same ? shown!.artwork : icons };
       session.metadata = new MediaMetadata({
         title: song.title,
         artist: "Infinite Synthpop",
         album,
+        artwork: shown.artwork,
+      });
+    },
+    setArtwork(song, artwork) {
+      // Drawn for a song that has gone since: not this one's.
+      if (shown?.song !== song) return;
+      shown.artwork = artwork;
+      session.metadata = new MediaMetadata({
+        title: song.title,
+        artist: "Infinite Synthpop",
+        album: shown.album,
         artwork,
       });
     },

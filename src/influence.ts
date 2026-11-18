@@ -100,7 +100,7 @@ function normalized(weights: RefWeights): [ReferenceId, number][] {
 }
 
 /** The records a song took from, largest share first; an original is all its own record. */
-export function influences(song: Song): Influence[] {
+export function influences(song: Pick<Song, "reference" | "blends">): Influence[] {
   if (song.reference) return [{ id: song.reference, share: 1 }];
   const shares = new Map<ReferenceId, number>();
   for (const part of PARTS) {

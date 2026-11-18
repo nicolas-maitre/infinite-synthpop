@@ -2716,3 +2716,106 @@ html[data-view="simple"] .site-footer {
 #s-mini-play.playing .icon-pause {
   display: block;
 }
+
+/* ── Sleeves (coverart.ts): each song's own, or an original's scan, over a tile of its colour ── */
+.cover {
+  display: block;
+  flex: none;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--cover-tile, #ffffff10);
+  box-shadow:
+    0 0 0 1px #ffffff12,
+    0 8px 24px #00000070;
+}
+
+.cover canvas,
+.cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Now playing: the sleeve beside the title, the text sitting at its foot. */
+.player-song {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1fr repeat(4, auto);
+  column-gap: 20px;
+}
+
+.player-song > * {
+  grid-column: 2;
+}
+
+.player-song .eyebrow {
+  grid-row: 2;
+}
+
+.player-song h2 {
+  grid-row: 3;
+}
+
+.player-song .meta {
+  grid-row: 4;
+}
+
+.player-song .mix-status {
+  grid-row: 5;
+}
+
+.player-cover {
+  grid-column: 1;
+  grid-row: 1 / -1;
+  width: 136px;
+}
+
+.full-screen .player-cover {
+  width: clamp(120px, 32vh, 360px);
+}
+
+@media (max-width: 560px) {
+  .player-song {
+    column-gap: 14px;
+  }
+
+  .player-cover {
+    width: 92px;
+  }
+}
+
+.mini-info {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: center;
+}
+
+.mini-info > * {
+  grid-column: 2;
+}
+
+.mini-cover {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 44px;
+}
+
+.song-play.with-cover {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: center;
+  padding-left: 6px;
+}
+
+.song-play.with-cover > * {
+  grid-column: 2;
+}
+
+.song-play > .cover {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 40px;
+  box-shadow: 0 0 0 1px #ffffff12;
+}
