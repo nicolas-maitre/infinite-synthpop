@@ -32,6 +32,7 @@ import { PianoRoll } from "./pianoroll";
 import { mountWizard } from "./wizard";
 import { mountSimpleView, type SimpleGenre, type SimpleSettings } from "./simpleview";
 import { LengthSlider } from "./lengthslider";
+import { mountInspiration } from "./inspiration";
 import { REFERENCES, type ReferenceId } from "./references";
 import { decodeCreation, encodeCreation, songToSpec, type Creation, type SongSpec } from "./spec";
 import { randomSeed } from "./rng";
@@ -184,12 +185,21 @@ const simple = mountSimpleView(el("simple-view"), {
   },
   removeFavourite: (id) => deleteSaved(id),
   playOriginal: (id) => {
-    if (!isReferenceId(id)) return;
-    navigatingTo = null;
-    engine.playReference(id, true);
-    if (!engine.playing) void togglePlay();
+    if (isReferenceId(id)) playOriginal(id);
   },
 });
+
+/** Plays one of the originals at once, starting playback (a click on it allows it). */
+function playOriginal(id: ReferenceId): void {
+  navigatingTo = null;
+  engine.playReference(id, true);
+  if (!engine.playing) void togglePlay();
+}
+
+const inspiration = mountInspiration(
+  el("simple-view").querySelector(".inspiration")!,
+  playOriginal,
+);
 
 /** The view showing. A creation link opens the advanced view for that visit without keeping it
  * (prefs.view is what was chosen). */
@@ -866,6 +876,7 @@ function renderSong(song: Song): void {
   // A new song may be in another genre, with its own mix for the auto faders.
   applyMixer();
   simple.renderSong(song);
+  inspiration.render(song);
   media.setSong(song, GENRES[song.genre].name);
   media.setPosition(song, engine.currentBar);
   // While editing the title, don't overwrite what's being typed.

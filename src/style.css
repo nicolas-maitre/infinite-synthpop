@@ -2331,3 +2331,299 @@ html[data-view="advanced"] #simple-view {
 .full-screen .dj-row:not(:has(.mix-next:not([hidden]))) {
   display: none;
 }
+
+/* ── Inspired by (inspiration.ts): the records the song took from, tinted by the main sleeve ── */
+
+/* The main sleeve's colour (--tint, set by inspiration.ts) washes over the player, as music
+   players do. */
+.player,
+.inspiration {
+  background:
+    radial-gradient(
+      120% 90% at 0% 0%,
+      color-mix(in srgb, var(--tint, transparent) 38%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(180deg, var(--card), var(--bg-2));
+  transition: background 0.6s;
+}
+
+.insp-body {
+  display: grid;
+  gap: 22px;
+}
+
+.insp-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.insp-hero-cover {
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.insp-hero-cover:focus-visible,
+.insp-tile:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 4px;
+  border-radius: 10px;
+}
+
+.insp-cover {
+  position: relative;
+  flex: none;
+  display: block;
+  width: var(--size, 72px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #3a1d5c, #13304a);
+  box-shadow:
+    0 10px 28px #00000080,
+    0 0 0 1px #ffffff12;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.insp-cover.big {
+  width: clamp(120px, 26vw, 176px);
+  border-radius: 8px;
+  box-shadow:
+    0 18px 44px #000000a0,
+    0 0 0 1px #ffffff14;
+}
+
+.insp-cover-tile {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--size, 72px) * 0.32);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffffff55;
+}
+
+.insp-cover.big .insp-cover-tile {
+  font-size: 48px;
+}
+
+.insp-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.insp-cover img.loaded {
+  opacity: 1;
+}
+
+.insp-hero-cover:hover .insp-cover,
+.insp-tile:hover .insp-cover {
+  transform: translateY(-3px) scale(1.02);
+}
+
+.insp-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding-bottom: 4px;
+}
+
+.insp-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.insp-title {
+  font-size: clamp(22px, 4vw, 34px);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.insp-artist {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.insp-share {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.insp-bar {
+  width: 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: #ffffff1c;
+  overflow: hidden;
+}
+
+.insp-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* The other records, each sleeve sized by its share: bottoms lined up, like a shelf. */
+.insp-others {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.insp-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: var(--size);
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.insp-tile .insp-cover {
+  margin-bottom: 6px;
+}
+
+.insp-tile-title,
+.insp-tile-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insp-tile-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.insp-tile-meta {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Credits: which record each part leans on. */
+.insp-credits-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.insp-credits dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 24px;
+  margin: 0;
+}
+
+.insp-credit {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  border-top: 1px solid #ffffff10;
+}
+
+.insp-credit dt {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.insp-credit dd {
+  margin: 0;
+  font-size: 14px;
+}
+
+.insp-credit-share,
+.insp-credit-sep {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insp-cover,
+  .insp-cover img {
+    transition: none;
+  }
+}
+
+/* The record's links: play the original here, or hear it on YouTube. */
+.insp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.insp-actions .btn,
+.insp-yt-mini {
+  text-decoration: none;
+}
+
+.insp-yt,
+.insp-yt-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insp-yt .icon,
+.insp-yt-mini .icon {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  fill: #ff4e45;
+}
+
+.insp-others li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.insp-yt-mini {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.insp-yt-mini:hover,
+.insp-yt-mini:focus-visible {
+  color: var(--text);
+}
+
+@media (max-width: 560px) {
+  .insp-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

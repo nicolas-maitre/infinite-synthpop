@@ -193,3 +193,15 @@ Each phase is checked in Chromium and Firefox (headless), audio muted.
      stay paused (a song from the lists starts playing, as a click on it means to).
    - The player's genre applies from the next song (`Engine.updateNext`): the playing song stays
      as it is; the next one is planned again unless its transition is already under way.
+8. **Inspired by.** **Done.**
+   - A panel under the player shows the records the playing song took from (`influence.ts`):
+     each record's share is its weight averaged over the six parts. The main one is big, with
+     its share; the others' sleeves are scaled by theirs (square root, 56–120 px). When the
+     parts are blended apart, credits list each part's records (10 % and up).
+   - Sleeves are the real ones, loaded at runtime from the Cover Art Archive by MusicBrainz
+     release group (not stored in the repo); the single's, else the album's (The Different
+     Story, Crazy Juliet). A sleeve that doesn't load leaves an initials tile.
+   - The main sleeve's colour tints the player and the panel (sampled on a canvas; the archive
+     serves CORS), capped in lightness.
+   - A sleeve, or "Play the original", plays that original; each record links to a YouTube
+     search for it, in a new tab.
