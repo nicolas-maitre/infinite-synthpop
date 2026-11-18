@@ -6,6 +6,7 @@ import {
   type DrumMode,
   type ImportedTracks,
   type KitName,
+  type LengthRange,
   type Song,
 } from "./composer";
 import { parseSeedLink, seedLink } from "./links";
@@ -30,6 +31,7 @@ import { download, exportAudio, fileName, songToMidi } from "./export";
 import { PianoRoll } from "./pianoroll";
 import { mountWizard } from "./wizard";
 import { mountSimpleView, type SimpleGenre, type SimpleSettings } from "./simpleview";
+import { LengthSlider } from "./lengthslider";
 import { REFERENCES, type ReferenceId } from "./references";
 import { decodeCreation, encodeCreation, songToSpec, type Creation, type SongSpec } from "./spec";
 import { randomSeed } from "./rng";
@@ -159,11 +161,7 @@ const simple = mountSimpleView(el("simple-view"), {
   },
   setLite,
   setGenre: setSimpleGenre,
-  setLength: (range) => {
-    prefs.length = range;
-    savePrefs();
-    engine.setLength(range);
-  },
+  setLength,
   setVolume,
   toggleSave,
   share: (button) => void share(button, shareUrl(engine.song, engine.creation)),
@@ -202,7 +200,7 @@ const mixerCard = el("mixer-rows").closest<HTMLElement>(".card")!;
 const mixerHome = document.createComment("mixer");
 mixerCard.before(mixerHome);
 const HINTS: Record<View, string> = {
-  simple: "Space play/pause · ← → previous/next · M mix next · R repeat",
+  simple: "Space play/pause · ← → previous/next · M mix next · R repeat · F full screen",
   advanced: "Space play/stop · N random song · S skip section",
 };
 
@@ -215,6 +213,7 @@ function showView(view: View): void {
   if (view === "simple") simple.mixerDrawer.append(mixerCard);
   else mixerHome.after(mixerCard);
   simple.setShown(view === "simple");
+  if (view === "advanced") simple.setFullScreen(false);
   if (view === "simple" && creator.active) setCreator(false);
 }
 
@@ -263,6 +262,19 @@ function renderMixNext(): void {
             ? "Mix into the next song now, beat-matched (M)"
             : "Mixing into the next song",
   });
+}
+
+/** The length setting, from either view's slider (lengthslider.ts). */
+const advancedLength = new LengthSlider("length-label", setLength);
+el("length").replaceWith(advancedLength.element);
+advancedLength.set(prefs.length);
+
+function setLength(range: LengthRange): void {
+  prefs.length = range;
+  savePrefs();
+  engine.setLength(range);
+  advancedLength.set(range);
+  renderSimpleSettings();
 }
 
 /** Lite or full sound is set up when the page loads (quality.ts), so a change reloads the page. */
@@ -1664,6 +1676,7 @@ document.addEventListener("keydown", (e) => {
   } else if (e.key === "ArrowRight") nextSong();
   else if (e.key === "ArrowLeft") previousSong();
   else if (key === "r") setRepeat(!prefs.repeat);
+  else if (key === "f") simple.setFullScreen();
   else if (key === "m") {
     engine.mixNext();
     renderMixNext();

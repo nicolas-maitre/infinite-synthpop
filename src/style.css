@@ -2143,3 +2143,98 @@ html[data-view="advanced"] #simple-view {
     padding: 12px 18px;
   }
 }
+
+/* Full screen (simpleview.ts): the player alone, big. */
+#s-full .icon-exit,
+.full-screen #s-full .icon-enter {
+  display: none;
+}
+
+.full-screen #s-full .icon-exit {
+  display: block;
+}
+
+.full-screen,
+.full-screen body {
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.full-screen .player-head {
+  flex-wrap: nowrap;
+}
+
+.full-screen .player {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(14px, 3vh, 32px);
+  padding: clamp(16px, 4vw, 56px);
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(1200px 700px at 80% -10%, #2a1340 0%, transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, #0f2a40 0%, transparent 60%), var(--bg);
+}
+
+.full-screen .player > * {
+  width: min(100%, 1100px);
+}
+
+.full-screen .player h2 {
+  font-size: clamp(32px, 6vw, 76px);
+}
+
+.full-screen .player .meta,
+.full-screen .player .mix-status {
+  font-size: clamp(15px, 2vw, 22px);
+}
+
+.full-screen .player-viz {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 100px;
+  max-height: 50vh;
+}
+
+.full-screen .player-transport {
+  gap: clamp(14px, 3vw, 28px);
+}
+
+.full-screen .player-transport .btn.round {
+  width: 58px;
+  height: 58px;
+}
+
+.full-screen .player-transport .btn.round.big {
+  width: 88px;
+  height: 88px;
+}
+
+.full-screen .player-transport .btn.round.big .icon {
+  width: 40px;
+  height: 40px;
+}
+
+/* Only what playing needs: the volume, switches, mixer, DJ switch and Share stay behind. */
+.full-screen .player-bottom,
+.full-screen .mixer-drawer,
+.full-screen .dj-toggle,
+.full-screen #s-share {
+  display: none;
+}
+
+.full-screen .dj-row {
+  justify-content: center;
+}
+
+.full-screen .btn.mix-next {
+  padding: 12px 24px;
+}
+
+/* DJ mode off: no Mix next, so no row. */
+.full-screen .dj-row:not(:has(.mix-next:not([hidden]))) {
+  display: none;
+}

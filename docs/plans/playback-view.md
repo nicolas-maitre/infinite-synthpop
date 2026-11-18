@@ -172,6 +172,10 @@ one set of faders and no state to keep in sync.
 
 Each phase is checked in Chromium and Firefox (headless), audio muted.
 
-## Open
-
-- Whether the simple view gets a fullscreen / "now playing only" mode later.
+5. **Full screen, and the length in Advanced.** **Done.**
+   - A full-screen button by Save and Share (F; Esc or F again to leave): the player alone, big —
+     title, visualiser, seek bar, transport and Mix next. The volume, switches, mixer, DJ switch
+     and Share stay behind. It uses the browser's full screen where allowed, else fills the
+     window, and keeps the screen on while it plays (Screen Wake Lock, where the browser has it).
+   - The length slider is one component (`lengthslider.ts`), in the simple view and in the
+     advanced Generator card, both showing the same setting.
