@@ -428,7 +428,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     },
 
     renderBuffered(seconds) {
-      ui.buffered.hidden = seconds === null || !song || !playing;
+      // Paused, the render stays (and goes on): it shows; stopped, there is none (null).
+      ui.buffered.hidden = seconds === null || !song;
       if (ui.buffered.hidden || !song || seconds === null) return;
       // Where the render has got to in this song (past its end, it renders the next one).
       const to = position() + seconds / barSeconds(song);
