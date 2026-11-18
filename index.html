@@ -56,6 +56,14 @@
             <button id="s-share" class="btn small" type="button" title="Copy a link to this song">
               ⤴ Share
             </button>
+            <button id="s-full" class="btn round small" type="button" aria-pressed="false">
+              <svg class="icon icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z" />
+              </svg>
+              <svg class="icon icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 4h2v6H4V8h4zm6 0h2v4h4v2h-6zM4 14h6v6H8v-4H4zm10 0h6v2h-4v4h-2z" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -161,34 +169,7 @@
           <span>Genre</span>
           <select id="s-genre"></select>
         </label>
-        <div class="field length-field" role="group" aria-labelledby="s-length-label">
-          <span class="row spread"
-            ><span id="s-length-label">Length</span><output id="s-length-out"></output
-          ></span>
-          <div class="dual-range">
-            <div class="dual-range-fill" id="s-length-fill"></div>
-            <input
-              id="s-length-min"
-              type="range"
-              min="120"
-              max="480"
-              step="30"
-              aria-label="Shortest"
-            />
-            <input
-              id="s-length-max"
-              type="range"
-              min="120"
-              max="480"
-              step="30"
-              aria-label="Longest"
-            />
-          </div>
-          <span class="note"
-            >How long songs run: each song gets the form that fits best, and in DJ mode it mixes out
-            in this range. From the next song.</span
-          >
-        </div>
+        <div id="s-length"></div>
       </section>
 
       <section class="card song-lists" aria-label="Songs">
@@ -533,6 +514,7 @@
             <option value="classic">Classic (the original picks)</option>
           </select>
         </label>
+        <div id="length"></div>
         <label class="field">
           <span>Drum machine</span>
           <select id="kit"></select>

@@ -8,7 +8,7 @@
 import type { LengthRange, Song } from "./composer";
 import { GENRE_IDS, GENRES, type GenreId } from "./genres";
 import { barSeconds, songSeconds } from "./mediasession";
-import { LENGTH_BOUNDS } from "./prefs";
+import { clock, LengthSlider } from "./lengthslider";
 import { animate } from "./quality";
 import { keyName } from "./theory";
 
@@ -87,18 +87,14 @@ export interface SimpleView {
   setShown(shown: boolean): void;
   /** Where the mixer card goes while this view shows. */
   readonly mixerDrawer: HTMLElement;
+  /** Full screen: the playing song alone, big (on or off; no argument toggles). */
+  setFullScreen(on?: boolean): void;
 }
 
 function el<T extends HTMLElement>(root: HTMLElement, id: string): T {
   const node = root.querySelector<T>(`#${id}`);
   if (!node) throw new Error(`#${id} missing`);
   return node;
-}
-
-/** 83 → "1:23". */
-export function clock(seconds: number): string {
-  const s = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): SimpleView {
@@ -126,12 +122,9 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     djState: el(root, "s-dj-state"),
     djDesc: el(root, "s-dj-desc"),
     mixNext: el<HTMLButtonElement>(root, "s-mix-next"),
+    full: el<HTMLButtonElement>(root, "s-full"),
     mixNextLabel: el(root, "s-mix-next-label"),
     genre: el<HTMLSelectElement>(root, "s-genre"),
-    lengthMin: el<HTMLInputElement>(root, "s-length-min"),
-    lengthMax: el<HTMLInputElement>(root, "s-length-max"),
-    lengthOut: el<HTMLOutputElement>(root, "s-length-out"),
-    lengthFill: el(root, "s-length-fill"),
     history: el<HTMLUListElement>(root, "s-history"),
     historyEmpty: el(root, "s-history-empty"),
     favourites: el<HTMLUListElement>(root, "s-favourites"),
@@ -205,40 +198,10 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   });
   ui.volume.addEventListener("input", () => actions.setVolume(Number(ui.volume.value)));
 
-  // ── Length: two handles on one track, kept a step apart ──
-  for (const input of [ui.lengthMin, ui.lengthMax]) {
-    input.min = String(LENGTH_BOUNDS.min);
-    input.max = String(LENGTH_BOUNDS.max);
-    input.step = String(LENGTH_BOUNDS.step);
-  }
-  const showLength = () => {
-    const [lo, hi] = [Number(ui.lengthMin.value), Number(ui.lengthMax.value)];
-    const span = Number(ui.lengthMin.max) - Number(ui.lengthMin.min);
-    const at = (v: number) => ((v - Number(ui.lengthMin.min)) / span) * 100;
-    ui.lengthFill.style.left = `${at(lo)}%`;
-    ui.lengthFill.style.width = `${at(hi) - at(lo)}%`;
-    ui.lengthOut.value = `${clock(lo)} – ${clock(hi)}`;
-    ui.lengthMin.setAttribute("aria-valuetext", clock(lo));
-    ui.lengthMax.setAttribute("aria-valuetext", clock(hi));
-  };
-  const keepApart = (moved: HTMLInputElement) => {
-    const step = Number(ui.lengthMin.step);
-    const [lo, hi] = [Number(ui.lengthMin.value), Number(ui.lengthMax.value)];
-    if (hi - lo >= step) return;
-    if (moved === ui.lengthMin) ui.lengthMin.value = String(hi - step);
-    else ui.lengthMax.value = String(lo + step);
-  };
-  for (const input of [ui.lengthMin, ui.lengthMax]) {
-    input.addEventListener("input", () => {
-      keepApart(input);
-      showLength();
-    });
-    input.addEventListener("change", () =>
-      actions.setLength({ min: Number(ui.lengthMin.value), max: Number(ui.lengthMax.value) }),
-    );
-  }
-  ui.save.addEventListener("click", () => actions.toggleSave());
-  ui.share.addEventListener("click", () => actions.share(ui.share));
+  // ── Length (lengthslider.ts) ──
+  const length = new LengthSlider("s-length-label", (range) => actions.setLength(range));
+  el(root, "s-length").replaceWith(length.element);
+
   // ── Lists: one tab at a time (arrow keys move between the tabs) ──
   const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
   const selectTab = (tab: HTMLButtonElement) => {
@@ -302,6 +265,57 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     );
   };
 
+  // ── Full screen: the player alone, filling the screen (the browser's full screen when it
+  // allows one, else just the page), the screen kept on while it plays ──
+  let fullScreen = false;
+  let wakeLock: WakeLockSentinel | null = null;
+  const keepAwake = () => {
+    const want = fullScreen && playing && document.visibilityState === "visible";
+    if (want && !wakeLock && "wakeLock" in navigator) {
+      navigator.wakeLock.request("screen").then(
+        (lock) => {
+          wakeLock = lock;
+          lock.addEventListener("release", () => {
+            if (wakeLock === lock) wakeLock = null;
+          });
+          // Released meanwhile: let it go at once.
+          if (!(fullScreen && playing)) void lock.release();
+        },
+        () => {
+          // Refused (battery saver, not visible): the screen may dim.
+        },
+      );
+    } else if (!want && wakeLock) {
+      void wakeLock.release();
+      wakeLock = null;
+    }
+  };
+  const setFullScreen = (on = !fullScreen) => {
+    if (on === fullScreen) return;
+    fullScreen = on;
+    document.documentElement.classList.toggle("full-screen", on);
+    ui.full.setAttribute("aria-pressed", String(on));
+    label(ui.full, on ? "Leave full screen (F or Esc)" : "Full screen (F)");
+    const page = document.documentElement;
+    if (on && !document.fullscreenElement && page.requestFullscreen) {
+      page.requestFullscreen().catch(() => {
+        // Not allowed here (an iPhone, a frame): the page alone fills the window.
+      });
+    } else if (!on && document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    keepAwake();
+  };
+  label(ui.full, "Full screen (F)");
+  ui.full.addEventListener("click", () => setFullScreen());
+  // The browser's own way out (Esc, a swipe) leaves the mode too.
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement && fullScreen) setFullScreen(false);
+  });
+  // Esc leaves too, when the browser lets the page see it (or has no full screen of its own).
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && fullScreen) setFullScreen(false);
+  });
+  document.addEventListener("visibilitychange", keepAwake);
+
   ui.mixerToggle.addEventListener("click", () => {
     const open = ui.mixerToggle.getAttribute("aria-expanded") !== "true";
     ui.mixerToggle.setAttribute("aria-expanded", String(open));
@@ -310,6 +324,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
 
   return {
     mixerDrawer: ui.mixer,
+    setFullScreen,
 
     renderSong(next) {
       song = next;
@@ -346,6 +361,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       ui.play.setAttribute("aria-label", loading ? state.loading : playing ? "Pause" : "Play");
       ui.play.title = `${playing ? "Pause" : "Play"} (Space)`;
       heard = { ...heard, at: performance.now() };
+      keepAwake();
     },
 
     renderMix(text) {
@@ -378,9 +394,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
         if (!custom.parentElement) ui.genre.append(custom);
       } else custom.remove();
       ui.genre.value = s.genre;
-      ui.lengthMin.value = String(s.length.min);
-      ui.lengthMax.value = String(s.length.max);
-      showLength();
+      length.set(s.length);
       ui.volume.value = String(s.volume);
     },
 
