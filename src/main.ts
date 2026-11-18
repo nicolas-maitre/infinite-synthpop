@@ -196,6 +196,7 @@ const simple = mountSimpleView(el("simple-view"), {
     navigatingTo = null;
     engine.replaySong(creation.seed, creation.spec, true);
     fromLibrary = { playId: engine.playId, id };
+    renderSaved();
     if (!engine.playing) void togglePlay();
   },
   shareFavourite: (id, button) => {
@@ -392,8 +393,9 @@ let fromLibrary: { playId: number; id: string } | null = null;
 /** The history entry of what plays, and the playing (Engine.playId) it was recorded for. */
 let playingEntry: string | null = null;
 let recordedPlay = -1;
-/** Previous / Next walk the history: the entry about to play, so it isn't recorded again. */
-let navigatingTo: string | null = null;
+/** Previous / Next walk the history: the entry about to play, and the playing it started, so
+ * it isn't recorded again. */
+let navigatingTo: { id: string; playId: number } | null = null;
 /** How long the playing entry has been heard: its bars so far (pauses and seeks aside). */
 let heardSeconds = 0;
 
@@ -426,7 +428,8 @@ function noteHeard(): void {
   if (playingEntry) played.left(playingEntry, heardSeconds);
   heardSeconds = barSeconds(engine.song);
   recordedPlay = engine.playId;
-  if (navigatingTo && played.get(navigatingTo)) playingEntry = navigatingTo;
+  if (navigatingTo?.playId === engine.playId && played.get(navigatingTo.id))
+    playingEntry = navigatingTo.id;
   else playingEntry = played.record(historyEntry(engine.song)).id;
   navigatingTo = null;
   renderSongs();
@@ -442,7 +445,6 @@ function noteRecomposed(song: Song): void {
  * With `navigate` (Previous / Next) it plays as that entry instead of being recorded anew. */
 function playEntry(entry: HistoryEntry, opts: { navigate?: boolean; start?: boolean }): void {
   const now = currentView === "simple";
-  navigatingTo = opts.navigate ? entry.id : null;
   fromLibrary = null;
   if (entry.reference) engine.playReference(entry.reference, now);
   else {
@@ -452,12 +454,22 @@ function playEntry(entry: HistoryEntry, opts: { navigate?: boolean; start?: bool
     if (entry.saved && library.get(entry.saved))
       fromLibrary = { playId: engine.playId, id: entry.saved };
   }
+  navigatingTo = opts.navigate ? { id: entry.id, playId: engine.playId } : null;
+  // Its ♥ shows at once, not from its first bar (paused, that may be a while).
+  renderSaved();
   if (opts.start && !engine.playing) void togglePlay();
 }
 
 /** The history entry of what plays, once it has been heard. */
 function heardEntry(): string | null {
   return engine.playId === recordedPlay ? playingEntry : null;
+}
+
+/** Where Previous / Next walk from: the entry heard, or the one they just brought back (paused,
+ * it may not have played a bar yet). Null for a song not in the history yet. */
+function walkingFrom(): string | null {
+  const brought = navigatingTo?.playId === engine.playId ? navigatingTo.id : null;
+  return heardEntry() ?? (brought && played.get(brought) ? brought : null);
 }
 
 /** The My songs entry a history entry is (♥ on its row). */
@@ -917,7 +929,7 @@ async function togglePlay(): Promise<void> {
 /** Next: a new song (in the simple view at once, as a player does; in the advanced view as the
  * Switch setting says). */
 function nextSong(): void {
-  const at = heardEntry();
+  const at = walkingFrom();
   const newer = at ? played.newer(at) : undefined;
   if (newer) {
     playEntry(newer, { navigate: true });
@@ -929,8 +941,9 @@ function nextSong(): void {
 
 /** Previous: back to the start of the song. */
 function previousSong(): void {
-  const at = heardEntry();
-  const older = at ? played.older(at) : undefined;
+  const at = walkingFrom();
+  // A song not heard yet (Next while paused) goes back to the last one heard.
+  const older = at ? played.older(at) : played.list()[0];
   // Past its first couple of bars (about 4 s), a song starts again first.
   if (older && engine.currentBar <= 2) playEntry(older, { navigate: true });
   else engine.jumpTo(0, currentView === "simple");
@@ -995,6 +1008,7 @@ function renderSong(song: Song): void {
   // A new song may be in another genre, with its own mix for the auto faders.
   applyMixer();
   simple.renderSong(song);
+  renderSaved();
   inspiration.render(song);
   renderUpNext();
   media.setSong(song, GENRES[song.genre].name);
@@ -1155,6 +1169,13 @@ function renderSongs(): void {
       return li;
     }),
   );
+  renderSaved(current);
+  renderSimpleLists(current);
+  if (library.failed) songsStatus.textContent = "This browser won’t store songs: use Share links.";
+}
+
+/** ♡ Save in both views: whether what plays is kept in My songs. */
+function renderSaved(current = currentEntry()): void {
   const saved = !!current;
   saveButton.setAttribute("aria-pressed", String(saved));
   saveButton.textContent = saved ? "♥ Saved" : "♡ Save";
@@ -1164,8 +1185,6 @@ function renderSongs(): void {
       ? "In My songs: click to remove it"
       : "Keep this song in My songs";
   simple.renderSaved(saved || !!engine.creation, engine.song.title);
-  renderSimpleLists(current);
-  if (library.failed) songsStatus.textContent = "This browser won’t store songs: use Share links.";
 }
 
 /** The simple view's lists: previous songs, favourites (My songs) and the originals. */

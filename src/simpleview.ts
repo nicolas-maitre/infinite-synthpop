@@ -335,6 +335,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   });
 
   // ── Controls ──
+  ui.save.addEventListener("click", () => actions.toggleSave());
+  ui.share.addEventListener("click", () => actions.share(ui.share));
   ui.play.addEventListener("click", () => actions.togglePlay());
   ui.prev.addEventListener("click", () => actions.previous());
   ui.next.addEventListener("click", () => actions.next());
