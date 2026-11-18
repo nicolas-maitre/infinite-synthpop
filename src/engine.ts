@@ -145,6 +145,11 @@ function entryArrange(song: Song, meta: SongMeta): Pick<Deck<SongMeta>, "arrange
   return { arrange: shiftedArrange(song, incomingArrange(song), meta.entryShift) };
 }
 
+/** Pause and resume fade over this long (seconds), so neither clicks. */
+const PAUSE_FADE_SECONDS = 0.08;
+/** The output's level while faded out (dB): inaudible. */
+const SILENT_DB = -90;
+
 /** Bars of the next song in a transition piece: enough for the outgoing song's tails to ring out. */
 const HANDOFF_BARS = 2;
 /** A change to the mixer re-renders once the faders have been still this long. */
@@ -231,6 +236,8 @@ export class Engine {
   private repeat = false;
   /** Paused: the audio context is suspended. */
   private suspended = false;
+  /** Tells one pause from the next, so a resume during a pause's fade cancels its suspend. */
+  private pausing = 0;
   /** The song Mix next brought the transition forward for. */
   private mixNextFor: Song | null = null;
 
@@ -474,22 +481,33 @@ export class Engine {
    * stays), and `start` goes on from exactly there. Switching songs or jumping while paused
    * happens as while playing, heard once it goes on.
    */
-  pause(): void {
+  pause(fade = PAUSE_FADE_SECONDS): void {
     if (!this.running || this.suspended) return;
     this.suspended = true;
-    rawContext()
-      .suspend()
-      .catch((error: unknown) => console.error("Couldn't pause", error));
+    const pausing = ++this.pausing;
     this.events.onStateChange?.(false);
+    // The sound fades out first (a cut mid-waveform clicks), then the clock stops.
+    Tone.getDestination().volume.rampTo(SILENT_DB, fade);
+    setTimeout(
+      () => {
+        if (pausing !== this.pausing || !this.suspended) return;
+        rawContext()
+          .suspend()
+          .catch((error: unknown) => console.error("Couldn't pause", error));
+      },
+      fade * 1000 + 30,
+    );
   }
 
   private async resume(): Promise<void> {
+    this.pausing++;
     try {
       await rawContext().resume();
     } catch (error) {
       console.error("Couldn't resume", error);
     }
     this.suspended = false;
+    Tone.getDestination().volume.rampTo(0, PAUSE_FADE_SECONDS);
     this.events.onStateChange?.(true);
   }
 
@@ -564,6 +582,8 @@ export class Engine {
     if (this.suspended) {
       // Stopped while paused: the clock runs again, with nothing left to play.
       this.suspended = false;
+      this.pausing++;
+      Tone.getDestination().volume.value = 0;
       void rawContext()
         .resume()
         .catch(() => {});
