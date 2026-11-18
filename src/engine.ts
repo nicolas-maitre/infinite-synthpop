@@ -60,6 +60,7 @@ import { LATENCY, LITE, LITE_SAMPLE_RATE } from "./quality";
 import { createRng } from "./rng";
 import { TempoMap, type TempoShape } from "./tempo";
 import type { Key } from "./theory";
+import { followingSeed, type NextPick, type UpNextWhen } from "./upnext";
 
 export interface EngineSettings {
   /** The genre generated songs come from (genres.ts), or "auto": one per song. Originals and
@@ -135,6 +136,20 @@ interface DjPlan {
   /** A crossfade's trick (a morph has none). */
   trick: Trick;
   next: { song: Song; meta: SongMeta };
+}
+
+/** What plays after the playing song when it ends on its own, and how it comes in (upnext.ts). */
+export interface UpNext {
+  song: Song;
+  when: UpNextWhen;
+}
+
+/** Up next from a DJ plan: its next song, mixed in from the start of the transition (where the
+ * seek bar's Mix mark starts). */
+function mixesIn(plan: DjPlan): UpNext {
+  const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
+  const from = Math.max(0, plan.swap - window);
+  return { song: plan.next.song, when: { kind: "mix", from, swap: plan.swap } };
 }
 
 /** A song's first bars after a DJ transition brought it in, as the transition played them (dj.ts
@@ -240,6 +255,13 @@ export class Engine {
   private pausing = 0;
   /** The song Mix next brought the transition forward for. */
   private mixNextFor: Song | null = null;
+  /** Pick another: the next song's seed for the playing song's serial (upnext.ts). */
+  private nextPick: NextPick | null = null;
+  /** Rendering ahead without DJ mode: the song planned after each song (by its serial), as
+   * planned; forgotten when the timeline is planned again. */
+  private followers = new Map<number, Song>();
+  /** Up next worked out without planning it (side-effect free), and what it depended on. */
+  private peeked: { deps: unknown[]; value: UpNext } | null = null;
 
   constructor(
     private settings: EngineSettings,
@@ -456,6 +478,95 @@ export class Engine {
     return true;
   }
 
+  /**
+   * What plays after the playing song when it ends on its own (its DJ transition, or its end),
+   * and when. Reads the plans as made; one not made yet is worked out as it will be, without
+   * planning it (which would change what plays: tricks, serials).
+   */
+  get upNext(): UpNext {
+    if (this.custom) return { song: this.song, when: { kind: "loop" } };
+    if (this.repeat) return { song: this.song, when: { kind: "repeat" } };
+    if (this.mixing) return { song: this.mixing, when: { kind: "mixing" } };
+    const dj = this.dj && this.wantsAhead();
+    const plan = dj ? this.djPlans.get(this.song) : undefined;
+    if (plan) return mixesIn(plan);
+    const planned = this.player && !dj ? this.followers.get(this.serial) : undefined;
+    return planned ? { song: planned, when: { kind: "end" } } : this.peek(dj);
+  }
+
+  /** The next song, worked out as it will be planned (a DJ plan made side-effect free), kept
+   * while nothing it depends on changes. */
+  private peek(dj: boolean): UpNext {
+    const deps = [
+      dj,
+      this.song,
+      this.settings,
+      this.nextPick,
+      this.djStyle,
+      this.lastTrick,
+      this.forceTrick,
+      this.tempo,
+      this.fixed,
+    ];
+    const memo = this.peeked;
+    if (memo?.deps.every((d, i) => d === deps[i])) return memo.value;
+    const meta = this.meta();
+    const plan = dj ? this.djPlan(this.song, meta, undefined, true) : null;
+    const value: UpNext = plan
+      ? mixesIn(plan)
+      : {
+          song: this.compose(
+            this.followingSeed(this.song, meta),
+            null,
+            null,
+            null,
+            this.settings.chords,
+          ),
+          when: { kind: "end" },
+        };
+    this.peeked = { deps, value };
+    return value;
+  }
+
+  /**
+   * Pick another: whether the song after this one can still change. Not for a creation or on
+   * repeat (the song plays again), nor once its transition (or the playing song's end) is within
+   * the render's reach.
+   */
+  get canPickNext(): boolean {
+    if (this.custom || this.repeat || this.mixing) return false;
+    const player = this.player;
+    // Live (or stopped): the next song is composed when this one ends.
+    if (!player) return true;
+    const line = player.barLineAfter(player.readyAfter());
+    if (!line || line.deck.meta.serial !== this.serial) return false;
+    const plan = this.djPlans.get(this.song);
+    if (!plan) return true;
+    const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
+    return line.bar < plan.swap - window;
+  }
+
+  /**
+   * Pick another: the song after this one comes from `seed` instead, planned again as
+   * `updateNext` does (a Mix next keeps its swap). False when it can't change (canPickNext).
+   */
+  pickNext(seed: number): boolean {
+    if (!this.canPickNext) return false;
+    this.nextPick = { serial: this.serial, seed };
+    const plan = this.djPlans.get(this.song);
+    if (plan) {
+      if (this.mixNextFor === this.song) this.djPlan(this.song, this.meta(), plan.swap);
+      else this.djPlans.delete(this.song);
+    }
+    this.rerender();
+    return true;
+  }
+
+  /** The seed of the song after `song`: Pick another's, else the one derived from its seed. */
+  private followingSeed(song: Song, meta: SongMeta): number {
+    return followingSeed(song.seed, meta.serial, this.nextPick, nextSeed);
+  }
+
   /** true: songs, jumps and skips start at once; false: at the next bar line. */
   setInstant(on: boolean): void {
     this.instant = on;
@@ -612,6 +723,7 @@ export class Engine {
       this.player.stop();
       this.player = null;
       this.cuedPiece = null;
+      this.followers.clear();
       if (this.remixTimer !== null) clearTimeout(this.remixTimer);
       this.remixTimer = null;
       this.events.onBuffering?.(false);
@@ -725,7 +837,7 @@ export class Engine {
     if (next) {
       this.bar = next.startBar;
       this.switched();
-    } else this.newSong(nextSeed(this.song.seed));
+    } else this.newSong(this.followingSeed(this.song, this.meta()));
   }
 
   /**
@@ -917,9 +1029,10 @@ export class Engine {
   /**
    * DJ mode: where `song` hands over, and the song after it, composed at a tempo within reach of
    * this one's and a key that mixes from it (dj.ts). Null outside DJ mode and for creations (they
-   * loop).
+   * loop). With `peek`, the plan it would make, leaving everything as it was (not kept, no trick
+   * remembered, no serial used): Up next.
    */
-  private djPlan(song: Song, meta: SongMeta, mixNextAt?: number): DjPlan | null {
+  private djPlan(song: Song, meta: SongMeta, mixNextAt?: number, peek = false): DjPlan | null {
     if (!this.dj || meta.custom || this.repeat) return null;
     const cached = this.djPlans.get(song);
     if (cached && mixNextAt === undefined) return cached;
@@ -935,7 +1048,7 @@ export class Engine {
     );
     // Mix next: a crossfade with a short intro, handing over there.
     const swap = mixNextAt ?? planned;
-    const seed = nextSeed(song.seed);
+    const seed = this.followingSeed(song, meta);
     const own = this.compose(seed, null, null, null, this.settings.chords);
     const from = new TempoMap(0, shape).bpmAt(swap - 1);
     const keyNow = keyBefore(song, swap);
@@ -964,7 +1077,7 @@ export class Engine {
         : this.djStyle === "auto"
           ? autoTransition(song, next, keyNow, from)
           : this.djStyle;
-    if (style === "crossfade") this.lastTrick = id;
+    if (style === "crossfade" && !peek) this.lastTrick = id;
     const plan: DjPlan = {
       swap,
       style,
@@ -973,7 +1086,7 @@ export class Engine {
       next: {
         song: next,
         meta: {
-          serial: ++this.serials,
+          serial: peek ? -1 : ++this.serials,
           reference: null,
           custom: null,
           fixed,
@@ -983,7 +1096,7 @@ export class Engine {
         },
       },
     };
-    this.djPlans.set(song, plan);
+    if (!peek) this.djPlans.set(song, plan);
     return plan;
   }
 
@@ -1211,10 +1324,16 @@ export class Engine {
       return { song, meta: { serial: ++this.serials, ...again } };
     }
     const serial = ++this.serials;
-    return {
-      song: this.compose(nextSeed(song.seed), null, null, null, this.settings.chords),
-      meta: { serial, reference: null, custom: null },
-    };
+    const next = this.compose(
+      this.followingSeed(song, meta),
+      null,
+      null,
+      null,
+      this.settings.chords,
+    );
+    // Up next reads it as planned (a setting changed since doesn't re-plan it).
+    this.followers.set(meta.serial, next);
+    return { song: next, meta: { serial, reference: null, custom: null } };
   }
 
   /**
@@ -1226,6 +1345,7 @@ export class Engine {
     if (!player) return;
     const soon = player.playhead() + 0.1;
     const time = now ? soon : (player.barLineAfter(soon)?.time ?? soon);
+    this.followers.clear();
     const piece = this.planFrom(this.song, this.bar, this.meta(), time);
     this.cuedPiece = now ? null : piece;
     player.cut(time, piece);
@@ -1263,6 +1383,7 @@ export class Engine {
             deck.meta.replay ?? null,
           );
     const meta = deck.meta.serial === this.serial ? this.meta() : deck.meta;
+    this.followers.clear();
     player.cut(line.time, this.planFrom(song, bar, meta, line.time));
   }
 
@@ -1284,6 +1405,10 @@ export class Engine {
       this.replay = deck.meta.replay ?? null;
       this.fixed = deck.meta.fixed;
       this.tempo = deck.meta.tempo;
+      // Serials only grow: the songs before this one are behind.
+      for (const serial of this.followers.keys()) {
+        if (serial < this.serial) this.followers.delete(serial);
+      }
       this.events.onSong?.(this.song);
     }
     // A DJ transition is heard while its outgoing song's bars are.
@@ -1338,11 +1463,13 @@ export class Engine {
     if (this.bar >= this.song.totalBars && (this.custom || this.repeat)) {
       this.bar = 0;
     } else if (this.bar >= this.song.totalBars) {
+      // Pick another's, which is for the song that just ended (its serial).
+      const seed = this.followingSeed(this.song, this.meta());
       this.reference = null;
       this.replay = null;
       this.serial = ++this.serials;
       this.fixed = this.tempo = undefined;
-      this.song = this.compose(nextSeed(this.song.seed), null, null, null, this.settings.chords);
+      this.song = this.compose(seed, null, null, null, this.settings.chords);
       this.bar = 0;
       this.applySong(inst);
       const song = this.song;

@@ -66,7 +66,11 @@ function initials(title: string): string {
 }
 
 /** A record's sleeve over its tile; `onTint` hears its colour once loaded. */
-function sleeve(id: ReferenceId, big: boolean, onTint?: (tint: string) => void): HTMLElement {
+export function sleeve(
+  id: ReferenceId,
+  big: boolean,
+  onTint?: (tint: string) => void,
+): HTMLElement {
   const title = REFERENCES[id].title;
   const box = el("span", `insp-cover${big ? " big" : ""}`);
   box.dataset.ref = id;

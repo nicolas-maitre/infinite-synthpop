@@ -8,7 +8,8 @@
 import type { LengthRange, Song } from "./composer";
 import { coverElement, showCover, songCover, type CoverSource } from "./coverart";
 import { GENRES } from "./genres";
-import { coverUrl, RECORDS } from "./influence";
+import { coverUrl, influences, RECORDS } from "./influence";
+import { sleeve } from "./inspiration";
 import { barSeconds, songSeconds } from "./mediasession";
 import { clock, LengthSlider } from "./lengthslider";
 import { animate } from "./quality";
@@ -25,6 +26,8 @@ export interface SimpleViewActions {
   setRepeat(on: boolean): void;
   setDj(on: boolean): void;
   mixNext(): void;
+  /** Up next: another song after this one. */
+  pickNext(): void;
   setLite(on: boolean): void;
   setStation(station: StationId): void;
   setLength(range: LengthRange): void;
@@ -90,6 +93,8 @@ export interface SimpleView {
   renderLists(lists: SongLists): void;
   /** Mix next: shown in DJ mode, enabled when it can start a transition. */
   renderMixNext(state: { shown: boolean; enabled: boolean; label: string; title: string }): void;
+  /** Up next: the song after this one, when it comes, and whether Pick another can change it. */
+  renderUpNext(state: { song: Song; when: string; canPick: boolean; pickHint: string }): void;
   /** A line under the lists ("Deleted …"), with an Undo when there's one. */
   renderListStatus(text: string, undo?: () => void): void;
   /** The view is shown or hidden (the progress only animates while shown). */
@@ -142,6 +147,15 @@ const recordsLine = (records: readonly ReferenceId[]) =>
 /** Thumbnails' pixels: 48 CSS pixels at 2×. */
 const THUMB_PX = 96;
 
+/** A song's genre (or original), key and tempo, under its title. */
+function songMeta(song: Song): string {
+  return [
+    song.reference ? `Original · ${GENRES[song.genre].name}` : GENRES[song.genre].name,
+    keyName(song.key),
+    `${song.bpm} BPM`,
+  ].join(" · ");
+}
+
 function el<T extends HTMLElement>(root: HTMLElement, id: string): T {
   const node = root.querySelector<T>(`#${id}`);
   if (!node) throw new Error(`#${id} missing`);
@@ -188,6 +202,11 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     mixNextLabel: el(root, "s-mix-next-label"),
     stations: el<HTMLUListElement>(root, "s-stations"),
     stationCustom: el(root, "s-station-custom"),
+    upNextCover: el(root, "s-upnext-cover"),
+    upNextWhen: el(root, "s-upnext-when"),
+    upNextTitle: el(root, "s-upnext-title"),
+    upNextMeta: el(root, "s-upnext-meta"),
+    upNextPick: el<HTMLButtonElement>(root, "s-upnext-pick"),
     history: el<HTMLUListElement>(root, "s-history"),
     historyEmpty: el(root, "s-history-empty"),
     favourites: el<HTMLUListElement>(root, "s-favourites"),
@@ -317,6 +336,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     actions.setDj(ui.dj.getAttribute("aria-pressed") !== "true"),
   );
   ui.mixNext.addEventListener("click", () => actions.mixNext());
+  ui.upNextPick.addEventListener("click", () => actions.pickNext());
   ui.lite.addEventListener("change", () => actions.setLite(ui.lite.checked));
   ui.volume.addEventListener("input", () => actions.setVolume(Number(ui.volume.value)));
 
@@ -461,11 +481,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       showCover(ui.cover, songCover(next), 768);
       showCover(ui.miniCover, songCover(next), THUMB_PX);
       ui.miniTitle.textContent = next.title;
-      ui.meta.textContent = [
-        next.reference ? `Original · ${GENRES[next.genre].name}` : GENRES[next.genre].name,
-        keyName(next.key),
-        `${next.bpm} BPM`,
-      ].join(" · ");
+      ui.meta.textContent = songMeta(next);
       ui.miniMeta.textContent = ui.meta.textContent;
       showMini();
       ui.seek.max = String(next.totalBars);
@@ -588,6 +604,20 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       ui.mixNext.disabled = !enabled;
       ui.mixNextLabel.textContent = label;
       ui.mixNext.title = title;
+    },
+
+    renderUpNext({ song: next, when, canPick, pickHint }) {
+      ui.upNextTitle.textContent = next.title;
+      ui.upNextMeta.textContent = songMeta(next);
+      ui.upNextWhen.textContent = `· ${when}`;
+      ui.upNextPick.disabled = !canPick;
+      ui.upNextPick.title = pickHint;
+      // Its main influence's sleeve, kept while that stays the same.
+      const main = influences(next)[0]?.id ?? "";
+      if ((ui.upNextCover.dataset.ref ?? "") !== main) {
+        ui.upNextCover.dataset.ref = main;
+        ui.upNextCover.replaceChildren(...(main ? [sleeve(main, false)] : []));
+      }
     },
 
     renderListStatus(text, undo) {
