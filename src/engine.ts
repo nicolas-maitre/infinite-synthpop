@@ -428,7 +428,7 @@ export class Engine {
     }
     if (this.ending?.serial === this.serial) return;
     const player = this.player;
-    const plan = this.djPlans.get(this.song);
+    const plan = this.livePlan(this.song, this.meta());
     let atSwap = false;
     if (player && plan) {
       const line = player.barLineAfter(player.readyAfter());
@@ -472,6 +472,12 @@ export class Engine {
     if (this.fade?.song) this.cancelFade();
   }
 
+  /** The song's DJ plan, when the DJ plays it: one made before DJ mode went off (or repeat on)
+   * stays cached, unheard. */
+  private livePlan(song: Song, meta: SongMeta): DjPlan | undefined {
+    return this.dj && !this.repeat && !meta.custom ? this.djPlans.get(song) : undefined;
+  }
+
   /** The song with this serial plays to its very end (no DJ mix-out) and pauses there. */
   private endsAtEnd(serial: number): boolean {
     return this.ending?.serial === serial && !this.ending.atSwap;
@@ -481,6 +487,16 @@ export class Engine {
   private endFade(): void {
     this.fade = null;
     this.fades++;
+  }
+
+  /**
+   * Render ahead stops to let the render catch up (a quarter second on at most): the song stands
+   * still, and so does the end of a song's fade, at its level. The first bar heard once it
+   * goes on plans the fade again (watchEnd).
+   */
+  private holdFade(): void {
+    Tone.getDestination().volume.cancelAndHoldAtTime(rawContext().currentTime);
+    this.endFade();
   }
 
   /**
@@ -535,6 +551,8 @@ export class Engine {
    * song).
    */
   private watchEnd(serial: number, time: number, untilEnd: number, barSeconds: number): void {
+    // Held while render ahead waits for the render (holdFade).
+    if (this.player?.isBuffering) return;
     const fade = this.fade;
     // What plays from the end on (the next song, the same one again) is what the pause holds.
     if (fade?.song && time >= fade.at - 0.1) return;
@@ -709,7 +727,10 @@ export class Engine {
       events: {
         plan: (after) => this.planAfter(after),
         onBar: (piece, deck, bar, time) => this.aheadBar(piece, deck, bar, time),
-        onBuffering: (buffering) => this.events.onBuffering?.(buffering),
+        onBuffering: (buffering) => {
+          if (buffering && this.fade?.song) this.holdFade();
+          this.events.onBuffering?.(buffering);
+        },
       },
     });
     this.player = player;
@@ -1429,8 +1450,14 @@ export class Engine {
 
   /** A bar starts being heard (render-ahead): the engine follows it as the live clock does. */
   private aheadBar(piece: Piece<SongMeta>, deck: Deck<SongMeta>, bar: number, time: number): void {
-    // The end of a song set to end: paused on what follows, at its first bar.
-    if (this.fade?.song && time >= this.fade.at - 0.1) this.sleepNow();
+    // The song set to end ends at this bar (its swap, when its transition plays).
+    const swap = this.ending?.atSwap ? this.livePlan(deck.song, deck.meta)?.swap : undefined;
+    const end = swap !== undefined && bar < swap ? swap : deck.song.totalBars;
+    // Its end: paused on what follows, at its first bar.
+    const ending = this.ending;
+    if (this.fade?.song && ending && (deck.meta.serial !== ending.serial || bar >= end)) {
+      this.sleepNow();
+    }
     if (this.cue !== null) {
       // Bars of what played before a cued switch are stale once the switch is due.
       if (piece !== this.cuedPiece) return;
@@ -1453,14 +1480,16 @@ export class Engine {
     const incoming =
       piece.label && piece.decks[0] === deck ? (piece.decks[1]?.song ?? piece.into) : undefined;
     this.setMixing(incoming ?? null, piece.label);
-    const swap = this.ending?.atSwap ? this.djPlans.get(deck.song)?.swap : undefined;
-    const end = swap !== undefined && bar < swap ? swap : deck.song.totalBars;
-    this.watchEnd(
-      deck.meta.serial,
-      time,
-      deck.clock.time(end) - deck.clock.time(bar),
-      deck.clock.barSeconds(bar),
-    );
+    // From the playhead, not `time`: bars due before a stall come late, timed as they were then
+    // (render ahead goes on later than that).
+    if (this.player) {
+      this.watchEnd(
+        deck.meta.serial,
+        rawContext().currentTime,
+        deck.clock.time(end) - this.player.playhead(),
+        deck.clock.barSeconds(bar),
+      );
+    }
     const song = this.song;
     const ev = arrangeBar(song, Math.min(bar, song.totalBars - 1));
     this.bar = bar + 1;
