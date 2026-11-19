@@ -16,6 +16,9 @@ export interface Variety {
   chorus: PartVariety;
   /** Distinct verse + chorus pairs. */
   pairs: number;
+  /** Distinct interludes, turnarounds, bridges and lifts (written whether or not the form plays
+   * them). */
+  sections: Record<(typeof SECTIONS)[number], number>;
   /** Distinct forms by section kind and length, and by kind alone. */
   forms: number;
   skeletons: number;
@@ -38,6 +41,8 @@ export interface PartVariety {
   reference: number;
   top: (readonly [string, number])[];
 }
+
+const SECTIONS = ["interlude", "turnaround", "bridge", "lift"] as const;
 
 export const progressionText = (p: Progression): string =>
   p.map((bar) => bar.join("–")).join(" │ ");
@@ -65,6 +70,10 @@ export function measureVariety(
   const hits = { verse: [0, 0, 0], chorus: [0, 0, 0] };
   let quoted = 0;
   const pairs = new Set<string>();
+  const sections = Object.fromEntries(SECTIONS.map((k) => [k, new Set<string>()])) as Record<
+    (typeof SECTIONS)[number],
+    Set<string>
+  >;
   const forms = new Set<string>();
   const skeletons = new Map<string, number>();
   let referenceForm = 0;
@@ -81,6 +90,7 @@ export function measureVariety(
       if (bank[part].has(text) && !song.quoted) hits[part][2]!++;
       if (reference[part].has(text)) hits[part][1]!++;
     }
+    for (const k of SECTIONS) sections[k].add(progressionText(song.progressions[k]));
     pairs.add(
       `${progressionText(song.progressions.verse)} // ${progressionText(song.progressions.chorus)}`,
     );
@@ -106,6 +116,7 @@ export function measureVariety(
     verse: part("verse"),
     chorus: part("chorus"),
     pairs: pairs.size,
+    sections: Object.fromEntries(SECTIONS.map((k) => [k, sections[k].size])) as Variety["sections"],
     forms: forms.size,
     skeletons: skeletons.size,
     referenceForm: referenceForm / songs,
@@ -130,9 +141,10 @@ export function varietyReport(v: Variety): string {
     ...part("verse", v.verse),
     ...part("chorus", v.chorus),
     `verse + chorus pairs: ${v.pairs} distinct`,
+    `distinct ${SECTIONS.join(" / ")}: ${SECTIONS.map((k) => v.sections[k]).join(" / ")}`,
     `forms: ${v.forms} distinct (${v.skeletons} by section kind alone) · ${pct(v.referenceForm)} a reference's`,
     ...v.topSkeletons.map(([t, n]) => `  ${share(n)}  ${t}`),
-    `distinct progressions per song: ${v.perSong.toFixed(1)}`,
+    `distinct progressions per song: ${v.perSong.toFixed(2)}`,
     ...(v.quoted > 0 ? [`songs quoting a reference's loop: ${pct(v.quoted)}`] : []),
   ].join("\n");
 }

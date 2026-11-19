@@ -21,6 +21,8 @@ import type {
   Option,
   Schema,
   SecondLine,
+  SectionShape,
+  SectionTraits,
 } from "./analysis";
 
 const TF = "true-faith";
@@ -47,6 +49,12 @@ const colour = (from: string, to: string | Bar, weight: Blend, source: string): 
   weight,
   source,
 });
+const shape = (
+  name: string,
+  weight: Blend,
+  source: string,
+  bars: readonly (readonly BarOption[])[],
+): SectionShape => ({ name, weight, source, bars });
 const line = (value: SecondLine, weight: Blend, source?: string): Option<SecondLine> => ({
   value,
   weight,
@@ -147,6 +155,213 @@ const MINOR_SCHEMAS: Schema[] = [
     bars: [fixed("VI"), fixed("VII"), fixed("v"), fixed("i")],
   },
 ];
+
+// Secondary sections (plan §4.2), written after the verse and chorus and scored against them: an
+// interlude and a bridge contrast with the chorus, a turnaround leads into the verse's first chord,
+// and the song's colour chords (TF's Dorian IV, DS's iv) recur where they belong.
+const MINOR_SECTIONS: SectionTraits = {
+  interlude: [
+    shape(
+      "the relative-major run",
+      { base: 0.3, by: { [TF]: 0.2, [DS]: 1.2 } },
+      "analysis.md §3 table, Interlude: DS's III │ VII │ iv │ i VII (§2, 1:20: G │ D │ Am │ Em " +
+        "D), on the relative major's side of the key",
+      [
+        [o("III", { base: 1 }), o("VI", { base: 0.25 })],
+        [o("VII", { base: 1 }), o("VI", { base: 0.15 })],
+        [
+          o("iv", { base: 0.3, by: { [DS]: 1 } }),
+          o("IV", { by: { [TF]: 0.6 } }, "TF's Dorian IV"),
+          o("VI", { base: 0.3 }),
+        ],
+        [
+          o(["i", "VII"], { base: 0.3, by: { [DS]: 1 } }),
+          o("i", { base: 0.5 }),
+          o("VII", { base: 0.3 }),
+          o(["VI", "VII"], { base: 0.2 }),
+        ],
+      ],
+    ),
+    shape(
+      "an instrumental chorus",
+      { base: 0.2, by: { [TF]: 1 } },
+      "§3 table, Interlude: TF's is an instrumental chorus (genres.ts 'TF instrumental', " +
+        "i │ III │ VII │ IV): the chorus's swing, played as another chorus rather than this one",
+      [
+        fixed("i"),
+        [
+          o("III", { base: 0.3, by: { [TF]: 0.6 } }),
+          o("VII", { base: 0.2, by: { [TF]: 0.3 } }),
+          o("VI", { base: 0.2 }),
+        ],
+        [o("VII", { base: 1 }), o("III", { base: 0.15 })],
+        [
+          o("IV", { base: 0.2, by: { [TF]: 1 } }),
+          o("iv", { base: 0.2, by: { [DS]: 0.5 } }),
+          o("V", { base: 0.2 }),
+          o("VII", { base: 0.1 }),
+          o(["IV", "V"], { base: 0.1 }),
+        ],
+      ],
+    ),
+    shape(
+      "YC's break, in the relative minor",
+      { by: { [YC]: 1 } },
+      "§6.2 Break (3:18): A(add9) │ B, IV(add9) │ V read as ♭VI │ ♭VII",
+      [
+        [o("VIadd9", { base: 1 }), o("VI", { base: 0.5 })],
+        [o("VII", { base: 1 }), o("VIIadd9", { base: 0.3 })],
+      ],
+    ),
+    shape(
+      "the climb as an instrumental",
+      { by: { [YC]: 0.5 } },
+      "§2 You Came 3:34: the instrumental is the loop, read in the relative minor",
+      [
+        fixed("VI"),
+        fixed("VII"),
+        [o("VI", { base: 1 }), o("iv", { base: 0.3 })],
+        [o("VII", { base: 1 }), o(["VII", "III/3"], { base: 0.6 })],
+      ],
+    ),
+  ],
+  turnaround: [
+    shape(
+      "Dorian ii–IV",
+      { base: 0.15, by: { [DS]: 1.2 } },
+      "§3 table and Shared DNA 3: DS's turnaround ii │ ii │ IV │ IV (F♯m │ F♯m │ A │ A), the " +
+        "raised 6th, into the verse's i",
+      [
+        fixed("ii"),
+        [o("ii", { base: 1 }), o("IV", { base: 0.3 })],
+        fixed("IV"),
+        [o("IV", { base: 1 }), o("V", { base: 0.2 }), o(["IV", "V"], { base: 0.2 })],
+      ],
+    ),
+    shape(
+      "on VI",
+      { base: 0.2, by: { [TF]: 1, [YC]: 0.6 } },
+      "§2 TF 2:32: the turnaround sits on B♭ (VI); its VI–VII into a verse (MIDI bars 45–46) " +
+        "is the form's own turn, so here it's the rarer ending; §6.2 You Came's bare IV │ V " +
+        "breakdown, read as ♭VI │ ♭VII",
+      [
+        fixed("VI"),
+        [
+          o("VI", { base: 0.2, by: { [TF]: 1 } }),
+          o("VII", { base: 0.4, by: { [TF]: 0.2, [YC]: 0.6 } }),
+          o(["VI", "VII"], { base: 0.2, by: { [TF]: 0.2 } }),
+        ],
+      ],
+    ),
+    shape(
+      "the climb, twice",
+      { base: 0.3, by: { [TF]: 0.2, [DS]: 0.2, [YC]: 0.3 } },
+      "genres.ts 'VI–VII–VI–VII' and You Came's IV–IV–V–V: the climb into the tonic, played twice",
+      [
+        fixed("VI"),
+        [o("VII", { base: 1 }), o("VI", { by: { [YC]: 0.5 } })],
+        [o("VI", { base: 1 }), o("iv", { base: 0.3 }), o("VII", { by: { [YC]: 0.5 } })],
+        [o("VII", { base: 1 }), o("V", { base: 0.3 }), o(["VI", "VII"], { base: 0.2 })],
+      ],
+    ),
+    shape(
+      "the harmonic-minor pull",
+      { base: 0.1, by: { [DS]: 0.3 } },
+      "§3 Where they differ: DS's harmonic-minor V pulls back to the tonic",
+      [
+        [o("iv", { base: 1 }), o("VI", { base: 0.5 })],
+        [o("V", { base: 1 }), o(["Vsus4", "V"], { base: 0.3 })],
+      ],
+    ),
+  ],
+  bridge: [
+    shape(
+      "i–IV vamp",
+      { base: 0.2, by: { [TF]: 1.2 } },
+      "§3 table, Bridge: TF's i IV │ IV vamp (§2, 2:38: Dm G │ G │ Dm G │ G), the Dorian IV",
+      [
+        [o(["i", "IV"], { base: 1 }), o("i", { base: 0.2 })],
+        fixed("IV"),
+        [o(["i", "IV"], { base: 1 }), o(["i", "VII"], { base: 0.2 })],
+        [o("IV", { base: 1 }), o("V", { base: 0.2 }), o(["IV", "V"], { base: 0.2 })],
+      ],
+    ),
+    shape(
+      "i–iv vamp",
+      { base: 0.15, by: { [TF]: 0.2, [DS]: 0.4 } },
+      "TF's vamp with the chorus's Aeolian iv, for a song whose chorus has DS's iv (§3 Shared " +
+        "DNA 2: the one note between the two choruses)",
+      [
+        [o(["i", "iv"], { base: 1 }), o("i", { base: 0.2 })],
+        fixed("iv"),
+        [o(["i", "iv"], { base: 1 }), o(["i", "VII"], { base: 0.2 })],
+        [o("iv", { base: 1 }), o("V", { base: 0.3 }), o(["iv", "V"], { base: 0.2 })],
+      ],
+    ),
+    shape(
+      "Dorian ii–IV–V",
+      { base: 0.15, by: { [DS]: 1.2 } },
+      "§2 DS long version: an 8-bar instrumental bridge in the F♯m–A–B area, ii–IV–V",
+      [
+        fixed("ii"),
+        [o("ii", { base: 1 }), o("IV", { base: 0.4 })],
+        [o("IV", { base: 1 }), o("ii", { base: 0.2 })],
+        [o("V", { base: 1 }), o(["IV", "V"], { base: 0.3 }), o(["Vsus4", "V"], { base: 0.3 })],
+      ],
+    ),
+    shape(
+      "subdominant",
+      { base: 0.4, by: { [DS]: 0.3 } },
+      "plan §4.2: a bridge visits the subdominant side; genres.ts 'subdominant' iv │ VI │ VII │ i",
+      [
+        [o("iv", { base: 1 }), o("IV", { base: 0.3 })],
+        [o("VI", { base: 1 }), o("iv", { base: 0.3 })],
+        [o("VII", { base: 1 }), o("V", { base: 0.3 })],
+        [o("i", { base: 0.6 }), o("VII", { base: 0.4 }), o("V", { base: 0.4 })],
+      ],
+    ),
+    shape(
+      "YC's bridge, in the relative minor",
+      { by: { [YC]: 1 } },
+      "§6.2 Bridge (2:38): Amaj7 │ B(add9) │ A/C♯ │ Bsus4–B, IV │ V │ IV⁶ │ V read as ♭VI │ ♭VII",
+      [
+        [o("VImaj7", { base: 1 }), o("VI", { base: 0.4 }), o("VIadd9", { base: 0.3 })],
+        [o("VIIadd9", { base: 0.7 }), o("VII", { base: 0.5 })],
+        [o("VI/3", { base: 0.6 }), o("VI", { base: 0.4 }), o("iv", { base: 0.3 })],
+        [o(["VIIsus4", "VII"], { base: 1 }), o("VII", { base: 0.5 })],
+      ],
+    ),
+  ],
+  approach: [
+    {
+      interval: 2,
+      weight: { base: 0.6, by: { [TF]: 0.6, [YC]: 0.3 } },
+      source: "§3 Shared DNA 1: up a step, ♭VII → i, the climb",
+    },
+    {
+      interval: 7,
+      weight: { base: 0.5, by: { [DS]: 1 } },
+      source: "§3 Shared DNA 3: the Dorian lift IV → i, DS's turnaround into its verse",
+    },
+    {
+      interval: 5,
+      weight: { base: 0.5, by: { [DS]: 0.6 } },
+      source: "§3 Where they differ: a dominant, DS's harmonic-minor V → i",
+    },
+    {
+      interval: 4,
+      weight: { base: 0.2, by: { [TF]: 0.8 } },
+      source: "§2 TF 2:32: ♭VI → i, the turnaround on VI",
+    },
+    {
+      interval: 10,
+      weight: { base: 0.1, by: { [YC]: 0.6 } },
+      source: "§2 You Came: down a step, the breakdown's V into the loop's IV",
+    },
+    { interval: 1, weight: { base: 0.05 } },
+  ],
+  palette: ["VII", "IV", "V", "VI", "iv", "v", "III", "i"],
+};
 
 const MINOR: ModeTraits = {
   schemas: MINOR_SCHEMAS,
@@ -294,6 +509,7 @@ const MINOR: ModeTraits = {
     susDelay: { base: 0.3, by: { [YC]: 0.5 } },
     deceptive: { by: { [YC]: 0.5 } },
   },
+  sections: MINOR_SECTIONS,
 };
 
 // ── Major: You Came, and the other two's shapes read in a major key ───────────────────────────
@@ -375,6 +591,158 @@ const MAJOR_SCHEMAS: Schema[] = [
     ],
   },
 ];
+
+const MAJOR_SECTIONS: SectionTraits = {
+  interlude: [
+    shape(
+      "YC's break",
+      { base: 0.2, by: { [YC]: 1 } },
+      "§6.2 Break (3:18): A(add9) │ B, IV(add9) │ V for 8 bars",
+      [
+        [o("IVadd9", { base: 1 }), o("IV", { base: 0.4 }), o("IVmaj7", { base: 0.3 })],
+        [o("V", { base: 1 }), o("Vadd9", { base: 0.4 })],
+      ],
+    ),
+    shape(
+      "the loop as an instrumental",
+      { by: { [YC]: 0.6 } },
+      "§2 You Came 3:34: the instrumental plays the loop",
+      [
+        fixed("IV"),
+        fixed("V"),
+        [o("IV", { base: 1 }), o("ii", { base: 0.3 })],
+        [o(["V", "I/3"], { base: 1 }), o("V", { base: 0.5 }), o(["Vsus4", "V"], { base: 0.3 })],
+      ],
+    ),
+    shape(
+      "an instrumental chorus, in major",
+      { base: 0.2, by: { [TF]: 1, [DS]: 0.6 } },
+      "§3 table: TF's interlude is an instrumental chorus; the swing read in a major key " +
+        "(I │ iii │ ♭VII │ IV)",
+      [
+        fixed("I"),
+        [o("iii", { base: 0.5 }), o("vi", { base: 0.4 }), o("VII", { by: { [TF]: 0.4 } })],
+        [
+          o("VII", { by: { [TF]: 1 } }),
+          o("V", { base: 0.3, by: { [DS]: 1 } }),
+          o("IV", { base: 0.3 }),
+        ],
+        [o("IV", { base: 1 }), o("iv", { by: { [DS]: 0.5 } }), o("V", { base: 0.3 })],
+      ],
+    ),
+    shape(
+      "the relative-minor run",
+      { base: 0.1, by: { [DS]: 0.6 } },
+      "§3 table: DS's interlude runs on the relative major's side of its minor key; a major " +
+        "key's other side is its relative minor",
+      [
+        fixed("vi"),
+        [o("IV", { base: 1 }), o("iii", { base: 0.3 })],
+        [o("ii", { base: 1 }), o("IV", { base: 0.3 })],
+        [o("V", { base: 1 }), o(["I", "V"], { base: 0.6 })],
+      ],
+    ),
+  ],
+  turnaround: [
+    shape(
+      "bare IV–V",
+      { base: 0.3, by: { [YC]: 1 } },
+      "§6.2 Breakdown (2:22): bare IV │ V into the loop",
+      [fixed("IV"), fixed("V")],
+    ),
+    shape(
+      "IV │ IV │ V │ V",
+      { base: 0.1, by: { [YC]: 0.5 } },
+      "genres.ts 'IV–IV–V–V': the breakdown's IV │ V at half the speed",
+      [
+        fixed("IV"),
+        fixed("IV"),
+        fixed("V"),
+        [o("V", { base: 1 }), o(["Vsus4", "V"], { base: 0.4 })],
+      ],
+    ),
+    shape(
+      "ii–IV, in major",
+      { base: 0.1, by: { [DS]: 1 } },
+      "§3 table: DS's ii │ ii │ IV │ IV read in a major key",
+      [
+        fixed("ii"),
+        [o("ii", { base: 1 }), o("IV", { base: 0.3 })],
+        fixed("IV"),
+        [o("IV", { base: 0.5 }), o("V", { base: 1 })],
+      ],
+    ),
+    shape(
+      "♭VI–♭VII",
+      { by: { [TF]: 0.8 } },
+      "TF's VI–VII into a verse (MIDI bars 45–46) in a major key: the borrowed ♭VI–♭VII climbs " +
+        "into I",
+      [fixed("VI"), fixed("VII")],
+    ),
+  ],
+  bridge: [
+    shape(
+      "YC's bridge",
+      { base: 0.1, by: { [YC]: 1.2 } },
+      "§6.2 Bridge (2:38): Amaj7 │ B(add9) │ A/C♯ │ Bsus4–B, IVmaj7 │ Vadd9 │ IV⁶ │ V",
+      [
+        [o("IVmaj7", { base: 1 }), o("IV", { base: 0.3 }), o("IVadd9", { base: 0.3 })],
+        [o("Vadd9", { base: 1 }), o("V", { base: 0.4 })],
+        [o("IV/3", { base: 1 }), o("IV", { base: 0.3 }), o("ii", { base: 0.2 })],
+        [o(["Vsus4", "V"], { base: 1 }), o("V", { base: 0.4 })],
+      ],
+    ),
+    shape(
+      "the IV vamp, in major",
+      { by: { [TF]: 0.8 } },
+      "§3 table: TF's i IV │ IV vamp read in a major key",
+      [
+        [o(["I", "IV"], { base: 1 })],
+        fixed("IV"),
+        [o(["I", "IV"], { base: 1 }), o(["I", "V"], { base: 0.3 })],
+        [o("IV", { base: 1 }), o("V", { base: 0.4 })],
+      ],
+    ),
+    shape(
+      "ii–IV–V",
+      { base: 0.2, by: { [DS]: 1 } },
+      "§2 DS long version: the instrumental bridge on ii–IV–V",
+      [
+        fixed("ii"),
+        [o("ii", { base: 1 }), o("IV", { base: 0.4 })],
+        fixed("IV"),
+        [o("V", { base: 1 }), o(["IV", "V"], { base: 0.3 }), o(["Vsus4", "V"], { base: 0.3 })],
+      ],
+    ),
+    shape("subdominant", { base: 0.3 }, "plan §4.2: a bridge visits the subdominant side", [
+      fixed("IV"),
+      [o("vi", { base: 0.6 }), o("I/3", { base: 0.4 })],
+      [o("ii", { base: 1 }), o("IV", { base: 0.3 })],
+      [o("V", { base: 1 }), o(["Vsus4", "V"], { base: 0.3 })],
+    ]),
+  ],
+  approach: [
+    {
+      interval: 5,
+      weight: { base: 0.6, by: { [YC]: 0.3 } },
+      source: "a dominant: V → I, V/ii → ii",
+    },
+    {
+      interval: 10,
+      weight: { base: 0.2, by: { [YC]: 1 } },
+      source: "§2 You Came: down a step, the breakdown's V into the loop's IV",
+    },
+    { interval: 7, weight: { base: 0.4, by: { [TF]: 0.3 } }, source: "plagal: IV → I" },
+    {
+      interval: 2,
+      weight: { base: 0.4, by: { [TF]: 0.6 } },
+      source: "up a step: ♭VII → I (TF's climb), V → vi",
+    },
+    { interval: 4, weight: { base: 0.1, by: { [TF]: 0.3 } }, source: "♭VI → I, IV → vi" },
+    { interval: 1, weight: { base: 0.05 } },
+  ],
+  palette: ["V", "IV", "ii", "VII", "vi", "iii", "I"],
+};
 
 const MAJOR: ModeTraits = {
   schemas: MAJOR_SCHEMAS,
@@ -501,7 +869,47 @@ const MAJOR: ModeTraits = {
     susDelay: { base: 0.2, by: { [YC]: 0.8 } },
     deceptive: { base: 0.2, by: { [YC]: 1 } },
   },
+  sections: MAJOR_SECTIONS,
 };
+
+// ── The lift: TF's outro, the chorus's IV become the tonic of a major key a fourth up ──────────
+
+const LIFT: SectionShape[] = [
+  shape(
+    "vamp on the new I",
+    { base: 0.3, by: { [TF]: 1.2 } },
+    "analysis.md §2 TF 4:48: the outro in G major, a G vamp with an occasional D (genres.ts 'TF " +
+      "outro vamp'); §3 Where they differ: IV becomes I",
+    [
+      fixed("I"),
+      [o("I", { base: 0.7 }), o(["I", "IV"], { base: 0.3 })],
+      fixed("I"),
+      [o(["I", "V"], { base: 1 }), o("V", { base: 0.4 }), o(["I", "IV"], { base: 0.2 })],
+    ],
+  ),
+  shape(
+    "I–IV",
+    { base: 0.5, by: { [DS]: 0.3 } },
+    "genres.ts 'lift I–IV', 'lift I–IV–V': the new I with its IV, the old key's ♭VII",
+    [
+      fixed("I"),
+      [o("IV", { base: 1 }), o(["I", "IV"], { base: 0.6 })],
+      [o("I", { base: 1 }), o("vi", { base: 0.2 })],
+      [o("V", { base: 1 }), o(["IV", "V"], { base: 0.4 }), o("IV", { base: 0.3 })],
+    ],
+  ),
+  shape(
+    "the chorus's swing, landed",
+    { base: 0.2, by: { [TF]: 0.4 } },
+    "§3 Where they differ: the chorus's ♭VII → IV, heard in the new key, is IV → I",
+    [
+      fixed("I"),
+      fixed("IV"),
+      [o("I", { base: 1 }), o("vi", { base: 0.3 })],
+      [o("IV", { base: 0.6 }), o(["IV", "V"], { base: 0.5 })],
+    ],
+  ),
+];
 
 export const SYNTHPOP_HARMONY: HarmonyAnalysis = {
   modes: { minor: MINOR, major: MAJOR },
@@ -518,4 +926,30 @@ export const SYNTHPOP_HARMONY: HarmonyAnalysis = {
   // About 1 song in 10 (some songs have no reference in their key mode to quote).
   quote: { base: 0.12 },
   quoteChorus: 0.8,
+  // legacy-planners/synthpop.ts's tfTurn: TF's two staccato bars into a verse (MIDI bars 45–46).
+  formPlays: [[["VI"], ["VII"]]],
+  lift: LIFT,
+  // A quoted chorus brings its record's other measured sections along about half the time.
+  quoteSections: {
+    chance: 0.5,
+    loops: {
+      [TF]: {
+        // §2 2:32 and 2:38. TF's interlude is its chorus, which the quote already plays.
+        turnaround: [["VI"], ["VI"]],
+        bridge: [["i", "IV"], ["IV"], ["i", "IV"], ["IV"]],
+      },
+      [DS]: {
+        // §2 1:20 and the long version's bridge.
+        interlude: [["III"], ["VII"], ["iv"], ["i", "VII"]],
+        turnaround: [["ii"], ["ii"], ["IV"], ["IV"]],
+        bridge: [["ii"], ["ii"], ["IV"], ["V"]],
+      },
+      [YC]: {
+        // §6.2: the break, the breakdown, the bridge.
+        interlude: [["IVadd9"], ["V"]],
+        turnaround: [["IV"], ["V"]],
+        bridge: [["IVmaj7"], ["Vadd9"], ["IV/3"], ["Vsus4", "V"]],
+      },
+    },
+  },
 };

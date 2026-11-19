@@ -6,7 +6,8 @@
  * analysis, at its weight alone, reaches its own measured loops.
  */
 import type { Blend } from "../genres";
-import type { Bar } from "../progressions";
+import type { Bar, Progression } from "../progressions";
+import type { ReferenceId } from "../references";
 import type { Mode } from "../theory";
 
 /** One option of a trait: a value, how much each reference wants it, and where that comes from. */
@@ -86,6 +87,38 @@ export interface PreChorusTraits {
   source: string;
 }
 
+/** The sections written after the verse and chorus, against them (plan §4.2). */
+export type SectionKind = "interlude" | "turnaround" | "bridge" | "lift";
+
+/** One shape for a secondary section: each bar a weighted choice, filled in order and weighed by
+ * the root motion into it like a schema's bars. A turnaround's last bar is weighed by how it
+ * leads into the verse's first chord too (`approach`). */
+export interface SectionShape {
+  name: string;
+  source: string;
+  weight: Blend;
+  bars: readonly (readonly BarOption[])[];
+}
+
+/** How a chord leads into the next section's first chord: the interval from its root up to the
+ * target's (5: a dominant, 7: plagal or the Dorian lift, 2: the climb's ♭VII → i, …). */
+export interface Approach {
+  interval: number;
+  weight: Blend;
+  source?: string;
+}
+
+/** The interlude, turnaround and bridge of one key mode (plan §4.2). */
+export interface SectionTraits {
+  interlude: readonly SectionShape[];
+  turnaround: readonly SectionShape[];
+  bridge: readonly SectionShape[];
+  /** How a turnaround's last chord leads into the verse's first. Intervals not listed don't. */
+  approach: readonly Approach[];
+  /** The chords a turnaround may end on when its shape has none that leads into the verse. */
+  palette: readonly string[];
+}
+
 /** Everything a genre's analysis says about one key mode. */
 export interface ModeTraits {
   schemas: readonly Schema[];
@@ -99,6 +132,7 @@ export interface ModeTraits {
   anticipate: Blend;
   secondLine: { verse: readonly Option<SecondLine>[]; chorus: readonly Option<SecondLine>[] };
   prechorus: PreChorusTraits;
+  sections: SectionTraits;
 }
 
 /** How well one chord moving to the next suits the references, by the bass's interval. */
@@ -124,4 +158,16 @@ export interface HarmonyAnalysis {
   quote: Blend;
   /** Of quotes, how many take the chorus (the rest the verse). */
   quoteChorus: number;
+  /** Progressions the genre's form plays on its own, whatever the chords (TF's VI–VII turn into a
+   * verse): a section that is one of them would only repeat it. */
+  formPlays: readonly Progression[];
+  /** The lift: an outro in the major key a fourth up, its shapes written in that key. */
+  lift: readonly SectionShape[];
+  /** A song quoting a reference's chorus also plays each of these measured sections with this
+   * chance, when it fits the song (a turnaround that leads into its verse, an interlude or bridge
+   * that isn't its chorus). */
+  quoteSections: {
+    chance: number;
+    loops: Partial<Record<ReferenceId, Partial<Record<Exclude<SectionKind, "lift">, Progression>>>>;
+  };
 }

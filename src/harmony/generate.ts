@@ -15,7 +15,15 @@ import type { Blend } from "../genres";
 import type { Bar, Progression } from "../progressions";
 import type { Rng } from "../rng";
 import { chord, mod12, type Chord, type Mode } from "../theory";
-import type { BarOption, HarmonyAnalysis, ModeTraits, Option, Schema } from "./analysis";
+import type {
+  BarOption,
+  HarmonyAnalysis,
+  ModeTraits,
+  Option,
+  Schema,
+  SectionKind,
+  SectionShape,
+} from "./analysis";
 
 export type At = (b: Blend) => number;
 export type LoopKind = "verse" | "chorus";
@@ -34,6 +42,11 @@ const CANDIDATES = 24;
 const BEST = 8;
 /** How fast a candidate's chance falls with its score below the best. */
 const TEMPERATURE = 0.4;
+/** The same for the secondary sections, which choose among all their candidates rather than the
+ * best 8: their shapes are written from the records bar by bar, so the score mostly enforces
+ * their relations (into the verse, against the chorus) and near-ties keep the shapes' weights
+ * (a cut to the best 8 dropped TF's VI │ VI, 0.1 below the climb, every time). */
+export const SECTION_CHOICE = { temperature: 1, best: CANDIDATES };
 
 /** "i │ VI–VII │ v", as the variety measurement writes progressions. */
 export const progressionText = (p: Progression): string =>
@@ -226,7 +239,7 @@ export function writeLoop(rng: Rng, ctx: HarmonyContext, kind: LoopKind): Progre
 }
 
 /** The degree a chord stands on, as a bare numeral (`IVmaj7` → `IV`, `I/3` → `I`). */
-function degreeOf(numeral: string): string {
+export function degreeOf(numeral: string): string {
   return /^[b♭#♯♮]?(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/u.exec(numeral)?.[0] ?? "I";
 }
 
@@ -384,14 +397,15 @@ export function score(ctx: HarmonyContext, p: Progression, s: ScoreContext): num
 }
 
 /**
- * Draws candidates, scores them, and picks by weighted chance among the best. Duplicates stay in:
+ * Draws candidates, rates them (`score`, `scoreSection`), and picks by weighted chance among the
+ * best. Duplicates stay in:
  * a candidate the blend draws often is a typical one, and keeps that edge among near-ties.
  */
 export function choosePart(
   rng: Rng,
-  ctx: HarmonyContext,
   draw: (rng: Rng) => Progression,
-  s: ScoreContext,
+  rate: (p: Progression) => number,
+  { temperature, best: keep } = { temperature: TEMPERATURE, best: BEST },
 ): Progression {
   const scores = new Map<string, number>();
   const drawn: (readonly [Progression, number])[] = [];
@@ -400,17 +414,187 @@ export function choosePart(
     const text = progressionText(p);
     let sc = scores.get(text);
     if (sc === undefined) {
-      sc = score(ctx, p, s);
+      sc = rate(p);
       scores.set(text, sc);
     }
     drawn.push([p, sc]);
   }
-  const ranked = drawn.sort((a, b) => b[1] - a[1]).slice(0, BEST);
+  const ranked = drawn.sort((a, b) => b[1] - a[1]).slice(0, keep);
   const best = ranked[0]?.[1] ?? 0;
   return (
     choose(
       rng,
-      ranked.map(([p, sc]) => [p, Math.exp((sc - best) / TEMPERATURE)] as const),
+      ranked.map(([p, sc]) => [p, Math.exp((sc - best) / temperature)] as const),
     ) ?? [["i"]]
   );
+}
+
+// ── Secondary sections (plan §4.2) ────────────────────────────────────────────────────────────
+
+/** A section's shapes: the key mode's, or the lift's (always in the major lift key). */
+const shapesOf = (ctx: HarmonyContext, kind: SectionKind): readonly SectionShape[] =>
+  kind === "lift" ? ctx.analysis.lift : traitsOf(ctx).sections[kind];
+
+/** How well one chord leads into the next section's first (0: it doesn't). */
+export function approachWeight(ctx: HarmonyContext, from: string, to: string): number {
+  if (from === to) return 0;
+  const d = mod12(info(to).root - info(from).root);
+  const a = traitsOf(ctx).sections.approach.find((x) => x.interval === d);
+  return a ? ctx.at(a.weight) : 0;
+}
+
+/**
+ * One candidate interlude, turnaround, bridge or lift: a shape, its bars filled in order and
+ * weighed by the root motion into each. A turnaround's last bar is weighed by how it leads into
+ * `target` (the verse's first chord) too; when the shape has nothing that does, it ends on a
+ * chord from the mode's palette that does.
+ */
+export function writeSection(
+  rng: Rng,
+  ctx: HarmonyContext,
+  kind: SectionKind,
+  target?: string,
+): Progression {
+  const shapes = shapesOf(ctx, kind);
+  const shape =
+    choose(
+      rng,
+      shapes.map((x) => [x, ctx.at(x.weight)] as const),
+    ) ?? shapes[0];
+  const home = kind === "lift" || ctx.mode === "major" ? "I" : "i";
+  const bars: Bar[] = [];
+  let prev: string | undefined;
+  const slots = shape?.bars ?? [];
+  slots.forEach((slot, i) => {
+    const leads = target !== undefined && i === slots.length - 1;
+    const options = slot.map((o) => [o.value, ctx.at(o.weight)] as const);
+    const weigh = (bar: Bar, w: number) => {
+      const first = bar[0];
+      const last = lastOf(bar);
+      if (first === undefined || last === undefined) return 0;
+      const into = leads && target !== undefined ? approachWeight(ctx, last, target) : 1;
+      // A hold weighs as a step, as in scoreSection.
+      const held = prev === first ? motionWeight(ctx, "i", "ii") : motionWeight(ctx, prev, first);
+      return w * held * into;
+    };
+    let bar = choose(
+      rng,
+      options.map(([b, w]) => [b, weigh(b, w)] as const),
+    );
+    if (!bar && leads)
+      bar = choose(
+        rng,
+        traitsOf(ctx).sections.palette.map((n) => [[n] as Bar, weigh([n], 1)] as const),
+      );
+    bar ??= choose(rng, options) ?? options[0]?.[0] ?? [home];
+    bars.push(bar);
+    prev = lastOf(bar);
+  });
+  return bars.length ? bars : [[home]];
+}
+
+/** What a secondary section is scored against. */
+export interface SectionScore {
+  kind: SectionKind;
+  verse: Progression;
+  chorus: Progression;
+  /** The chord after the section: the verse's first after a turnaround, the chorus's after a
+   * bridge. */
+  exit?: string;
+}
+
+/** The degree tokens of a progression's chords (applied dominants left out: `V/ii` isn't V). */
+const degreesOf = (chords: Iterable<string>) =>
+  new Set([...chords].filter((n) => !isApplied(n)).map(degreeOf));
+const upper = (degree: string) => /[IV]/.test(degree);
+
+/**
+ * How well a section echoes the song's palette: a colour chord the verse or chorus has (TF's
+ * Dorian IV, DS's iv, You Came's IVmaj7) recurs, and the same degree in the other quality (a iv
+ * where the chorus has IV) clashes. Next to a ii, IV is the Dorian pair (DS's turnaround), a
+ * colour of its own.
+ */
+export function echoScore(ctx: HarmonyContext, p: Progression, song: Progression[]): number {
+  const t = traitsOf(ctx);
+  const songChords = new Set(song.flatMap((x) => x.flat()));
+  const songDegrees = degreesOf(songChords);
+  const mine = new Set(p.flat());
+  const degrees = degreesOf(mine);
+  const dorian = degrees.has("ii");
+  let total = 0;
+  for (const d of degrees) {
+    if (songDegrees.has(d)) {
+      if (t.colourChords.includes(d)) total += 0.25;
+      continue;
+    }
+    const root = info(d).root;
+    const clash = [...songDegrees].some((x) => info(x).root === root && upper(x) !== upper(d));
+    if (clash && !(dorian && d === "IV")) total -= 1;
+  }
+  // A coloured spelling the song has (IVmaj7, Vadd9) recurs.
+  for (const n of mine) if (n !== degreeOf(n) && !isApplied(n) && songChords.has(n)) total += 0.2;
+  return total;
+}
+
+/** How good a secondary-section candidate is (higher is better). */
+export function scoreSection(ctx: HarmonyContext, p: Progression, s: SectionScore): number {
+  const seq = p.flat();
+  const first = seq[0] ?? "i";
+  const last = seq[seq.length - 1] ?? "i";
+  // A turnaround plays once into what follows; the others loop over their section.
+  const loops = s.kind !== "turnaround";
+  const pairs: [string, string][] = [];
+  for (let i = 0; i + 1 < seq.length; i++) pairs.push([seq[i] ?? "i", seq[i + 1] ?? "i"]);
+  const wrap: [string, string] | null = loops ? [last, first] : null;
+  // A turnaround's way into the verse is weighed by the approach trait instead (below).
+  const exit: [string, string] | null = s.exit && loops ? [last, s.exit] : null;
+  if (wrap) pairs.push(wrap);
+  if (exit) pairs.push(exit);
+
+  // Every measured section holds a chord across a bar line (TF's VI │ VI, DS's ii │ ii and IV │ IV,
+  // TF's IV │ IV and I │ I), so a hold counts as a step here.
+  const value = ([a, b]: [string, string]) => {
+    const m = motionClass(a, b);
+    return motionScore(ctx, m === "hold" ? "step" : m);
+  };
+  let total = pairs.length ? pairs.reduce((n, pr) => n + value(pr), 0) / pairs.length : 0;
+  const lead = exit ?? wrap;
+  if (lead) total += 0.5 * value(lead);
+
+  // A turnaround leads into the verse's first chord, the better the more the references do it.
+  if (s.kind === "turnaround" && s.exit) {
+    const w = approachWeight(ctx, last, s.exit);
+    const best = Math.max(1e-3, ...traitsOf(ctx).sections.approach.map((a) => ctx.at(a.weight)));
+    total += w > 0 ? 0.5 * Math.log(w / best) : -3;
+  }
+  for (const [a, b] of pairs) {
+    if (!isApplied(a)) continue;
+    const d = mod12(info(b).root - info(a).root);
+    if (d !== 5 && d !== 1) total -= 2;
+  }
+  // An interlude or bridge moves; a lift may vamp (TF's outro), a turnaround may sit (TF's VI).
+  if (s.kind === "interlude" || s.kind === "bridge") {
+    for (const h of holds(p)) if (h > 4) total -= 1.5;
+    if (new Set(seq).size < 2) total -= 2;
+  }
+  // No bank penalty: a section's measured shape is its character (TF's I │ I │ I │ I–V, You
+  // Came's IV │ V), and its slots already vary it.
+  const text = progressionText(p);
+  // Not what the form already plays elsewhere (TF's VI–VII turn into a verse).
+  if (ctx.analysis.formPlays.some((x) => progressionText(x) === text)) total -= 1;
+  if (s.kind === "interlude" || s.kind === "bridge") {
+    // Not the chorus or the verse again (TF's interlude is "an instrumental chorus", not this
+    // chorus).
+    // Sharing most of a line's bars is an echo, not a contrast (i │ VII │ VII │ V against a
+    // chorus on i │ VII │ VII │ IV).
+    const shared = (other: Progression) =>
+      p.slice(0, 4).filter((bar, i) => sameBar(bar, other[i])).length;
+    if (text === progressionText(s.chorus)) total -= 4;
+    else if (shared(s.chorus) >= 3) total -= 2;
+    else if (shared(s.chorus) === 2) total -= 0.5;
+    if (text === progressionText(s.verse)) total -= 3;
+    else if (shared(s.verse) >= 3) total -= 1;
+  }
+  if (s.kind !== "lift") total += echoScore(ctx, p, [s.verse, s.chorus]);
+  return total;
 }
