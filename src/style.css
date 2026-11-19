@@ -2513,7 +2513,8 @@ html[data-view="advanced"] #simple-view {
   justify-content: center;
   align-items: center;
   gap: clamp(14px, 3vh, 32px);
-  padding: clamp(16px, 4vw, 56px);
+  /* The same edge all round, a little more at the sides of a wide screen. */
+  padding: clamp(16px, 4vh, 48px) clamp(16px, 4vw, 72px);
   border: 0;
   border-radius: 0;
   background:
@@ -2521,8 +2522,9 @@ html[data-view="advanced"] #simple-view {
     radial-gradient(900px 600px at -10% 110%, #0f2a40 0%, transparent 60%), var(--bg);
 }
 
+/* The screen's width, but for a very wide one (the controls stay centred). */
 .full-screen .player > * {
-  width: min(100%, 1100px);
+  width: min(100%, 1680px);
 }
 
 .full-screen .player h2 {
@@ -2625,14 +2627,16 @@ html[data-view="advanced"] #simple-view {
   gap: 20px;
 }
 
-.insp-hero-cover {
+.insp-sleeve-button {
+  display: block;
   padding: 0;
   background: none;
   border: 0;
-  cursor: pointer;
+  border-radius: 8px;
+  cursor: zoom-in;
 }
 
-.insp-hero-cover:focus-visible,
+.insp-sleeve-button:focus-visible,
 .insp-tile:focus-visible {
   outline: 2px solid var(--accent-2);
   outline-offset: 4px;
@@ -2693,9 +2697,17 @@ html[data-view="advanced"] #simple-view {
   opacity: 1;
 }
 
-.insp-hero-cover:hover .insp-cover,
-.insp-tile:hover .insp-cover {
-  transform: translateY(-3px) scale(1.02);
+/* A sleeve grows under the pointer: it opens big. */
+.insp-sleeve-button:hover .insp-cover,
+.insp-sleeve-button:focus-visible .insp-cover {
+  transform: scale(1.06);
+  box-shadow:
+    0 18px 40px #000000a0,
+    0 0 0 1px #ffffff24;
+}
+
+.insp-sleeve-button:active .insp-cover {
+  transform: scale(1.03);
 }
 
 .insp-hero-text {
@@ -2766,8 +2778,7 @@ html[data-view="advanced"] #simple-view {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  /* The sleeve is scaled by influence; its words get a readable width all the same. */
-  width: max(var(--size), 112px);
+  width: 100%;
   padding: 0;
   font: inherit;
   text-align: left;
@@ -2777,8 +2788,13 @@ html[data-view="advanced"] #simple-view {
   cursor: pointer;
 }
 
-.insp-tile .insp-cover {
-  margin-bottom: 6px;
+.insp-tile-cover {
+  align-self: flex-start;
+  margin-bottom: 2px;
+}
+
+.insp-tile:hover .insp-tile-title {
+  text-decoration: underline;
 }
 
 .insp-tile-title,
@@ -2878,10 +2894,12 @@ html[data-view="advanced"] #simple-view {
   fill: #ff4e45;
 }
 
+/* The sleeve is scaled by influence; its words get a readable width all the same. */
 .insp-others li {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: max(var(--size), 112px);
 }
 
 .insp-yt-mini {
@@ -3046,7 +3064,25 @@ html[data-view="simple"] .site-footer {
 }
 
 .full-screen .player-cover {
-  width: clamp(120px, 32vh, 360px);
+  width: clamp(120px, 36vh, 480px);
+}
+
+/* A phone held upright: the buttons on a row of their own, the sleeve beside the title sized
+   so everything fits the screen's height. */
+@media (max-width: 560px) {
+  .full-screen .player-head {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .full-screen .player-actions {
+    justify-content: flex-end;
+  }
+
+  .full-screen .player-cover {
+    width: min(34vw, 18vh);
+  }
 }
 
 @media (max-width: 560px) {
@@ -3059,37 +3095,16 @@ html[data-view="simple"] .site-footer {
   }
 }
 
-.mini-info {
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: 12px;
-  align-items: center;
-}
-
-.mini-info > * {
-  grid-column: 2;
-}
-
+/* The sleeve opens big; the title beside it goes back to the player. */
 .mini-cover {
-  grid-column: 1;
-  grid-row: 1 / span 2;
   width: 44px;
+  margin-right: 2px;
 }
 
-.song-play.with-cover {
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: 12px;
-  align-items: center;
-  padding-left: 6px;
-}
-
-.song-play.with-cover > * {
-  grid-column: 2;
-}
-
-.song-play > .cover {
-  grid-column: 1;
-  grid-row: 1 / span 2;
+/* A row's sleeve opens big; the rest of the row plays the song. */
+.row-cover {
   width: 40px;
+  margin: 0 4px 0 6px;
   box-shadow: 0 0 0 1px #ffffff12;
 }
 
@@ -3212,7 +3227,11 @@ html[data-view="simple"] .site-footer {
 
 /* A small sleeve grows a little more, so the change shows. */
 .upnext-cover.cover-zoom:hover,
-.upnext-cover.cover-zoom:focus-visible {
+.upnext-cover.cover-zoom:focus-visible,
+.mini-cover.cover-zoom:hover,
+.mini-cover.cover-zoom:focus-visible,
+.row-cover.cover-zoom:hover,
+.row-cover.cover-zoom:focus-visible {
   transform: scale(1.1);
 }
 

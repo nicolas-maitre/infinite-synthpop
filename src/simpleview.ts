@@ -6,8 +6,8 @@
  * controls.
  */
 import type { LengthRange, Song } from "./composer";
-import { coverElement, showCover, songCover, type CoverSource } from "./coverart";
-import { openCover } from "./coverview";
+import { showCover, songCover, type CoverSource } from "./coverart";
+import { coverButton, openCover } from "./coverview";
 import { GENRES } from "./genres";
 import { coverUrl, RECORDS } from "./influence";
 import { barSeconds, songSeconds } from "./mediasession";
@@ -340,14 +340,10 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   // ── Controls ──
   // ── The sleeves open almost full screen ──
   const showBig = (shown: Song | null) => {
-    if (!shown) return;
-    const record = shown.reference ? RECORDS[shown.reference] : undefined;
-    openCover(songCover(shown), {
-      title: shown.title,
-      meta: record ? `${record.artist} · ${record.year}` : songMeta(shown),
-    });
+    if (shown) openCover(songCover(shown), { title: shown.title, meta: songMeta(shown) });
   };
   ui.cover.addEventListener("click", () => showBig(song));
+  ui.miniCover.addEventListener("click", () => showBig(song));
   ui.upNextCover.addEventListener("click", () => showBig(upNext));
   ui.save.addEventListener("click", () => actions.toggleSave());
   ui.share.addEventListener("click", () => actions.share(ui.share));
@@ -468,13 +464,20 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
         meta.className = "song-meta";
         meta.textContent = row.meta;
         button.append(name, meta);
-        // Thumbnails draw a few per frame: a long list doesn't hold up the page.
-        if (row.cover) {
-          button.prepend(coverElement(row.cover, THUMB_PX, true));
-          button.classList.add("with-cover");
-        }
         button.addEventListener("click", () => play(row.id));
         li.append(button, ...extra(row));
+        // Its sleeve opens big; the rest of the row plays it. Thumbnails draw a few per frame:
+        // a long list doesn't hold up the page.
+        if (row.cover)
+          li.prepend(
+            coverButton(
+              row.cover,
+              THUMB_PX,
+              { title: row.title, meta: row.meta },
+              "row-cover",
+              true,
+            ),
+          );
         return li;
       }),
     );

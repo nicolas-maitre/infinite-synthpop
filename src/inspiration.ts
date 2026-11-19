@@ -1,10 +1,11 @@
 /**
  * The player's "Inspired by" panel: the records the playing song took from, with their sleeves,
  * the main one big and the others scaled by their share, and per-part credits. The page takes
- * its tint from the main sleeve's colour, as music players do. A click plays that original.
+ * its tint from the main sleeve's colour, as music players do. A sleeve opens big (coverview.ts); the words under it play that original.
  * Sleeves load from the Cover Art Archive (influence.ts); one that doesn't load leaves a tile.
  */
 import type { Song } from "./composer";
+import { openCover } from "./coverview";
 import { coverUrl, influences, PART_CREDITS, partCredits, RECORDS } from "./influence";
 import { REFERENCES, type ReferenceId } from "./references";
 
@@ -97,6 +98,18 @@ export function sleeve(
 
 const percent = (share: number) => `${Math.round(share * 100)}%`;
 
+/** A button around a record's sleeve, opening it almost full screen. */
+function sleeveButton(id: ReferenceId): HTMLButtonElement {
+  const b = el("button", "insp-sleeve-button");
+  b.type = "button";
+  b.title = `Show the cover of “${REFERENCES[id].title}”`;
+  b.setAttribute("aria-label", b.title);
+  b.addEventListener("click", () =>
+    openCover({ reference: id }, { title: REFERENCES[id].title, meta: "" }),
+  );
+  return b;
+}
+
 /** A YouTube search for the record, in a new tab: the record itself, wherever it is up. */
 export function youtubeUrl(id: ReferenceId): string {
   const query = `${RECORDS[id].artist} ${REFERENCES[id].title}`;
@@ -154,14 +167,11 @@ export function mountInspiration(
 
       const info = (id: ReferenceId) => `${RECORDS[id].artist} · ${RECORDS[id].year}`;
 
-      // The main record: its sleeve plays it; its title, credits, share and links beside it.
+      // The main record: its sleeve opens big; its title, credits, share and links beside it.
       const hero = el("div", "insp-hero");
-      const cover = el("button", "insp-hero-cover");
-      cover.type = "button";
-      cover.title = `Play the original: ${REFERENCES[main.id].title}`;
-      cover.setAttribute("aria-label", cover.title);
+      const cover = sleeveButton(main.id);
+      cover.classList.add("insp-hero-cover");
       cover.append(sleeve(main.id, true, (tint) => main.id === list[0]?.id && setTint(tint)));
-      cover.addEventListener("click", () => play(main.id));
       const text = el("div", "insp-hero-text");
       const bar = el("span", "insp-bar");
       bar.append(el("span", "insp-bar-fill"));
@@ -190,23 +200,26 @@ export function mountInspiration(
         const others = el("ul", "insp-others");
         for (const x of rest) {
           const li = document.createElement("li");
-          const tile = el("button", "insp-tile");
-          tile.type = "button";
-          tile.title = `Play the original: ${REFERENCES[x.id].title}`;
           // Scaled by influence: the main record's share is the full size.
-          tile.style.setProperty(
+          li.style.setProperty(
             "--size",
             `${Math.round(56 + 64 * Math.sqrt(x.share / main.share))}px`,
           );
+          // The sleeve opens big; the words under it play the original.
+          const big = sleeveButton(x.id);
+          big.classList.add("insp-tile-cover");
+          big.append(sleeve(x.id, false));
+          const tile = el("button", "insp-tile");
+          tile.type = "button";
+          tile.title = `Play the original: ${REFERENCES[x.id].title}`;
           tile.append(
-            sleeve(x.id, false),
             el("span", "insp-tile-title", REFERENCES[x.id].title),
             el("span", "insp-tile-meta", RECORDS[x.id].artist),
             // Its own line: a small sleeve's width would cut it off after the artist.
             el("span", "insp-tile-share", percent(x.share)),
           );
           tile.addEventListener("click", () => play(x.id));
-          li.append(tile, youtubeLink(x.id, "insp-yt-mini"));
+          li.append(big, tile, youtubeLink(x.id, "insp-yt-mini"));
           others.append(li);
         }
         parts.push(others);
