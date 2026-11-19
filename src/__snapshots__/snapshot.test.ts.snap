@@ -12017,6 +12017,272 @@ exports[`output snapshot > the-night 1`] = `
 }
 `;
 
+exports[`output snapshot > theory blend seed 401 different-story 0.5 + innocent-love 0.5 1`] = `
+{
+  "bars": "e0a94721b35ef559240547",
+  "bassStyle": "innocent",
+  "bpm": 116,
+  "key": {
+    "mode": "minor",
+    "tonic": 4,
+  },
+  "kit": "linndrum",
+  "melodies": "22b7e5215497222d11826",
+  "motifs": "8f90114d9e199e1c2086",
+  "progressions": {
+    "bridge": [
+      [
+        "ii",
+      ],
+      [
+        "ii",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII9sus4",
+      ],
+      [
+        "III",
+      ],
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "interlude": [
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "i",
+        "VII",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "prechorus": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "Vsus4",
+      ],
+      [
+        "V7",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "IV7",
+      ],
+    ],
+    "verse": [
+      [
+        "v",
+      ],
+      [
+        "ii/v",
+      ],
+      [
+        "v",
+      ],
+      [
+        "I/v",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|8|4minor|fill=false|i i v v|drums=hats16,pad,arp",
+    "intro|Intro · climb|4|4minor|fill=false|VI VII|drums=hats16,pad,arp",
+    "intro|Link|2|4minor|fill=false|i VII|drums=off,bass",
+    "verse|Verse 1|16|4minor|fill=true|v ii/v v I/v|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|4minor|fill=true|i III VII9sus4 III i III VII V|drums=big,bass,pad,lead=chorus",
+    "break|Stop|2|4minor|fill=true|VII|drums=half,pad",
+    "verse|Verse 2|8|4minor|fill=true|v ii/v v I/v|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|4minor|fill=true|i III VII9sus4 III i III VII V|drums=big,bass,pad,arp,stabs,lead=chorus",
+    "interlude|Interlude|8|4minor|fill=false|III VII VI i-VII|drums=full,bass,pad,riff,arp",
+    "turnaround|Turnaround|2|4minor|fill=false|VI IV7|drums=full,bass,pad,riff,arp",
+    "break|Break|2|4minor|fill=true|i|drums=kick,pad,riff",
+    "chorus|Chorus · double|8|4minor|fill=false|i III VII9sus4 III i III VII V|drums=big,bass,pad,arp,stabs,lead=chorus,leadDouble",
+    "outro|Outro · chorus to fade|16|4minor|fill=false|i III VII9sus4 III i III VII V|drums=big,bass,pad,riff,arp,lead=chorus",
+  ],
+  "style": 1,
+  "title": "Weather (City of Gold and Chrome)",
+  "totalBars": 92,
+}
+`;
+
+exports[`output snapshot > theory blend seed 403 true-faith 0.5 + the-night 0.5 1`] = `
+{
+  "bars": "897e37426d173a42460716",
+  "bassStyle": "italo",
+  "bpm": 114.5,
+  "key": {
+    "mode": "minor",
+    "tonic": 4,
+  },
+  "kit": "sp12",
+  "melodies": "cc4179ba98e3123719023",
+  "motifs": "e5d531423342a52a1785",
+  "progressions": {
+    "bridge": [
+      [
+        "i",
+        "IV",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "i",
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "VII/i",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "i",
+      ],
+      [
+        "VII/i",
+      ],
+      [
+        "VI/3",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "VII/i",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "VI",
+        "VII",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "VIIsus4",
+        "VII",
+      ],
+      [
+        "v7",
+      ],
+      [
+        "VI",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro · pedal|4|4minor|fill=false|i VII/i|drums=full,bass,pad",
+    "intro|Intro · riff|4|4minor|fill=true|i VII/i|drums=full,bass,riff",
+    "intro|Intro · bass drop|2|4minor|fill=true|i VII/i|drums=full,riff",
+    "interlude|Lead synth|12|4minor|fill=true|i VIIsus4-VII v7 VI|drums=full,bass,pad,leadSynth",
+    "verse|Verse 1|16|4minor|fill=true|i VIIsus4-VII v7 VI|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|4minor|fill=true|i VII/i VII iv i VII/i VI/3 VII|drums=big,bass,pad,lead=chorus,counter",
+    "verse|Verse 2|16|4minor|fill=true|i VIIsus4-VII v7 VI|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|4minor|fill=true|i VII/i VII iv i VII/i VI/3 VII|drums=big,bass,pad,lead=chorus,counter",
+    "turnaround|Turnaround|2|4minor|fill=true|VI VI-VII|drums=full,bass,pad",
+    "bridge|Bridge · bass solo|8|4minor|fill=true|i-IV IV i-VII IV|drums=full,bass,hook,pad",
+    "interlude|Instrumental chorus|8|4minor|fill=false|i VII/i VII iv i VII/i VI/3 VII|drums=full,bass,hook,pad,riff,seq,guitar",
+    "turnaround|Turn · VI–VII|2|4minor|fill=true|VI VII|drums=full,bass,pad,seq,bassShort,guitar",
+    "verse|Verse 3|16|4minor|fill=true|i VIIsus4-VII v7 VI|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|4minor|fill=true|i VII/i VII iv i VII/i VI/3 VII|drums=big,bass,pad,lead=chorus,counter",
+    "chorus|Chorus · last|16|4minor|fill=false|i VII/i VII iv i VII/i VI/3 VII|drums=big,bass,pad,lead=chorus,leadDouble,counter",
+    "outro|Outro · lift to IV|16|9major|fill=false|I IV I V|drums=full,bass,pad,riff,arp",
+  ],
+  "style": 0,
+  "title": "Distance (Sea of Ice and Chrome)",
+  "totalBars": 170,
+}
+`;
+
 exports[`output snapshot > theory euro seed 300 weights 0.34/0.33/0.33 1`] = `
 {
   "bars": "bd8b195d4671a2b7213834",

@@ -8,10 +8,10 @@ work (their mode colour, bass motion, cadences, contrast between sections), inst
 measured loop and lightly varying it. Today's generator stays available, unchanged, as
 **classic progressions**.
 
-**Status:** phases 1 (plumbing), 2 (synthpop's verse, chorus and pre-chorus) and 3 (synthpop's
-interlude, turnaround, bridge and lift) done. Theory mode writes every synthpop progression;
-Italo, Euro and cross-genre blends still play classic's chords. Forms (section order and lengths)
-get the same treatment in a later phase (§8).
+**Status:** phases 1 (plumbing), 2 (synthpop's verse, chorus and pre-chorus), 3 (synthpop's
+interlude, turnaround, bridge and lift) and 4 (Italo, Euro-disco and cross-genre blends) done.
+Theory mode writes every progression of every genre. Forms (section order and lengths) get the
+same treatment in a later phase (§8).
 
 ## 1. The problem, measured
 
@@ -350,8 +350,135 @@ the planners, arranger, melodies and creator need no change.
      - **Two vamps.** TF's i–IV vamp and an i–iv vamp are separate shapes, so a candidate keeps
        one quality and the song's palette picks between them. Mixing IV and iv bar by bar
        scattered the vamp's draws.
-4. **Italo and Euro analyses:** pedals and slash basses, ♭II, the parallel-major chorus, sus pairs,
-   2-bar loops, 10- and 14-bar choruses. Then cross-genre blends through the merged planner.
+4. ✅ **Italo and Euro analyses:** pedals and slash basses, ♭II, the parallel-major chorus, sus
+   pairs, 2-bar loops, 10- and 14-bar choruses. Then cross-genre blends through the merged planner.
+   - **Built:**
+     - **Italo** (`src/harmony/italo.ts`, a source line per trait into docs/italo/ and
+       branigan-self-control.md): The Night's verse over the tonic pedal (i │ ♭VII/i │ v7 │ IV) and
+       its relative-major chorus with ♭II as its hook (III(add9) │ VI⁶ │ ♭II │ VII7sus4–7); Get
+       Closer's two-layer loop (pads i │ ♭VII │ IV │ ♭VI over a bass i │ i │ IV │ ♭VII) and its
+       chorus into the harmonic-minor V through IV/V; Faces' royal road, two chords a bar with
+       the tonic held back (VI△7–♭VIIsus4 │ v7–i7, also from iv7), and its parallel-major chorus
+       (I │ v7–IV△7 three times, then I–vi7 │ ♭VII–V7sus4); Self Control's one 8-bar Aeolian
+       loop under verse and chorus; i–v vamps and 2-bar loops. A major key (blends only) reads
+       Faces' verse as IV–V–iii–vi and The Night's chorus as I–IV⁶–♭VII–V7.
+     - **Euro-disco** (`src/harmony/euro.ts`, into sandra-*.md §4): verses over a pedal
+       (Innocent Love's v │ ii7/v │ v │ I/v, Heaven Can Wait's Dorian IV⁷ vamp, Crazy Juliet's
+       Mixolydian I I I I │ ii │ ♭VII │ I I, and read from its v in minor); pre-choruses whose
+       upper chords fall by fifths over the IV pedal (HCW), that turn ♭VI │ V (IL), or build to
+       IV⁷sus4 │ IV⁷ (CJ); long choruses from a repeated cell and a tag (IL's falling fifths 3½
+       times round, 14 bars; HCW's i i ♭VII ♭VII twice and its cadence, 14; CJ's (♭III–IV │ v)
+       three times and its tag, 10).
+     - **Generator** (`generate.ts`), every new device keyed on a trait synthpop doesn't set, so
+       its four theory snapshots don't move:
+       - **Bass treatments.** A schema's `pedal` puts every chord over one bass (`ii7/v`,
+         `I/v`). The `bass` trait holds the tonic under a plain ♭VII or ♭VI after a tonic bar
+         (`VII/i`, `VI/3`) and puts the step below the tonic under a last ♭VI or IV (`VI/VII`).
+         `overBass` spells them (`/3` where the bass is the chord's own 3rd) and refuses any chord
+         with a tone a semitone from its bass, and any dominant (a slash after V names a target).
+       - **Loop lengths.** A schema that isn't 4 bars is a whole loop (2-bar vamps, Self
+         Control's 8). A `cell` schema repeats its bars and adds a tag, whose slots may copy a
+         cell bar (IL's 3½ rounds).
+       - **Parallel-major chords** need no machinery: theory.ts already reads I, IV, V and
+         lowercase vi in a minor key as the parallel major's. What they needed was scoring:
+         `colourPerLine` (Italo and Euro allow 3 coloured bars a line, synthpop 1), and
+         `colourChords` lists only what is borrowed for that genre (not Faces' I, not CJ's ♭III and
+         v).
+       - **Scoring per genre.** `maxHold` lets Euro verses sit 4 bars on one chord;
+         `rhythmContrast` gives a verse a bonus for changing chords more slowly than its chorus.
+       - **Written-out pre-chorus endings** (`endings`), each with the chorus openings it
+         `leads` into: HCW's IV │ IV only before a chorus on i, CJ's IV⁷sus4 │ IV⁷ before ♭III.
+     - **Relations.** Self Control's "chorus is the verse loop" is the form's existing
+       `verseOnLoop` draw (Italo's form has it by SC); theory keeps it only for a chorus that
+       opens on the tonic (`sameLoopOnTonic`), so a relative- or parallel-major chorus never
+       becomes the verse too. The relative- and parallel-major choruses are chorus schemas set
+       against minor-tonic verse schemas.
+     - **Blends** (`merge.ts`): see "Blends: shares, not the body genre" below.
+     - **Planners unchanged.** Italo's planner plays the verse loop in its breaks and pre-chorus
+       and every verse and chorus in 16- or 8-bar blocks, so Italo loops are 2, 4 or 8 bars. The
+       Euro planner lays a chorus out for its progression's length (8–16) and a pre-chorus for its
+       own (2–8, the last bar a stop), so theory writes choruses of 8, 10, 12 or 14 bars and
+       pre-choruses of 4–8.
+     - **Spellings.** Every numeral parses, and a test checks every slash chord for a clash. Code
+       keyed on exact numerals still behaves: scaleForChord's `V`/`V7` and `IV`/`ii` rules don't
+       see the new spellings (`IV7`, `Vsus4`, `IV/V`), whose borrowed tones its general rule
+       covers; You Came's bass hop and walk (`ii`, `v` whole bars) only play with You Came's bass
+       style; TF's guitar sus voicings (`III`, `IV`) only with TF's guitar; no bar splits into a
+       bare `I` (tested), which the bass would take as a push into a pre-chorus.
+   - **Variety,** `pnpm variety 400 italo euro` (2026-11-19), auto style. Classic's numbers are
+     what theory mode measured before this phase too.
+
+     |                                                 | Italo classic  | Italo theory           | Euro classic  | Euro theory            |
+     | ----------------------------------------------- | -------------- | ---------------------- | ------------- | ---------------------- |
+     | Distinct verse progressions                     | 25             | 232 (9.3×)             | 6             | 145 (24×)              |
+     | Verses exactly a bank entry                     | 81%            | 3% (0% without quotes) | 100%          | 6% (3% without quotes) |
+     | Distinct chorus progressions                    | 10             | 242 (24×)              | 28            | 214 (7.6×)             |
+     | Choruses exactly a bank entry                   | 96%            | 4% (0% without quotes) | 78%           | 6% (0% without quotes) |
+     | Distinct verse + chorus pairs                   | 91             | 385                    | 67            | 377                    |
+     | Distinct interlude / turnaround / bridge / lift | 11 / 1 / 1 / 1 | 34 / 29 / 58 / 17      | 5 / 4 / 3 / 1 | 14 / 30 / 78 / 7       |
+     | Distinct progressions within a song             | 3.13           | 3.29                   | 6.32          | 6.33                   |
+     | Songs quoting a reference's loop                | —              | 9%                     | —             | 9%                     |
+
+     Two blends, 400 songs each: True Faith + The Night 51 → 269 verses and 11 → 223 choruses;
+     The Different Story + Innocent Love 11 → 121 verses and 31 → 182 choruses. In the second,
+     classic cuts 32% of choruses mid-loop (Innocent Love's 14 bars in an 8-bar synthpop chorus);
+     theory none. Within a song the forms still cap the count (§8): Italo's breaks and
+     pre-chorus replay the verse loop, and Self Control songs play one loop.
+
+   - **By ear (2026-11-19):** same-seed classic/theory A/B clips, each a verse into its chorus.
+     - **Italo**, five clips: seed 202 leaning to The Night (0.7/0.1/0.1/0.1), seed 202 to Get
+       Closer, seed 239 to Faces, seed 201 to Self Control, seed 202 in the middle. The user found
+       The Night's and Get Closer's theory versions "different, more interesting" (not the
+       records' chords, as expected), and Faces', Self Control's and the middle's better than
+       classic. A first Faces clip (seed 214) differed from classic only in colour notes the stab
+       voicing hides (iv7 against VI△7, IV against IV△7), so it sounded identical; seed 239
+       replaced it.
+     - **Euro**, four clips: seed 303 leaning to Innocent Love (0.8/0.1/0.1), 314 to Heaven Can
+       Wait, 303 to Crazy Juliet, 300 in the middle. First round: IL "classic better", the
+       others "same". The user named IL's pre-chorus as the problem: it was Heaven Can Wait's
+       IV-pedal shape, which won because chords over one bass all score as steps. After that fix
+       Crazy Juliet's pre-chorus ended on HCW's IV │ IV and its chorus "landed unexpectedly"; the
+       endings now have to lead into the chorus. Final round: IL and HCW as good as classic, CJ
+       and the middle better.
+     - **Blends**, two clips: True Faith + The Night (seed 403) and The Different Story +
+       Innocent Love (seed 401). Both rated better than classic.
+
+     Those eleven seeds (the Faces replacement, the final Euro versions, both blends) are now
+     theory snapshot cases.
+
+   - **Built differently from §4–§6:**
+     - **Blends: shares, not the body genre.** The merged planner draws one body genre for the
+       verses and choruses, but the chords follow the genres' shares, as classic's
+       `pickFromBanks` and `substituteFrom` do:
+       - the body is drawn from the form's stream, after the chords, and the length-fitting
+         second plan (`form:short`, `form:long`) draws its own, so chords keyed on it could
+         disagree with the form that plays them;
+       - by share, a 30% Euro blend sounds 30% Euro in every song, rather than all Euro in 30% of
+         songs and none in the rest;
+       - the body still dresses the sections (its pre-chorus, its stops), and the chord traits
+         don't depend on how it lays them out, except for one thing: lengths. A synthpop body
+         plays an 8-bar chorus and an Italo one 16 or 8, so a blend's loops are 2, 4 or 8 bars
+         (`HarmonyContext.fits`). Euro's 10- and 14-bar cells drop out there, and its 4- and 8-bar
+         schemas (the falling-fifths loop, Heaven Can Wait in 8, Crazy Juliet's cell twice and
+         its tag) carry it.
+       - `merge.ts` reads each genre's traits at its own weights, then scales each genre's list
+         of options (schemas per kind, cadences, shapes, second lines, endings) so the genre's
+         options together weigh its share; single numbers (chances, motion weights) are
+         share-weighted means. What counts as a colour chord is the leading genre's.
+     - **Self Control's relation was already there** as the form's `verseOnLoop` draw; theory adds
+       only the tonic condition, not a draw of its own.
+     - **Pre-choruses.** A Euro pre-chorus is entered from the verse's last chord (`fromVerse`:
+       the Euro planner doesn't push a tonic into the verse's last bar as synthpop's does), and is
+       chosen among the best 16 at temperature 0.7 (`byShape`, `SHAPE_CHOICE`) so each record's
+       shape keeps its weight. A 5-bar pre-chorus's last bar is its stop, not a one-chord line.
+     - **Holds.** Heaven Can Wait's chorus holds i and ♭VII two bars each, so Euro's hold weight
+       rises with HCW, and its verse vamp's second bar mostly moves its upper notes (IV⁷ │
+       IV9sus4, IV⁷ │ ♭III/IV): IV⁷ │ IV⁷ is the bank's entry and would otherwise win most HCW
+       songs.
+     - **Thirds.** Innocent Love's and Crazy Juliet's motion weights favour thirds (IL's ♭III →
+       i, CJ's v → ♭III), or their own loops lose to stepwise neighbours on root motion.
+     - **Per-song count.** §6's "at least 4 distinct progressions per song" isn't met for Italo
+       (3.29): its form replays the verse loop in the breaks and the pre-chorus. That's §8's.
 5. **Wizard "generate" entries,** README and analysis updates. (✅ The variety command came
    early, for phase 2, and the README's Progressions entry says what theory writes.)
 6. **Theory becomes the default** once the ear checks pass for every genre.

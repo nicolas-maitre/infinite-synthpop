@@ -502,7 +502,7 @@ export function compose(opts: ComposeOptions): Song {
   // bridge and lift, from the song part's genre's analysis, or from its genres' analyses merged by
   // their shares when its blend spans genres (plan §7 phase 4).
   let quoted: Song["quoted"];
-  if (chords === "theory" && !ref && !P.song.mixed) {
+  if (chords === "theory" && !ref) {
     const theory = theoryChords(root, P.song, key.mode, {
       sameLoop,
       prechorus: !!progressions.prechorus,

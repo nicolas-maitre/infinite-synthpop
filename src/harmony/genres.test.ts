@@ -1,5 +1,6 @@
 /**
- * Theory chords for Italo and Euro-disco (docs/plans/theory-chords.md §7 phase 4): every chord
+ * Theory chords for Italo, Euro-disco and blends across genres (docs/plans/theory-chords.md §7
+ * phase 4): every chord
  * parses, the bass treatments don't clash, each reference's measured loops are reachable at its
  * weight alone, the section relations hold, songs are deterministic, everything but the chords is
  * as classic draws it, and the variety targets are met.
@@ -8,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { compose, type Song } from "../composer";
 import { GENRES, genreAt, type GenreId } from "../genres";
 import type { Bar, Progression } from "../progressions";
+import type { RefWeights } from "../profile";
 import type { ReferenceId } from "../references";
 import { createRng } from "../rng";
 import { chord, chordPitchClasses, mod12, type Mode } from "../theory";
@@ -66,6 +68,12 @@ function sharedChecks(genre: GenreId, songs: () => Song[]) {
       for (const s of song.sections)
         for (const bar of s.progression) for (const n of bar) expect(() => chord(n)).not.toThrow();
     }
+  });
+
+  it("never splits a bar into a bare I (the bass takes it as the push into a pre-chorus)", () => {
+    for (const song of songs())
+      for (const p of Object.values(song.progressions) as Progression[])
+        for (const bar of p) expect(bar[1], progressionText(p)).not.toBe("I");
   });
 
   it("is deterministic per seed", () => {
@@ -297,5 +305,75 @@ describe("theory chords: Euro-disco", () => {
       (s) => rate(s.progressions.chorus) > rate(s.progressions.verse),
     ).length;
     expect(faster / unquoted.length).toBeGreaterThan(0.6);
+  });
+});
+
+describe("theory chords: blends across genres", () => {
+  const BLENDS: RefWeights[] = [
+    { "true-faith": 0.5, "the-night": 0.5 },
+    { "different-story": 0.5, "innocent-love": 0.5 },
+    { faces: 0.4, "crazy-juliet": 0.3, "you-came": 0.3 },
+    { "get-closer": 0.6, "heaven-can-wait": 0.4 },
+  ];
+  const songs = (blend: RefWeights, n = 60, chords: "theory" | "classic" = "theory") =>
+    Array.from({ length: n }, (_, i) => compose({ seed: 3000 + i * 53, blend, chords }));
+  const ALL = BLENDS.flatMap((b) => songs(b));
+
+  it("writes only numerals chord() parses, with slash basses that don't clash", () => {
+    for (const song of ALL)
+      for (const p of Object.values(song.progressions) as Progression[])
+        for (const bar of p) {
+          expect(bar.length).toBeLessThanOrEqual(2);
+          expect(bar[1]).not.toBe("I");
+          for (const n of bar) expect(clashes(n), `${n} in ${progressionText(p)}`).toBe(false);
+        }
+  });
+
+  it("writes loops the merged planner lays out: 2, 4 or 8 bars, a turnaround 2 or 4", () => {
+    // A synthpop body plays an 8-bar chorus and an Italo one 16 or 8, so a 10- or 14-bar Euro
+    // chorus would be cut off (as classic's are).
+    for (const song of ALL) {
+      if (song.quoted) continue;
+      const p = song.progressions;
+      // A verse may run 16 bars (TF's four-line verse): every planner plays verses of 8 or 16.
+      expect([2, 4, 8, 16]).toContain(p.verse.length);
+      for (const kind of ["chorus", "interlude", "bridge"] as const)
+        expect([2, 4, 8], `${kind} ${progressionText(p[kind])}`).toContain(p[kind].length);
+      expect([2, 4]).toContain(p.turnaround.length);
+      if (p.prechorus) expect(p.prechorus.length).toBeLessThanOrEqual(8);
+    }
+  });
+
+  it("mixes the genres' traits by their shares", () => {
+    const choruses = songs(BLENDS[0]!, 120)
+      .filter((s) => !s.quoted)
+      .map((s) => s.progressions.chorus);
+    const share = (test: (c: Progression) => boolean) =>
+      choruses.filter(test).length / choruses.length;
+    // The Night's relative-major chorus, and True Faith's chorus landing on its IV: both turn up,
+    // neither takes over.
+    const tn = share((c) => /^III/.test(c[0]?.[0] ?? ""));
+    const tf = share((c) => ["IV", "iv"].includes(c[c.length - 1]?.at(-1) ?? ""));
+    for (const x of [tn, tf]) {
+      expect(x).toBeGreaterThan(0.1);
+      expect(x).toBeLessThan(0.6);
+    }
+  });
+
+  it("leaves everything but the chords as classic draws it, deterministically", () => {
+    for (const blend of BLENDS)
+      for (const seed of [5, 77]) {
+        const c = compose({ seed, blend, chords: "classic" });
+        const t = compose({ seed, blend, chords: "theory" });
+        expect([t.key, t.bpm, t.kit, t.title, t.genre]).toEqual([
+          c.key,
+          c.bpm,
+          c.kit,
+          c.title,
+          c.genre,
+        ]);
+        expect(t.sections.map((s) => s.kind)).toEqual(c.sections.map((s) => s.kind));
+        expect(compose({ seed, blend, chords: "theory" }).progressions).toEqual(t.progressions);
+      }
   });
 });
