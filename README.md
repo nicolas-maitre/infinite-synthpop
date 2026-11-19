@@ -192,13 +192,16 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
 - **Key:** auto or a fixed minor key.
 - **Progressions:** how generated songs pick their chords. **theory** (the default) builds them
   from the genres' harmonic analyses; **classic** keeps the picks every song had before
-  ([docs/plans/theory-chords.md](docs/plans/theory-chords.md)). Theory now writes all of a
-  synthpop song's progressions from why True Faith's, The Different Story's and You Came's
-  progressions work (`src/harmony/`): the verse, chorus and pre-chorus, then the interlude,
-  turnaround, bridge and lift against them. A turnaround leads into the verse, a bridge or an
-  interlude contrasts with the chorus, the song's colour chords (TF's Dorian IV, DS's iv) recur,
-  and the lift is written in the major key a fourth up. About 1 song in 10 quotes a record's own
-  loop. Italo, Euro-disco and cross-genre blends still play classic's chords. A change
+  ([docs/plans/theory-chords.md](docs/plans/theory-chords.md)). Theory covers every genre: it
+  writes all of a song's progressions from why its references' progressions work
+  (`src/harmony/`): the verse, chorus and pre-chorus, then the interlude, turnaround, bridge and
+  lift against them. Synthpop reads True Faith, The Different Story and You Came (a turnaround
+  leads into the verse, the song's colour chords recur, the lift is in the major key a fourth up);
+  Italo reads The Night's tonic pedal and relative-major chorus, Get Closer's two-layer loop,
+  Faces' royal road and parallel-major chorus and Self Control's one loop; Euro-disco reads the
+  Sandra records' verses over a pedal, their turning or stopping pre-choruses and their 10- and
+  14-bar choruses. A blend across genres mixes the genres' traits by their shares. About 1 song in
+  10 quotes a record's own loop. A change
   recomposes the playing song, like the other generator settings. Theory songs' links carry `&chords=theory`; an old `#seed=…` link plays
   classic, as it always has. Originals and creations keep their own chords.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.

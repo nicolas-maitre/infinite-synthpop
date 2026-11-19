@@ -158,20 +158,50 @@ const GENRE_CASES: [string, ComposeOptions][] = (["italo", "euro"] as const).fla
   ];
 });
 
-/** Theory progressions (docs/plans/theory-chords.md §6), the seeds approved by ear on 2026-11-17:
- * one song leaning to each synthpop reference and one in the middle, rendered as classic/theory
- * A/B clips. Every melodic track is locked. */
-const THEORY_CASES: [string, ComposeOptions][] = (
-  [
-    [23, [0.8, 0.2, 0]],
-    [89, [0.15, 0.85, 0]],
-    [104, [0.1, 0.1, 0.8]],
-    [131, [0.34, 0.33, 0.33]],
-  ] as const
-).map(([seed, weights]) => [
-  `theory seed ${seed} weights ${weights.join("/")}`,
-  { seed, genre: "synthpop", weights, chords: "theory" },
-]);
+/** Theory progressions (docs/plans/theory-chords.md §6), the seeds approved by ear: one song
+ * leaning to each reference and one in the middle, rendered as classic/theory A/B clips (synthpop
+ * on 2026-11-17, Italo, Euro-disco and two blends on 2026-11-19). Every melodic track is locked. */
+const THEORY_CASES: [string, ComposeOptions][] = [
+  ...(
+    [
+      [23, [0.8, 0.2, 0]],
+      [89, [0.15, 0.85, 0]],
+      [104, [0.1, 0.1, 0.8]],
+      [131, [0.34, 0.33, 0.33]],
+    ] as const
+  ).map(([seed, weights]): [string, ComposeOptions] => [
+    `theory seed ${seed} weights ${weights.join("/")}`,
+    { seed, genre: "synthpop", weights, chords: "theory" },
+  ]),
+  ...(
+    [
+      ["italo", 202, [0.7, 0.1, 0.1, 0.1]],
+      ["italo", 202, [0.1, 0.7, 0.1, 0.1]],
+      ["italo", 239, [0.1, 0.1, 0.7, 0.1]],
+      ["italo", 201, [0.1, 0.1, 0.1, 0.7]],
+      ["italo", 202, [0.25, 0.25, 0.25, 0.25]],
+      ["euro", 303, [0.8, 0.1, 0.1]],
+      ["euro", 314, [0.1, 0.8, 0.1]],
+      ["euro", 303, [0.1, 0.1, 0.8]],
+      ["euro", 300, [0.34, 0.33, 0.33]],
+    ] as const
+  ).map(([genre, seed, weights]): [string, ComposeOptions] => [
+    `theory ${genre} seed ${seed} weights ${weights.join("/")}`,
+    { seed, genre, weights, chords: "theory" },
+  ]),
+  // Blends across genres, approved by ear on 2026-11-19.
+  ...(
+    [
+      [403, { "true-faith": 0.5, "the-night": 0.5 }],
+      [401, { "different-story": 0.5, "innocent-love": 0.5 }],
+    ] as const
+  ).map(([seed, blend]): [string, ComposeOptions] => [
+    `theory blend seed ${seed} ${Object.entries(blend)
+      .map(([r, w]) => `${r} ${w}`)
+      .join(" + ")}`,
+    { seed, blend, chords: "theory" },
+  ]),
+];
 
 describe("output snapshot", () => {
   it.each(CASES)("%s", (_, opts) => {

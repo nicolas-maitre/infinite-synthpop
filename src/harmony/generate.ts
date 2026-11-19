@@ -14,12 +14,13 @@
 import type { Blend } from "../genres";
 import type { Bar, Progression } from "../progressions";
 import type { Rng } from "../rng";
-import { chord, mod12, type Chord, type Mode } from "../theory";
+import { chord, chordPitchClasses, mod12, type Chord, type Mode } from "../theory";
 import type {
   BarOption,
   HarmonyAnalysis,
   ModeTraits,
   Option,
+  PreEnding,
   Schema,
   SectionKind,
   SectionShape,
@@ -35,6 +36,9 @@ export interface HarmonyContext {
   at: At;
   /** Progressions (as `progressionText`) a candidate loses points for matching exactly. */
   bank: ReadonlySet<string>;
+  /** The loop lengths the song's planner lays out, when not every length fits (a blend's
+   * merged planner plays a synthpop chorus for 8 bars). Unset: any. */
+  fits?: (bars: number) => boolean;
 }
 
 /** How many candidates each section draws, and how many of the best the pick chooses among. */
@@ -47,6 +51,9 @@ const TEMPERATURE = 0.4;
  * their relations (into the verse, against the chorus) and near-ties keep the shapes' weights
  * (a cut to the best 8 dropped TF's VI │ VI, 0.1 below the climb, every time). */
 export const SECTION_CHOICE = { temperature: 1, best: CANDIDATES };
+/** A pre-chorus chosen by shape (PreChorusTraits.byShape): looser than a verse's pick, so a
+ * record's shape keeps its weight against a pedal shape, but not every weak build gets through. */
+export const SHAPE_CHOICE = { temperature: 0.7, best: 16 };
 
 /** "i │ VI–VII │ v", as the variety measurement writes progressions. */
 export const progressionText = (p: Progression): string =>
@@ -149,8 +156,21 @@ function pickSchema(
 ): Schema | undefined {
   return choose(
     rng,
-    traitsOf(ctx).schemas.map((s) => [s, s === except ? 0 : ctx.at(weight(s) ?? {})] as const),
+    traitsOf(ctx).schemas.map(
+      (s) => [s, s === except || !schemaFits(ctx, s) ? 0 : ctx.at(weight(s) ?? {})] as const,
+    ),
   );
+}
+
+/** Whether a schema can make a loop the planner lays out (always, without `fits`). */
+function schemaFits(ctx: HarmonyContext, s: Schema): boolean {
+  const fits = ctx.fits;
+  if (!fits) return true;
+  if (s.cell) {
+    const cell = s.cell;
+    return cell.repeats.some((r) => fits(r.value * s.bars.length + cell.tag.length));
+  }
+  return fits(s.bars.length);
 }
 
 /** One colour in a line, now and then: a chord swapped for its coloured spelling. The cadence bar
@@ -210,11 +230,23 @@ export function writeLoop(rng: Rng, ctx: HarmonyContext, kind: LoopKind): Progre
   const t = traitsOf(ctx);
   const schema = pickSchema(rng, ctx, (s) => s.weight[kind]) ?? t.schemas[0];
   if (!schema) return [["i"]];
+  // A long loop (a cell and its tag), or a whole loop of its own length: no second line.
+  if (schema.cell) return treatBass(rng, ctx, overPedal(writeCell(rng, ctx, kind, schema), schema));
+  const loop = writeLines(rng, ctx, kind, schema);
+  return t.bass ? treatBass(rng, ctx, overPedal(loop, schema)) : overPedal(loop, schema);
+}
+
+/** A loop from a line schema: its first line, then its second line as the trait says. */
+function writeLines(rng: Rng, ctx: HarmonyContext, kind: LoopKind, schema: Schema): Progression {
+  const t = traitsOf(ctx);
   const first = writeLine(rng, ctx, kind, schema, undefined);
+  if (schema.bars.length !== 4) return first;
+  // A later line comes from another 4-bar line schema (not a vamp or a long loop).
+  const line = (w: Blend | undefined, s: Schema) => (s.bars.length === 4 && !s.cell ? w : {});
   const later = (except?: Schema) =>
     t.schemas.some((s) => ctx.at(s.weight.later ?? {}) > 0)
-      ? pickSchema(rng, ctx, (s) => s.weight.later, except)
-      : pickSchema(rng, ctx, (s) => s.weight[kind], except);
+      ? pickSchema(rng, ctx, (s) => line(s.weight.later, s), except)
+      : pickSchema(rng, ctx, (s) => line(s.weight[kind], s), except);
   switch (pickOption(rng, ctx, t.secondLine[kind]) ?? "repeat") {
     case "repeat":
       return first;
@@ -236,6 +268,104 @@ export function writeLoop(rng: Rng, ctx: HarmonyContext, kind: LoopKind): Progre
       return [...first, ...second, ...l3, ...l4];
     }
   }
+}
+
+/** A long loop: the cell filled once, played its drawn number of times, then its tag. */
+function writeCell(rng: Rng, ctx: HarmonyContext, kind: LoopKind, schema: Schema): Progression {
+  const cell = schema.cell;
+  if (!cell) return writeLines(rng, ctx, kind, schema);
+  const bars = colourLine(rng, ctx, fill(rng, ctx, kind, schema.bars, undefined, false));
+  const length = (n: number) => n * bars.length + cell.tag.length;
+  const repeats =
+    choose(
+      rng,
+      cell.repeats.map(
+        (o) => [o.value, ctx.fits && !ctx.fits(length(o.value)) ? 0 : ctx.at(o.weight)] as const,
+      ),
+    ) ??
+    cell.repeats[0]?.value ??
+    1;
+  const out: Bar[] = Array.from({ length: repeats }, () => bars.map((b) => [...b])).flat();
+  let prev = lastOf(out[out.length - 1]);
+  for (const slot of cell.tag) {
+    const bar =
+      typeof slot === "number"
+        ? [...(bars[slot] ?? bars[0] ?? ["i"])]
+        : (fill(rng, ctx, kind, [slot], prev, false)[0] ?? ["i"]);
+    out.push(bar);
+    prev = lastOf(bar);
+  }
+  return out;
+}
+
+const isDominantFamily = (numeral: string) => /^V(?![I])/.test(numeral);
+
+/**
+ * A chord over another bass degree (`VII/i`, `ii7/v`, `I/v`, `VI/3` where the bass is its own
+ * 3rd), or null where that can't be spelled or would clash: a chord tone a semitone from the bass
+ * (V over the tonic's leading tone, ♭II over i). Dominants are left alone, since a slash after V
+ * names an applied target.
+ */
+export function overBass(numeral: string, bass: string): string | null {
+  const c = info(numeral);
+  const b = info(bass).root;
+  if (c.bass !== undefined || isDominantFamily(numeral)) return null;
+  if (c.root === b) return numeral;
+  const tones = chordPitchClasses({ tonic: 0, mode: "minor" }, c);
+  if (tones.some((pc) => mod12(pc - b) === 1 || mod12(b - pc) === 1)) return null;
+  const third = tones[1];
+  const spelled =
+    third !== undefined && third === b && mod12(third - c.root) <= 4
+      ? `${numeral}/3`
+      : `${numeral}/${bass}`;
+  try {
+    const parsed = info(spelled);
+    return (parsed.bass ?? parsed.root) === b ? spelled : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A schema's pedal under every chord of its loop (Innocent Love's v, Heaven Can Wait's IV). */
+function overPedal(p: Progression, schema: Schema): Progression {
+  const pedal = schema.pedal;
+  if (!pedal) return p;
+  return p.map((bar) => bar.map((n) => overBass(n, pedal) ?? n));
+}
+
+/**
+ * The bass trait: once per loop, the tonic held under a plain ♭VII or ♭VI after a root-position
+ * tonic bar (The Night's ♭VII/i, Get Closer's D/E, C/E), and the step below the tonic under a last chord
+ * on the subdominant side (♭VI or IV) of a loop that starts on it (Get Closer's C/D).
+ */
+function treatBass(rng: Rng, ctx: HarmonyContext, p: Progression): Progression {
+  const b = traitsOf(ctx).bass;
+  if (!b) return p;
+  const hold = rng.chance(ctx.at(b.hold));
+  const approach = rng.chance(ctx.at(b.approach));
+  if (!hold && !approach) return p;
+  const tonic = ctx.mode === "major" ? "I" : "i";
+  const plainTonic = (n: string | undefined) =>
+    n !== undefined && info(n).root === 0 && info(n).bass === undefined;
+  const out = p.map((bar, k) => {
+    const before = p[k - 1];
+    const n = bar[0];
+    if (!hold || k === 0 || bar.length !== 1 || n === undefined || !plainTonic(lastOf(before)))
+      return [...bar];
+    // Only a plain ♭VII or ♭VI, as measured: a coloured chord keeps its own voicing (IIIadd9 over
+    // F would be a cluster), and a v or iv over the tonic blurs into a i(sus).
+    const r = info(n).root;
+    if (n !== degreeOf(n) || (r !== 10 && r !== 8)) return [...bar];
+    return [overBass(n, tonic) ?? n];
+  });
+  const last = out[out.length - 1];
+  const end = last?.[last.length - 1];
+  const side = end !== undefined && (info(end).root === 8 || info(end).root === 5);
+  if (approach && last && end !== undefined && side && plainTonic(p[0]?.[0])) {
+    const over = overBass(end, "VII");
+    if (over) last[last.length - 1] = over;
+  }
+  return out;
 }
 
 /** The degree a chord stands on, as a bare numeral (`IVmaj7` → `IV`, `I/3` → `I`). */
@@ -270,6 +400,8 @@ export function writePrechorus(
   ctx: HarmonyContext,
   chorusFirst: string,
   tonic: string,
+  /** The chord before it: the pushed tonic (synthpop's form), or the verse's last chord. */
+  entry = tonic,
 ): Progression {
   const pc = traitsOf(ctx).prechorus;
   const long = rng.chance(ctx.at(pc.longWeight));
@@ -280,7 +412,7 @@ export function writePrechorus(
       shapes.map((x) => [x, ctx.at(x.weight)] as const),
     ) ?? shapes[0];
   const bars: Bar[] = [];
-  let prev: string | undefined = tonic;
+  let prev: string | undefined = entry;
   for (const slot of shape?.bars ?? []) {
     const options = slot.map((o) => [o.value, ctx.at(o.weight)] as const);
     const bar = choose(
@@ -290,6 +422,29 @@ export function writePrechorus(
       options[0]?.[0] ?? [tonic];
     bars.push(bar);
     prev = lastOf(bar);
+  }
+  // Written-out endings (the Euro turns and stops), when the genre has them.
+  if (pc.endings?.length && rng.chance(ctx.at(pc.endingWeight ?? { base: 1 }))) {
+    const from = prev;
+    const target = info(chorusFirst).root;
+    // Only endings that lead into this chorus's first chord, when any does.
+    const leads = (o: PreEnding) => {
+      const last = lastOf(o.value[o.value.length - 1]);
+      return !o.leads || (!!last && o.leads.includes(mod12(target - info(last).root)));
+    };
+    const fitting = pc.endings.filter(leads);
+    const end =
+      choose(
+        rng,
+        (fitting.length ? fitting : pc.endings).map(
+          (o) =>
+            [
+              o.value,
+              o.value[0]?.[0] ? ctx.at(o.weight) * motionWeight(ctx, from, o.value[0][0]) : 0,
+            ] as const,
+        ),
+      ) ?? pc.endings[0]?.value;
+    return [...bars, ...(end ?? []).map((b) => [...b])];
   }
   const { authentic, deceptive } = approaches(ctx.mode, chorusFirst);
   const target =
@@ -368,8 +523,11 @@ export function score(ctx: HarmonyContext, p: Progression, s: ScoreContext): num
     const d = mod12(info(b).root - info(a).root);
     if (d !== 5 && d !== 1) total -= 2;
   }
-  // No chord held for more than two bars (TF's v │ v is the longest).
-  for (const h of holds(p)) if (h > 4) total -= 1.5;
+  // No chord held for more than two bars (TF's v │ v is the longest), unless the genre's verse or
+  // chorus sits longer (Crazy Juliet's I │ I │ I │ I).
+  const maxHold = s.kind === "prechorus" ? 2 : (t.maxHold?.[s.kind] ?? 2);
+  for (const h of holds(p)) if (h > 2 * maxHold) total -= 1.5;
+  const colourLimit = t.colourPerLine ?? 1;
   for (const line of linesOf(p)) {
     // Colour once per line: bars with a borrowed chord or a coloured quality.
     const coloured = line.filter((bar) =>
@@ -381,8 +539,10 @@ export function score(ctx: HarmonyContext, p: Progression, s: ScoreContext): num
         );
       }),
     ).length;
-    if (coloured > 1) total -= 0.7 * (coloured - 1);
-    if (new Set(line.flat()).size < 2) total -= 2;
+    if (coloured > colourLimit) total -= 0.7 * (coloured - colourLimit);
+    // A line on one chord, unless the genre's sections sit (a 5-bar pre-chorus's last bar is its
+    // stop, not a line).
+    if (line.length > 1 && new Set(line.flat()).size < 2 && maxHold < 4) total -= 2;
   }
   const text = progressionText(p);
   // Lighter on a pre-chorus: the plan's variety targets are the verse's and the chorus's.
@@ -392,8 +552,25 @@ export function score(ctx: HarmonyContext, p: Progression, s: ScoreContext): num
     if (text === progressionText(s.chorus)) total -= 4;
     else if (progressionText(p.slice(0, 4)) === progressionText(s.chorus.slice(0, 4))) total -= 2;
     if (lastOf(p[p.length - 1]) === lastOf(s.chorus[s.chorus.length - 1])) total -= 0.5;
+    // A static verse into a busier chorus (Innocent Love's pedal, Heaven Can Wait's vamp).
+    if (t.rhythmContrast && s.kind === "verse") {
+      const faster = changeRate(s.chorus) - changeRate(p);
+      total += ctx.at(t.rhythmContrast) * Math.max(-0.5, Math.min(1, faster));
+    }
   }
   return total;
+}
+
+/** Chord changes per bar, round the loop (a pedal chord over the same bass counts as one). */
+function changeRate(p: Progression): number {
+  const seq = p.flat();
+  let changes = 0;
+  for (let i = 0; i < seq.length; i++) {
+    const a = seq[i];
+    const b = seq[(i + 1) % seq.length];
+    if (a !== undefined && b !== undefined && a !== b) changes++;
+  }
+  return changes / Math.max(1, p.length);
 }
 
 /**
@@ -456,10 +633,11 @@ export function writeSection(
   target?: string,
 ): Progression {
   const shapes = shapesOf(ctx, kind);
+  const fits = (x: SectionShape) => !ctx.fits || ctx.fits(x.bars.length);
   const shape =
     choose(
       rng,
-      shapes.map((x) => [x, ctx.at(x.weight)] as const),
+      shapes.map((x) => [x, fits(x) ? ctx.at(x.weight) : 0] as const),
     ) ?? shapes[0];
   const home = kind === "lift" || ctx.mode === "major" ? "I" : "i";
   const bars: Bar[] = [];

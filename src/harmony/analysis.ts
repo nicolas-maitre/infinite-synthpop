@@ -32,7 +32,19 @@ export interface Schema {
   /** How likely it opens a line of each kind; `later` is a verse line after the first two
    * (TF's MIDI verse turns to its descent there). */
   weight: { verse: Blend; chorus: Blend; later?: Blend };
+  /** The bars: a 4-bar line, or a whole loop of another length (a 2-bar vamp, Self Control's 8
+   * bars), which plays as it is with no second line. With `cell`, the bars to repeat. */
   bars: readonly (readonly BarOption[] | "cadence")[];
+  /** The line's bass stays on this degree under every chord (Innocent Love's verse over v,
+   * Heaven Can Wait's pre-chorus over IV); a chord on that root plays plainly. */
+  pedal?: string;
+  /** A long loop: `bars` played `repeats` times, then the `tag`, whose slots may copy a bar of the
+   * cell by its index (Innocent Love's 3½ times round). The Euro choruses' 10 and 14 bars, Faces'
+   * 8-bar chorus. */
+  cell?: {
+    repeats: readonly Option<number>[];
+    tag: readonly (readonly BarOption[] | "cadence" | number)[];
+  };
 }
 
 /** How an 8- or 16-bar progression continues after its first line (plan §4.1 "Second line"). */
@@ -84,7 +96,26 @@ export interface PreChorusTraits {
   susDelay: Blend;
   /** Leave deceptively (V/vi → IV, V → VI) when the chorus opens on the chord that allows it. */
   deceptive: Blend;
+  /** Endings written out instead of the approach above (Innocent Love's ♭VI │ V turn, Crazy
+   * Juliet's IV⁷sus4 │ IV⁷ stop, Heaven Can Wait's IV │ IV handing the chorus a IV), taken with
+   * the chance `endingWeight`. */
+  endings?: readonly PreEnding[];
+  endingWeight?: Blend;
+  /** Choose among more of the candidates at a higher temperature (generate.ts SHAPE_CHOICE), so
+   * each record's shape keeps its weight: a pedal shape's chords over one bass all score as steps, and would
+   * otherwise win wherever they're drawn (Heaven Can Wait's in an Innocent Love song). */
+  byShape?: boolean;
+  /** The pre-chorus follows the verse's last chord as it is (the Euro planner), not a tonic the
+   * planner pushes into the verse's last bar (synthpop's). */
+  fromVerse?: boolean;
   source: string;
+}
+
+/** A written-out pre-chorus ending, and the chorus openings it leads into: intervals from its
+ * last chord's root up to the chorus's first (Heaven Can Wait's IV → i is 7, Crazy Juliet's
+ * IV⁷ → ♭III is 10). Unset: any. */
+export interface PreEnding extends Option<Bar[]> {
+  leads?: readonly number[];
 }
 
 /** The sections written after the verse and chorus, against them (plan §4.2). */
@@ -133,6 +164,28 @@ export interface ModeTraits {
   secondLine: { verse: readonly Option<SecondLine>[]; chorus: readonly Option<SecondLine>[] };
   prechorus: PreChorusTraits;
   sections: SectionTraits;
+  /** How the bass moves under a loop besides its chords' roots (plan §4.1 "Bass treatment"). */
+  bass?: BassTraits;
+  /** How many coloured bars a line takes before the score marks it down (default 1). Italo's
+   * colour is its 7ths and sus chords on every other bar (Faces' v7–IVmaj7). */
+  colourPerLine?: number;
+  /** The longest a chord may sit, in bars, per kind (default 2); 4 or more lets a line hold one
+   * chord (Crazy Juliet's I │ I │ I │ I, Heaven Can Wait's IV⁷ vamp). */
+  maxHold?: { verse: number; chorus: number };
+  /** How much a verse gains for changing chords more slowly than its chorus (a static verse into a
+   * busier chorus: Innocent Love, Heaven Can Wait). */
+  rhythmContrast?: Blend;
+}
+
+/** The bass besides the chords' roots: a held tonic and a step up into the loop's restart. */
+export interface BassTraits {
+  /** A loop's chance to hold the tonic in the bass under the chord after a tonic bar, where it
+   * doesn't clash (The Night's ♭VII/i, Get Closer's D/E and C/E). */
+  hold: Blend;
+  /** A loop's chance to put the step below the tonic under its last chord when it starts on the
+   * tonic (Get Closer's C/D: the bass climbs D–E into the loop). */
+  approach: Blend;
+  source: string;
 }
 
 /** How well one chord moving to the next suits the references, by the bass's interval. */
@@ -170,4 +223,9 @@ export interface HarmonyAnalysis {
     chance: number;
     loops: Partial<Record<ReferenceId, Partial<Record<Exclude<SectionKind, "lift">, Progression>>>>;
   };
+  /** The form's verse-on-the-chorus's-loop draw (Self Control's one loop, the louder parts
+   * setting the chorus apart) holds only for a chorus that opens on the tonic: a relative- or
+   * parallel-major chorus would leave the song without its minor verse. Unset: always (You
+   * Came's loop opens on IV). */
+  sameLoopOnTonic?: boolean;
 }

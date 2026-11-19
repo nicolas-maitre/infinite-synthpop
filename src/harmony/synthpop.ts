@@ -10,56 +10,12 @@
  * voicings, `ii` and `v` for You Came's bass hop and walk, `V/ii` and `V7/vi` for the melodies'
  * raised notes).
  */
-import type { Blend } from "../genres";
-import type { Bar } from "../progressions";
-import type {
-  BarOption,
-  Cadence,
-  Colour,
-  HarmonyAnalysis,
-  ModeTraits,
-  Option,
-  Schema,
-  SecondLine,
-  SectionShape,
-  SectionTraits,
-} from "./analysis";
+import type { HarmonyAnalysis, ModeTraits, Schema, SectionShape, SectionTraits } from "./analysis";
+import { cad, colour, fixed, line, o, shape } from "./helpers";
 
 const TF = "true-faith";
 const DS = "different-story";
 const YC = "you-came";
-
-/** A bar option: one chord or a split bar. */
-const o = (bar: string | Bar, weight: Blend, source?: string): BarOption => ({
-  value: typeof bar === "string" ? [bar] : bar,
-  weight,
-  ...(source ? { source } : {}),
-});
-/** A bar that is always this chord. */
-const fixed = (c: string): BarOption[] => [o(c, { base: 1 })];
-const cad = (bar: string | Bar, weight: Blend, answer?: Blend, source?: string): Cadence => ({
-  value: typeof bar === "string" ? [bar] : bar,
-  weight,
-  ...(answer ? { answer } : {}),
-  ...(source ? { source } : {}),
-});
-const colour = (from: string, to: string | Bar, weight: Blend, source: string): Colour => ({
-  from,
-  to: typeof to === "string" ? [to] : to,
-  weight,
-  source,
-});
-const shape = (
-  name: string,
-  weight: Blend,
-  source: string,
-  bars: readonly (readonly BarOption[])[],
-): SectionShape => ({ name, weight, source, bars });
-const line = (value: SecondLine, weight: Blend, source?: string): Option<SecondLine> => ({
-  value,
-  weight,
-  ...(source ? { source } : {}),
-});
 
 // ── Minor: True Faith and The Different Story, and You Came's climb read in a minor key ────────
 

@@ -12017,6 +12017,1521 @@ exports[`output snapshot > the-night 1`] = `
 }
 `;
 
+exports[`output snapshot > theory blend seed 401 different-story 0.5 + innocent-love 0.5 1`] = `
+{
+  "bars": "e0a94721b35ef559240547",
+  "bassStyle": "innocent",
+  "bpm": 116,
+  "key": {
+    "mode": "minor",
+    "tonic": 4,
+  },
+  "kit": "linndrum",
+  "melodies": "22b7e5215497222d11826",
+  "motifs": "8f90114d9e199e1c2086",
+  "progressions": {
+    "bridge": [
+      [
+        "ii",
+      ],
+      [
+        "ii",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII9sus4",
+      ],
+      [
+        "III",
+      ],
+      [
+        "i",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "interlude": [
+      [
+        "III",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "i",
+        "VII",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "prechorus": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "Vsus4",
+      ],
+      [
+        "V7",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "IV7",
+      ],
+    ],
+    "verse": [
+      [
+        "v",
+      ],
+      [
+        "ii/v",
+      ],
+      [
+        "v",
+      ],
+      [
+        "I/v",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|8|4minor|fill=false|i i v v|drums=hats16,pad,arp",
+    "intro|Intro · climb|4|4minor|fill=false|VI VII|drums=hats16,pad,arp",
+    "intro|Link|2|4minor|fill=false|i VII|drums=off,bass",
+    "verse|Verse 1|16|4minor|fill=true|v ii/v v I/v|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|4minor|fill=true|i III VII9sus4 III i III VII V|drums=big,bass,pad,lead=chorus",
+    "break|Stop|2|4minor|fill=true|VII|drums=half,pad",
+    "verse|Verse 2|8|4minor|fill=true|v ii/v v I/v|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|8|4minor|fill=true|i III VII9sus4 III i III VII V|drums=big,bass,pad,arp,stabs,lead=chorus",
+    "interlude|Interlude|8|4minor|fill=false|III VII VI i-VII|drums=full,bass,pad,riff,arp",
+    "turnaround|Turnaround|2|4minor|fill=false|VI IV7|drums=full,bass,pad,riff,arp",
+    "break|Break|2|4minor|fill=true|i|drums=kick,pad,riff",
+    "chorus|Chorus · double|8|4minor|fill=false|i III VII9sus4 III i III VII V|drums=big,bass,pad,arp,stabs,lead=chorus,leadDouble",
+    "outro|Outro · chorus to fade|16|4minor|fill=false|i III VII9sus4 III i III VII V|drums=big,bass,pad,riff,arp,lead=chorus",
+  ],
+  "style": 1,
+  "title": "Weather (City of Gold and Chrome)",
+  "totalBars": 92,
+}
+`;
+
+exports[`output snapshot > theory blend seed 403 true-faith 0.5 + the-night 0.5 1`] = `
+{
+  "bars": "897e37426d173a42460716",
+  "bassStyle": "italo",
+  "bpm": 114.5,
+  "key": {
+    "mode": "minor",
+    "tonic": 4,
+  },
+  "kit": "sp12",
+  "melodies": "cc4179ba98e3123719023",
+  "motifs": "e5d531423342a52a1785",
+  "progressions": {
+    "bridge": [
+      [
+        "i",
+        "IV",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "i",
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "VII/i",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "i",
+      ],
+      [
+        "VII/i",
+      ],
+      [
+        "VI/3",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "VII/i",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "VI",
+        "VII",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "VIIsus4",
+        "VII",
+      ],
+      [
+        "v7",
+      ],
+      [
+        "VI",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro · pedal|4|4minor|fill=false|i VII/i|drums=full,bass,pad",
+    "intro|Intro · riff|4|4minor|fill=true|i VII/i|drums=full,bass,riff",
+    "intro|Intro · bass drop|2|4minor|fill=true|i VII/i|drums=full,riff",
+    "interlude|Lead synth|12|4minor|fill=true|i VIIsus4-VII v7 VI|drums=full,bass,pad,leadSynth",
+    "verse|Verse 1|16|4minor|fill=true|i VIIsus4-VII v7 VI|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|4minor|fill=true|i VII/i VII iv i VII/i VI/3 VII|drums=big,bass,pad,lead=chorus,counter",
+    "verse|Verse 2|16|4minor|fill=true|i VIIsus4-VII v7 VI|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|4minor|fill=true|i VII/i VII iv i VII/i VI/3 VII|drums=big,bass,pad,lead=chorus,counter",
+    "turnaround|Turnaround|2|4minor|fill=true|VI VI-VII|drums=full,bass,pad",
+    "bridge|Bridge · bass solo|8|4minor|fill=true|i-IV IV i-VII IV|drums=full,bass,hook,pad",
+    "interlude|Instrumental chorus|8|4minor|fill=false|i VII/i VII iv i VII/i VI/3 VII|drums=full,bass,hook,pad,riff,seq,guitar",
+    "turnaround|Turn · VI–VII|2|4minor|fill=true|VI VII|drums=full,bass,pad,seq,bassShort,guitar",
+    "verse|Verse 3|16|4minor|fill=true|i VIIsus4-VII v7 VI|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|4minor|fill=true|i VII/i VII iv i VII/i VI/3 VII|drums=big,bass,pad,lead=chorus,counter",
+    "chorus|Chorus · last|16|4minor|fill=false|i VII/i VII iv i VII/i VI/3 VII|drums=big,bass,pad,lead=chorus,leadDouble,counter",
+    "outro|Outro · lift to IV|16|9major|fill=false|I IV I V|drums=full,bass,pad,riff,arp",
+  ],
+  "style": 0,
+  "title": "Distance (Sea of Ice and Chrome)",
+  "totalBars": 170,
+}
+`;
+
+exports[`output snapshot > theory euro seed 300 weights 0.34/0.33/0.33 1`] = `
+{
+  "bars": "bd8b195d4671a2b7213834",
+  "bassStyle": "heaven",
+  "bpm": 118.5,
+  "key": {
+    "mode": "minor",
+    "tonic": 8,
+  },
+  "kit": "linndrum",
+  "melodies": "68f7eae918d51cb213853",
+  "motifs": "b6f52e4fc2bca9f82120",
+  "progressions": {
+    "bridge": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "V",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "chorus": [
+      [
+        "i7",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "VII9sus4",
+      ],
+      [
+        "III",
+      ],
+      [
+        "i7",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "VII9sus4",
+      ],
+      [
+        "III",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VI",
+        "V",
+      ],
+    ],
+    "interlude": [
+      [
+        "VI",
+        "VII",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "Vsus4",
+        "V",
+      ],
+    ],
+    "prechorus": [
+      [
+        "III/IV",
+      ],
+      [
+        "VII/IV",
+      ],
+      [
+        "IV7",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "III/IV",
+      ],
+      [
+        "VII/IV",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "verse": [
+      [
+        "v",
+      ],
+      [
+        "ii7/v",
+      ],
+      [
+        "ii7/v",
+      ],
+      [
+        "I/v",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|8|8minor|fill=false|i i v v|drums=hats16,pad,arp",
+    "intro|Intro · climb|4|8minor|fill=true|VI VII|drums=hats16,pad,arp",
+    "intro|Link|2|8minor|fill=false|i VII|drums=off,bass",
+    "verse|Verse 1|16|8minor|fill=false|v ii7/v ii7/v I/v|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus|8|8minor|fill=true|III/IV VII/IV IV7 IV III/IV VII/IV VI V|drums=full,bass,pad,arp,lead=verse,stop",
+    "chorus|Chorus|10|8minor|fill=true|i7 IV VII9sus4 III i7 IV VII9sus4 III VI VI-V|drums=big,bass,pad,arp,lead=chorus",
+    "break|Stop|2|8minor|fill=true|VII|drums=half,pad",
+    "verse|Verse 2|16|8minor|fill=true|v ii7/v ii7/v I/v|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus|8|8minor|fill=true|III/IV VII/IV IV7 IV III/IV VII/IV VI V|drums=full,bass,pad,arp,lead=verse,stop",
+    "chorus|Chorus|10|8minor|fill=false|i7 IV VII9sus4 III i7 IV VII9sus4 III VI VI-V|drums=big,bass,pad,arp,lead=chorus",
+    "break|Stop|2|8minor|fill=true|VII|drums=half,pad",
+    "chorus|Instrumental chorus|8|8minor|fill=true|i7 IV VII9sus4 III i7 IV VII9sus4 III VI VI-V|drums=big,bass,pad,arp",
+    "break|Break|2|8minor|fill=true|V V|drums=full,pad",
+    "chorus|Chorus · last|10|8minor|fill=false|i7 IV VII9sus4 III i7 IV VII9sus4 III VI VI-V|drums=big,bass,pad,arp,lead=chorus",
+    "outro|Outro · chorus to fade|10|8minor|fill=false|i7 IV VII9sus4 III i7 IV VII9sus4 III VI VI-V|drums=big,bass,pad,arp,lead=chorus",
+  ],
+  "style": 0.4925373134328358,
+  "title": "Hold On Forever",
+  "totalBars": 116,
+}
+`;
+
+exports[`output snapshot > theory euro seed 303 weights 0.1/0.1/0.8 1`] = `
+{
+  "bars": "9303fb2d1fe02f06255269",
+  "bassStyle": "juliet",
+  "bpm": 121.5,
+  "key": {
+    "mode": "major",
+    "tonic": 2,
+  },
+  "kit": "sp12",
+  "melodies": "e2d55e4001b6e6c716666",
+  "motifs": "11b36537ed7717a51865",
+  "progressions": {
+    "bridge": [
+      [
+        "ii",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "chorus": [
+      [
+        "III",
+        "IVadd9",
+      ],
+      [
+        "v",
+      ],
+      [
+        "III",
+        "IVadd9",
+      ],
+      [
+        "v",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "ii7",
+      ],
+      [
+        "Vsus4",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "interlude": [
+      [
+        "III",
+        "IV",
+      ],
+      [
+        "v",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "Vsus4",
+        "V",
+      ],
+    ],
+    "prechorus": [
+      [
+        "III/IV",
+      ],
+      [
+        "VII/IV",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "IV7",
+      ],
+      [
+        "III/IV",
+      ],
+      [
+        "VII/IV",
+      ],
+      [
+        "IV7sus4",
+      ],
+      [
+        "IV7",
+      ],
+    ],
+    "turnaround": [
+      [
+        "IV",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "verse": [
+      [
+        "I",
+      ],
+      [
+        "I",
+      ],
+      [
+        "I",
+      ],
+      [
+        "I",
+      ],
+      [
+        "vi",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "I",
+      ],
+      [
+        "I",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|4|2major|fill=false|I I I I|drums=off,pad,riff",
+    "intro|Intro · hats and bass|2|2major|fill=true|vi VII|drums=hats16,bass,pad,riff",
+    "intro|Intro · kit|2|2major|fill=true|I I|drums=full,pad,riff",
+    "verse|Verse 1|16|2major|fill=true|I I I I vi VII I I|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus|8|2major|fill=true|III/IV VII/IV IV IV7 III/IV VII/IV IV7sus4 IV7|drums=full,bass,pad,arp,lead=verse",
+    "chorus|Chorus|8|2major|fill=true|III-IVadd9 v III-IVadd9 v IV ii7 Vsus4 V|drums=big,bass,pad,arp,lead=chorus",
+    "verse|Verse 2|16|2major|fill=true|I I I I vi VII I I|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus|8|2major|fill=true|III/IV VII/IV IV IV7 III/IV VII/IV IV7sus4 IV7|drums=full,bass,pad,arp,lead=verse",
+    "chorus|Chorus|8|2major|fill=true|III-IVadd9 v III-IVadd9 v IV ii7 Vsus4 V|drums=big,bass,pad,arp,lead=chorus",
+    "chorus|Chorus|8|2major|fill=true|III-IVadd9 v III-IVadd9 v IV ii7 Vsus4 V|drums=big,bass,pad,arp,lead=chorus",
+    "chorus|Instrumental chorus|8|2major|fill=true|III-IVadd9 v III-IVadd9 v IV ii7 Vsus4 V|drums=big,bass,pad,arp,leadSynth",
+    "chorus|Instrumental chorus|8|2major|fill=true|III-IVadd9 v III-IVadd9 v IV ii7 Vsus4 V|drums=big,bass,pad,arp,leadSynth",
+    "chorus|Chorus · last|8|2major|fill=false|III-IVadd9 v III-IVadd9 v IV ii7 Vsus4 V|drums=big,bass,pad,arp,lead=chorus",
+    "outro|Outro · chorus to fade|8|2major|fill=false|III-IVadd9 v III-IVadd9 v IV ii7 Vsus4 V|drums=big,bass,pad,arp,lead=chorus",
+  ],
+  "style": 0.5,
+  "title": "Stay Tonight",
+  "totalBars": 112,
+}
+`;
+
+exports[`output snapshot > theory euro seed 303 weights 0.8/0.1/0.1 1`] = `
+{
+  "bars": "e011d5945d5509ea314869",
+  "bassStyle": "innocent",
+  "bpm": 116.5,
+  "key": {
+    "mode": "minor",
+    "tonic": 7,
+  },
+  "kit": "linndrum",
+  "melodies": "042e5518f5baa9df14248",
+  "motifs": "11b36537ed7717a51865",
+  "progressions": {
+    "bridge": [
+      [
+        "VI/IV",
+      ],
+      [
+        "VII/IV",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "IV7",
+      ],
+    ],
+    "chorus": [
+      [
+        "i7",
+      ],
+      [
+        "IVsus4",
+        "IV7",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "III",
+      ],
+      [
+        "i7",
+      ],
+      [
+        "IVsus4",
+        "IV7",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "III",
+      ],
+      [
+        "i7",
+      ],
+      [
+        "IVsus4",
+        "IV7",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "III",
+      ],
+      [
+        "i7",
+      ],
+      [
+        "IVsus4",
+        "IV7",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "i7",
+      ],
+      [
+        "v",
+      ],
+      [
+        "v",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "prechorus": [
+      [
+        "i",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "i",
+      ],
+      [
+        "viø7",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "IV7",
+      ],
+    ],
+    "verse": [
+      [
+        "v",
+      ],
+      [
+        "v",
+      ],
+      [
+        "ii7/v",
+      ],
+      [
+        "I/v",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|8|7minor|fill=true|i i v v|drums=hats16,pad,arp",
+    "intro|Intro · climb|4|7minor|fill=true|VI VII|drums=hats16,pad,arp",
+    "intro|Link|2|7minor|fill=false|i VII|drums=off,bass",
+    "verse|Verse 1|8|7minor|fill=true|v v ii7/v I/v|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus|6|7minor|fill=true|i iv i viø7 VI V|drums=full,bass,pad,arp,lead=verse",
+    "chorus|Chorus|14|7minor|fill=false|i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7|drums=big,bass,pad,arp,stabs,lead=chorus,leadStack",
+    "break|Stop|2|7minor|fill=true|VII|drums=half,pad",
+    "verse|Verse 2|8|7minor|fill=true|v v ii7/v I/v|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus|6|7minor|fill=true|i iv i viø7 VI V|drums=full,bass,pad,arp,lead=verse",
+    "chorus|Chorus|14|7minor|fill=false|i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7|drums=big,bass,pad,arp,stabs,lead=chorus,leadStack",
+    "break|Stop|2|7minor|fill=true|VII|drums=half,pad",
+    "chorus|Instrumental chorus|12|7minor|fill=true|i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7|drums=big,bass,pad,arp,stabs",
+    "break|Break|2|7minor|fill=true|V V|drums=full,pad",
+    "chorus|Chorus · last|14|7minor|fill=false|i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7|drums=big,bass,pad,arp,stabs,lead=chorus,leadStack",
+    "outro|Outro · chorus to fade|14|7minor|fill=false|i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7 VII III i7 IVsus4-IV7|drums=big,bass,pad,arp,stabs,lead=chorus,leadStack",
+  ],
+  "style": 0.11111111111111112,
+  "title": "Stay Tonight",
+  "totalBars": 116,
+}
+`;
+
+exports[`output snapshot > theory euro seed 314 weights 0.1/0.8/0.1 1`] = `
+{
+  "bars": "c4ebd1f80f03fe36248694",
+  "bassStyle": "heaven",
+  "bpm": 120,
+  "key": {
+    "mode": "minor",
+    "tonic": 3,
+  },
+  "kit": "linndrum",
+  "melodies": "01503185fed4aed519299",
+  "motifs": "6b5aa5938a3998b41858",
+  "progressions": {
+    "bridge": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "III",
+      ],
+      [
+        "i",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "III",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "Vsus4",
+        "V",
+      ],
+    ],
+    "interlude": [
+      [
+        "V",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "I",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "prechorus": [
+      [
+        "VI/IV",
+      ],
+      [
+        "VII/IV",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "III/IV",
+      ],
+      [
+        "III/IV",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "i",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "verse": [
+      [
+        "IV7",
+      ],
+      [
+        "IV9sus4",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro · motif|4|3minor|fill=false|i|drums=off,riff",
+    "intro|Groove|4|3minor|fill=true|IV7 IV9sus4|drums=full,bass",
+    "verse|Verse 1|8|3minor|fill=false|IV7 IV9sus4|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus|8|3minor|fill=true|VI/IV VII/IV IV IV III/IV III/IV iv V|drums=full,bass,pad,arp,lead=verse",
+    "chorus|Chorus|10|3minor|fill=true|i iv VII III i iv VII III iv Vsus4-V|drums=big,bass,pad,riff,arp,lead=chorus",
+    "chorus|Tag|2|3minor|fill=true|i|drums=big,bass,pad,arp",
+    "verse|Verse 2|8|3minor|fill=true|IV7 IV9sus4|drums=full,bass,pad,lead=verse",
+    "prechorus|Pre-chorus|8|3minor|fill=true|VI/IV VII/IV IV IV III/IV III/IV iv V|drums=full,bass,pad,arp,lead=verse",
+    "chorus|Chorus|10|3minor|fill=false|i iv VII III i iv VII III iv Vsus4-V|drums=big,bass,pad,riff,arp,lead=chorus",
+    "interlude|Instrumental link|4|3minor|fill=true|IV7 IV9sus4 IV7 IV9sus4|drums=groove,bass,pad,leadSynth",
+    "verse|Instrumental verse|8|3minor|fill=false|IV7 IV9sus4|drums=full,bass,pad,leadSynth",
+    "prechorus|Pre-chorus|8|3minor|fill=true|VI/IV VII/IV IV IV III/IV III/IV iv V|drums=full,bass,pad,arp",
+    "chorus|Chorus|10|3minor|fill=true|i iv VII III i iv VII III iv Vsus4-V|drums=big,bass,pad,riff,arp,lead=chorus",
+    "bridge|Bridge|4|3minor|fill=true|iv VI VII i|drums=big,bass,pad,lead=chorus",
+    "chorus|Chorus · last|10|3minor|fill=true|i iv VII III i iv VII III iv Vsus4-V|drums=big,bass,pad,riff,arp,lead=chorus",
+    "outro|Outro · chorus to fade|10|3minor|fill=false|i iv VII III i iv VII III iv Vsus4-V|drums=big,bass,pad,riff,arp,lead=chorus",
+  ],
+  "style": 0.888888888888889,
+  "title": "Paradise Can Wait (Dub Mix)",
+  "totalBars": 116,
+}
+`;
+
+exports[`output snapshot > theory italo seed 201 weights 0.1/0.1/0.1/0.7 1`] = `
+{
+  "bars": "2b5869f80a39b0cf448642",
+  "bassStyle": "italo",
+  "bpm": 108,
+  "key": {
+    "mode": "minor",
+    "tonic": 5,
+  },
+  "kit": "linndrum",
+  "melodies": "fad4de2903377ff919487",
+  "motifs": "bbfe612fe25a5fd51730",
+  "progressions": {
+    "bridge": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "v",
+      ],
+      [
+        "i",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "v",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "v",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "v7",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "v7",
+        "IVmaj7",
+      ],
+      [
+        "I",
+      ],
+      [
+        "VII",
+        "V7sus4",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VII",
+      ],
+      [
+        "III",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "v",
+      ],
+      [
+        "i",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "v",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "v",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro · bass and kick|4|5minor|fill=false|i v i iv VII v VI v|drums=kick,bass",
+    "intro|Intro · stabs|8|5minor|fill=false|i v i iv VII v VI v|drums=kick,bass,stabs",
+    "intro|Intro · groove|16|5minor|fill=true|i v i iv VII v VI v|drums=full,bass,stabs,held",
+    "verse|Verse 1|16|5minor|fill=true|i v i iv VII v VI v|drums=full,bass,pad,stabs,lead=verse",
+    "prechorus|Pre-chorus · title line|16|5minor|fill=true|i v i iv VII v VI v|drums=full,bass,pad,arp,stabs,lead=verse,titleLine",
+    "chorus|Chorus|16|5minor|fill=true|i v i iv VII v VI v|drums=big,bass,pad,stabs,lead=chorus,leadStack,counter",
+    "break|Break · stab on 2|4|5minor|fill=true|i v|drums=stab,bass,stabs,lead=chorus",
+    "break|Drums and voice|2|5minor|fill=true|i v|drums=full,lead=chorus",
+    "verse|Verse 2|8|5minor|fill=true|i v i iv VII v VI v|drums=full,bass,pad,stabs,lead=verse",
+    "chorus|Chorus|16|5minor|fill=true|i v i iv VII v VI v|drums=big,bass,pad,stabs,lead=chorus,leadStack,counter",
+    "break|Break · stab on 2|4|5minor|fill=true|i v|drums=stab,bass,stabs,lead=chorus",
+    "outro|Outro · i–v vamp|8|5minor|fill=true|i v|drums=big,bass,pad,stabs,lead=chorus,counter",
+    "outro|Outro · vamp and riff|8|5minor|fill=false|i v|drums=big,bass,pad,riff,stabs,lead=chorus,counter",
+  ],
+  "style": 0.5,
+  "title": "Space Lover",
+  "totalBars": 126,
+}
+`;
+
+exports[`output snapshot > theory italo seed 202 weights 0.1/0.7/0.1/0.1 1`] = `
+{
+  "bars": "645e87b87e540813280996",
+  "bassStyle": "italo",
+  "bpm": 112.5,
+  "key": {
+    "mode": "minor",
+    "tonic": 5,
+  },
+  "kit": "linndrum",
+  "melodies": "85b49f112d4ab41814008",
+  "motifs": "3217227a6bed1cb51662",
+  "progressions": {
+    "bridge": [
+      [
+        "iv",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "i",
+      ],
+    ],
+    "chorus": [
+      [
+        "i",
+      ],
+      [
+        "VI/3",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "IV/V",
+        "V",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "VI",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "v7",
+        "IVmaj7",
+      ],
+      [
+        "I",
+      ],
+      [
+        "IV",
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "iv",
+      ],
+      [
+        "Vsus4",
+        "V",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "VI/3",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro|8|5minor|fill=true|i VI/3 iv VII|drums=full,bass,pad",
+    "intro|Hook|16|5minor|fill=true|i VI/3 iv VII|drums=full,bass,pad,riff",
+    "verse|Verse 1|16|5minor|fill=true|i VI/3 iv VII|drums=full,bass,pad,lead=verse,bassHeld",
+    "chorus|Chorus|16|5minor|fill=true|i VI/3 iv IV/V-V|drums=big,bass,pad,lead=chorus,counter",
+    "verse|Verse 2|16|5minor|fill=true|i VI/3 iv VII|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|5minor|fill=false|i VI/3 iv IV/V-V|drums=big,bass,pad,lead=chorus,counter",
+    "break|Breakdown|16|5minor|fill=true|i VII IV VI|drums=full,pad,arp",
+    "interlude|Instrumental|16|5minor|fill=true|i VI/3 iv VII|drums=full,bass,pad,riff,arp",
+    "chorus|Chorus · last|16|5minor|fill=true|i VI/3 iv IV/V-V|drums=big,bass,pad,lead=chorus,leadDouble,counter",
+    "outro|Outro · chorus to fade|16|5minor|fill=false|i VI/3 iv IV/V-V|drums=big,bass,pad,counter",
+  ],
+  "style": 0.875,
+  "title": "Tears in the Dark",
+  "totalBars": 152,
+}
+`;
+
+exports[`output snapshot > theory italo seed 202 weights 0.7/0.1/0.1/0.1 1`] = `
+{
+  "bars": "88eba4cf4738afcd296604",
+  "bassStyle": "italo",
+  "bpm": 112,
+  "key": {
+    "mode": "minor",
+    "tonic": 5,
+  },
+  "kit": "linndrum",
+  "melodies": "5aa584a91058b0a814028",
+  "motifs": "f8ad309bbf69a6e52037",
+  "progressions": {
+    "bridge": [
+      [
+        "IV",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "chorus": [
+      [
+        "III",
+      ],
+      [
+        "VIIadd9",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "v",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "vi",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "VII7",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "VII/i",
+      ],
+      [
+        "VI/3",
+      ],
+      [
+        "IV",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro · pedal|4|5minor|fill=true|i VII/i|drums=full,bass,pad",
+    "intro|Intro · riff|4|5minor|fill=false|i VII/i|drums=full,bass,riff",
+    "intro|Intro · bass drop|2|5minor|fill=true|i VII/i|drums=full,riff",
+    "intro|Intro · loop|4|5minor|fill=true|i VII/i VI/3 IV|drums=full,bass,pad",
+    "verse|Verse 1|16|5minor|fill=true|i VII/i VI/3 IV|drums=full,bass,pad,lead=verse,bassHeld",
+    "chorus|Chorus|16|5minor|fill=true|III VIIadd9 iv VII|drums=big,bass,pad,lead=chorus,counter",
+    "verse|Verse 2|16|5minor|fill=true|i VII/i VI/3 IV|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|5minor|fill=true|III VIIadd9 iv VII|drums=big,bass,pad,lead=chorus,counter",
+    "break|Breakdown|16|5minor|fill=true|i VI VI v|drums=full,pad,arp",
+    "interlude|Instrumental|16|5minor|fill=true|i VII/i VI/3 IV|drums=full,bass,pad,riff,arp",
+    "chorus|Chorus · last|16|5minor|fill=false|III VIIadd9 iv VII|drums=big,bass,pad,lead=chorus,leadDouble,counter",
+    "outro|Outro · chorus to fade|16|5minor|fill=false|III VIIadd9 iv VII|drums=big,bass,pad,counter",
+  ],
+  "style": 0.12500000000000003,
+  "title": "Tears in the Dark",
+  "totalBars": 142,
+}
+`;
+
+exports[`output snapshot > theory italo seed 202 weights 0.25/0.25/0.25/0.25 1`] = `
+{
+  "bars": "28694ee729995bea312816",
+  "bassStyle": "italo",
+  "bpm": 113,
+  "key": {
+    "mode": "minor",
+    "tonic": 5,
+  },
+  "kit": "linndrum",
+  "melodies": "d25bbc3577bf079a14018",
+  "motifs": "3217227a6bed1cb51662",
+  "progressions": {
+    "bridge": [
+      [
+        "IIIadd9",
+      ],
+      [
+        "VI",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "chorus": [
+      [
+        "I",
+      ],
+      [
+        "v",
+        "IV",
+      ],
+      [
+        "I",
+        "IVmaj7",
+      ],
+      [
+        "VII",
+        "V7sus4",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "VI",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "vi",
+      ],
+      [
+        "V",
+      ],
+    ],
+    "turnaround": [
+      [
+        "VI",
+      ],
+      [
+        "IV/V",
+        "V",
+      ],
+    ],
+    "verse": [
+      [
+        "i",
+      ],
+      [
+        "v",
+      ],
+      [
+        "i",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "iv",
+      ],
+      [
+        "VImaj7",
+      ],
+      [
+        "III",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro · bass and kick|4|5minor|fill=true|i v i iv VII iv VImaj7 III|drums=kick,bass",
+    "intro|Intro · stabs|8|5minor|fill=false|i v i iv VII iv VImaj7 III|drums=kick,bass,stabs",
+    "intro|Intro · groove|16|5minor|fill=true|i v i iv VII iv VImaj7 III|drums=full,bass,stabs,held",
+    "verse|Verse 1|16|5minor|fill=true|i v i iv VII iv VImaj7 III|drums=full,bass,pad,lead=verse,bassHeld",
+    "chorus|Chorus|16|5minor|fill=true|I v-IV I-IVmaj7 VII-V7sus4|drums=big,bass,pad,lead=chorus,counter",
+    "verse|Verse 2|16|5minor|fill=true|i v i iv VII iv VImaj7 III|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|5minor|fill=true|I v-IV I-IVmaj7 VII-V7sus4|drums=big,bass,pad,lead=chorus,counter",
+    "break|Breakdown|16|5minor|fill=true|i VII IV VI|drums=full,pad,arp",
+    "interlude|Instrumental|16|5minor|fill=true|i v i iv VII iv VImaj7 III|drums=full,bass,pad,riff,arp",
+    "chorus|Chorus · last|16|5minor|fill=true|I v-IV I-IVmaj7 VII-V7sus4|drums=big,bass,pad,lead=chorus,leadDouble,counter",
+    "outro|Outro · chorus to fade|16|5minor|fill=false|I v-IV I-IVmaj7 VII-V7sus4|drums=big,bass,pad,counter",
+  ],
+  "style": 0.5,
+  "title": "Tears in the Dark",
+  "totalBars": 156,
+}
+`;
+
+exports[`output snapshot > theory italo seed 239 weights 0.1/0.1/0.7/0.1 1`] = `
+{
+  "bars": "71d97a2df70c21b1303115",
+  "bassStyle": "faces",
+  "bpm": 119.5,
+  "key": {
+    "mode": "minor",
+    "tonic": 1,
+  },
+  "kit": "synth",
+  "melodies": "a0e2afda43c2b7a910121",
+  "motifs": "c7a3a5d4dc1310001703",
+  "progressions": {
+    "bridge": [
+      [
+        "IV",
+      ],
+      [
+        "vi7",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "V7sus4",
+      ],
+    ],
+    "chorus": [
+      [
+        "I",
+      ],
+      [
+        "v7",
+        "IVmaj7",
+      ],
+      [
+        "I",
+      ],
+      [
+        "v7",
+        "IVmaj7",
+      ],
+      [
+        "I",
+      ],
+      [
+        "v7",
+        "IVmaj7",
+      ],
+      [
+        "I",
+        "ii7",
+      ],
+      [
+        "V7sus4",
+      ],
+    ],
+    "interlude": [
+      [
+        "i",
+      ],
+      [
+        "VII",
+      ],
+      [
+        "v",
+      ],
+      [
+        "IVadd9",
+      ],
+    ],
+    "lift": [
+      [
+        "I",
+      ],
+      [
+        "v7",
+        "IVmaj7",
+      ],
+      [
+        "I",
+        "vi7",
+      ],
+      [
+        "VII",
+        "V7sus4",
+      ],
+    ],
+    "turnaround": [
+      [
+        "iv",
+      ],
+      [
+        "VII",
+      ],
+    ],
+    "verse": [
+      [
+        "iv7",
+        "VIIsus4",
+      ],
+      [
+        "v7",
+        "i",
+      ],
+    ],
+  },
+  "sections": [
+    "intro|Intro · bass and kick|4|1minor|fill=false|iv7-VIIsus4 v7-i|drums=kick,bass",
+    "intro|Intro · stabs|8|1minor|fill=false|iv7-VIIsus4 v7-i|drums=kick,bass,stabs",
+    "intro|Intro · groove|16|1minor|fill=true|iv7-VIIsus4 v7-i|drums=full,bass,stabs,held",
+    "verse|Verse 1|16|1minor|fill=true|iv7-VIIsus4 v7-i|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|1minor|fill=false|I v7-IVmaj7 I v7-IVmaj7 I v7-IVmaj7 I-ii7 V7sus4|drums=big,bass,pad,lead=chorus",
+    "interlude|Instrumental|8|1minor|fill=true|iv7-VIIsus4 v7-i|drums=full,bass,pad,riff,arp",
+    "verse|Verse 2|16|1minor|fill=true|iv7-VIIsus4 v7-i|drums=full,bass,pad,lead=verse",
+    "chorus|Chorus|16|1minor|fill=true|I v7-IVmaj7 I v7-IVmaj7 I v7-IVmaj7 I-ii7 V7sus4|drums=big,bass,pad,lead=chorus",
+    "break|Breakdown|16|1minor|fill=false|i VII v IVadd9|drums=full,pad,arp",
+    "interlude|Instrumental|8|1minor|fill=true|iv7-VIIsus4 v7-i|drums=full,bass,pad,riff,arp",
+    "chorus|Chorus · last|16|1minor|fill=true|I v7-IVmaj7 I v7-IVmaj7 I v7-IVmaj7 I-ii7 V7sus4|drums=big,bass,pad,lead=chorus,leadDouble",
+    "outro|Outro · chorus to fade|16|1minor|fill=false|I v7-IVmaj7 I v7-IVmaj7 I v7-IVmaj7 I-ii7 V7sus4|drums=big,bass,pad",
+  ],
+  "style": 0.5,
+  "title": "Night Machine",
+  "totalBars": 156,
+}
+`;
+
 exports[`output snapshot > theory seed 23 weights 0.8/0.2/0 1`] = `
 {
   "bars": "a853c4a08f568c79385132",
