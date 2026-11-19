@@ -4,13 +4,16 @@ import { GENRES, genreAt } from "../genres";
 import type { Bar, Progression } from "../progressions";
 import { REFERENCES, type ReferenceId } from "../references";
 import { createRng } from "../rng";
-import { chord, mod12, type Mode } from "../theory";
+import { chord, chordPitchClasses, mod12, type Mode } from "../theory";
 import { measureVariety } from "../variety";
+import type { SectionKind } from "./analysis";
 import {
+  approachWeight,
   cadenceOptions,
   progressionText,
   writeLoop,
   writePrechorus,
+  writeSection,
   type HarmonyContext,
   type LoopKind,
 } from "./generate";
@@ -141,7 +144,7 @@ describe("theory chords: synthpop", () => {
     }
   });
 
-  it("leaves everything but the verse, chorus and pre-chorus as classic draws it", () => {
+  it("leaves everything but the chords as classic draws it", () => {
     for (let i = 0; i < 40; i++) {
       const opts = { seed: 500 + i * 101, genre: "synthpop", weights: "auto" } as const;
       const c = compose({ ...opts, chords: "classic" });
@@ -153,12 +156,11 @@ describe("theory chords: synthpop", () => {
         c.bassStyle,
         c.title,
       ]);
-      for (const k of ["interlude", "turnaround", "bridge", "lift"] as const)
-        expect(t.progressions[k]).toEqual(c.progressions[k]);
-      // The same form; only a pre-chorus's length follows its progression.
+      // The same form; only a pre-chorus's and a turnaround's lengths follow their progressions.
       expect(t.sections.map((s) => s.kind)).toEqual(c.sections.map((s) => s.kind));
       t.sections.forEach((s, j) => {
-        if (s.kind !== "prechorus") expect(s.bars).toBe(c.sections[j]!.bars);
+        if (s.kind !== "prechorus" && s.kind !== "turnaround")
+          expect(s.bars).toBe(c.sections[j]!.bars);
       });
     }
   });
@@ -180,5 +182,130 @@ describe("theory chords: synthpop", () => {
       expect(theory[part].distinct).toBeGreaterThanOrEqual(3 * classic[part].distinct);
     }
     expect(theory.perSong).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("theory chords: synthpop's secondary sections", () => {
+  /** Many raw candidates (before scoring) for a section at a blend. */
+  function sectionCandidates(
+    ctx: HarmonyContext,
+    kind: SectionKind,
+    n: number,
+    target?: string,
+  ): Set<string> {
+    const rng = createRng(11);
+    const out = new Set<string>();
+    for (let i = 0; i < n; i++) out.add(progressionText(writeSection(rng, ctx, kind, target)));
+    return out;
+  }
+
+  it("leads every turnaround into its verse's first chord", () => {
+    for (const song of SONGS) {
+      const t = song.progressions.turnaround;
+      const last = t[t.length - 1]!.at(-1)!;
+      const target = song.progressions.verse[0]![0]!;
+      const ctx = contextAt(song.weights, song.key.mode);
+      expect(
+        approachWeight(ctx, last, target),
+        `${progressionText(t)} → ${target}`,
+      ).toBeGreaterThan(0);
+      // Up a step or a fourth, down a fifth or a step, ♭VI → i, or a semitone up: never a hold, a
+      // tritone or a leap up a third.
+      expect([1, 2, 4, 5, 7, 10]).toContain(mod12(chord(target).root - chord(last).root));
+      // The planner plays a turnaround as 2 or 4 bars, so it ends where its progression ends.
+      expect([2, 4]).toContain(t.length);
+    }
+  });
+
+  it("keeps the lift in its major key", () => {
+    const scale = new Set([0, 2, 4, 5, 7, 9, 11]);
+    for (const song of SONGS) {
+      const lift = song.progressions.lift;
+      expect(lift[0]).toEqual(["I"]);
+      for (const bar of lift)
+        for (const n of bar)
+          for (const pc of chordPitchClasses({ tonic: 0, mode: "major" }, chord(n)))
+            expect(scale, `${n} in ${progressionText(lift)}`).toContain(pc);
+      // The outro plays it in the lift key, a fourth up.
+      for (const s of song.sections.filter((x) => x.progression === lift))
+        expect(s.key).toEqual({ tonic: mod12(song.key.tonic + 5), mode: "major" });
+    }
+  });
+
+  it("doesn't repeat the chorus in an interlude or a bridge", () => {
+    for (const song of SONGS) {
+      const chorus = progressionText(song.progressions.chorus);
+      expect(progressionText(song.progressions.interlude)).not.toBe(chorus);
+      expect(progressionText(song.progressions.bridge)).not.toBe(chorus);
+    }
+  });
+
+  it("brings a chorus's Dorian IV back in its bridge", () => {
+    let iv = 0;
+    let dorian = 0;
+    for (let i = 0; i < 200; i++) {
+      const opts = { seed: 50 + i * 13, genre: "synthpop", weights: solo(REFS[0]!) } as const;
+      const t = compose({ ...opts, chords: "theory" });
+      const chords = new Set([...t.progressions.verse, ...t.progressions.chorus].flat());
+      if (!chords.has("IV") || chords.has("iv")) continue;
+      const bridge = new Set(t.progressions.bridge.flat());
+      if (bridge.has("iv") && !bridge.has("IV")) iv++;
+      if (bridge.has("IV")) dorian++;
+    }
+    expect(dorian).toBeGreaterThan(10);
+    expect(iv).toBeLessThan(dorian / 5);
+  });
+
+  it("reaches each reference's measured sections at that reference's weight alone", () => {
+    const measured: Record<
+      ReferenceId,
+      { mode: Mode; verseFirst: string } & Record<Exclude<SectionKind, "lift">, Bar[][]>
+    > = {
+      "true-faith": {
+        mode: "minor",
+        verseFirst: "i",
+        // "An instrumental chorus" (genres.ts 'TF instrumental').
+        interlude: [[["i"], ["III"], ["VII"], ["IV"]]],
+        turnaround: [
+          [["VI"], ["VI"]],
+          [["VI"], ["VII"]],
+        ],
+        bridge: [[["i", "IV"], ["IV"], ["i", "IV"], ["IV"]]],
+      },
+      "different-story": {
+        mode: "minor",
+        verseFirst: "i",
+        interlude: [[["III"], ["VII"], ["iv"], ["i", "VII"]]],
+        turnaround: [[["ii"], ["ii"], ["IV"], ["IV"]]],
+        bridge: [[["ii"], ["ii"], ["IV"], ["V"]]],
+      },
+      // You Came's verse is its loop, opening on IV.
+      "you-came": {
+        mode: "major",
+        verseFirst: "IV",
+        interlude: [
+          [["IVadd9"], ["V"]],
+          [["IV"], ["V"], ["IV"], ["V", "I/3"]],
+        ],
+        turnaround: [[["IV"], ["V"]]],
+        bridge: [[["IVmaj7"], ["Vadd9"], ["IV/3"], ["Vsus4", "V"]]],
+      },
+    } as never;
+    for (const ref of REFS) {
+      const m = measured[ref];
+      const ctx = contextAt(solo(ref), m.mode);
+      for (const kind of ["interlude", "turnaround", "bridge"] as const) {
+        const seen = sectionCandidates(
+          ctx,
+          kind,
+          5000,
+          kind === "turnaround" ? m.verseFirst : undefined,
+        );
+        for (const loop of m[kind]) expect(seen, `${ref} ${kind}`).toContain(progressionText(loop));
+      }
+    }
+    // TF's outro vamp, in the lift key.
+    const tf = contextAt(solo("true-faith"), "major");
+    expect(sectionCandidates(tf, "lift", 2000)).toContain("I │ I │ I │ I–V");
   });
 });

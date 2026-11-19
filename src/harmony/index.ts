@@ -1,7 +1,8 @@
 /**
  * Theory progressions for a song part (docs/plans/theory-chords.md §5): the chorus first, then the
- * verse through a section relation, then the pre-chorus into the chorus. Phase 2 covers synthpop's
- * verse, chorus and pre-chorus; other genres and sections keep classic's chords.
+ * verse through a section relation, then the pre-chorus into the chorus, then the interlude,
+ * turnaround, bridge and lift against the verse and chorus (§4.2). Phases 2 and 3 cover synthpop;
+ * other genres keep classic's chords.
  *
  * Each section draws from its own stream (`harmony:chorus`, `harmony:verse`, …), so classic's
  * draws, made first either way, stay as they are.
@@ -11,12 +12,17 @@ import type { Progression } from "../progressions";
 import { REFERENCES, type ReferenceId } from "../references";
 import type { Rng } from "../rng";
 import type { Mode } from "../theory";
-import type { HarmonyAnalysis } from "./analysis";
+import type { HarmonyAnalysis, SectionKind } from "./analysis";
 import {
+  approachWeight,
   choosePart,
+  SECTION_CHOICE,
   progressionText,
+  score,
+  scoreSection,
   writeLoop,
   writePrechorus,
+  writeSection,
   type HarmonyContext,
 } from "./generate";
 import { SYNTHPOP_HARMONY } from "./synthpop";
@@ -28,6 +34,11 @@ export interface TheoryChords {
   verse: Progression;
   chorus: Progression;
   prechorus?: Progression;
+  interlude: Progression;
+  turnaround: Progression;
+  bridge: Progression;
+  /** In the lift key: the major key a fourth up. */
+  lift: Progression;
   /** The section played on its strongest reference's measured loop, as a nod to the record. */
   quoted: "verse" | "chorus" | null;
 }
@@ -96,27 +107,66 @@ export function theoryChords(
   const chorus =
     quoted === "chorus" && ref
       ? quoteOf(ref, "chorus")
-      : choosePart(root.fork("harmony:chorus"), ctx, (r) => writeLoop(r, ctx, "chorus"), {
-          kind: "chorus",
-        });
+      : choosePart(
+          root.fork("harmony:chorus"),
+          (r) => writeLoop(r, ctx, "chorus"),
+          (c) => score(ctx, c, { kind: "chorus" }),
+        );
   const verse = opts.sameLoop
     ? chorus
     : quoted === "verse" && ref
       ? quoteOf(ref, "verse")
-      : choosePart(root.fork("harmony:verse"), ctx, (r) => writeLoop(r, ctx, "verse"), {
-          kind: "verse",
-          chorus,
-        });
-  const out: TheoryChords = { verse, chorus, quoted };
-  if (opts.prechorus) {
-    const tonic = mode === "major" ? "I" : "i";
-    const first = chorus[0]?.[0] ?? tonic;
-    out.prechorus = choosePart(
+      : choosePart(
+          root.fork("harmony:verse"),
+          (r) => writeLoop(r, ctx, "verse"),
+          (c) => score(ctx, c, { kind: "verse", chorus }),
+        );
+  const tonic = mode === "major" ? "I" : "i";
+  const verseFirst = verse[0]?.[0] ?? tonic;
+  const chorusFirst = chorus[0]?.[0] ?? tonic;
+  let prechorus: Progression | undefined;
+  if (opts.prechorus)
+    prechorus = choosePart(
       root.fork("harmony:prechorus"),
-      ctx,
-      (r) => writePrechorus(r, ctx, first, tonic),
-      { kind: "prechorus", entry: tonic, exit: first },
+      (r) => writePrechorus(r, ctx, chorusFirst, tonic),
+      (c) => score(ctx, c, { kind: "prechorus", entry: tonic, exit: chorusFirst }),
     );
+
+  // The secondary sections, against the verse and chorus: a turnaround leads into the verse's
+  // first chord, a bridge into the chorus's; the lift is written in the lift key.
+  const section = (kind: SectionKind, c: HarmonyContext, exit?: string) =>
+    choosePart(
+      root.fork(`harmony:${kind}`),
+      (r) => writeSection(r, c, kind, kind === "turnaround" ? exit : undefined),
+      (x) => scoreSection(c, x, { kind, verse, chorus, ...(exit ? { exit } : {}) }),
+      SECTION_CHOICE,
+    );
+  const out: TheoryChords = {
+    verse,
+    chorus,
+    quoted,
+    interlude: section("interlude", ctx),
+    turnaround: section("turnaround", ctx, verseFirst),
+    bridge: section("bridge", ctx, chorusFirst),
+    lift: section("lift", { ...ctx, mode: "major" }),
+  };
+  if (prechorus) out.prechorus = prechorus;
+
+  // A quoted chorus brings its record's measured sections along now and then, where they fit.
+  const measured = quoted === "chorus" && ref ? ctx.analysis.quoteSections.loops[ref] : undefined;
+  if (measured) {
+    const rng = root.fork("harmony:quote-sections");
+    const text = progressionText;
+    for (const kind of ["interlude", "turnaround", "bridge"] as const) {
+      const loop = measured[kind];
+      if (!loop || !rng.chance(ctx.analysis.quoteSections.chance)) continue;
+      const last = loop[loop.length - 1]?.at(-1) ?? tonic;
+      const fits =
+        kind === "turnaround"
+          ? approachWeight(ctx, last, verseFirst) > 0
+          : text(loop) !== text(chorus) && text(loop) !== text(verse);
+      if (fits) out[kind] = loop;
+    }
   }
   return out;
 }

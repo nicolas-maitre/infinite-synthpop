@@ -12019,7 +12019,7 @@ exports[`output snapshot > the-night 1`] = `
 
 exports[`output snapshot > theory seed 23 weights 0.8/0.2/0 1`] = `
 {
-  "bars": "61a5273f9ce833d0381968",
+  "bars": "a853c4a08f568c79385132",
   "bassStyle": "tf",
   "bpm": 120.5,
   "key": {
@@ -12032,18 +12032,16 @@ exports[`output snapshot > theory seed 23 weights 0.8/0.2/0 1`] = `
   "progressions": {
     "bridge": [
       [
-        "i",
-        "IV",
+        "ii",
+      ],
+      [
+        "ii",
       ],
       [
         "IV",
       ],
       [
-        "i",
-        "IV",
-      ],
-      [
-        "iv",
+        "V",
       ],
     ],
     "chorus": [
@@ -12063,16 +12061,16 @@ exports[`output snapshot > theory seed 23 weights 0.8/0.2/0 1`] = `
     ],
     "interlude": [
       [
-        "III",
+        "i",
+      ],
+      [
+        "VI",
       ],
       [
         "VII",
       ],
       [
-        "iv",
-      ],
-      [
-        "i",
+        "IV",
       ],
     ],
     "lift": [
@@ -12092,10 +12090,16 @@ exports[`output snapshot > theory seed 23 weights 0.8/0.2/0 1`] = `
     ],
     "turnaround": [
       [
-        "VI",
+        "ii",
       ],
       [
-        "VI",
+        "ii",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "IV",
       ],
     ],
     "verse": [
@@ -12136,8 +12140,8 @@ exports[`output snapshot > theory seed 23 weights 0.8/0.2/0 1`] = `
     "turnaround|Turn · VI–VII|2|9minor|fill=true|VI VII|drums=full,bass,pad,seq,bassShort",
     "verse|Verse 2|8|9minor|fill=true|i VI-VII v v i VI-VII v VII|drums=full,bass,pad,seq,lead=verse",
     "chorus|Chorus|8|9minor|fill=true|i VI VII IV-V|drums=big,bass,pad,arp,seq,lead=chorus,counter",
-    "turnaround|Turnaround|2|9minor|fill=true|VI VI|drums=full,bass,pad",
-    "bridge|Bridge · bass solo|8|9minor|fill=true|i-IV IV i-IV iv|drums=full,bass,hook,pad",
+    "turnaround|Turnaround|4|9minor|fill=true|ii ii IV IV|drums=full,bass,pad",
+    "bridge|Bridge · bass solo|8|9minor|fill=true|ii ii IV V|drums=full,bass,hook,pad",
     "interlude|Instrumental chorus|8|9minor|fill=true|i VI VII IV-V|drums=full,bass,hook,pad,riff,seq",
     "chorus|Chorus|8|9minor|fill=true|i VI VII IV-V|drums=big,bass,pad,arp,seq,lead=chorus,counter",
     "chorus|Chorus · double|8|9minor|fill=true|i VI VII IV-V|drums=big,bass,pad,arp,seq,lead=chorus,leadDouble,counter",
@@ -12145,13 +12149,13 @@ exports[`output snapshot > theory seed 23 weights 0.8/0.2/0 1`] = `
   ],
   "style": 0.2,
   "title": "Station Of Harbour",
-  "totalBars": 112,
+  "totalBars": 114,
 }
 `;
 
 exports[`output snapshot > theory seed 89 weights 0.15/0.85/0 1`] = `
 {
-  "bars": "a6d234fde76f3929320808",
+  "bars": "ac1374d08c99f265320810",
   "bassStyle": "ds",
   "bpm": 120.5,
   "key": {
@@ -12164,16 +12168,17 @@ exports[`output snapshot > theory seed 89 weights 0.15/0.85/0 1`] = `
   "progressions": {
     "bridge": [
       [
-        "iv",
+        "ii",
       ],
       [
-        "VI",
+        "ii",
       ],
       [
-        "VII",
+        "IV",
       ],
       [
-        "i",
+        "Vsus4",
+        "V",
       ],
     ],
     "chorus": [
@@ -12223,28 +12228,28 @@ exports[`output snapshot > theory seed 89 weights 0.15/0.85/0 1`] = `
         "I",
       ],
       [
-        "I",
+        "IV",
       ],
       [
         "I",
       ],
       [
-        "I",
+        "IV",
         "V",
       ],
     ],
     "turnaround": [
       [
-        "ii",
+        "VI",
       ],
       [
-        "ii",
+        "VII",
       ],
       [
-        "IV",
+        "VI",
       ],
       [
-        "IV",
+        "V",
       ],
     ],
     "verse": [
@@ -12283,7 +12288,7 @@ exports[`output snapshot > theory seed 89 weights 0.15/0.85/0 1`] = `
     "verse|Verse 2|8|0minor|fill=true|i VI VII V i VI VII iv|drums=full,bass,pad,lead=verse",
     "chorus|Chorus|8|0minor|fill=false|i III VII iv i III VII iv-V|drums=big,bass,pad,arp,lead=chorus",
     "interlude|Interlude|8|0minor|fill=false|III VII iv i-VII|drums=full,bass,pad,riff",
-    "turnaround|Turnaround|4|0minor|fill=true|ii ii IV IV|drums=full,bass,pad,riff,arp",
+    "turnaround|Turnaround|4|0minor|fill=true|VI VII VI V|drums=full,bass,pad,riff,arp",
     "break|Break|2|0minor|fill=true|i|drums=kick,pad,riff",
     "chorus|Chorus|8|0minor|fill=true|i III VII iv i III VII iv-V|drums=big,bass,pad,arp,stabs,lead=chorus",
     "chorus|Chorus · double|8|0minor|fill=true|i III VII iv i III VII iv-V|drums=big,bass,pad,arp,stabs,lead=chorus,leadDouble",
@@ -12298,7 +12303,7 @@ exports[`output snapshot > theory seed 89 weights 0.15/0.85/0 1`] = `
 
 exports[`output snapshot > theory seed 104 weights 0.1/0.1/0.8 1`] = `
 {
-  "bars": "a5210c194021dfb5258000",
+  "bars": "aa1279e49311b82c258003",
   "bassStyle": "yc",
   "bpm": 118,
   "key": {
@@ -12306,12 +12311,12 @@ exports[`output snapshot > theory seed 104 weights 0.1/0.1/0.8 1`] = `
     "tonic": 6,
   },
   "kit": "linndrum",
-  "melodies": "60cc4a14da728f9918796",
+  "melodies": "fff88eb7efd929c418842",
   "motifs": "3e8088b01d5d60ec1670",
   "progressions": {
     "bridge": [
       [
-        "IVmaj7",
+        "IVadd9",
       ],
       [
         "Vadd9",
@@ -12353,10 +12358,16 @@ exports[`output snapshot > theory seed 104 weights 0.1/0.1/0.8 1`] = `
     ],
     "interlude": [
       [
-        "IVadd9",
+        "I",
       ],
       [
-        "V",
+        "iii",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "IV",
       ],
     ],
     "lift": [
@@ -12364,7 +12375,6 @@ exports[`output snapshot > theory seed 104 weights 0.1/0.1/0.8 1`] = `
         "I",
       ],
       [
-        "I",
         "IV",
       ],
       [
@@ -12446,7 +12456,7 @@ exports[`output snapshot > theory seed 104 weights 0.1/0.1/0.8 1`] = `
     "prechorus|Pre-chorus|8|6major|fill=true|V/ii ii I v IV I ii V7/ii|drums=full,bass,pad,arp,lead=verse",
     "chorus|Chorus|8|6major|fill=true|ii I/3 IV V ii I/3 IV Vsus4-V|drums=big,bass,pad,arp,lead=chorus,leadStack",
     "verse|Breakdown|8|6major|fill=false|ii I/3|drums=breakdown,pad,lead=verse",
-    "bridge|Bridge|4|6major|fill=true|IVmaj7 Vadd9 IV/3 Vsus4-V|drums=breakdown,pad,lead=verse",
+    "bridge|Bridge|4|6major|fill=true|IVadd9 Vadd9 IV/3 Vsus4-V|drums=breakdown,pad,lead=verse",
     "verse|Verse 3|8|6major|fill=true|ii I/3 IV V ii I/3 IV Vsus4-I|drums=full,bass,pad,lead=verse",
     "prechorus|Pre-chorus|8|6major|fill=true|V/ii ii I v IV I ii V7/ii|drums=full,bass,pad,arp,lead=verse",
     "chorus|Chorus|8|6major|fill=true|ii I/3 IV V ii I/3 IV Vsus4-V|drums=big,bass,pad,lead=chorus,leadStack",
@@ -12461,7 +12471,7 @@ exports[`output snapshot > theory seed 104 weights 0.1/0.1/0.8 1`] = `
 
 exports[`output snapshot > theory seed 131 weights 0.34/0.33/0.33 1`] = `
 {
-  "bars": "cc7c9f18cf05c047295901",
+  "bars": "224c6fe7f6cf1a53296306",
   "bassStyle": "ds",
   "bpm": 118.5,
   "key": {
@@ -12469,21 +12479,23 @@ exports[`output snapshot > theory seed 131 weights 0.34/0.33/0.33 1`] = `
     "tonic": 2,
   },
   "kit": "linndrum",
-  "melodies": "82ae41dc9d112d3020287",
+  "melodies": "0d3bda64251f859d20201",
   "motifs": "54ca4e89ae5699622040",
   "progressions": {
     "bridge": [
       [
+        "i",
         "iv",
       ],
       [
-        "VI",
-      ],
-      [
-        "VII",
+        "iv",
       ],
       [
         "i",
+        "iv",
+      ],
+      [
+        "V",
       ],
     ],
     "chorus": [
@@ -12515,16 +12527,10 @@ exports[`output snapshot > theory seed 131 weights 0.34/0.33/0.33 1`] = `
     ],
     "interlude": [
       [
-        "III",
+        "VIadd9",
       ],
       [
         "VII",
-      ],
-      [
-        "IV",
-      ],
-      [
-        "i",
       ],
     ],
     "lift": [
@@ -12538,6 +12544,7 @@ exports[`output snapshot > theory seed 131 weights 0.34/0.33/0.33 1`] = `
         "I",
       ],
       [
+        "IV",
         "V",
       ],
     ],
@@ -12557,10 +12564,16 @@ exports[`output snapshot > theory seed 131 weights 0.34/0.33/0.33 1`] = `
     ],
     "turnaround": [
       [
-        "VI",
+        "ii",
       ],
       [
-        "VI",
+        "ii",
+      ],
+      [
+        "IV",
+      ],
+      [
+        "IV",
       ],
     ],
     "verse": [
@@ -12601,7 +12614,7 @@ exports[`output snapshot > theory seed 131 weights 0.34/0.33/0.33 1`] = `
     "prechorus|Pre-chorus|4|2minor|fill=true|VI VII VI V7|drums=full,bass,pad,arp,lead=verse",
     "chorus|Chorus|8|2minor|fill=true|i III VII V i III VII iv-V|drums=big,bass,pad,arp,lead=chorus,counter",
     "verse|Breakdown|8|2minor|fill=false|i III|drums=breakdown,pad,lead=verse",
-    "bridge|Bridge|4|2minor|fill=true|iv VI VII i|drums=breakdown,pad,lead=verse",
+    "bridge|Bridge|4|2minor|fill=true|i-iv iv i-iv V|drums=breakdown,pad,lead=verse",
     "chorus|Chorus|8|2minor|fill=true|i III VII V i III VII iv-V|drums=big,bass,pad,lead=chorus,counter",
     "break|Break|8|2minor|fill=true|i III|drums=hats16,pad",
     "interlude|Instrumental|8|2minor|fill=false|i III VII V i III VII iv-V|drums=hats16,bass,pad",

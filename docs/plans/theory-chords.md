@@ -8,9 +8,10 @@ work (their mode colour, bass motion, cadences, contrast between sections), inst
 measured loop and lightly varying it. Today's generator stays available, unchanged, as
 **classic progressions**.
 
-**Status:** phases 1 (plumbing) and 2 (synthpop's verse, chorus and pre-chorus) done. Theory
-mode writes synthpop's verse, chorus and pre-chorus; every other section and genre still plays
-classic's chords. Forms (section order and lengths) get the same treatment in a later phase (§8).
+**Status:** phases 1 (plumbing), 2 (synthpop's verse, chorus and pre-chorus) and 3 (synthpop's
+interlude, turnaround, bridge and lift) done. Theory mode writes every synthpop progression;
+Italo, Euro and cross-genre blends still play classic's chords. Forms (section order and lengths)
+get the same treatment in a later phase (§8).
 
 ## 1. The problem, measured
 
@@ -284,7 +285,71 @@ the planners, arranger, melodies and creator need no change.
          would take it as the push into a pre-chorus).
        - The creator's chord picker now lists a bar's chord even when it isn't one of its usual
          choices.
-3. **Secondary sections**: interlude, turnaround, bridge and lift, with their relations.
+3. ✅ **Secondary sections**: interlude, turnaround, bridge and lift, with their relations.
+   - **Built:**
+     - **Traits** (`synthpop.ts`, a source line each into analysis.md §2, §3, §6.2): per key mode,
+       shapes for the interlude (DS's relative-major run, TF's instrumental chorus, You Came's
+       IVadd9 │ V break and its loop), the turnaround (DS's Dorian ii │ ii │ IV │ IV, TF's VI,
+       the climb, You Came's bare IV │ V), and the bridge (TF's i–IV vamp, DS's ii–IV–V, the
+       subdominant, You Came's IVmaj7 │ Vadd9 │ IV/3 │ Vsus4–V). Minor keys read You Came's
+       shapes in the relative minor, major keys read TF's and DS's in major. The lift has its
+       own shapes in the lift key (TF's vamp on the new I, I–IV, and the chorus's ♭VII → IV
+       landed as IV → I).
+     - **Approach** trait: how a chord leads into the next section's first chord, by interval
+       (♭VII → i, the Dorian IV → i, V → i, ♭VI → i, You Came's V → IV), weighted per reference.
+     - **Generator** (`writeSection`, `scoreSection`): drawn from `harmony:interlude`,
+       `harmony:turnaround`, `harmony:bridge` and `harmony:lift`, after the verse and chorus
+       and scored against them. A turnaround's last bar is drawn and scored by the approach into
+       the verse's first chord. An interlude or bridge loses points for repeating the chorus
+       or the verse, or for sharing most of a line with either. A bridge is scored on leading
+       into the chorus. All but the lift are scored on echoing the song's colour chords: one the
+       verse or chorus has recurs, and the same degree in the other quality (iv where the chorus
+       has IV) costs a point, unless it sits beside ii as DS's Dorian pair.
+     - **Quotes:** a quoted chorus brings its record's measured interlude, turnaround and bridge
+       along half the time each, where they fit the song.
+     - **Planners unchanged.** The legacy synthpop planner plays `p.interlude` in DS's block,
+       `p.turnaround` in DS's block and before TF's bridge, `p.bridge` in TF's bridge and You
+       Came's, and `p.lift` in the lift outro. The intro, TF's instrumentals, You Came's breaks
+       and the fade still play the chorus. As with the pre-chorus, a turnaround's section is 2
+       or 4 bars to fit its progression.
+   - **Variety,** `pnpm variety 400 synthpop` (2026-11-17), auto style. Verse and chorus are as
+     in phase 2.
+
+     |                                                 | Classic         | Phase 2         | Phase 3           |
+     | ----------------------------------------------- | --------------- | --------------- | ----------------- |
+     | Distinct interlude / turnaround / bridge / lift | 20 / 6 / 20 / 3 | 20 / 6 / 20 / 3 | 87 / 25 / 86 / 15 |
+     | Distinct progressions within a song             | 5.62            | 5.66            | 5.70              |
+
+     The within-song number can't rise far while the form stays classic's: it reuses the chorus
+     for the intro, the instrumentals, the breaks and the fade, and the verse for You Came's
+     breakdown (§8).
+
+   - **By ear (2026-11-19):** five A/B clips, each the same song in phase 2 and phase 3:
+     - seed 23, TF-leaning (0.8/0.2/0), the turnaround and bridge into the instrumental chorus;
+     - seed 89, DS-leaning (0.15/0.85/0), the interlude and turnaround into the break and chorus;
+     - seed 131, the middle, the bridge after the breakdown into the chorus;
+     - seed 6 (0.7/0.3/0), the interlude and turnaround into verse 3, and the lift outro.
+
+     Seed 104 (You Came-leaning) plays only its bridge, You Came's measured one in both, so it
+     had nothing new to hear. The user rated every pair the same: phase 3 sounds as good as
+     phase 2. The four theory snapshot cases now lock phase 3.
+
+   - **Built differently from §4–§6:**
+     - **No bank penalty** for these sections. Each corner's measured section is its character
+       (TF's I │ I │ I │ I–V outro, You Came's IV │ V), the slots already vary it, and the
+       penalty pushed every corner off its own.
+     - **Choosing.** Sections pick among all 24 candidates at temperature 1, not the best 8 at
+       0.4. Their shapes are written bar by bar from the records, so the score enforces the
+       relations and the shapes' weights decide near-ties. The cut to 8 dropped TF's VI │ VI
+       (0.1 below the climb) every time.
+     - **Holds count as steps** in a section's motion: every measured one holds a chord across a
+       bar line (VI │ VI, ii │ ii, IV │ IV, I │ I).
+     - **The form's own turn.** The planner plays TF's VI │ VII turn into a verse itself, so a
+       turnaround that is exactly VI │ VII loses a point (`formPlays`). TF's measured
+       turnaround before the bridge is the one on VI.
+     - **Two vamps.** TF's i–IV vamp and an i–iv vamp are separate shapes, so a candidate keeps
+       one quality and the song's palette picks between them. Mixing IV and iv bar by bar
+       scattered the vamp's draws.
 4. **Italo and Euro analyses:** pedals and slash basses, ♭II, the parallel-major chorus, sus pairs,
    2-bar loops, 10- and 14-bar choruses. Then cross-genre blends through the merged planner.
 5. **Wizard "generate" entries,** README and analysis updates. (✅ The variety command came

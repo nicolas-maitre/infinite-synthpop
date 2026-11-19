@@ -192,10 +192,13 @@ plays instead. The line under the drum-machine picker says which. So a deploy wi
 - **Key:** auto or a fixed minor key.
 - **Progressions:** how generated songs pick their chords. **theory** (the default) builds them
   from the genres' harmonic analyses; **classic** keeps the picks every song had before
-  ([docs/plans/theory-chords.md](docs/plans/theory-chords.md)). Theory now writes synthpop's
-  verse, chorus and pre-chorus from why True Faith's, The Different Story's and You Came's
-  progressions work (`src/harmony/`); about 1 song in 10 quotes a record's own loop. Synthpop's
-  other sections, Italo, Euro-disco and cross-genre blends still play classic's chords. A change
+  ([docs/plans/theory-chords.md](docs/plans/theory-chords.md)). Theory now writes all of a
+  synthpop song's progressions from why True Faith's, The Different Story's and You Came's
+  progressions work (`src/harmony/`): the verse, chorus and pre-chorus, then the interlude,
+  turnaround, bridge and lift against them. A turnaround leads into the verse, a bridge or an
+  interlude contrasts with the chorus, the song's colour chords (TF's Dorian IV, DS's iv) recur,
+  and the lift is written in the major key a fourth up. About 1 song in 10 quotes a record's own
+  loop. Italo, Euro-disco and cross-genre blends still play classic's chords. A change
   recomposes the playing song, like the other generator settings. Theory songs' links carry `&chords=theory`; an old `#seed=…` link plays
   classic, as it always has. Originals and creations keep their own chords.
 - **Drum machine:** E-mu SP-12, LinnDrum, Oberheim DMX or synthesized.

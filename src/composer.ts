@@ -475,7 +475,7 @@ export function compose(opts: ComposeOptions): Song {
   const chords = opts.chords ?? "classic";
   const rngProg = root.fork("progressions");
   // Classic's picks are drawn in either mode, so every draw after them stays where it was; theory
-  // mode then rewrites the verse, chorus and pre-chorus from its own streams (below).
+  // mode then rewrites them from its own streams (below).
   const prog = (kind: ProgressionKind, rng = rngProg) =>
     substituteFrom(
       P.song,
@@ -498,8 +498,9 @@ export function compose(opts: ComposeOptions): Song {
   // You Came's verse is its chorus loop.
   const sameLoop = rngYc.chance(formOdds((x) => x.form.verseOnLoop));
   if (sameLoop) progressions.verse = progressions.chorus;
-  // Theory: the generator writes the verse, chorus and pre-chorus of a single-genre song part
-  // whose genre has an analysis (phase 2: synthpop); the rest keep classic's (plan §7).
+  // Theory: the generator writes the verse, chorus and pre-chorus, then the interlude, turnaround,
+  // bridge and lift, of a single-genre song part whose genre has an analysis (phases 2–3:
+  // synthpop); other genres and blends keep classic's (plan §7).
   let quoted: Song["quoted"];
   if (chords === "theory" && !ref && !P.song.mixed) {
     const theory = theoryChords(root, P.song, key.mode, {
@@ -510,6 +511,10 @@ export function compose(opts: ComposeOptions): Song {
       progressions.verse = theory.verse;
       progressions.chorus = theory.chorus;
       if (theory.prechorus) progressions.prechorus = theory.prechorus;
+      progressions.interlude = theory.interlude;
+      progressions.turnaround = theory.turnaround;
+      progressions.bridge = theory.bridge;
+      progressions.lift = theory.lift;
       quoted = theory.quoted ?? undefined;
     }
   }
