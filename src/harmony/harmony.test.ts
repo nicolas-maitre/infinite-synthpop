@@ -166,7 +166,7 @@ describe("theory chords: synthpop", () => {
   });
 
   it("keeps classic's chords for the genres without an analysis yet", () => {
-    for (const genre of ["italo", "euro"] as const)
+    for (const genre of ["euro"] as const)
       for (const seed of [3, 77]) {
         const c = compose({ seed, genre, weights: "auto", chords: "classic" });
         const t = compose({ seed, genre, weights: "auto", chords: "theory" });
