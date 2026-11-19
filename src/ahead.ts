@@ -928,72 +928,97 @@ async function renderPiece<M>(
     await wrapped.audioWorklet.addModule(tapUrl);
     tap = context.createAudioWorkletNode(TAP, tapOptions) as unknown as AudioWorkletNode;
   }
+  // Once the render is over, its port is closed and Tone's solo maps let go of the context.
+  // Otherwise each render stays in memory for good (in Firefox: a port listened to keeps its whole
+  // offline context alive), a 12 s segment's instruments at a time: gigabytes after a few hours.
+  const release = () => {
+    tap.port.onmessage = null;
+    tap.port.close();
+    releaseSolos(context);
+  };
   tap.port.onmessage = (
     e: MessageEvent<{ frame: number; l: Float32Array; r: Float32Array; last: boolean }>,
   ) => {
     sink.chunk(e.data.frame, e.data.l, e.data.r, e.data.last);
+    if (e.data.last) release();
   };
-  // A deck per song, built while the offline context is Tone's global (synchronously: the page's
-  // own engine keeps using the global context meanwhile). Two decks' sum gets the master's soft
-  // clipper again, as each deck's own peaks reach just under full scale.
-  const original = Tone.getContext();
-  const decks = new Map<Deck<M>, Instruments>();
-  // The sound each deck's instruments last took (a morph's), to switch a kit or patch only once.
-  const applied = new Map<Instruments, DeckSound>();
-  Tone.setContext(context);
   try {
-    if (piece.decks.length > 1) context.destination.chain(...softClipper(lite), tap);
-    else context.destination.chain(tap);
-    for (const deck of piece.decks) decks.set(deck, Instruments.create({ lite }));
+    // A deck per song, built while the offline context is Tone's global (synchronously: the page's
+    // own engine keeps using the global context meanwhile). Two decks' sum gets the master's soft
+    // clipper again, as each deck's own peaks reach just under full scale.
+    const original = Tone.getContext();
+    const decks = new Map<Deck<M>, Instruments>();
+    // The sound each deck's instruments last took (a morph's), to switch a kit or patch only once.
+    const applied = new Map<Instruments, DeckSound>();
+    Tone.setContext(context);
+    try {
+      if (piece.decks.length > 1) context.destination.chain(...softClipper(lite), tap);
+      else context.destination.chain(tap);
+      for (const deck of piece.decks) decks.set(deck, Instruments.create({ lite }));
+    } finally {
+      Tone.setContext(original);
+    }
+    for (const [deck, inst] of decks) {
+      await inst.ready;
+      await inst.drums.loadAll();
+      setUpDeck(inst, deck.song, deck.clock.bpmAt(deck.from), mix);
+      if (deck.sound) applySound(inst, deck.sound(deck.from), mix, null, applied);
+    }
+
+    const events = renderEvents(piece);
+    let next = 0;
+    const scheduleUntil = (offline: number) => {
+      for (; next < events.length; next++) {
+        const [at, deck, bar] = events[next]!;
+        if (at - t0 >= offline) break;
+        const inst = decks.get(deck);
+        const ev = deck.arrange ? deck.arrange(bar) : arrangeBar(deck.song, bar);
+        if (inst && deck.sound) applySound(inst, deck.sound(bar), mix, at - t0, applied);
+        const fx = deck.effects?.(bar);
+        if (inst && fx?.echoOut) inst.echoOut(at - t0, fx.echoOut.send, fx.echoOut.feedback);
+        if (inst) scheduleBar(inst, ev, at - t0, deck.clock.bpmAt(bar));
+      }
+      tickTo(offline);
+    };
+
+    if (!raw) {
+      // A bar at a time, letting the page breathe in between: the whole segment up front, as this
+      // render can't suspend. To its end, not Infinity, which tickTo would never reach.
+      for (const [at] of events) {
+        if (!sink.alive()) return;
+        scheduleUntil(at - t0 + 1e-6);
+        await new Promise((go) => setTimeout(go, 0));
+      }
+      scheduleUntil(seconds);
+      await (context.rawContext as unknown as OfflineAudioContext).startRendering();
+      return;
+    }
+    scheduleUntil(WINDOW);
+    for (let w = WINDOW; w < seconds; w += WINDOW) {
+      void raw.suspend(w - 0.25).then(async () => {
+        if (!sink.alive()) return; // Left suspended: dropped with the context.
+        await sink.gate(w - 0.25);
+        if (!sink.alive()) return;
+        scheduleUntil(w + WINDOW);
+        void raw.resume();
+      });
+    }
+    await raw.startRendering();
   } finally {
-    Tone.setContext(original);
+    // The render's last batch may still be on its way: it gets a moment (as the render loop
+    // gives it) before the port closes regardless. A render dropped half way closes it here too.
+    setTimeout(release, 1000);
   }
-  for (const [deck, inst] of decks) {
-    await inst.ready;
-    await inst.drums.loadAll();
-    setUpDeck(inst, deck.song, deck.clock.bpmAt(deck.from), mix);
-    if (deck.sound) applySound(inst, deck.sound(deck.from), mix, null, applied);
-  }
+}
 
-  const events = renderEvents(piece);
-  let next = 0;
-  const scheduleUntil = (offline: number) => {
-    for (; next < events.length; next++) {
-      const [at, deck, bar] = events[next]!;
-      if (at - t0 >= offline) break;
-      const inst = decks.get(deck);
-      const ev = deck.arrange ? deck.arrange(bar) : arrangeBar(deck.song, bar);
-      if (inst && deck.sound) applySound(inst, deck.sound(bar), mix, at - t0, applied);
-      const fx = deck.effects?.(bar);
-      if (inst && fx?.echoOut) inst.echoOut(at - t0, fx.echoOut.send, fx.echoOut.feedback);
-      if (inst) scheduleBar(inst, ev, at - t0, deck.clock.bpmAt(bar));
-    }
-    tickTo(offline);
-  };
-
-  if (!raw) {
-    // A bar at a time, letting the page breathe in between: the whole segment up front, as this
-    // render can't suspend. To its end, not Infinity, which tickTo would never reach.
-    for (const [at] of events) {
-      if (!sink.alive()) return;
-      scheduleUntil(at - t0 + 1e-6);
-      await new Promise((go) => setTimeout(go, 0));
-    }
-    scheduleUntil(seconds);
-    await (context.rawContext as unknown as OfflineAudioContext).startRendering();
-    return;
-  }
-  scheduleUntil(WINDOW);
-  for (let w = WINDOW; w < seconds; w += WINDOW) {
-    void raw.suspend(w - 0.25).then(async () => {
-      if (!sink.alive()) return; // Left suspended: dropped with the context.
-      await sink.gate(w - 0.25);
-      if (!sink.alive()) return;
-      scheduleUntil(w + WINDOW);
-      void raw.resume();
-    });
-  }
-  await raw.startRendering();
+/** Tone's Solo keeps its instances by context, in maps that are never emptied. */
+const solos = Tone.Solo as unknown as {
+  _allSolos: Map<Tone.BaseContext, unknown>;
+  _soloed: Map<Tone.BaseContext, unknown>;
+};
+function releaseSolos(context: Tone.BaseContext): void {
+  solos._allSolos.delete(context);
+  solos._soloed.delete(context);
 }
 
 /**
