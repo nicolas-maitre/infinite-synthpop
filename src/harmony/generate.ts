@@ -20,6 +20,7 @@ import type {
   HarmonyAnalysis,
   ModeTraits,
   Option,
+  PreEnding,
   Schema,
   SectionKind,
   SectionShape,
@@ -50,6 +51,9 @@ const TEMPERATURE = 0.4;
  * their relations (into the verse, against the chorus) and near-ties keep the shapes' weights
  * (a cut to the best 8 dropped TF's VI │ VI, 0.1 below the climb, every time). */
 export const SECTION_CHOICE = { temperature: 1, best: CANDIDATES };
+/** A pre-chorus chosen by shape (PreChorusTraits.byShape): looser than a verse's pick, so a
+ * record's shape keeps its weight against a pedal shape, but not every weak build gets through. */
+export const SHAPE_CHOICE = { temperature: 0.7, best: 16 };
 
 /** "i │ VI–VII │ v", as the variety measurement writes progressions. */
 export const progressionText = (p: Progression): string =>
@@ -396,6 +400,8 @@ export function writePrechorus(
   ctx: HarmonyContext,
   chorusFirst: string,
   tonic: string,
+  /** The chord before it: the pushed tonic (synthpop's form), or the verse's last chord. */
+  entry = tonic,
 ): Progression {
   const pc = traitsOf(ctx).prechorus;
   const long = rng.chance(ctx.at(pc.longWeight));
@@ -406,7 +412,7 @@ export function writePrechorus(
       shapes.map((x) => [x, ctx.at(x.weight)] as const),
     ) ?? shapes[0];
   const bars: Bar[] = [];
-  let prev: string | undefined = tonic;
+  let prev: string | undefined = entry;
   for (const slot of shape?.bars ?? []) {
     const options = slot.map((o) => [o.value, ctx.at(o.weight)] as const);
     const bar = choose(
@@ -420,10 +426,17 @@ export function writePrechorus(
   // Written-out endings (the Euro turns and stops), when the genre has them.
   if (pc.endings?.length && rng.chance(ctx.at(pc.endingWeight ?? { base: 1 }))) {
     const from = prev;
+    const target = info(chorusFirst).root;
+    // Only endings that lead into this chorus's first chord, when any does.
+    const leads = (o: PreEnding) => {
+      const last = lastOf(o.value[o.value.length - 1]);
+      return !o.leads || (!!last && o.leads.includes(mod12(target - info(last).root)));
+    };
+    const fitting = pc.endings.filter(leads);
     const end =
       choose(
         rng,
-        pc.endings.map(
+        (fitting.length ? fitting : pc.endings).map(
           (o) =>
             [
               o.value,
@@ -527,7 +540,9 @@ export function score(ctx: HarmonyContext, p: Progression, s: ScoreContext): num
       }),
     ).length;
     if (coloured > colourLimit) total -= 0.7 * (coloured - colourLimit);
-    if (new Set(line.flat()).size < 2 && maxHold < 4) total -= 2;
+    // A line on one chord, unless the genre's sections sit (a 5-bar pre-chorus's last bar is its
+    // stop, not a line).
+    if (line.length > 1 && new Set(line.flat()).size < 2 && maxHold < 4) total -= 2;
   }
   const text = progressionText(p);
   // Lighter on a pre-chorus: the plan's variety targets are the verse's and the chorus's.
@@ -540,7 +555,7 @@ export function score(ctx: HarmonyContext, p: Progression, s: ScoreContext): num
     // A static verse into a busier chorus (Innocent Love's pedal, Heaven Can Wait's vamp).
     if (t.rhythmContrast && s.kind === "verse") {
       const faster = changeRate(s.chorus) - changeRate(p);
-      total += 2 * ctx.at(t.rhythmContrast) * Math.max(-0.5, Math.min(1, faster));
+      total += ctx.at(t.rhythmContrast) * Math.max(-0.5, Math.min(1, faster));
     }
   }
   return total;

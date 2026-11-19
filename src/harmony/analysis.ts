@@ -99,9 +99,23 @@ export interface PreChorusTraits {
   /** Endings written out instead of the approach above (Innocent Love's ♭VI │ V turn, Crazy
    * Juliet's IV⁷sus4 │ IV⁷ stop, Heaven Can Wait's IV │ IV handing the chorus a IV), taken with
    * the chance `endingWeight`. */
-  endings?: readonly Option<Bar[]>[];
+  endings?: readonly PreEnding[];
   endingWeight?: Blend;
+  /** Choose among more of the candidates at a higher temperature (generate.ts SHAPE_CHOICE), so
+   * each record's shape keeps its weight: a pedal shape's chords over one bass all score as steps, and would
+   * otherwise win wherever they're drawn (Heaven Can Wait's in an Innocent Love song). */
+  byShape?: boolean;
+  /** The pre-chorus follows the verse's last chord as it is (the Euro planner), not a tonic the
+   * planner pushes into the verse's last bar (synthpop's). */
+  fromVerse?: boolean;
   source: string;
+}
+
+/** A written-out pre-chorus ending, and the chorus openings it leads into: intervals from its
+ * last chord's root up to the chorus's first (Heaven Can Wait's IV → i is 7, Crazy Juliet's
+ * IV⁷ → ♭III is 10). Unset: any. */
+export interface PreEnding extends Option<Bar[]> {
+  leads?: readonly number[];
 }
 
 /** The sections written after the verse and chorus, against them (plan §4.2). */

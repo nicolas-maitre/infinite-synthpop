@@ -195,6 +195,7 @@ function mergeMode(parts: readonly Part[], m: Mode): ModeTraits {
             endingWeight: mean(withEndings, (p) =>
               p.at(t(p).prechorus.endingWeight ?? { base: 1 }),
             ),
+            ...(withEndings.some((p) => t(p).prechorus.byShape) ? { byShape: true } : {}),
           }
         : {}),
     },

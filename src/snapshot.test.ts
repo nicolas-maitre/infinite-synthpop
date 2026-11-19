@@ -160,7 +160,7 @@ const GENRE_CASES: [string, ComposeOptions][] = (["italo", "euro"] as const).fla
 
 /** Theory progressions (docs/plans/theory-chords.md §6), the seeds approved by ear: one song
  * leaning to each reference and one in the middle, rendered as classic/theory A/B clips (synthpop
- * on 2026-11-17, Italo on 2026-11-19). Every melodic track is locked. */
+ * on 2026-11-17, Italo and Euro-disco on 2026-11-19). Every melodic track is locked. */
 const THEORY_CASES: [string, ComposeOptions][] = [
   ...(
     [
@@ -180,6 +180,10 @@ const THEORY_CASES: [string, ComposeOptions][] = [
       ["italo", 239, [0.1, 0.1, 0.7, 0.1]],
       ["italo", 201, [0.1, 0.1, 0.1, 0.7]],
       ["italo", 202, [0.25, 0.25, 0.25, 0.25]],
+      ["euro", 303, [0.8, 0.1, 0.1]],
+      ["euro", 314, [0.1, 0.8, 0.1]],
+      ["euro", 303, [0.1, 0.1, 0.8]],
+      ["euro", 300, [0.34, 0.33, 0.33]],
     ] as const
   ).map(([genre, seed, weights]): [string, ComposeOptions] => [
     `theory ${genre} seed ${seed} weights ${weights.join("/")}`,

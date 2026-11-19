@@ -12,7 +12,13 @@ import type { ReferenceId } from "../references";
 import { createRng } from "../rng";
 import { chord, chordPitchClasses, mod12, type Mode } from "../theory";
 import { measureVariety } from "../variety";
-import { progressionText, writeLoop, type HarmonyContext, type LoopKind } from "./generate";
+import {
+  progressionText,
+  writeLoop,
+  writePrechorus,
+  type HarmonyContext,
+  type LoopKind,
+} from "./generate";
 import { harmonyContext } from "./index";
 
 function contextAt(genre: GenreId, weights: readonly number[], mode: Mode): HarmonyContext {
@@ -195,5 +201,101 @@ describe("theory chords: Italo", () => {
     expect(share(loops("get-closer"), "/VII")).toBeGreaterThan(0.2);
     // Self Control's loop is plain Aeolian.
     expect(share(loops("self-control"), "/")).toBeLessThan(0.1);
+  });
+});
+
+describe("theory chords: Euro-disco", () => {
+  const SONGS = songsOf("euro");
+  sharedChecks("euro", () => SONGS);
+  reachesMeasured("euro", {
+    "innocent-love": {
+      mode: "minor",
+      verse: [[["v"], ["ii7/v"], ["v"], ["I/v"]]],
+      chorus: [
+        [
+          ...[0, 1, 2].flatMap(() => [["i"], ["IVsus4", "IV"], ["VII9sus4"], ["III"]]),
+          ["i"],
+          ["IVsus4", "IV"],
+        ],
+      ],
+    },
+    "heaven-can-wait": {
+      mode: "minor",
+      verse: [[["IV7"], ["IV7"]]],
+      chorus: [
+        [
+          ...[0, 1].flatMap(() => [["i"], ["i"], ["VII"], ["VII"]]),
+          ["iv"],
+          ["VI"],
+          ["i"],
+          ["i"],
+          ["Vsus4"],
+          ["V"],
+        ],
+      ],
+    },
+    "crazy-juliet": {
+      mode: "major",
+      verse: [[["I"], ["I"], ["I"], ["I"], ["ii"], ["VII"], ["I"], ["I"]]],
+      chorus: [
+        [...[0, 1, 2].flatMap(() => [["III", "IV"], ["v"]]), ["III"], ["ii7"], ["Vsus4"], ["IV/V"]],
+      ],
+    },
+  });
+
+  it("reaches Crazy Juliet read from its v, and each record's pre-chorus", () => {
+    const cj = contextAt("euro", soloOf("euro", "crazy-juliet"), "minor");
+    expect(candidates(cj, "chorus", 20000)).toContain(
+      "VI–VII │ i │ VI–VII │ i │ VI–VII │ i │ VI │ v7 │ Isus4 │ VII/i",
+    );
+    const pre = (ref: ReferenceId, mode: Mode, chorusFirst: string) => {
+      const ctx = contextAt("euro", soloOf("euro", ref), mode);
+      const rng = createRng(5);
+      const tonic = mode === "major" ? "I" : "i";
+      return new Set(
+        Array.from({ length: 4000 }, () =>
+          progressionText(writePrechorus(rng, ctx, chorusFirst, tonic)),
+        ),
+      );
+    };
+    expect(pre("heaven-can-wait", "minor", "i")).toContain(
+      "III/IV │ VII/IV │ IV │ IV │ III/IV │ VII/IV │ IV │ IV",
+    );
+    expect(pre("innocent-love", "minor", "i")).toContain("i │ viø7 │ i │ viø7 │ VI │ V");
+    expect(pre("crazy-juliet", "major", "III")).toContain("iv │ IIIadd9 │ VII │ IV7sus4 │ IV7");
+  });
+
+  it("writes choruses and pre-choruses the planner lays out for their own lengths", () => {
+    const lengths = new Set<number>();
+    for (const song of SONGS) {
+      const chorus = song.progressions.chorus.length;
+      lengths.add(chorus);
+      expect(chorus).toBeGreaterThanOrEqual(4);
+      expect(chorus).toBeLessThanOrEqual(16);
+      expect(chorus % 2).toBe(0);
+      const pre = song.progressions.prechorus;
+      if (pre) expect(pre.length).toBeGreaterThanOrEqual(2);
+      if (pre) expect(pre.length).toBeLessThanOrEqual(8);
+      for (const s of song.sections) {
+        if (s.label === "Chorus" && s.progression === song.progressions.chorus)
+          expect(s.bars).toBe(Math.max(8, chorus));
+        if (s.kind === "prechorus" && pre && s.progression === pre) expect(s.bars).toBe(pre.length);
+      }
+    }
+    // The long loops come through: Innocent Love's and Heaven Can Wait's 14, Crazy Juliet's 10.
+    expect(lengths).toContain(10);
+    expect(lengths).toContain(14);
+  });
+
+  it("changes chords faster in the chorus than in the verse", () => {
+    const rate = (p: Progression) => {
+      const seq = p.flat();
+      return seq.filter((n, i) => n !== seq[(i + 1) % seq.length]).length / p.length;
+    };
+    const unquoted = SONGS.filter((s) => !s.quoted);
+    const faster = unquoted.filter(
+      (s) => rate(s.progressions.chorus) > rate(s.progressions.verse),
+    ).length;
+    expect(faster / unquoted.length).toBeGreaterThan(0.6);
   });
 });

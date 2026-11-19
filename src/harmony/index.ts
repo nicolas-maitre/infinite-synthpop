@@ -19,6 +19,7 @@ import {
   approachWeight,
   choosePart,
   SECTION_CHOICE,
+  SHAPE_CHOICE,
   progressionText,
   score,
   scoreSection,
@@ -27,6 +28,7 @@ import {
   writeSection,
   type HarmonyContext,
 } from "./generate";
+import { EURO_HARMONY } from "./euro";
 import { ITALO_HARMONY } from "./italo";
 import { mergeAnalyses } from "./merge";
 import { SYNTHPOP_HARMONY } from "./synthpop";
@@ -35,6 +37,7 @@ import { SYNTHPOP_HARMONY } from "./synthpop";
 export const HARMONY: Partial<Record<GenreId, HarmonyAnalysis>> = {
   synthpop: SYNTHPOP_HARMONY,
   italo: ITALO_HARMONY,
+  euro: EURO_HARMONY,
 };
 
 /** A song part's blend: one genre at its weights, or (`mixed`) its genres' shares. */
@@ -163,14 +166,19 @@ export function theoryChords(
           (c) => score(ctx, c, { kind: "verse", chorus }),
         );
   const tonic = mode === "major" ? "I" : "i";
+  const traits = ctx.analysis.modes[mode];
   const verseFirst = verse[0]?.[0] ?? tonic;
   const chorusFirst = chorus[0]?.[0] ?? tonic;
   let prechorus: Progression | undefined;
+  // Synthpop's planner pushes the verse's last bar to the tonic before a pre-chorus; Euro's plays
+  // the verse as it is.
+  const entry = traits.prechorus.fromVerse ? (verse[verse.length - 1]?.at(-1) ?? tonic) : tonic;
   if (opts.prechorus)
     prechorus = choosePart(
       root.fork("harmony:prechorus"),
-      (r) => writePrechorus(r, ctx, chorusFirst, tonic),
-      (c) => score(ctx, c, { kind: "prechorus", entry: tonic, exit: chorusFirst }),
+      (r) => writePrechorus(r, ctx, chorusFirst, tonic, entry),
+      (c) => score(ctx, c, { kind: "prechorus", entry, exit: chorusFirst }),
+      ...(traits.prechorus.byShape ? [SHAPE_CHOICE] : []),
     );
 
   // The secondary sections, against the verse and chorus: a turnaround leads into the verse's

@@ -165,15 +165,6 @@ describe("theory chords: synthpop", () => {
     }
   });
 
-  it("keeps classic's chords for the genres without an analysis yet", () => {
-    for (const genre of ["euro"] as const)
-      for (const seed of [3, 77]) {
-        const c = compose({ seed, genre, weights: "auto", chords: "classic" });
-        const t = compose({ seed, genre, weights: "auto", chords: "theory" });
-        expect(t.progressions).toEqual(c.progressions);
-      }
-  });
-
   it("varies far more than classic (plan §6 targets)", () => {
     const classic = measureVariety("synthpop", "classic", 150);
     const theory = measureVariety("synthpop", "theory", 150);
