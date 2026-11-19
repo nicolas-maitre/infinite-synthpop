@@ -424,8 +424,10 @@ export class Engine {
   /** Repeat: the song starts again when it ends, and the DJ doesn't mix out of it. */
   setRepeat(on: boolean): void {
     if (on === this.repeat) return;
+    const from = this.endFrom();
     this.repeat = on;
-    this.rerender();
+    // A creation loops either way.
+    if (!this.custom) this.replanFrom(Math.min(from, this.endFrom()));
   }
 
   get repeating(): boolean {
@@ -442,10 +444,13 @@ export class Engine {
   endSong(on: boolean): void {
     if (!on) {
       const ending = this.ending;
+      const from = this.endFrom();
       this.ending = null;
       if (this.fade?.song) this.cancelFade();
       // The DJ plans the mix-out again.
-      if (ending && ending.serial === this.serial && !ending.atSwap) this.rerender();
+      if (ending && ending.serial === this.serial && !ending.atSwap) {
+        this.replanFrom(Math.min(from, this.endFrom()));
+      }
       return;
     }
     if (this.ending?.serial === this.serial) return;
@@ -457,12 +462,13 @@ export class Engine {
       const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
       atSwap = !line || line.deck.meta.serial !== this.serial || line.bar >= plan.swap - window;
     }
+    const from = this.endFrom();
     this.ending = { serial: this.serial, atSwap };
     if (!atSwap) {
       this.djPlans.delete(this.song);
       if (this.mixNextFor === this.song) this.mixNextFor = null;
     }
-    this.rerender();
+    this.replanFrom(Math.min(from, this.endFrom()));
   }
 
   /** "End of this song" is set (until it pauses, or another song is picked). */
@@ -648,7 +654,7 @@ export class Engine {
     // Planned again at the new swap (and kept): the key there, and what that allows.
     if (!this.djPlan(song, meta, swap)) return false;
     this.mixNextFor = song;
-    this.rerender();
+    this.replanFrom(this.endFrom());
     return true;
   }
 
@@ -1098,13 +1104,14 @@ export class Engine {
     const line = player.barLineAfter(player.readyAfter());
     if (!line || line.deck.meta.serial !== this.serial) return;
     const plan = this.djPlans.get(this.song);
+    const from = this.endFrom();
     if (plan) {
       const window = plan.style === "morph" ? MORPH_BARS : plan.intro;
       if (line.bar >= plan.swap - window) return;
       if (this.mixNextFor === this.song) this.djPlan(this.song, this.meta(), plan.swap);
       else this.djPlans.delete(this.song);
     }
-    this.rerender();
+    this.replanFrom(Math.min(from, this.endFrom()));
   }
 
   /** How long songs run (seconds), from the next song composed or planned: the playing one
@@ -1576,6 +1583,40 @@ export class Engine {
     const meta = deck.meta.serial === this.serial ? this.meta() : deck.meta;
     this.followers.clear();
     player.cut(line.time, this.planFrom(song, bar, meta, line.time));
+  }
+
+  /**
+   * The playing song's first bar that depends on how it ends and what follows it (repeat, the
+   * next song's settings, "end of this song", Mix next): its DJ transition's first bar, else its
+   * last bar (heard with the next song's first bars under its tails), or its end when it plays
+   * its last bar alone. Plans the DJ transition when it is due and not planned yet, as planning
+   * the song's end would.
+   */
+  private endFrom(): number {
+    const song = this.song;
+    const plan = this.djPlan(song, this.meta());
+    if (plan) return Math.max(0, plan.swap - (plan.style === "morph" ? MORPH_BARS : plan.intro));
+    return this.ending?.serial === this.serial ? song.totalBars : song.totalBars - 1;
+  }
+
+  /**
+   * A change to how the playing song ends and what follows it (rendering ahead): the timeline is
+   * planned again from its bar `bar` on, keeping what is rendered before it. When that bar comes
+   * too soon for the new render to be ready (or isn't planned), everything is rendered again from
+   * the first bar line it can reach, as for any change (rerender).
+   */
+  private replanFrom(bar: number): void {
+    const player = this.player;
+    if (!player) return;
+    const serial = this.serial;
+    const at =
+      this.cue === null ? player.barTime((deck) => deck.meta.serial === serial, bar) : null;
+    if (at === null || at < player.readyAfter()) {
+      this.rerender();
+      return;
+    }
+    this.followers.clear();
+    player.cut(at, this.planFrom(this.song, bar, this.meta(), at));
   }
 
   /** A bar starts being heard (render-ahead): the engine follows it as the live clock does. */

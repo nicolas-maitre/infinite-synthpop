@@ -378,6 +378,21 @@ export class AheadPlayer<M> {
     return best;
   }
 
+  /** When bar `bar` of a deck `which` picks starts on the timeline, as planned (its start, or
+   * the end of the piece it ends); null when no planned piece has it. A piece cut short keeps its
+   * decks' bars past the cut: its span tells. */
+  barTime(which: (deck: Deck<M>) => boolean, bar: number): number | null {
+    for (const { piece, dropped } of this.pieces) {
+      if (dropped) continue;
+      for (const deck of piece.decks) {
+        if (!which(deck) || bar < deck.from || bar > deck.to) continue;
+        const at = deck.clock.time(bar);
+        if (at >= piece.start - 1e-6 && at <= piece.end + 1e-6) return at;
+      }
+    }
+    return null;
+  }
+
   /**
    * Replaces everything heard from `time` on with `next` (which starts there): what plays now
    * fades out over a few milliseconds at `time`, and the timeline after is planned again.
