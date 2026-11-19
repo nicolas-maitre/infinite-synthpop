@@ -68,7 +68,7 @@ export const RECORDS: Record<ReferenceId, RecordInfo> = {
 };
 
 /** A record's front cover, `size` pixels wide (the archive's thumbnails). */
-export function coverUrl(id: ReferenceId, size: 250 | 500): string {
+export function coverUrl(id: ReferenceId, size: 250 | 500 | 1200): string {
   return `https://coverartarchive.org/release-group/${RECORDS[id].releaseGroup}/front-${size}`;
 }
 

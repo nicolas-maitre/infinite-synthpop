@@ -7,6 +7,7 @@
  */
 import type { LengthRange, Song } from "./composer";
 import { coverElement, showCover, songCover, type CoverSource } from "./coverart";
+import { openCover } from "./coverview";
 import { GENRES } from "./genres";
 import { coverUrl, RECORDS } from "./influence";
 import { barSeconds, songSeconds } from "./mediasession";
@@ -275,6 +276,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
 
   // ── Position: from the last bar heard, moved on smoothly between bars ──
   let song: Song | null = null;
+  /** The song Up next shows (its sleeve opens big too). */
+  let upNext: Song | null = null;
   let heard = { bar: 0, at: 0, seconds: 2 };
   let playing = false;
   let shown = false;
@@ -335,6 +338,17 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
   });
 
   // ── Controls ──
+  // ── The sleeves open almost full screen ──
+  const showBig = (shown: Song | null) => {
+    if (!shown) return;
+    const record = shown.reference ? RECORDS[shown.reference] : undefined;
+    openCover(songCover(shown), {
+      title: shown.title,
+      meta: record ? `${record.artist} · ${record.year}` : songMeta(shown),
+    });
+  };
+  ui.cover.addEventListener("click", () => showBig(song));
+  ui.upNextCover.addEventListener("click", () => showBig(upNext));
   ui.save.addEventListener("click", () => actions.toggleSave());
   ui.share.addEventListener("click", () => actions.share(ui.share));
   ui.play.addEventListener("click", () => actions.togglePlay());
@@ -675,6 +689,7 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     },
 
     renderUpNext({ song: next, when, canPick, pickHint }) {
+      upNext = next;
       ui.upNextTitle.textContent = next.title;
       ui.upNextMeta.textContent = songMeta(next);
       ui.upNextWhen.textContent = `· ${when}`;
