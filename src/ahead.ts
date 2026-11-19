@@ -20,7 +20,9 @@
  *
  * The render streams out of the offline context as it goes, through an AudioWorklet tap, and
  * suspends every couple of seconds to schedule the next bars (as render.ts does) and to wait while
- * it is more than the buffer ahead of what is heard.
+ * it is more than the buffer ahead of what is heard. Where renders suspend (Chromium, Safari), each
+ * one's context lives in a hidden frame of its own, removed once it is over (`renderFrame`): Chromium
+ * frees nothing of a render otherwise.
  */
 import * as Tone from "tone";
 import { arrangeBar, type BarEvents } from "./arranger";
@@ -894,7 +896,8 @@ async function renderPiece<M>(
   const seconds = piece.end + FADE + 0.05 - t0;
   const frames = Math.ceil(seconds * sampleRate);
   const suspendable = typeof OfflineAudioContext.prototype.suspend === "function";
-  const raw = suspendable ? new OfflineAudioContext(2, frames, sampleRate) : null;
+  const frame = suspendable ? renderFrame() : null;
+  const raw = suspendable ? offlineContext(frame, frames, sampleRate) : null;
   const context = raw
     ? new Tone.OfflineContext(raw)
     : new Tone.OfflineContext(2, frames / sampleRate, sampleRate);
@@ -916,33 +919,35 @@ async function renderPiece<M>(
     channelCountMode: "explicit" as const,
     processorOptions: { end: frames },
   };
-  let tap: AudioWorkletNode;
-  if (raw) {
-    await raw.audioWorklet.addModule(tapUrl);
-    tap = new AudioWorkletNode(raw, TAP, tapOptions);
-  } else {
-    // On the wrapped context itself, not through Tone's addAudioWorkletModule: Tone loads one
-    // module per context, whatever the URL, so its own worklets (the guitar's comb filters) would
-    // never load.
-    const wrapped = context.rawContext as unknown as { audioWorklet: AudioWorklet };
-    await wrapped.audioWorklet.addModule(tapUrl);
-    tap = context.createAudioWorkletNode(TAP, tapOptions) as unknown as AudioWorkletNode;
-  }
+  let tap: AudioWorkletNode | null = null;
   // Once the render is over, its port is closed and Tone's solo maps let go of the context.
   // Otherwise each render stays in memory for good (in Firefox: a port listened to keeps its whole
   // offline context alive), a 12 s segment's instruments at a time: gigabytes after a few hours.
   const release = () => {
-    tap.port.onmessage = null;
-    tap.port.close();
+    if (tap) {
+      tap.port.onmessage = null;
+      tap.port.close();
+    }
     releaseSolos(context);
   };
-  tap.port.onmessage = (
-    e: MessageEvent<{ frame: number; l: Float32Array; r: Float32Array; last: boolean }>,
-  ) => {
-    sink.chunk(e.data.frame, e.data.l, e.data.r, e.data.last);
-    if (e.data.last) release();
-  };
   try {
+    if (raw) {
+      await raw.audioWorklet.addModule(tapUrl);
+      tap = new AudioWorkletNode(raw, TAP, tapOptions);
+    } else {
+      // On the wrapped context itself, not through Tone's addAudioWorkletModule: Tone loads one
+      // module per context, whatever the URL, so its own worklets (the guitar's comb filters)
+      // would never load.
+      const wrapped = context.rawContext as unknown as { audioWorklet: AudioWorklet };
+      await wrapped.audioWorklet.addModule(tapUrl);
+      tap = context.createAudioWorkletNode(TAP, tapOptions) as unknown as AudioWorkletNode;
+    }
+    tap.port.onmessage = (
+      e: MessageEvent<{ frame: number; l: Float32Array; r: Float32Array; last: boolean }>,
+    ) => {
+      sink.chunk(e.data.frame, e.data.l, e.data.r, e.data.last);
+      if (e.data.last) release();
+    };
     // A deck per song, built while the offline context is Tone's global (synchronously: the page's
     // own engine keeps using the global context meanwhile). Two decks' sum gets the master's soft
     // clipper again, as each deck's own peaks reach just under full scale.
@@ -993,22 +998,83 @@ async function renderPiece<M>(
       await (context.rawContext as unknown as OfflineAudioContext).startRendering();
       return;
     }
+    // A render no longer wanted is left suspended and given up on: its frame goes (below), and the
+    // context with it.
+    let abandon = () => {};
+    const abandoned = new Promise<void>((done) => (abandon = done));
     scheduleUntil(WINDOW);
     for (let w = WINDOW; w < seconds; w += WINDOW) {
       void raw.suspend(w - 0.25).then(async () => {
-        if (!sink.alive()) return; // Left suspended: dropped with the context.
+        if (!sink.alive()) return abandon();
         await sink.gate(w - 0.25);
-        if (!sink.alive()) return;
+        if (!sink.alive()) return abandon();
         scheduleUntil(w + WINDOW);
         void raw.resume();
       });
     }
-    await raw.startRendering();
+    const rendering = raw.startRendering();
+    // Rejected once its frame is gone, after it was given up on.
+    rendering.catch(() => {});
+    await Promise.race([rendering, abandoned]);
   } finally {
     // The render's last batch may still be on its way: it gets a moment (as the render loop
-    // gives it) before the port closes regardless. A render dropped half way closes it here too.
-    setTimeout(release, 1000);
+    // gives it) before the port closes regardless. A render dropped half way closes it here too,
+    // and its frame goes, with the context.
+    setTimeout(() => {
+      release();
+      frame?.remove();
+    }, 1000);
   }
+}
+
+/**
+ * A hidden same-origin frame for one render's context, removed once the render is over. Chromium
+ * never frees an offline context that loaded an AudioWorklet (the tap, the guitar's comb filters)
+ * while its document lives: the worklet's thread keeps it, rendered audio and instruments and all,
+ * a song's worth each time. Removing the frame ends that thread, and the context goes.
+ */
+function renderFrame(): HTMLIFrameElement | null {
+  if (typeof document === "undefined") return null;
+  const frame = document.createElement("iframe");
+  frame.hidden = true;
+  frame.tabIndex = -1;
+  frame.setAttribute("aria-hidden", "true");
+  document.body.append(frame);
+  return frame;
+}
+
+/**
+ * An offline context in `frame`'s window, made to pass for one of this window's: Tone and
+ * standardized-audio-context tell contexts and params by `instanceof` this window's interfaces.
+ * The audio is the same (one engine; only the JavaScript objects' prototypes differ). In this
+ * window, as before, when there is no frame or that doesn't take.
+ */
+function offlineContext(
+  frame: HTMLIFrameElement | null,
+  frames: number,
+  sampleRate: number,
+): OfflineAudioContext {
+  const win = frame?.contentWindow as (Window & typeof globalThis) | null | undefined;
+  if (frame && win) {
+    try {
+      Object.setPrototypeOf(win.OfflineAudioContext.prototype, OfflineAudioContext.prototype);
+      Object.setPrototypeOf(win.AudioNode.prototype, AudioNode.prototype);
+      Object.setPrototypeOf(win.AudioParam.prototype, AudioParam.prototype);
+      const raw = new win.OfflineAudioContext(2, frames, sampleRate);
+      const gain = raw.createGain();
+      if (
+        raw instanceof OfflineAudioContext &&
+        gain instanceof AudioNode &&
+        gain.gain instanceof AudioParam
+      ) {
+        return raw;
+      }
+    } catch (error) {
+      console.warn("Rendering in this window instead of a frame", error);
+    }
+  }
+  frame?.remove();
+  return new OfflineAudioContext(2, frames, sampleRate);
 }
 
 /** Tone's Solo keeps its instances by context, in maps that are never emptied. */
