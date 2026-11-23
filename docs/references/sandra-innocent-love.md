@@ -119,7 +119,7 @@ rest on the chroma alone.
 | 2:01.7 | 58–59   | 2     | Turn, stop                               | B │ B♭                                                  |
 | 2:05.9 | 60–73   | 14    | Chorus 2                                 | as chorus 1                                             |
 | 2:35.0 | 74–75   | 2     | Chorus stop                              | D♭ held                                                 |
-| 2:39.2 | 76–79   | 4     | Instrumental link: bass riff, high synth | B♭11 (A♭/B♭) │ E♭maj7 │ B♭11 │ D♭ → E♭ (?)              |
+| 2:39.2 | 76–79   | 4     | Instrumental link: bass riff, orch. hits | B♭11 (A♭/B♭) │ E♭maj7 │ B♭11 │ D♭ → E♭ (?)              |
 | 2:47.5 | 80–87   | 8     | Instrumental verse: no voice             | as the verse                                            |
 | 3:04.2 | 88–91   | 4     | Pre-chorus 3: vocal fragments only       | as the pre-chorus                                       |
 | 3:12.5 | 92–93   | 2     | Turn, stop                               | B │ B♭                                                  |
@@ -337,8 +337,8 @@ Roles and registers only; the melodies, the riffs and the lyrics are the composi
 | Turn                       | B, B♭ major                                                         | none                                                                           | lead up to E♭5                                                                                     |
 | Chorus                     | fuller chords                                                       | **chord stabs** on 1, 1&, 2e, 2&, 3& and 4e, close to the bass figure's rhythm | **stacked voices** (two or more pitches in 60–64% of frames, against 27–32% in the verses), A♭3–B4 |
 | Chorus stop                | D♭ held                                                             | none                                                                           | a held or trailing line                                                                            |
-| Instrumental link (2:39.2) | B♭11, E♭maj7                                                        | **a high synth line**, up to C♯7, over the bass riff                           | none                                                                                               |
-| Instrumental verse         | the verse chords; the "other" stem about 8 dB louder than when sung | an instrumental lead in place of the voice, around A♭4–B5                      | none                                                                                               |
+| Instrumental link (2:39.2) | none (by ear); the hits play B♭11, E♭maj7                           | **orchestral hits** (by ear), overtones up to C♯7, over the bass riff          | none                                                                                               |
+| Instrumental verse         | the verse chords; the "other" stem about 8 dB louder than when sung | an instrumental lead in place of the voice, its own tune, A♭4–A♭5 (§12)        | none                                                                                               |
 | Bridge (3:45.9)            | Aeolian chords                                                      | stabs; 16th hats                                                               | **the highest section**: E♭4–C♯5, stacked (85% of frames)                                          |
 | Chorus 4                   | as the chorus                                                       | as the chorus                                                                  | stacked voices and ad-libs, up to C5                                                               |
 
@@ -607,6 +607,10 @@ new NativeMonoSynth({
 
 Least certain of all: the link plays a riff bass, a chord and the line together.
 
+**By ear (2026-11-23): the link has no pads.** It is drums, the bass riff and heavy
+**orchestral-hit** notes; the "line" below is those hits. Their spectrum is chords, not one line,
+so the peaks don't give single notes; the hits' notes are not transcribed yet.
+
 - **Register: probably octave 5, not 6–7.** "Up to C♯7" in §7 reads harmonics. At 2:44.5 the
   line's note is D5 (584 Hz), and its 2nd harmonic is as loud as the fundamental, the 3rd 1 dB
   down, the 4th–6th 6–7 dB down. Those harmonics are what reach C♯7 (clips 3a–3c).
@@ -635,6 +639,55 @@ new NativeMonoSynth({
 ```
 
 The partials are the D5 reading (h1–h6), extended by a guess.
+
+### The instrumental verse's line (2:47.5–3:04.2, bars 80–87)
+
+Transcribed from the "other" stem with sung verse 2's "other" stem (bars 46–53, the same chords)
+subtracted, notes read from the spacing of their overtones above 1 kHz, and checked by ear against
+the record over four rounds (clips 2d–5a). The user confirmed v4 (clip 5a): "all matches".
+
+- **Its own tune, not the verse's.** The sung verse is a busy line around F4 (C♯4–G♯4 in ours);
+  the synth plays a slower melody an octave or so above it.
+- **Two 3-bar phrases, each followed by a bar of rest.** 17 notes in 8 bars; held notes of up to
+  10 16ths between quicker steps.
+- **Register:** A♭4–A♭5, centred on B♭4–C♯5. The energy the instrumental verse adds sits in
+  octaves 6–7 (+20 dB over the sung verse there): overtones, not the notes.
+- **Tone:** very bright: its overtones reach octave 7, where the sung verse has almost nothing.
+- **Echo:** a dotted-8th echo (3 16ths) repeats each note audibly. Two echoes in bar 86 (F5 on
+  3e, E♭5 on 3&) read as notes in v3 and were wrong.
+- **Level:** about 6 dB under the mix (−25.6 against −19.8 dBFS RMS, the stem's added power
+  against the whole mix).
+
+The notes, as 16th positions in the bar (0 = beat 1; fractions are measured pushes):
+
+| Bar | Notes (position, length in 16ths)                                    |
+| --- | -------------------------------------------------------------------- |
+| 80  | C♯5 (−0.4, 10)                                                       |
+| 81  | C5 (2, 3) · B♭4 (5, 3) · C5 (8, 2) · C♯5 (10, 3.5) · B♭4 (13.7, 2.3) |
+| 82  | A♭4 (0, 10)                                                          |
+| 83  | rest                                                                 |
+| 84  | B♭4 (1.8, 2) · C♯5 (3.9, 2) · E♭5 (6, 6) · C♯5 (12, 7, into bar 85)  |
+| 85  | E♭5 (9.5, 3) · F5 (12.5, 3) · A♭5 (15.5, 2.5, into bar 86)           |
+| 86  | F5 (2, 2) · E♭5 (4, 2) · F5 (6, 5.5)                                 |
+| 87  | rest                                                                 |
+
+**Ours today** (seed 1, original mode): a new sparse line from The Night's lead range, raised an
+octave for the saw patch (Crazy Juliet's register): F5–C♯6, mostly repeated B♭5s of 2 16ths,
+about 18 dB under the mix. So it is an octave too high, choppier, and 12 dB too quiet: the
+"teeny tiny high" line. The link plays pads and the same sparse line, not orchestral hits.
+
+Clips in `renders/ear-check-il-lead/` (gitignored), the record's bars 75–87 (2:37.2) unless noted:
+
+| Clip | Contents                                                                    |
+| ---- | --------------------------------------------------------------------------- |
+| 2a   | the record's mix                                                            |
+| 2b   | its "other" stem                                                            |
+| 2c   | the line isolated (bars 80–87 only)                                         |
+| 2f   | ours: the link and instrumental verse                                       |
+| 2g   | ours: the instrumental lead alone                                           |
+| 5a   | bars 79–87 (2:45.4): the record's mix with the transcription (v4) as a tone |
+| 5b   | the same over the isolated line                                             |
+| 5c   | the transcription alone                                                     |
 
 ### Ear check
 
