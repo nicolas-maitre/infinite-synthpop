@@ -1643,6 +1643,47 @@ describe("euro-disco genre", () => {
     return s;
   };
 
+  it("plays Innocent Love's piano: its own phrases in the instrumental verse, fills in the sung ones", () => {
+    const counts = new Set<number>();
+    for (const seed of [1, 2, 3]) {
+      const song = compose({ seed, reference: "innocent-love" });
+      const inst = sectionAt(song, "Instrumental verse");
+      const played: number[] = [];
+      for (let b = 0; b < inst.bars; b++) {
+        const synth = arrangeBar(song, inst.startBar + b).notes.synth;
+        // Two phrases of three bars, each followed by a bar's rest, in A♭4–A♭5.
+        if (b % 4 === 3) expect(synth).toEqual([]);
+        else played.push(synth.length);
+        for (const n of synth) {
+          expect(n.midi).toBeGreaterThanOrEqual(68);
+          expect(n.midi).toBeLessThanOrEqual(80);
+        }
+      }
+      expect(Math.max(...played)).toBeGreaterThan(1);
+      // In the sung verses: a few notes after the voice stops, in most bars.
+      let fills = 0;
+      for (const verse of song.sections.filter((s) => s.label.startsWith("Verse"))) {
+        for (let b = 0; b < verse.bars; b++) {
+          const ev = arrangeBar(song, verse.startBar + b);
+          const synth = ev.notes.synth;
+          if (!synth.length) continue;
+          fills++;
+          counts.add(synth.length);
+          expect(synth.length).toBeLessThanOrEqual(4);
+          const lastSung = Math.max(0, ...ev.notes.lead.map((n) => n.step));
+          for (const n of synth) {
+            expect(n.step).toBeGreaterThan(lastSung);
+            // At the latest on the next bar's downbeat.
+            expect(n.step).toBeLessThanOrEqual(16);
+          }
+        }
+      }
+      expect(fills).toBeGreaterThan(0);
+    }
+    // Fills of different sizes across the three songs.
+    expect(counts.size).toBeGreaterThan(1);
+  });
+
   it("writes verse, pre-chorus and chorus blocks over a backbeat kit, never four-on-the-floor", () => {
     for (let seed = 1; seed <= 30; seed++) {
       const song = compose({ seed, genre: "euro", weights: "auto" });

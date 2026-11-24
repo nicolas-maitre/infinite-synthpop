@@ -16,6 +16,7 @@ import {
   type Blend,
   type Genre,
   type GenreId,
+  type Voices,
 } from "./genres";
 import {
   AUTO_OPEN_CHANCE,
@@ -346,6 +347,8 @@ export const LEAD_RANGES: Record<MelodyKind, readonly [number, number]> = {
 };
 /** The Night's lead synth (the-night.md §10.1): E♭4–C5 on the record, a little room either side. */
 export const LEAD_SYNTH_RANGE = [62, 74] as const;
+/** Innocent Love's piano (sandra-innocent-love.md §12): A♭4–A♭5 on the record. */
+export const PIANO_LEAD_RANGE = [68, 80] as const;
 
 /**
  * The lead synth's phrasing (the-night.md §10.1): phrases of a bar or two with rests between, about
@@ -365,6 +368,38 @@ function sparsePhrases(melody: Melody): Melody {
     }),
   };
 }
+/** Innocent Love's piano line, bar by bar in every 8 (sandra-innocent-love.md §12). */
+const PIANO_BARS = ["held", "busy", "held", "rest", "busy", "late", "busy", "rest"] as const;
+
+/**
+ * Innocent Love's piano phrasing (sandra-innocent-love.md §12): two phrases of three bars, each
+ * followed by a bar's rest, about 3 notes a bar. The first phrase holds one note in its first and
+ * last bars (about 10 16ths) around a busier middle; the second starts busy, its middle bar only
+ * answers from beat 3, and its last bar ends on a held note. Notes at least an 8th apart, each
+ * ringing on to the next.
+ */
+function pianoPhrases(melody: Melody): Melody {
+  return {
+    bars: melody.bars.map((bar, i) => {
+      const kind = PIANO_BARS[i % PIANO_BARS.length];
+      const notes = [...bar].sort((a, b) => a.step - b.step);
+      const first = notes[0];
+      if (kind === "rest" || !first) return [];
+      if (kind === "held") return [{ ...first, step: Math.min(first.step, 2), dur: 10 }];
+      const from = kind === "late" ? notes.filter((n) => n.step >= 8) : notes;
+      const kept: Note[] = [];
+      for (const n of from.length ? from : [{ ...notes[notes.length - 1]!, step: 12 }]) {
+        const last = kept[kept.length - 1];
+        if (!last || n.step - last.step >= 2) kept.push({ ...n });
+      }
+      return kept.map((n, j) => {
+        const next = kept[j + 1];
+        return { ...n, dur: next ? next.step - n.step : Math.max(2, Math.min(6, 16 - n.step)) };
+      });
+    }),
+  };
+}
+
 /** The counter-line sits above the sung chorus: TF's MIDI keeps it to F5–C6, reaching to A4 and
  * E6. */
 /** A partial record without its unset entries, so spreading it keeps what it would override. */
@@ -601,6 +636,7 @@ export function compose(opts: ComposeOptions): Song {
       melodies,
       ref?.melodies,
       leadRanges,
+      g.voices.synthPatch,
     ),
     counter,
     sectionCounters: sectionCounters(root, sections, key, progressions.chorus, counter),
@@ -660,23 +696,25 @@ function sectionMelodies(
   melodies: Record<MelodyKind, Melody>,
   custom: Record<string, CustomMelody> = {},
   ranges: Record<MelodyKind, readonly [number, number]> = LEAD_RANGES,
+  synthPatch?: Voices["synthPatch"],
 ): (Melody | null)[] {
   const written = new Map<string, Melody>();
+  const piano = synthPatch === "piano";
   return sections.map((section) => {
     const progression = JSON.stringify(section.progression);
-    // The Night's lead synth: a line of its own, in sparse phrases.
+    // The Night's lead synth: a line of its own, in sparse phrases (Innocent Love's piano: its own
+    // register and phrasing).
     if (section.layers.leadSynth) {
       const id = `synth|${section.key.tonic}${section.key.mode}|${progression}`;
       let melody = written.get(id);
       if (!melody) {
-        melody = sparsePhrases(
-          generateMelody(
-            root.fork(`melody-${id}`),
-            section.key,
-            section.progression,
-            LEAD_SYNTH_RANGE,
-          ),
+        const line = generateMelody(
+          root.fork(`melody-${id}`),
+          section.key,
+          section.progression,
+          piano ? PIANO_LEAD_RANGE : LEAD_SYNTH_RANGE,
         );
+        melody = piano ? pianoPhrases(line) : sparsePhrases(line);
         written.set(id, melody);
       }
       return melody;

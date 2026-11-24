@@ -173,9 +173,11 @@ export interface Voices {
   /** The pads' low-pass, Hz (unset: 2.8 kHz with a heavier chorus): Crazy Juliet's are far darker
    * (1.2 kHz), Heaven Can Wait's and Innocent Love's about ours (2.5 and 3 kHz). */
   padTone?: number;
-  /** The lead synth's sound: The Night's struck FM tone (unset), or a saw through a 4.7 kHz
-   * low-pass with a 4.4 Hz vibrato and no echo, an octave up (Crazy Juliet's instrumental lead). */
-  synthPatch?: "fm" | "saw";
+  /** The lead synth's sound: The Night's struck FM tone (unset), a saw through a 4.7 kHz
+   * low-pass with a 4.4 Hz vibrato and no echo, an octave up (Crazy Juliet's instrumental lead), or
+   * a piano drowned in reverb, in A♭4–A♭5 phrases of three bars and a rest (Innocent Love's
+   * instrumental verse, sandra-innocent-love.md §12). */
+  synthPatch?: "fm" | "saw" | "piano";
 }
 
 /** Synthpop's parts and sounds, for every genre that doesn't say otherwise. */
@@ -1017,8 +1019,8 @@ const CJ_GROOVE: Grooves = {
 
 /** The Euro-disco parts and sounds, measured from the "other" stems (each analysis's §12). */
 const EURO_VOICE_TRAITS: Partial<Record<ReferenceId, Voices>> = {
-  // Pads like ours; the intro's soft triangle figure; saw stabs on the bass's rhythm; a bright lead
-  // over the instrumental link.
+  // Pads like ours; the intro's soft triangle figure; saw stabs on the bass's rhythm; a piano with
+  // a lot of reverb in the instrumental verse (by ear, 2026-11-23).
   "innocent-love": {
     riff: "motif",
     riffPatch: "click",
@@ -1028,7 +1030,7 @@ const EURO_VOICE_TRAITS: Partial<Record<ReferenceId, Voices>> = {
     arp: "motif",
     arpPatch: "triangle",
     padTone: 3000,
-    synthPatch: "saw",
+    synthPatch: "piano",
   },
   // The solo intro motif (three detuned saws, legato, a filter falling from 8 to 3.2 kHz, a long
   // reverb), the gated saw pulse in the pre-chorus and chorus.

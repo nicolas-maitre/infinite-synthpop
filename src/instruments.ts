@@ -117,6 +117,35 @@ const SENDS: Record<Track, { reverb: number; delay: number }> = {
   // from (picked by ear that way, clip 6b2 in docs/italo/mix.md).
   synth: { reverb: 0.3, delay: 0.25 },
 };
+/**
+ * Innocent Love's piano's overtones (instruments' synthPiano): each one's level at the strike (dB
+ * under the fundamental) and its fade's time constant (s). Measured 80 ms in on the record's
+ * isolated line (sandra-innocent-love.md §12): h2–h4 11–16 dB under, h5–h6 about 33, h7 45; the
+ * fundamental falls about 6–8 dB in 0.7–1 s.
+ */
+const PIANO_PARTIALS: readonly (readonly [db: number, fade: number])[] = [
+  [0, 1.4],
+  [-12, 0.93],
+  [-10, 0.7],
+  [-15, 0.56],
+  [-28, 0.35],
+  [-29, 0.3],
+  [-41, 0.25],
+  [-45, 0.22],
+];
+/** The piano's fundamental (dB). The record's line, with its reverb and echo, sits about 6 dB
+ * under the mix. At 9 ours was "way too loud" (clip 10a); 0 puts it, alone, at about −18 dBFS
+ * in the instrumental verse, as the FM piano whose level was fine by ear (clip 9a). */
+const PIANO_DB = 0;
+/** A stiff string's overtone `n` (× the fundamental): B = 0.001 puts h6 about 35 cents sharp. */
+const stretched = (n: number) => n * Math.sqrt(1 + 0.001 * n * n);
+/** The envelope decay (to silence) whose exponential fade has this time constant (voices.ts). */
+const decayFor = (timeConstant: number) => Math.exp(timeConstant * Math.log(200)) - 1;
+/** Innocent Love's piano's reverb send (setVoices). */
+const PIANO_REVERB = 1.8;
+/** Its echo send: the shared dotted-8th delay, which the record's line plays into (§12). "Not
+ * enough reverb / echo" at 1 and 0.25 (clip 8b). */
+const PIANO_DELAY = 0.6;
 
 /**
  * The sung lead's sound (setLeadPatch, the Lead setting):
@@ -330,6 +359,7 @@ export class Instruments {
     arpSaw: NativeMonoSynth;
     stabSaw: NativeMonoSynth;
     synthSaw: NativeMonoSynth;
+    synthPiano: { partials: { ratio: number; synth: NativeSynth }[]; hammer: Tone.NoiseSynth };
   };
   /** Each track's sends to the reverb and the shared delay, so a voice can change them. */
   private readonly sends = {} as Record<Track, { reverb?: Tone.Gain; delay?: Tone.Gain }>;
@@ -1025,6 +1055,35 @@ export class Instruments {
       maxPolyphony: 2,
       volume: -8,
     }).connect(sawVibrato);
+    // Innocent Love's piano (sandra-innocent-love.md §12): by ear a piano with a lot of reverb.
+    // Additive: each overtone its own sine, stretched sharp as a stiff string's are (the record's
+    // run about 35 cents sharp by h6), each fading on its own, the high ones faster, so the tone
+    // mellows as it rings and never holds a level. An FM tone on whole-number harmonics sounded
+    // "like an e-piano instead of a piano" (clips 8b, 9a). The fundamental and h2 have a second
+    // string 3.5 cents up, to beat against; a short band-passed noise is the hammer.
+    const partials = PIANO_PARTIALS.slice(0, lite ? 5 : PIANO_PARTIALS.length);
+    const pianoPartial = (ratio: number, db: number, fade: number) => ({
+      ratio,
+      synth: new NativeSynth({
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.002, decay: decayFor(fade), sustain: 0, release: 0.45 },
+        maxPolyphony: lite ? 3 : 6,
+        volume: PIANO_DB + db,
+      }).connect(this.channels.synth),
+    });
+    const synthPiano = {
+      partials: [
+        ...partials.map(([db, fade], i) => pianoPartial(stretched(i + 1), db, fade)),
+        ...partials
+          .slice(0, 2)
+          .map(([db, fade], i) => pianoPartial(stretched(i + 1) * 2 ** (3.5 / 1200), db - 4, fade)),
+      ],
+      hammer: new Tone.NoiseSynth({
+        noise: { type: "white" },
+        envelope: { attack: 0.001, decay: 0.025, sustain: 0, release: 0.01 },
+        volume: -14,
+      }).chain(new FixedFilter("bandpass", 3000, { Q: 0.8 }), this.channels.synth),
+    };
     this.euro = {
       pad: euroPad,
       padFilter: euroPadFilter,
@@ -1034,6 +1093,7 @@ export class Instruments {
       arpSaw,
       stabSaw,
       synthSaw,
+      synthPiano,
     };
 
     // TF's high sequencer: a plucky square on 16ths.
@@ -1211,7 +1271,18 @@ export class Instruments {
         }
         break;
       case "synth": {
-        const synth = this.voices.synthPatch === "saw" ? this.euro.synthSaw : this.synth;
+        const patch = this.voices.synthPatch;
+        if (patch === "piano") {
+          const { partials, hammer } = this.euro.synthPiano;
+          for (const n of notes) {
+            const f = midiToFreq(n.midi);
+            for (const p of partials)
+              p.synth.triggerAttackRelease(f * p.ratio, len(n), at(n), n.vel);
+            hammer.triggerAttackRelease(0.03, at(n), n.vel);
+          }
+          break;
+        }
+        const synth = patch === "saw" ? this.euro.synthSaw : this.synth;
         for (const n of notes) synth.triggerAttackRelease(midiToFreq(n.midi), len(n), at(n), n.vel);
         break;
       }
@@ -1346,6 +1417,12 @@ export class Instruments {
     if (arp.delay) arp.delay.gain.value = arpPluck ? 0 : SENDS.arp.delay;
     this.channels.arp.pan.value = arpPluck ? 0 : PANS.arp;
     if (voices.padTone) this.euro.padFilter.input.frequency.value = voices.padTone;
+    // Innocent Love's piano is drowned in reverb: after a note, the record's tail falls about
+    // 8 dB in 0.4 s and 14 dB in 1 s (sandra-innocent-love.md §12).
+    const synth = this.sends.synth;
+    const piano = voices.synthPatch === "piano";
+    if (synth.reverb) synth.reverb.gain.value = piano ? PIANO_REVERB : SENDS.synth.reverb;
+    if (synth.delay) synth.delay.gain.value = piano ? PIANO_DELAY : SENDS.synth.delay;
   }
 
   /** A DJ's echo out from `time`: every track's delay send at `send` and the delay's feedback at
@@ -1468,6 +1545,7 @@ export class Instruments {
       this.euro.arpSaw,
       this.euro.stabSaw,
       this.euro.synthSaw,
+      ...this.euro.synthPiano.partials.map((p) => p.synth),
     ];
     for (const s of synths) s.releaseAll(time);
   }

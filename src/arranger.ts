@@ -331,6 +331,16 @@ export function arrangeBar(song: Song, bar: number): BarEvents {
     } else if (L.leadDouble)
       notes.leadOct = lead.map((n) => ({ ...n, midi: n.midi + 12, vel: n.vel * 0.55 }));
   }
+  // Innocent Love's piano answers the sung verse wherever the voice leaves room
+  // (sandra-innocent-love.md §12): the record's verse 1 has 12 notes in 6 fills; ours sings
+  // through every other bar, so its fills are fewer and fuller. 1–3 notes every other bar were
+  // "not enough notes overall" (clip 10b).
+  if (voices.synthPatch === "piano" && L.lead === "verse" && !L.leadSynth) {
+    const next = bar + 1 < song.totalBars ? arrangeTarget(song, bar + 1) : undefined;
+    const into = next?.section.key === key ? next.slots[0] : undefined;
+    const late = barInSection >= section.bars / 2;
+    notes.synth = pianoFill(key, slots, notes.lead, into, late, rng.fork("piano"));
+  }
   const counter =
     L.counter && voices.countervoice === "none"
       ? (song.sectionCounters[sectionIndex] ?? song.counter)
@@ -1074,6 +1084,67 @@ function chordToneBelow(key: Key, slots: readonly ChordSlot[], n: Note): number 
     notesInRange(chordPitchClasses(key, slot.chord), n.midi - 7, n.midi - 3).at(-1) ??
     thirdBelow(key, slots, n)
   );
+}
+
+/**
+ * Innocent Love's piano in the sung verses (by ear, sandra-innocent-love.md §12): a few notes
+ * where the voice rests or holds, accenting the chord change. Counted on the record's verses, a
+ * fill has 1 to 4 notes, mostly 1 or 2, the busiest late in the verse (here about 3, as ours
+ * leaves room only every other bar), and its last note usually
+ * lands on the next bar's downbeat. Here, from the 8th a beat after the bar's last sung onset
+ * (sooner if it ends sooner): a walk up or down the coming chord's tones in the piano's
+ * A♭4–A♭5, turning back at its ends, an 8th, a dotted 8th or a beat apart, drawn per fill (the same pair every
+ * time was "too repetitive", clip 8a; then "more variety in the number of notes", clip 9b).
+ * None when the voice sings past beat 4.
+ */
+function pianoFill(
+  key: Key,
+  slots: readonly ChordSlot[],
+  lead: readonly Note[],
+  into: ChordSlot | undefined,
+  late: boolean,
+  rng: Rng,
+): Note[] {
+  // The voice's last note may be held to the bar line: the piano comes in under its tail.
+  const sung = Math.max(0, ...lead.map((n) => n.step + Math.min(n.dur, 4)));
+  const from = Math.ceil(sung / 2) * 2;
+  const chord = (into ?? slotAt(slots, 15))?.chord;
+  if (from > 12 || !chord) return [];
+  const tones = notesInRange(chordPitchClasses(key, chord), 68, 80);
+  if (!tones.length) return [];
+  const gap = rng.pick([2, 2, 2, 3, 4]);
+  // On the downbeat (step 16, the next bar's 1) or ringing from the first free 8th.
+  const end = rng.chance(0.7) ? 16 : from + rng.int(0, 1) * 2;
+  const room = Math.floor((end - from) / gap) + 1;
+  const wanted = rng.weighted<number>(
+    late
+      ? [
+          [2, 1],
+          [3, 3],
+          [4, 5],
+        ]
+      : [
+          [1, 1],
+          [2, 2],
+          [3, 4],
+          [4, 3],
+        ],
+  );
+  const count = Math.max(1, Math.min(wanted, room));
+  // A walk over the chord's tones, turning back at the range's ends.
+  let at = rng.int(0, tones.length - 1);
+  let dir = rng.chance(0.5) ? 1 : -1;
+  const picked: number[] = [];
+  for (let i = 0; i < count; i++) {
+    picked.push(tones[at]!);
+    if (tones.length === 1) continue;
+    if (at + dir < 0 || at + dir >= tones.length) dir = -dir;
+    at += dir;
+  }
+  return picked.map((midi, i) => {
+    const step = end - (count - 1 - i) * gap;
+    return { step, dur: i === count - 1 ? 8 : gap, midi, vel: i === count - 1 ? 0.45 : 0.4 };
+  });
 }
 
 /** A diatonic 3rd under a lead note: the stacked voice of You Came's choruses and Self Control's

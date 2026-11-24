@@ -332,13 +332,13 @@ Roles and registers only; the melodies, the riffs and the lyrics are the composi
 | -------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | Intro A (0:00.8)           | sustained triads, E♭m and B♭m, mid register                         | a soft 16th figure (about 9 onsets a bar in the "other" stem)                  | none                                                                                               |
 | Intro B (0:17.5)           | B and D♭                                                            | as before                                                                      | **held notes around B♭4**, under 1 onset a bar                                                     |
-| Verse                      | quiet pads, the "other" stem 2–3 dB under the chorus                | none                                                                           | **lead alone, low**: about A3–F4 (5th–95th percentile), 5–6 onsets a bar                           |
+| Verse                      | quiet pads, the "other" stem 2–3 dB under the chorus                | the piano: a couple of notes at the chord changes, every two bars or so        | **lead alone, low**: about A3–F4 (5th–95th percentile), 5–6 onsets a bar                           |
 | Pre-chorus                 | the Cø7 colour                                                      | none                                                                           | lead alone, about F♯3–F♯4                                                                          |
 | Turn                       | B, B♭ major                                                         | none                                                                           | lead up to E♭5                                                                                     |
 | Chorus                     | fuller chords                                                       | **chord stabs** on 1, 1&, 2e, 2&, 3& and 4e, close to the bass figure's rhythm | **stacked voices** (two or more pitches in 60–64% of frames, against 27–32% in the verses), A♭3–B4 |
 | Chorus stop                | D♭ held                                                             | none                                                                           | a held or trailing line                                                                            |
 | Instrumental link (2:39.2) | none (by ear); the hits play B♭11, E♭maj7                           | **orchestral hits** (by ear), overtones up to C♯7, over the bass riff          | none                                                                                               |
-| Instrumental verse         | the verse chords; the "other" stem about 8 dB louder than when sung | an instrumental lead in place of the voice, its own tune, A♭4–A♭5 (§12)        | none                                                                                               |
+| Instrumental verse         | the verse chords; the "other" stem about 8 dB louder than when sung | a reverb-drenched piano in place of the voice, its own tune, A♭4–A♭5 (§12)     | none                                                                                               |
 | Bridge (3:45.9)            | Aeolian chords                                                      | stabs; 16th hats                                                               | **the highest section**: E♭4–C♯5, stacked (85% of frames)                                          |
 | Chorus 4                   | as the chorus                                                       | as the chorus                                                                  | stacked voices and ad-libs, up to C5                                                               |
 
@@ -652,7 +652,14 @@ the record over four rounds (clips 2d–5a). The user confirmed v4 (clip 5a): "a
   10 16ths between quicker steps.
 - **Register:** A♭4–A♭5, centred on B♭4–C♯5. The energy the instrumental verse adds sits in
   octaves 6–7 (+20 dB over the sung verse there): overtones, not the notes.
-- **Tone:** very bright: its overtones reach octave 7, where the sung verse has almost nothing.
+- **Sound: a piano with a lot of reverb** (by ear, 2026-11-23). Bright: its overtones reach
+  octave 7, where the sung verse has almost nothing. On the isolated line h2–h4 sit 11–16 dB
+  under the fundamental, h5–h6 about 33 dB, h7 45; a note falls about 3 dB by 0.2 s and 6–8 dB by
+  0.7–1 s. After a note ends the tail falls about 8 dB in 0.4 s and 14 dB in 1 s.
+- **The same piano in the sung verses** (by ear): a couple of notes where Sandra isn't singing,
+  accenting the chord changes, about once every two bars. Its attacks in the "other" stem fall
+  mostly just before the bar lines, some on beats 2, 3, 3& and 4; above 1 kHz the stem is about
+  16 dB quieter than in the instrumental verse (clip 7a).
 - **Echo:** a dotted-8th echo (3 16ths) repeats each note audibly. Two echoes in bar 86 (F5 on
   3e, E♭5 on 3&) read as notes in v3 and were wrong.
 - **Level:** about 6 dB under the mix (−25.6 against −19.8 dBFS RMS, the stem's added power
@@ -671,10 +678,26 @@ The notes, as 16th positions in the bar (0 = beat 1; fractions are measured push
 | 86  | F5 (2, 2) · E♭5 (4, 2) · F5 (6, 5.5)                                 |
 | 87  | rest                                                                 |
 
-**Ours today** (seed 1, original mode): a new sparse line from The Night's lead range, raised an
+**Ours before** (seed 1, original mode): a new sparse line from The Night's lead range, raised an
 octave for the saw patch (Crazy Juliet's register): F5–C♯6, mostly repeated B♭5s of 2 16ths,
-about 18 dB under the mix. So it is an octave too high, choppier, and 12 dB too quiet: the
-"teeny tiny high" line. The link plays pads and the same sparse line, not orchestral hits.
+about 18 dB under the mix: an octave too high, choppier, and 12 dB too quiet (the "teeny tiny
+high" line).
+
+**Ours now** (`synthPatch: "piano"`, checked by ear in clips 12a and 12b):
+
+- The instrumental verse plays its own generated line in A♭4–A♭5, phrased as the record's (held,
+  busy, held, rest; busy, from beat 3, busy, rest).
+- The piano is additive: the measured harmonics, each a sine stretched sharp as a stiff string's
+  (B = 0.001) and fading on its own, the high ones faster; a second string 3.5 cents up on h1–h2;
+  a short noise for the hammer. Two FM versions before it, one holding a level and one fading,
+  both sounded "like an e-piano".
+- Sends: 1.8 to the 3.2 s reverb, 0.6 to the dotted-8th echo ("not enough reverb / echo" at 1
+  and 0.25). Level: the piano alone at about −17 dBFS in the instrumental verse ("right level";
+  4 dB higher was "way too loud").
+- In the sung verses it answers the voice wherever she leaves room (every other bar in ours):
+  1–4 notes walking over the coming chord's tones, an 8th to a beat apart, mostly ending on the
+  next downbeat, fuller late in the verse; 9–11 notes a verse ("enough now").
+- The link still plays pads and the line, not orchestral hits.
 
 Clips in `renders/ear-check-il-lead/` (gitignored), the record's bars 75–87 (2:37.2) unless noted:
 
@@ -688,6 +711,10 @@ Clips in `renders/ear-check-il-lead/` (gitignored), the record's bars 75–87 (2
 | 5a   | bars 79–87 (2:45.4): the record's mix with the transcription (v4) as a tone |
 | 5b   | the same over the isolated line                                             |
 | 5c   | the transcription alone                                                     |
+| 7a   | the record's verse 1 (0:28.0), its "other" stem, normalised                 |
+| 7b   | the same, the mix                                                           |
+| 12a  | ours now: the instrumental verse on the piano                               |
+| 12b  | ours now: verse 1 with the piano's fills                                    |
 
 ### Ear check
 

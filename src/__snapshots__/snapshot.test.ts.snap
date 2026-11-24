@@ -789,7 +789,7 @@ exports[`output snapshot > euro seed 1 weights 0/1/0 1`] = `
 
 exports[`output snapshot > euro seed 1 weights 1/0/0 1`] = `
 {
-  "bars": "5391ba9430126ba5288457",
+  "bars": "dbcd318e44248f5e289381",
   "bassStyle": "innocent",
   "bpm": 114,
   "key": {
@@ -797,7 +797,7 @@ exports[`output snapshot > euro seed 1 weights 1/0/0 1`] = `
     "tonic": 1,
   },
   "kit": "linndrum",
-  "melodies": "18e634c3610545bd17138",
+  "melodies": "0c925a715c01fa1d16822",
   "motifs": "53b3bdb075f68eaf1925",
   "progressions": {
     "bridge": [
@@ -957,7 +957,7 @@ exports[`output snapshot > euro seed 1 weights 1/0/0 1`] = `
 
 exports[`output snapshot > euro seed 1 weights auto 1`] = `
 {
-  "bars": "7093f1bb868b9d31276969",
+  "bars": "0846d95cee66a000278329",
   "bassStyle": "heaven",
   "bpm": 117,
   "key": {
@@ -2300,7 +2300,7 @@ exports[`output snapshot > euro seed 42 weights 0/1/0 1`] = `
 
 exports[`output snapshot > euro seed 42 weights 1/0/0 1`] = `
 {
-  "bars": "408f5d3be728325d312524",
+  "bars": "fc234d851ff9add4313406",
   "bassStyle": "innocent",
   "bpm": 114.5,
   "key": {
@@ -2308,7 +2308,7 @@ exports[`output snapshot > euro seed 42 weights 1/0/0 1`] = `
     "tonic": 8,
   },
   "kit": "linndrum",
-  "melodies": "9f903a2c3a24329417427",
+  "melodies": "c3fe9f448f50152c17189",
   "motifs": "70ca88782aaee57f1895",
   "progressions": {
     "bridge": [
@@ -2674,7 +2674,7 @@ exports[`output snapshot > euro seed 42 weights auto 1`] = `
 
 exports[`output snapshot > euro seed 1234 weights auto 1`] = `
 {
-  "bars": "85fb763c5d937baa207894",
+  "bars": "61fa57be8f32c29c207975",
   "bassStyle": "innocent",
   "bpm": 117,
   "key": {
@@ -2682,7 +2682,7 @@ exports[`output snapshot > euro seed 1234 weights auto 1`] = `
     "tonic": 1,
   },
   "kit": "linndrum",
-  "melodies": "5c7a91622db8bd9a18335",
+  "melodies": "965add0c93ce94fd18056",
   "motifs": "304b2ffc394875e32047",
   "progressions": {
     "bridge": [
@@ -3255,7 +3255,7 @@ exports[`output snapshot > heaven-can-wait 1`] = `
 
 exports[`output snapshot > innocent-love 1`] = `
 {
-  "bars": "73b484994e70f6bd335924",
+  "bars": "1c4c8aecd6d9ccd6336768",
   "bassStyle": "innocent",
   "bpm": 115.2,
   "key": {
@@ -3263,7 +3263,7 @@ exports[`output snapshot > innocent-love 1`] = `
     "tonic": 3,
   },
   "kit": "linndrum",
-  "melodies": "63adcf5605709e6621618",
+  "melodies": "d846f55676e4c67f21182",
   "motifs": "5586b8e5b963ae3a1939",
   "progressions": {
     "bridge": [
@@ -12285,7 +12285,7 @@ exports[`output snapshot > theory blend seed 403 true-faith 0.5 + the-night 0.5 
 
 exports[`output snapshot > theory euro seed 300 weights 0.34/0.33/0.33 1`] = `
 {
-  "bars": "bd8b195d4671a2b7213834",
+  "bars": "d0c31628c1867886214714",
   "bassStyle": "heaven",
   "bpm": 118.5,
   "key": {
@@ -12603,7 +12603,7 @@ exports[`output snapshot > theory euro seed 303 weights 0.1/0.1/0.8 1`] = `
 
 exports[`output snapshot > theory euro seed 303 weights 0.8/0.1/0.1 1`] = `
 {
-  "bars": "e011d5945d5509ea314869",
+  "bars": "3600746df898bb38315749",
   "bassStyle": "innocent",
   "bpm": 116.5,
   "key": {
