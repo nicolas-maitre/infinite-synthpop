@@ -323,8 +323,30 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
     player?.scrollIntoView({ behavior: "smooth", block: "start" }),
   );
 
+  // A drag lasts while the slider is pressed. An `input` with no press (keys, the wheel) commits at
+  // once, and a press ends however it ends (let go outside the slider, the window left mid-drag),
+  // so a `change` that never comes can't freeze the bar while the time counts on.
+  let pressed = false;
+  ui.seek.addEventListener("pointerdown", () => {
+    pressed = true;
+  });
+  const letGo = () => {
+    if (!pressed) return;
+    pressed = false;
+    // After the `change` that letting go sends, if it sends one.
+    setTimeout(() => {
+      if (!pressed) dragging = false;
+    });
+  };
+  window.addEventListener("pointerup", letGo, true);
+  window.addEventListener("pointercancel", letGo, true);
+  window.addEventListener("blur", () => {
+    pressed = false;
+    dragging = false;
+  });
+
   ui.seek.addEventListener("input", () => {
-    dragging = true;
+    dragging = pressed;
     if (!song) return;
     const bar = Number(ui.seek.value);
     ui.elapsed.textContent = clock(bar * barSeconds(song));
@@ -555,6 +577,8 @@ export function mountSimpleView(root: HTMLElement, actions: SimpleViewActions): 
       ui.meta.textContent = songMeta(next);
       ui.miniMeta.textContent = ui.meta.textContent;
       showMini();
+      // A drag through the song before means nothing in this one.
+      pressed = dragging = false;
       ui.seek.max = String(next.totalBars);
       // A new song's render starts from nothing shown.
       ui.buffered.style.width = "0%";
